@@ -1,0 +1,175 @@
+{
+	"_version": "1.21.0",
+	"sap.app": {
+		"id": "my.lib.sample.root",
+		"type": "application",
+		"i18n": {
+			"bundleUrl": "i18n/i18n.properties",
+			"supportedLocales": [
+				"en"
+			],
+			"fallbackLocale": "en"
+		},
+		"title": "{{appTitle}}",
+		"description": "{{appDescription}}",
+		"applicationVersion": {
+			"version": "1.0.0"
+		},
+		"dataSources": {
+			"mainService": {
+				"uri": "/myservice/V2/Northwind.svc",
+				"type": "OData",
+				"settings": {
+					"odataVersion": "2.0",
+					"localUri": "localService/metadata.xml"
+				}
+			}
+		}
+	},
+	"sap.ui": {
+		"technology": "UI5",
+		"deviceTypes": {
+			"desktop": true,
+			"tablet": true,
+			"phone": true
+		}
+	},
+	"sap.ui5": {
+		"contentDensities": {
+			"cozy": true,
+			"compact": true
+		},
+		"rootView": {
+			"viewName": "my.lib.sample.root.view.App",
+			"type": "XML",
+			"async": true,
+			"id": "app"
+		},
+		"componentUsages": {
+			"suppliersComponent": {
+				"name": "my.lib.sample.suppliers",
+				"settings": {},
+				"componentData": {},
+				"lazy": true
+			},
+			"categoriesComponent": {
+				"name": "my.lib.sample.categories",
+				"settings": {},
+				"componentData": {},
+				"lazy": true
+			},
+			"productsComponent": {
+				"name": "my.lib.sample.products",
+				"settings": {},
+				"componentData": {},
+				"lazy": true
+			}
+		},
+		"dependencies": {
+			"minUI5Version": "1.75.0",
+			"libs": {
+				"sap.ui.core": {},
+				"sap.m": {},
+				"sap.tnt": {}
+			},
+			"components": {
+				"my.lib.sample.base": {}
+			}
+		},
+		"models": {
+			"i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"settings": {
+					"bundleName": "my.lib.sample.root.i18n.i18n",
+					"supportedLocales": [
+						"en"
+					],
+					"fallbackLocale": "en"
+				}
+			}
+		},
+		"resources": {
+			"css": [
+				{
+					"uri": "css/style.css"
+				}
+			]
+		},
+		"routing": {
+			"config": {
+				"routerClass": "sap.m.routing.Router",
+				"viewType": "XML",
+				"path": "my.lib.sample.root.view",
+				"controlId": "app",
+				"controlAggregation": "pages",
+				"transition": "slide",
+				"bypassed": {
+					"target": "notFoundTarget"
+				},
+				"async": true,
+				"propagateTitle": true
+			},
+			"routes": [
+				{
+					"name": "homeRoute",
+					"pattern": "",
+					"target": "homeTarget"
+				},
+				{
+					"name": "suppliersRoute",
+					"pattern": "suppliers",
+					"target": {
+						"name": "suppliersTarget",
+						"prefix": "s"
+					}
+				},
+				{
+					"name": "categoriesRoute",
+					"pattern": "categories",
+					"target": {
+						"name": "categoriesTarget",
+						"prefix": "c"
+					}
+				},
+				{
+					"name": "productsRoute",
+					"pattern": "products",
+					"target": {
+						"name": "productsTarget",
+						"prefix": "p"
+					}
+				}
+			],
+			"targets": {
+				"homeTarget": {
+					"type": "View",
+					"id": "home",
+					"name": "Home",
+					"title": "Home"
+				},
+				"suppliersTarget": {
+					"type": "Component",
+					"usage": "suppliersComponent",
+					"title": "Suppliers"
+				},
+				"categoriesTarget": {
+					"type": "Component",
+					"usage": "categoriesComponent",
+					"title": "Categories"
+				},
+				"productsTarget": {
+					"type": "Component",
+					"usage": "productsComponent",
+					"title": "Products",
+					"id": "productRoot"
+				},
+				"notFoundTarget": {
+					"type": "View",
+					"id": "notFound",
+					"name": "NotFound",
+					"transition": "show"
+				}
+			}
+		}
+	}
+}

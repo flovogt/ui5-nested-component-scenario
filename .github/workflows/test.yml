@@ -1,0 +1,29 @@
+name: Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test-application:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v1.4.2
+      with:
+        node-version: "14.x"
+    - name: Install the Dependencies
+      run: yarn
+      working-directory: ./demo
+    - name: Test the Application
+      run: npm run test
+      working-directory: ./demo/RootComponent
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: "./demo/RootComponent/coverage/lcov/lcov.info"
+        base-path: "./demo/RootComponent"

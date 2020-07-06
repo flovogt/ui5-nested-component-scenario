@@ -1,0 +1,134 @@
+{
+	"_version": "1.21.0",
+	"sap.app": {
+		"id": "my.lib.sample.products",
+		"type": "application",
+		"i18n": {
+			"bundleUrl": "i18n/i18n.properties",
+			"supportedLocales": [
+				""
+			],
+			"fallbackLocale": ""
+		},
+		"title": "{{appTitle}}",
+		"description": "{{appDescription}}",
+		"applicationVersion": {
+			"version": "1.0.0"
+		},
+		"dataSources": {
+			"mainService": {
+				"uri": "/myservice/V2/Northwind.svc",
+				"type": "OData",
+				"settings": {
+					"odataVersion": "2.0",
+					"localUri": "localService/metadata.xml"
+				}
+			}
+		}
+	},
+	"sap.ui": {
+		"technology": "UI5",
+		"deviceTypes": {
+			"desktop": true,
+			"tablet": true,
+			"phone": true
+		}
+	},
+	"sap.ui5": {
+		"contentDensities": {
+			"cozy": true,
+			"compact": true
+		},
+		"rootView": {
+			"viewName": "my.lib.sample.products.view.App",
+			"type": "XML",
+			"async": true,
+			"id": "app"
+		},
+		"dependencies": {
+			"minUI5Version": "1.75.0",
+			"libs": {
+				"sap.ui.core": {},
+				"sap.ui.layout": {},
+				"sap.m": {}
+			},
+			"components": {
+				"my.lib.sample.base": {}
+			}
+		},
+		"models": {
+			"i18n": {
+				"type": "sap.ui.model.resource.ResourceModel",
+				"settings": {
+					"bundleName": "my.lib.sample.products.i18n.i18n",
+					"supportedLocales": [
+						""
+					],
+					"fallbackLocale": ""
+				}
+			},
+			"": {
+				"dataSource": "mainService",
+				"preload": true,
+				"settings": {
+					"useBatch": false,
+					"defaultCountMode": "Inline",
+					"defaultBindingMode": "TwoWay"
+				}
+			}
+		},
+		"resources": {
+			"css": [
+				{
+					"uri": "css/style.css"
+				}
+			]
+		},
+		"routing": {
+			"config": {
+				"routerClass": "sap.m.routing.Router",
+				"viewType": "XML",
+				"path": "my.lib.sample.products.view",
+				"controlId": "app",
+				"controlAggregation": "pages",
+				"transition": "slide",
+				"bypassed": {
+					"target": "notFoundTarget"
+				},
+				"async": true
+			},
+			"routes": [
+				{
+					"name": "listRoute",
+					"pattern": ":basepath:",
+					"target": "listTarget"
+				},
+				{
+					"name": "detailRoute",
+					"pattern": "detail/{id}",
+					"target": "detailTarget"
+				}
+			],
+			"targets": {
+				"listTarget": {
+					"type": "View",
+					"id": "list",
+					"name": "List",
+					"title": "Products List"
+				},
+				"detailTarget": {
+					"type": "View",
+					"id": "detail",
+					"name": "Detail",
+					"title": "{ProductName}"
+				},
+				"notFoundTarget": {
+					"type": "View",
+					"id": "notFound",
+					"name": "NotFound",
+					"transition": "show"
+				}
+			}
+		}
+	}
+}

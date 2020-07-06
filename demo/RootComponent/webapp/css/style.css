@@ -1,0 +1,25 @@
+li.sapTntNavLIItemSelected[id$="suppliersItem"] > div.sapTntNavLIItem {
+	background-color: antiquewhite;
+}
+
+li.sapTntNavLIItemSelected[id$="categoriesItem"] > div.sapTntNavLIItem {
+	background-color: aquamarine;
+}
+
+li.sapTntNavLIItemSelected[id$="productsItem"] > div.sapTntNavLIItem {
+	background-color: lightblue;
+}
+
+.maxWidth100 {
+	max-width: 100%;
+}
+
+nav.sapMBreadcrumbs {
+	margin: 0 !important;
+	padding: 5px;
+}
+
+/* Change position to 'static', if not tnt.Toolpage forces 'absolute' with that no OPA5 output is visible*/
+.myToolPage{
+	position: static !important;
+}

@@ -1,0 +1,16 @@
+{
+  "name": "ui5con20-ui5-routing-demo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "ui5con20-ui5-routing demo",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "workspaces": [
+    "BaseComponent",
+    "ProductsComponent",
+    "CategoriesComponent",
+    "SuppliersComponent",
+    "RootComponent"
+  ]
+}

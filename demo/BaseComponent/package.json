@@ -1,0 +1,40 @@
+{
+  "name": "my-lib-sample-base-component",
+  "private": true,
+  "version": "0.0.1",
+  "description": "This is the base component",
+  "scripts": {
+    "start": "ui5 serve",
+    "test": "npm run lint && rimraf coverage && npm run karma-ci",
+    "lint": "eslint src",
+    "karma": "karma start",
+    "karma-ci": "karma start karma-ci.conf.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.wdf.sap.corp:ui5core/ui5con20-ui5-routing.git"
+  },
+  "keywords": [
+    "openui5",
+    "sapui5",
+    "ui5",
+    "ui5con",
+    "ui5-routing",
+    "ui5-component"
+  ],
+  "devDependencies": {
+    "eslint": "^7.3.1",
+    "@ui5/cli": "^2.2.6",
+    "local-web-server": "^4.2.1",
+    "karma": "^5.1.0",
+    "karma-coverage": "^2.0.2",
+    "karma-chrome-launcher": "^3.1.0",
+    "karma-ui5": "^2.2.0",
+    "rimraf": "^3.0.2"
+  },
+  "engines": {
+    "node": ">= 10"
+  },
+  "author": "Jiawei Cao, Florian Vogt",
+  "license": "Apache-2.0"
+}

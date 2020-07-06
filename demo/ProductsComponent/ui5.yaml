@@ -1,0 +1,11 @@
+specVersion: '2.1'
+metadata:
+  name: my.lib.sample.products
+type: library
+framework:
+  name: OpenUI5
+  version: 1.79.0
+  libraries:
+    - name: sap.ui.core
+    - name: sap.m
+    - name: themelib_sap_fiori_3

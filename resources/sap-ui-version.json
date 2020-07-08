@@ -1,37 +1,37 @@
 {
 	"name": "RootComponent",
 	"version": "0.0.1",
-	"buildTimestamp": "202007081426",
+	"buildTimestamp": "202007081433",
 	"scmRevision": "",
 	"libraries": [
 		{
-			"name": "sap.ui.layout",
+			"name": "sap.ui.unified",
 			"version": "1.79.0",
-			"buildTimestamp": "202007081426",
+			"buildTimestamp": "202007081433",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.m",
 			"version": "1.79.0",
-			"buildTimestamp": "202007081426",
+			"buildTimestamp": "202007081433",
+			"scmRevision": ""
+		},
+		{
+			"name": "sap.ui.layout",
+			"version": "1.79.0",
+			"buildTimestamp": "202007081433",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.core",
 			"version": "1.79.0",
-			"buildTimestamp": "202007081426",
-			"scmRevision": ""
-		},
-		{
-			"name": "sap.ui.unified",
-			"version": "1.79.0",
-			"buildTimestamp": "202007081426",
+			"buildTimestamp": "202007081433",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.tnt",
 			"version": "1.79.0",
-			"buildTimestamp": "202007081426",
+			"buildTimestamp": "202007081433",
 			"scmRevision": ""
 		}
 	]

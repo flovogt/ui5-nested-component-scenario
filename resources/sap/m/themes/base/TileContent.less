@@ -1,0 +1,168 @@
+/* ================================== */
+/* CSS for control sap.m/TileContent  */
+/* Base theme                         */
+/* ================================== */
+
+.sapMTileCnt {
+	display: inline-block;
+	box-sizing: border-box;
+	position: relative;
+	height: 6.375rem;
+    vertical-align: top;
+
+	/* FrameType: Auto */
+	&.sapMFrameTypeAuto {
+		min-width: 9rem;
+	}
+
+	/* FrameType: TwoByOne */
+	&.sapMFrameTypeTwoByOne {
+		width: 100%;
+	}
+
+	/* FrameType: OneByOne */
+	&.sapMFrameTypeOneByOne {
+		width: 100%;
+	}
+}
+
+/* Improved behaviour for TileContent in GenericTile */
+.sapMGT .sapMTileCnt.sapMFrameTypeAuto:only-child {
+	width: 100%;
+}
+.sapMGT .sapMTileCnt.sapMFrameTypeAuto:not(:only-child) {
+	width: ~"calc(50% - 0.25rem)"; //0.5rem margin between the contents
+}
+
+/* Footer CSS */
+.sapMTileCntFtrTxt {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	text-align: right;
+	position: absolute;
+	right: 0;
+	left: 0;
+	box-sizing: border-box;
+	height: 1rem;
+	bottom: 1rem;
+	margin-left: 1rem;
+	margin-right: 1rem;
+	line-height: normal;
+	font-family: @sapUiFontFamily;
+	font-size: @sapMFontMediumSize;
+	font-weight: normal;
+}
+
+.sapMGT .sapMTileCntFtrTxt {
+	text-align: left;
+}
+
+html[dir=rtl] .sapMGT .sapMTileCntFtrTxt {
+	text-align: right;
+}
+
+.sapMTileCntFooterTextColorNeutral {
+	color: @sapUiTileTextColor;
+}
+
+.sapMTileCntFooterTextColorGood {
+	color: @sapUiPositiveText;
+}
+
+.sapMTileCntFooterTextColorError {
+	color: @sapUiNegativeText;
+}
+
+.sapMTileCntFooterTextColorCritical {
+	color: @sapUiCriticalText;
+}
+
+html[dir=rtl] .sapMTileCntFtrTxt {
+	text-align: left;
+}
+
+/* Content */
+.sapMTileCntContent {
+	overflow: visible;
+	display: inline-block;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.sapMTileCntContent > .sapMTcInnerMarker {
+	vertical-align: bottom;
+	line-height: normal;
+}
+
+.sapMTileCntContent {
+	height: 3.875rem;
+	margin-bottom: 0.25rem;
+	margin-top: 0.25rem;
+	padding-left: 1rem;
+	padding-right: 1rem;
+}
+
+.sapMTileCnt + .sapMTileCnt {
+	margin-left: 0.5rem;
+}
+
+.sapMTileCntContent > .sapMNwC {
+	background-color: inherit;
+}
+
+.sapMTileCnt.News {
+	height: 6.125rem;
+	margin-top: 0.125rem;
+	background-color: @sapUiTileBackground;
+
+	.sapMTileCntContent {
+		padding-left: 1rem;
+		padding-right: 1rem;
+	}
+
+	.sapMTileCntFtrTxt {
+		margin-left: 1rem;
+		margin-right: 1rem;
+	}
+
+	.sapMTileCntContent > .sapMTcInnerMarker {
+		vertical-align: top;
+	}
+}
+
+.sapMTileSmallPhone {
+	.sapMTileCnt {
+		height: 5.5rem;
+	}
+
+	.sapMTileCntFtrTxt {
+		height: 1.063rem;
+		line-height: normal;
+		bottom: 0.5rem;
+		margin-left: 0.5rem;
+		margin-right: 0.5rem;
+		font-size: @sapMFontSmallSize;
+	}
+
+	.sapMTileCntContent {
+		margin-bottom: 0.25rem;
+		margin-top: 0.25rem;
+		padding-left: 0.5rem;
+		padding-right: 0.5rem;
+	}
+
+	.sapMTileCnt.News {
+		height: 5.25rem;
+
+		.sapMTileCntContent {
+			padding-left: 0.5rem;
+			padding-right: 0.5rem;
+		}
+
+		.sapMTileCntFtrTxt {
+			margin-left: 0.5rem;
+			margin-right: 0.5rem;
+		}
+	}
+}

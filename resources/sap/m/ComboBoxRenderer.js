@@ -1,0 +1,6 @@
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.define(["./ComboBoxBaseRenderer","sap/ui/core/Renderer","sap/ui/Device"],function(e,s){"use strict";var t=s.extend(e);t.apiVersion=2;t.CSS_CLASS_COMBOBOX="sapMComboBox";t.addOuterClasses=function(s,a){e.addOuterClasses.apply(this,arguments);s.class(t.CSS_CLASS_COMBOBOX);if(!a.isOpen()&&document.activeElement===a.getFocusDomRef()){s.class("sapMFocus")}};t.addInnerClasses=function(s,a){e.addInnerClasses.apply(this,arguments);s.class(t.CSS_CLASS_COMBOBOX+"Inner")};t.addButtonClasses=function(s,a){e.addButtonClasses.apply(this,arguments);s.class(t.CSS_CLASS_COMBOBOX+"Arrow")};t.addPlaceholderClasses=function(s,a){e.addPlaceholderClasses.apply(this,arguments);s.class(t.CSS_CLASS_COMBOBOX+"Placeholder")};t.writeInnerAttributes=function(s,t){var a=t.getSelectedItem(),n=a&&t.getListItem(a),r=t.isOpen(),d=t.getProperty("formattedTextFocused");e.writeInnerAttributes.apply(this,arguments);s.attr("aria-expanded",r);if(d){s.attr("aria-activedescendant",t._getFormattedValueStateText().getId())}else if(n&&n.hasStyleClass("sapMLIBFocused")){s.attr("aria-activedescendant",n.getId())}};return t},true);

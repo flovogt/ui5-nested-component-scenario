@@ -1,4 +1,5 @@
 ![Deploy](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Deploy/badge.svg?branch=master)
+![Test](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Test/badge.svg?branch=master)
 
 # Getting started 
 1. Run `yarn` in the shell

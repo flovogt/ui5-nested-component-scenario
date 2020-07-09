@@ -45,7 +45,11 @@
 			"minUI5Version": "1.75.0",
 			"libs": {
 				"sap.ui.core": {},
+				"sap.ui.layout": {},
 				"sap.m": {}
+			},
+			"components": {
+				"my.lib.sample.base": {}
 			}
 		},
 		"models": {

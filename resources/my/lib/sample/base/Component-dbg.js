@@ -4,7 +4,7 @@ sap.ui.define([
 ], function(UIComponent, deepClone) {
 	"use strict";
 
-	return UIComponent.extend("my.lib.sample.base.BaseComponent", {
+	return UIComponent.extend("my.lib.sample.base.Component", {
 		init: function() {
 			UIComponent.prototype.init.apply(this, arguments);
 

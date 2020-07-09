@@ -67,6 +67,9 @@
 				"sap.ui.core": {},
 				"sap.m": {},
 				"sap.tnt": {}
+			},
+			"components": {
+				"my.lib.sample.base": {}
 			}
 		},
 		"models": {

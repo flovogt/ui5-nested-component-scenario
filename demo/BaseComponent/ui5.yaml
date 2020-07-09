@@ -7,3 +7,7 @@ framework:
   version: 1.79.0
   libraries:
     - name: sap.ui.core
+builder:
+  componentPreload:
+    namespaces:
+      - "my/lib/sample/base"

@@ -12,9 +12,9 @@ const stringReplacer = require("@ui5/builder").processors.stringReplacer;
 * @returns {Promise<undefined>} Promise resolving with <code>undefined</code> once data has been written
 */
 module.exports = async function ({ workspace, dependencies, options }) {
-    return workspace.byGlob("**/*.html").then((allResources) => {
+    return workspace.byGlob(options.configuration.pattern).then((allResources) => {
         return stringReplacer({
-            resources: allResources.filter(resource => options.configuration.files.includes(resource.getPath())),
+            resources: allResources,
             options: {
                 pattern: "sap-ui-core.js",
                 replacement: "sap-ui-custom.js"

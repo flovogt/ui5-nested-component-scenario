@@ -15,8 +15,8 @@ builder:
   - name: ReplaceBootstrapFileWithStandaloneVersion
     afterTask: generateVersionInfo
     configuration:
-      files:
-        /resources/my/lib/sample/root/test/mockServer.html
+      pattern: 
+      - "/resources/my/lib/sample/root/test/mockServer.html"
 
 ---
 # Task extension as part of your project

@@ -1,7 +1,7 @@
-sap.ui.define(["my/lib/sample/base/BaseComponent"], function(BaseComponent) {
+sap.ui.define(["my/lib/sample/base/Component"], function(Component) {
 	"use strict";
 
-	return BaseComponent.extend("my.lib.sample.suppliers.Component", {
+	return Component.extend("my.lib.sample.suppliers.Component", {
 		metadata: {
 			manifest: "json"
 		},

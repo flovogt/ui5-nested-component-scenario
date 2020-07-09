@@ -5,7 +5,7 @@
   "description": "This is the suppliers component including components",
   "scripts": {
     "start": "ui5 serve",
-    "build": "ui5 build self-contained -a --clean-dest",
+    "build": "ui5 build -a --clean-dest",
     "serve": "ws --compress -d dist",
     "test": "npm run lint && rimraf coverage && npm run karma-ci",
     "lint": "eslint webapp",

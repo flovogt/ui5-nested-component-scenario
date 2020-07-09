@@ -9,3 +9,7 @@ framework:
     - name: sap.ui.core
     - name: sap.m
     - name: themelib_sap_fiori_3
+builder:
+  componentPreload:
+    namespaces:
+      - "my/lib/sample/categories"

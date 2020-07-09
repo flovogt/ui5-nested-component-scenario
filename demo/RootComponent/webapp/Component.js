@@ -1,9 +1,9 @@
 sap.ui.define([
-	"my/lib/sample/base/BaseComponent"
-], function(BaseComponent) {
+	"my/lib/sample/base/Component"
+], function(Component) {
 		"use strict";
 
-		return BaseComponent.extend("my.lib.sample.root.Component", {
+		return Component.extend("my.lib.sample.root.Component", {
 			metadata: {
 				manifest: "json"
 			},
@@ -12,7 +12,7 @@ sap.ui.define([
 			// this component registers handler to those events and navigates
 			// to the other reuse components
 			//
-			// see the implementation in BaseComponent for processing the event
+			// see the implementation in Component for processing the event
 			// mapping
 			eventMappings: {
 				suppliersComponent: [{
@@ -92,7 +92,7 @@ sap.ui.define([
 			},
 			init: function() {
 				// call the init function of the parent
-				BaseComponent.prototype.init.apply(this, arguments);
+				Component.prototype.init.apply(this, arguments);
 			}
 		});
 	}

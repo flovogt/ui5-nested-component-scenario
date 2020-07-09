@@ -10,3 +10,20 @@ framework:
     - name: sap.m
     - name: sap.tnt
     - name: themelib_sap_fiori_3
+builder:
+  customTasks:
+  - name: ReplaceBootstrapFileWithStandaloneVersion
+    afterTask: generateVersionInfo
+    configuration:
+      pattern: 
+      - "/resources/my/lib/sample/root/test/mockServer.html"
+
+---
+# Task extension as part of your project
+specVersion: "2.1"
+kind: extension
+type: task
+metadata:
+  name: ReplaceBootstrapFileWithStandaloneVersion
+task:
+  path: lib/tasks/replaceBootstrapFileWithStandaloneVersion.js

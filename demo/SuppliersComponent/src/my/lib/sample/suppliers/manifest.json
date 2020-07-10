@@ -35,6 +35,10 @@
 		}
 	},
 	"sap.ui5": {
+		"contentDensities": {
+			"cozy": true,
+			"compact": true
+		},
 		"rootView": {
 			"viewName": "my.lib.sample.suppliers.view.App",
 			"type": "XML",
@@ -73,11 +77,11 @@
 			},
 			"": {
 				"dataSource": "mainService",
-				"defaultBindingMode": "TwoWay",
 				"preload": true,
 				"settings": {
 					"useBatch": false,
-					"defaultCountMode": "Inline"
+					"defaultCountMode": "Inline",
+					"defaultBindingMode": "TwoWay"
 				}
 			}
 		},

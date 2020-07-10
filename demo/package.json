@@ -12,5 +12,7 @@
     "CategoriesComponent",
     "SuppliersComponent",
     "RootComponent"
-  ]
+  ],
+  "author": "Jiawei Cao, Florian Vogt",
+  "license": "Apache-2.0"
 }

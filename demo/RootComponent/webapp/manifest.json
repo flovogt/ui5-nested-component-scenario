@@ -35,6 +35,10 @@
 		}
 	},
 	"sap.ui5": {
+		"contentDensities": {
+			"cozy": true,
+			"compact": true
+		},
 		"rootView": {
 			"viewName": "my.lib.sample.root.view.App",
 			"type": "XML",

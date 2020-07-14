@@ -13,10 +13,16 @@ module.exports = function(config) {
 			reporters: [
 				{
 					type: "html",
+					subdir: "html",
 					dir: "coverage"
 				},
 				{
 					type: "text"
+				},
+				{
+					type: "lcovonly",
+					subdir: "lcov",
+					file: "lcov.info"
 				}
 			],
 			check: {

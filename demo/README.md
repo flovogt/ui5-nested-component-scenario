@@ -1,7 +1,13 @@
 ![Deploy](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Deploy/badge.svg?branch=master)
 ![Test](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Test/badge.svg?branch=master)
 
-# Getting started 
+# Live Demo
+Just visit the [live demo](https://flovogt.github.io/ui5con20-ui5-routing/test/mockServer.html) to play with the application.
+
+# Local Deployment
+You wanna run the demo application on your machine? Here we go. The following steps will guide you through your local deployment.
+
+## Getting started 
 1. Run `yarn` in the shell
 
 ## Development

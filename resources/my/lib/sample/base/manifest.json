@@ -13,9 +13,18 @@
     },
     "sap.ui": {
         "technology": "UI5",
-        "supportedThemes": []
+        "supportedThemes": [],
+        "deviceTypes": {
+            "desktop": true,
+            "tablet": true,
+            "phone": true
+        }
     },
     "sap.ui5": {
+        "contentDensities": {
+            "cozy": true,
+            "compact": true
+        },
         "dependencies": {
             "minUI5Version": "1.75.0",
             "libs": {

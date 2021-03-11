@@ -1,38 +1,79 @@
 {
 	"name": "RootComponent",
 	"version": "0.0.1",
-	"buildTimestamp": "202007141429",
+	"buildTimestamp": "202103111626",
 	"scmRevision": "",
 	"libraries": [
 		{
 			"name": "sap.m",
 			"version": "1.79.0",
-			"buildTimestamp": "202007141429",
-			"scmRevision": ""
+			"buildTimestamp": "202103111626",
+			"scmRevision": "",
+			"manifestHints": {
+				"dependencies": {
+					"libs": {
+						"sap.ui.core": {},
+						"sap.ui.layout": {
+							"lazy": true
+						},
+						"sap.ui.unified": {
+							"lazy": true
+						}
+					}
+				}
+			}
+		},
+		{
+			"name": "sap.tnt",
+			"version": "1.79.0",
+			"buildTimestamp": "202103111626",
+			"scmRevision": "",
+			"manifestHints": {
+				"dependencies": {
+					"libs": {
+						"sap.m": {},
+						"sap.ui.core": {},
+						"sap.ui.layout": {
+							"lazy": true
+						},
+						"sap.ui.unified": {
+							"lazy": true
+						}
+					}
+				}
+			}
 		},
 		{
 			"name": "sap.ui.core",
 			"version": "1.79.0",
-			"buildTimestamp": "202007141429",
+			"buildTimestamp": "202103111626",
 			"scmRevision": ""
 		},
 		{
 			"name": "sap.ui.layout",
 			"version": "1.79.0",
-			"buildTimestamp": "202007141429",
-			"scmRevision": ""
+			"buildTimestamp": "202103111626",
+			"scmRevision": "",
+			"manifestHints": {
+				"dependencies": {
+					"libs": {
+						"sap.ui.core": {}
+					}
+				}
+			}
 		},
 		{
 			"name": "sap.ui.unified",
 			"version": "1.79.0",
-			"buildTimestamp": "202007141429",
-			"scmRevision": ""
-		},
-		{
-			"name": "sap.tnt",
-			"version": "1.79.0",
-			"buildTimestamp": "202007141429",
-			"scmRevision": ""
+			"buildTimestamp": "202103111626",
+			"scmRevision": "",
+			"manifestHints": {
+				"dependencies": {
+					"libs": {
+						"sap.ui.core": {}
+					}
+				}
+			}
 		}
 	]
 }

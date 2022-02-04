@@ -26,8 +26,9 @@ sap.ui.define([
 			var oMockServerInitialized = mockserver.init(oOptions);
 
 			this.iWaitForPromise(oMockServerInitialized);
+			
 			// start the app UI component
-			this.iStartMyUIComponent({
+			return this.iStartMyUIComponent({
 				componentConfig: {
 					name: "my.lib.sample.root",
 					async: true

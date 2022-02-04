@@ -3,7 +3,10 @@ sap.ui.define(["my/lib/sample/base/Component"], function(Component) {
 
 	return Component.extend("my.lib.sample.categories.Component", {
 		metadata: {
-			manifest: "json"
+			manifest: "json",
+			interfaces: [
+				"sap.ui.core.IAsyncContentCreation"
+			]
 		},
 		eventMappings: {
 			productsComponent: [{

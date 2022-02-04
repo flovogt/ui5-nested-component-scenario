@@ -5,7 +5,10 @@ sap.ui.define([
 
 		return Component.extend("my.lib.sample.root.Component", {
 			metadata: {
-				manifest: "json"
+				manifest: "json",
+				interfaces: [
+					"sap.ui.core.IAsyncContentCreation"
+				]
 			},
 			// define the events which are fired from the reuse components
 			//

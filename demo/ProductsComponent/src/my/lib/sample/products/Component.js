@@ -5,7 +5,10 @@ sap.ui.define([
 	"use strict";
 	return BaseComponent.extend("my.lib.sample.products.Component", {
 		metadata: {
-			manifest: "json"
+			manifest: "json",
+			interfaces: [
+				"sap.ui.core.IAsyncContentCreation"
+			]
 		},
 		init: function() {
 			BaseComponent.prototype.init.apply(this, arguments);

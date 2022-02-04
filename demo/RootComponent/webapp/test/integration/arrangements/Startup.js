@@ -31,8 +31,7 @@ sap.ui.define([
 			this.iStartMyUIComponent({
 				componentConfig: {
 					name: "my.lib.sample.root",
-					async: true,
-					manifest: true
+					async: true
 				},
 				hash: oOptions.hash,
 				autoWait: oOptions.autoWait

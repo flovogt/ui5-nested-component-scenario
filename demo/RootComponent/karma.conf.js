@@ -12,7 +12,7 @@ module.exports = function(config) {
 		browsers: ["CustomChrome"],
 
 		browserConsoleLogOptions: {
-			level: "error"
+			level: "info"
 		},
 
 		customLaunchers: {

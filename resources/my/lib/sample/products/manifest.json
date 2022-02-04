@@ -42,7 +42,6 @@
 		"rootView": {
 			"viewName": "my.lib.sample.products.view.App",
 			"type": "XML",
-			"async": true,
 			"id": "app"
 		},
 		"dependencies": {
@@ -94,8 +93,7 @@
 				"transition": "slide",
 				"bypassed": {
 					"target": "notFoundTarget"
-				},
-				"async": true
+				}
 			},
 			"routes": [
 				{

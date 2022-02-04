@@ -42,7 +42,6 @@
 		"rootView": {
 			"viewName": "my.lib.sample.root.view.App",
 			"type": "XML",
-			"async": true,
 			"id": "app"
 		},
 		"componentUsages": {
@@ -106,7 +105,6 @@
 				"bypassed": {
 					"target": "notFoundTarget"
 				},
-				"async": true,
 				"propagateTitle": true
 			},
 			"routes": [

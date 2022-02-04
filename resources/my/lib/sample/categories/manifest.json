@@ -42,7 +42,6 @@
 		"rootView": {
 			"viewName": "my.lib.sample.categories.view.App",
 			"type": "XML",
-			"async": true,
 			"id": "app"
 		},
 		"componentUsages": {
@@ -102,8 +101,7 @@
 				"transition": "slide",
 				"bypassed": {
 					"target": "notFoundTarget"
-				},
-				"async": true
+				}
 			},
 			"routes": [
 				{

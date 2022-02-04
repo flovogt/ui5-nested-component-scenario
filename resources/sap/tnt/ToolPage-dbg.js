@@ -1,24 +1,30 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.t.ToolPage.
 sap.ui.define([
 	"./library",
+	"sap/ui/base/ManagedObjectObserver",
 	"sap/ui/core/Control",
 	"sap/ui/Device",
 	"sap/ui/core/ResizeHandler",
 	"./ToolPageRenderer"
-], function (library, Control, Device, ResizeHandler, ToolPageRenderer) {
+], function (library,
+			 ManagedObjectObserver,
+			 Control,
+			 Device,
+			 ResizeHandler,
+			 ToolPageRenderer) {
 	"use strict";
 
 	/**
 	 * Constructor for a new ToolPage.
 	 *
 	 * @param {string} [sId] ID for the new control, generated automatically if no id is given
-	 * @param {object} [mSettings] Initial settings for the new control
+ * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
 	 * The ToolPage is a layout control, used to create a basic tools app that has a header, side navigation and contents area.
@@ -30,7 +36,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.96.4
 	 *
 	 * @constructor
 	 * @public
@@ -43,7 +49,8 @@ sap.ui.define([
 			library: "sap.tnt",
 			properties: {
 				/**
-				 * Indicates if the side area is expanded. Overrides the expanded property of the sideContent aggregation.
+				 * Indicates if the side menu is expanded.
+				 * Overrides the <code>expanded</code> property of the <code>sideContent</code> aggregation.
 				 */
 				sideExpanded: {type: "boolean", group: "Misc", defaultValue: true}
 			},
@@ -52,6 +59,12 @@ sap.ui.define([
 				 * The control to appear in the header area.
 				 */
 				header: {type: "sap.tnt.IToolHeader", multiple: false},
+
+				/**
+				 * The control to appear in the subheader area.
+				 * @since 1.93
+				 */
+				subHeader: {type: "sap.tnt.IToolHeader", multiple: false },
 				/**
 				 * The side menu of the layout.
 				 */
@@ -65,8 +78,27 @@ sap.ui.define([
 		}
 	});
 
+	ToolPage.prototype.init = function () {
+		this._oContentObserver = new ManagedObjectObserver(this._onContentChange.bind(this));
+		this._oContentObserver.observe(this, { aggregations: ["subHeader", "sideContent"] });
+
+		this._oContentVisibilityObserver = new ManagedObjectObserver(this._onContentVisibilityChange.bind(this));
+
+		this._deregisterControl();
+	};
+
 	ToolPage.prototype.exit = function () {
 		this._deregisterControl();
+
+		if (this._oContentObserver) {
+			this._oContentObserver.disconnect();
+			this._oContentObserver = null;
+		}
+
+		if (this._oContentVisibilityObserver) {
+			this._oContentVisibilityObserver.disconnect();
+			this._oContentVisibilityObserver = null;
+		}
 	};
 
 	ToolPage.prototype.onBeforeRendering = function () {
@@ -81,7 +113,7 @@ sap.ui.define([
 
 	/**
 	 * Toggles the expand/collapse state of the SideContent.
-	 * @returns {sap.tnt.ToolPage} Pointer to the control instance for chaining.
+	 * @returns {this} Pointer to the control instance for chaining.
 	 * @public
 	 */
 	ToolPage.prototype.toggleSideContentMode = function () {
@@ -91,7 +123,7 @@ sap.ui.define([
 	/**
 	 * Sets the expand/collapse state of the SideContent.
 	 * @param {boolean} bSideExpanded defines whether the SideNavigation is expanded.
-	 * @returns {sap.tnt.ToolPage} Pointer to the control instance for chaining
+	 * @returns {this} Pointer to the control instance for chaining
 	 * @public
 	 */
 	ToolPage.prototype.setSideExpanded = function (bSideExpanded) {
@@ -198,6 +230,21 @@ sap.ui.define([
 		}
 
 		return "Desktop";
+	};
+
+	ToolPage.prototype._onContentChange = function(oChanges) {
+		switch (oChanges.mutation) {
+			case "insert":
+				this._oContentVisibilityObserver.observe(oChanges.child, { properties: ["visible"] });
+				break;
+			case "remove":
+				this._oContentVisibilityObserver.unobserve(oChanges.child, { properties: ["visible"] });
+				break;
+		}
+	};
+
+	ToolPage.prototype._onContentVisibilityChange = function(oChanges) {
+		this.invalidate();
 	};
 
 	return ToolPage;

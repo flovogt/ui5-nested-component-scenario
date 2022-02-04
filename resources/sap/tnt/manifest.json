@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.79.0"
+      "version": "1.96.4"
     },
     "title": "SAPUI5 library with responsive controls.",
     "description": "SAPUI5 library with responsive controls.",
@@ -22,13 +22,13 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.79",
+      "minUI5Version": "1.96",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.79.0"
+          "minVersion": "1.96.4"
         },
         "sap.m": {
-          "minVersion": "1.79.0"
+          "minVersion": "1.96.4"
         }
       }
     },
@@ -41,19 +41,25 @@
           "bg",
           "ca",
           "cs",
+          "cy",
           "da",
           "de",
           "el",
           "en",
+          "en-GB",
           "en-US-sappsd",
+          "en-US-saprigi",
           "en-US-saptrc",
           "es",
+          "es-MX",
           "et",
           "fi",
           "fr",
+          "fr-CA",
           "hi",
           "hr",
           "hu",
+          "id",
           "it",
           "iw",
           "ja",
@@ -66,6 +72,7 @@
           "no",
           "pl",
           "pt",
+          "pt-PT",
           "ro",
           "ru",
           "sh",

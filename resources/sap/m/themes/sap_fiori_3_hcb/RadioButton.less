@@ -17,6 +17,10 @@
 	}
 }
 
+.sapMRb:focus {
+	outline: none;
+}
+
 .sapMRb .sapMRbB {
 	height: 2.75rem;
 	line-height: 2.75rem;
@@ -26,7 +30,6 @@
 .sapMRb > .sapMRbBLabel {
 	line-height: 2.75rem;
 	height: 2.75rem;
-	max-width: calc(~"100% - 2.75rem");
 }
 
 .sapMRbSvg {
@@ -37,11 +40,18 @@
 	bottom: .5rem;
 	top: 0.5rem;
 	left: 0.5rem;
-	right: -0.0625rem;
+	right: 0;
 }
 
 .sapMRbHasLabel .sapMRbB {
 	width: 2.75rem;
+}
+
+/* Align RadioButton in Form with other controls */
+.sapUiForm.sapUiFormEdit-CTX{
+	.sapMRb > .sapMRbB {
+		width: 2.1875rem;
+	}
 }
 
 .sapUiSizeCompact {
@@ -55,7 +65,6 @@
 	.sapMRb > .sapMLabel {
 		height: 2rem;
 		line-height: 2rem;
-		max-width: calc(~"100% - 2rem");
 	}
 
 	.sapMRb:focus:before {
@@ -78,7 +87,7 @@
 }
 
 .sapMRb:focus:before {
-	border: 1px dotted @sapUiContentFocusColor;
+	border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
 	bottom: 0.5rem;
 	top: 0.5rem;
 	left: 0.5rem;

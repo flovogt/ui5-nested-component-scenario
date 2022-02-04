@@ -3,11 +3,85 @@
 /* Quartz High Contrast White theme    */
 /* =================================== */
 
-@_sap_m_ObjectStatus_TextShadowColor: none;
+/* HCB theme specific styles */
+.sapMLIBHoverable:not(.sapMLIBSelected):hover+.sapMListTblSubRow,
+.sapMListTblSubRow:hover,
+.sapMLIBSelected, .sapMLIB:hover,
+.sapUiTableRowSel, .sapUiTableRowHvr {
+	.sapMObjStatusNone .sapMObjStatusText,
+	.sapMObjStatusNone .sapMObjStatusIcon,
+	.sapMObjStatusError .sapMObjStatusText,
+	.sapMObjStatusError .sapMObjStatusIcon,
+	.sapMObjStatusWarning .sapMObjStatusText,
+	.sapMObjStatusWarning .sapMObjStatusIcon,
+	.sapMObjStatusSuccess .sapMObjStatusText,
+	.sapMObjStatusSuccess .sapMObjStatusIcon,
+	.sapMObjStatusInformation .sapMObjStatusText,
+	.sapMObjStatusInformation .sapMObjStatusIcon {
+		color: @sapUiListTextColor;
+	}
+}
 
-.sapMObjStatus .sapMObjStatusText,
-.sapMObjStatus .sapMObjStatusIcon {
-	text-shadow: @_sap_m_ObjectStatus_TextShadowColor;
+.sapMObjStatus:not(.sapMObjStatusInverted).sapMObjStatusActive .sapMObjStatusIcon:only-child > .sapUiIcon,
+.sapMObjStatus:not(.sapMObjStatusInverted).sapMObjStatusActive .sapMObjStatusLink .sapMObjStatusText {
+	text-decoration: underline;
+}
+
+.sapMObjStatus:not(.sapMObjStatusInverted).sapMObjStatusActive:hover .sapMObjStatusIcon:only-child > .sapUiIcon,
+.sapMObjStatus:not(.sapMObjStatusInverted).sapMObjStatusActive:hover .sapMObjStatusLink .sapMObjStatusText,
+.sapMObjStatus:not(.sapMObjStatusInverted).sapMObjStatusActive:focus .sapMObjStatusLink .sapMObjStatusText,
+.sapMObjStatus:not(.sapMObjStatusInverted).sapMObjStatusActive:focus .sapMObjStatusIcon:only-child > .sapUiIcon{
+	text-decoration: none;
+}
+
+.sapMObjStatus:not(.sapMObjStatusInverted) .sapMObjStatusIcon {
+	height: 1rem;
+}
+
+.sapMObjStatusNone:not(.sapMObjStatusInverted) {
+	.sapUxAPObjectPageContainer &,
+	.sapUxAPObjectPageHeaderContentItem &,
+	&.sapUxAPObjectPageHeaderContentItem,
+	.sapUxAPObjectPageHeaderDetails .sapFDynamicPageHeaderContent & {
+		.sapMObjStatusText,
+		.sapMObjStatusIcon {
+			color: @sapNeutralTextColor;
+		}
+
+	}
+}
+
+.sapMObjStatusInverted {
+
+	.sapMObjStatusText,
+	.sapMObjStatusIcon {
+		line-height: 0.875rem;
+		min-height: 0.875rem;
+	}
+
+	.sapMObjStatusText,
+	&.sapMObjStatusActive .sapMObjStatusText {
+		vertical-align: top;
+	}
+
+	.sapMObjStatusLink {
+		line-height: 0.875rem;
+		vertical-align: top;
+	}
+
+	.sapMObjStatusIcon > .sapUiIcon {
+		vertical-align: middle;
+		line-height: 0.75rem;
+	}
+
+	&.sapMObjStatusActive .sapMObjStatusIcon > .sapUiIcon {
+		vertical-align: middle;
+		line-height: 0.75rem;
+	}
+}
+
+.sapMObjStatusIcon > .sapUiIcon {
+	line-height: 0.875rem;
 }
 
 .sapMObjectStatusLarge {
@@ -15,10 +89,17 @@
 	.sapMObjStatusText,
 	.sapMObjStatusIcon {
 		font-size: 1.5rem;
+		line-height: 2rem;
+		min-height: 2rem;
+		max-height: 2rem;
+	}
+	.sapMObjStatusIcon > .sapUiIcon {
+		font-size: 1.5rem;
 	}
 }
 
 .sapMObjStatusInverted {
+	box-sizing: border-box;
 	& .sapMObjStatusText,
 	& .sapMObjStatusIcon.sapMObjStatusIconOnly,
 	& .sapMObjStatusIcon .sapMObjStatusIconOnly,
@@ -116,7 +197,7 @@
 
 .sapMObjStatusInverted.sapMObjStatusNone .sapMObjStatusLink:active .sapMObjStatusText,
 .sapMObjStatusInverted.sapMObjStatusNone .sapMObjStatusLink:active .sapMObjStatusIcon {
-	background-color: @sapUiButtonNeutralActiveBackground;
+	background-color: @sapUiButtonNeutralActiveBackground;;
 }
 
 .sapMObjStatus.sapMObjStatusInverted,
@@ -165,3 +246,63 @@ html.sap-desktop .sapMObjStatusActive:focus .sapMObjStatusLink::after {
 .sapMObjStatusInverted .sapMObjStatusIcon > .sapUiIcon {
 	height: 0.875rem;
 }
+
+.sapMObjectStatusLarge.sapMObjStatusInverted {
+	.sapMObjStatusIcon > .sapUiIcon {
+		vertical-align: top;
+		font-size: 1.25rem;
+		padding-left: 0;
+		padding-right: 0;
+		line-height: 2rem;
+	}
+	.sapMObjStatusIcon:not(.sapMObjStatusIconOnly) {
+		padding-left: 0;
+		padding-right: 0;
+	}
+}
+
+html.sap-desktop .sapMObjStatusActive:focus {
+
+	.sapMObjStatusLink::after {
+		top: -1px;
+		left: 1px;
+		bottom: -1px;
+		right: 1px;
+		outline: 2px dotted @sapUiContentFocusColor;
+	}
+
+	&.sapMObjStatusInverted .sapMObjStatusLink::after {
+		top: -1px;
+		left: 2px;
+		bottom: -1px;
+		right: 2px;
+
+		.sapMObjStatusIcon > .sapUiIcon {
+			line-height: 0.875rem;
+		}
+	}
+
+	&.sapMObjectStatusLarge {
+
+		.sapMObjStatusLink::after {
+			top: 1px;
+			left: 2px;
+			bottom: 1px;
+			right: 2px;
+		}
+
+		&.sapMObjStatusInverted .sapMObjStatusLink::after {
+			top: 4px;
+			left: 4px;
+			bottom: 4px;
+			right: 4px;
+			outline: 2px dotted @sapContent_ContrastFocusColor;
+		}
+
+	}
+}
+
+.sapMListTbl .sapMObjStatusInverted .sapMObjStatusIcon > .sapUiIcon:not(.sapMLIBImgNav):not(.sapMBtnIcon) {
+	vertical-align: middle;
+}
+

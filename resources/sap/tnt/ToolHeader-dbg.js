@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,16 +11,19 @@ sap.ui.define([
 	"sap/m/OverflowToolbarAssociativePopover",
 	"./ToolHeaderRenderer",
 	"sap/ui/Device",
-	"sap/m/PlacementType"
+	"sap/m/library"
 ], function (
 	library,
 	OverflowToolbar,
 	OverflowToolbarAssociativePopover,
 	ToolHeaderRenderer,
 	Device,
-	PlacementType
+    mobileLibrary
 ) {
 	"use strict";
+
+	// shortcut for sap.m.PlacementType
+	var PlacementType = mobileLibrary.PlacementType;
 
 	/**
 	 * Constructor for a new ToolHeader.
@@ -45,11 +48,10 @@ sap.ui.define([
 	 * Only the following controls are supported:
 		<div>
 		<table>
-
 		<tr>
-			<th style="text-align: left;">Control name</th>
-			<th style="text-align: left;">Supported</th>
-			<th style="text-align: left;">Not supported</th>
+			<th>Control name</th>
+			<th>Supported</th>
+			<th>Not supported</th>
 		</tr>
 		<tr>
 			<td>sap.m.Text</td>
@@ -118,7 +120,7 @@ sap.ui.define([
 	* @implements sap.tnt.IToolHeader
 	*
 	* @author SAP SE
-	* @version 1.79.0
+	* @version 1.96.4
 	*
 	* @constructor
 	* @public

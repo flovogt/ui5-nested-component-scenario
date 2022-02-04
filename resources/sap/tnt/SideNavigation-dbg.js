@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -40,7 +40,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.96.4
 		 *
 		 * @constructor
 		 * @public
@@ -62,7 +62,13 @@ sap.ui.define([
 					 *
 					 * @since 1.62.0
 					 */
-					selectedKey: {type: "string", group: "Data"}
+					selectedKey: {type: "string", group: "Data"},
+					/**
+					 * Specifies an optional aria-label that can be used by the screen readers.
+					 *
+                                         * @since 1.96.2
+					 */
+					ariaLabel: {type : "string", group : "Accessibility", defaultValue : null}
 				},
 				defaultAggregation: "item",
 				aggregations: {
@@ -135,7 +141,7 @@ sap.ui.define([
 		 *
 		 * @public
 		 * @param {boolean} isExpanded Indication if the SideNavigation is expanded.
-		 * @returns {sap.tnt.SideNavigation} this SideNavigation reference for chaining.
+		 * @returns {this} this SideNavigation reference for chaining.
 		 */
 		SideNavigation.prototype.setExpanded = function (isExpanded) {
 
@@ -262,7 +268,7 @@ sap.ui.define([
 		 * Sets the selected item based on a key.
 		 * @public
 		 * @param {string} selectedKey The key of the item to be selected
-		 * @return {sap.tnt.SideNavigation} this pointer for chaining
+		 * @return {this} this pointer for chaining
 		 */
 		SideNavigation.prototype.setSelectedKey = function (selectedKey) {
 
@@ -300,10 +306,10 @@ sap.ui.define([
 			var selectedKey;
 
 			if (!selectedItem) {
-				if (navigationList.setSelectedItem) {
+				if (navigationList) {
 					navigationList.setSelectedItem(null);
 				}
-				if (fixedNavigationList.setSelectedItem) {
+				if (fixedNavigationList) {
 					fixedNavigationList.setSelectedItem(null);
 				}
 			}
@@ -452,7 +458,7 @@ sap.ui.define([
 		SideNavigation.prototype._arrowPress = function (event) {
 			event.preventDefault();
 
-			var source = document.getElementById(event.oSource.sId);
+			var source = event.getSource().getDomRef();
 			var isDirectionForward = source.classList.contains('sapTntSideNavigationScrollIconDown') ? true : false;
 
 			var $container = this.$('Flexible');

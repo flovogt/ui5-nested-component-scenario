@@ -3,11 +3,9 @@
 /* Quartz Dark theme                   */
 /* =================================== */
 
-@_sap_m_ObjectStatus_TextShadowColor: none;
-
-.sapMObjStatus .sapMObjStatusText,
-.sapMObjStatus .sapMObjStatusIcon {
-	text-shadow: @_sap_m_ObjectStatus_TextShadowColor;
+.sapMObjStatusInverted .sapMObjStatusText,
+.sapMObjStatusInverted .sapMObjStatusIcon {
+	min-height: 1rem;
 }
 
 .sapMObjectStatusLarge {
@@ -15,6 +13,8 @@
 	.sapMObjStatusText,
 	.sapMObjStatusIcon {
 		font-size: 1.5rem;
+		line-height: 2rem;
+		min-height: 2rem;
 	}
 	.sapMObjStatusIcon > .sapUiIcon {
 		font-size: 1.5rem;
@@ -23,8 +23,14 @@
 
 .sapMObjectStatusLarge.sapMObjStatusInverted {
 	.sapMObjStatusIcon > .sapUiIcon {
-		vertical-align: baseline;
+		vertical-align: bottom;
 		font-size: 1.25rem;
+		padding-left: 0;
+		padding-right: 0;
+	}
+	.sapMObjStatusIcon:not(.sapMObjStatusIconOnly) {
+		padding-left: 0;
+		padding-right: 0;
 	}
 }
 
@@ -41,5 +47,23 @@
 	}
 	& .sapMObjStatusIcon + .sapMObjStatusText {
 		border-radius: 0 @sapUiElementBorderCornerRadius @sapUiElementBorderCornerRadius 0;
+	}
+}
+
+.sapMObjStatusInverted .sapMObjStatusText,
+.sapMObjStatusInverted .sapMObjStatusIcon {
+	color: @sapUiContentContrastTextColor;
+}
+
+.sapMObjStatusNone:not(.sapMObjStatusInverted) {
+	.sapUxAPObjectPageContainer &,
+	.sapUxAPObjectPageHeaderContentItem &,
+	&.sapUxAPObjectPageHeaderContentItem,
+	.sapUxAPObjectPageHeaderDetails .sapFDynamicPageHeaderContent & {
+		.sapMObjStatusText,
+		.sapMObjStatusIcon {
+			color: @sapNeutralTextColor;
+		}
+
 	}
 }

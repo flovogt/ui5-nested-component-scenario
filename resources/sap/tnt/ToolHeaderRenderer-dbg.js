@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,13 +17,15 @@ sap.ui.define([
 	 */
 	var ToolHeaderRenderer = Renderer.extend(OverflowToolbarRenderer);
 
+	ToolHeaderRenderer.apiVersion = 2;
+
 	ToolHeaderRenderer.renderBarContent = function (oRM, oToolbar) {
 		var bOverflowToolbarRendered = false,
 			bIsUtilitySeparator;
 
 		oToolbar._getVisibleContent().forEach(function (oControl) {
 
-			bIsUtilitySeparator = oControl.getMetadata().getName() == "sap.tnt.ToolHeaderUtilitySeparator";
+			bIsUtilitySeparator = oControl.isA("sap.tnt.ToolHeaderUtilitySeparator");
 
 			if (!bOverflowToolbarRendered && bIsUtilitySeparator && oToolbar._getOverflowButtonNeeded()) {
 				ToolHeaderRenderer.renderOverflowButton(oRM, oToolbar);

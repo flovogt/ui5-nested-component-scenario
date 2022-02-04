@@ -24,6 +24,10 @@
 	color: @sapUiGroupTitleTextColor;
 }
 
+.sapUxAPObjectPageHeaderIdentifierTitle.sapUxAPObjectPageHeaderIdentifierTitleForce {
+	padding-top: 0.3125rem;
+}
+
 .sapUxAPObjectPageHeaderIdentifierDescription {
 	font-family: @sapUiFontFamily;
 	font-size: @sapMFontMediumSize;
@@ -63,13 +67,13 @@
 }
 
 html .sapUxAPObjectPageLayout-Std-Desktop .sapUxAPObjectPageHeaderIdentifier,
-html .sapUiContainer-Wide .sapUxAPObjectPageHeaderIdentifier {
-	padding: 0.5rem 3rem;
-}
-
 html .sapUxAPObjectPageLayout-Std-Tablet .sapUxAPObjectPageHeaderIdentifier,
 html .sapUiContainer-Medium .sapUxAPObjectPageHeaderIdentifier {
 	padding: 0.5rem 2rem;
+}
+
+html .sapUxAPObjectPageLayout-Std-Desktop-XL .sapUxAPObjectPageHeaderIdentifier {
+	padding: 0.5rem 3rem;
 }
 
 html .sapUxAPObjectPageLayout-Std-Phone .sapUxAPObjectPageHeaderIdentifier,
@@ -95,14 +99,6 @@ html .sapUiContainer-Narrow .sapUiSizeCompact.sapUxAPObjectPageHeaderLockBtn .sa
 
 .sapUxAPObjectPageHeaderTitle.sapUxAPObjectPageHeaderSnappedTitleOnMobile > .sapFDynamicPageTitle {
 	box-shadow: @sapUiShadowHeader;
-}
-
-.sapUiSizeCompact .sapUxAPObjectPageHeaderActionButtonHideText .sapMBtnInner.sapMBtnIconFirst.sapMBtnText {
-	padding: 0;
-
-	&> .sapMBtnCustomIcon.sapMBtnIcon.sapMBtnIconLeft.sapUiIcon.sapUiIconMirrorInRTL {
-		padding: 0 0.4375rem;
-	}
 }
 
 /* Phone Size */

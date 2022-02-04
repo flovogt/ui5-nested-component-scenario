@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -41,7 +41,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.96.4
 		 *
 		 * @constructor
 		 * @public
@@ -125,12 +125,6 @@ sap.ui.define([
 				sapnext: ["alt", "meta"],
 				sapprevious: ["alt", "meta"]
 			});
-
-			if (sap.ui.getCore().getConfiguration().getAccessibility() && !NavigationList._sAriaPopupLabelId) {
-				NavigationList._sAriaPopupLabelId = new InvisibleText({
-					text: '' // add empty string in order to prevent the redundant speech output
-				}).toStatic().getId();
-			}
 		};
 
 		/**
@@ -160,12 +154,17 @@ sap.ui.define([
 		 * @private
 		 */
 		NavigationList.prototype._getDomRefs = function () {
-			var domRefs = [];
 
-			var items = this.getItems();
+			var domRefs = [],
+				items = this.getItems(),
+				isExpanded = this.getExpanded();
 
 			for (var i = 0; i < items.length; i++) {
-				jQuery.merge(domRefs, items[i]._getDomRefs());
+				if (isExpanded) {
+					jQuery.merge(domRefs, items[i]._getDomRefs());
+				} else {
+					domRefs.push(items[i].getDomRef());
+				}
 			}
 
 			return domRefs;
@@ -207,6 +206,10 @@ sap.ui.define([
 		NavigationList.prototype.exit = function () {
 			if (this._itemNavigation) {
 				this._itemNavigation.destroy();
+			}
+
+			if (this._popover) {
+				this._popover.destroy();
 			}
 		};
 
@@ -252,7 +255,7 @@ sap.ui.define([
 		 * Sets the selected item based on a key.
 		 * @public
 		 * @param {string} selectedKey The key of the item to be selected
-		 * @return {sap.tnt.NavigationList} this pointer for chaining
+		 * @return {this} this pointer for chaining
 		 */
 		NavigationList.prototype.setSelectedKey = function (selectedKey) {
 
@@ -351,7 +354,7 @@ sap.ui.define([
 					}
 				},
 				content: list,
-				ariaLabelledBy: [NavigationList._sAriaPopupLabelId]
+				ariaLabelledBy: InvisibleText.getStaticId("sap.tnt", "NAVIGATION_LIST_DIALOG_TITLE")
 			}).addStyleClass('sapContrast sapContrastPlus');
 
 			popover._adaptPositionParams = this._adaptPopoverPositionParams;

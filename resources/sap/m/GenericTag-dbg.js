@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -53,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.79.0
+	 * @version 1.96.4
 	 *
 	 * @constructor
 	 * @public
@@ -91,6 +91,14 @@ sap.ui.define([
 				valueState: {type : "sap.m.GenericTagValueState", defaultValue : GenericTagValueState.None }
 			},
 			defaultAggregation: "value",
+			associations : {
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledBy).
+				 * Note: This is a downported feature introduced in version 1.97.0.
+	 			 * @since 1.96.4
+				 */
+				ariaLabelledBy: {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
+			},
 			aggregations: {
 				/**
 				 * Numeric value rendered by the control.
@@ -125,7 +133,7 @@ sap.ui.define([
 	 *
 	 * Default value is <code>None</code>.
 	 * @param {sap.ui.core.ValueState} sStatus New value for property <code>status</code>.
-	 * @returns {sap.m.GenericTag} <code>this</code> to allow method chaining.
+	 * @returns {this} <code>this</code> to allow method chaining.
 	 * @public
 	 */
 
@@ -135,6 +143,25 @@ sap.ui.define([
 		this._getStatusIcon().setSrc(sStatus !== ValueState.None ? Icons[sStatus] : null);
 
 		return this;
+	};
+
+	GenericTag.prototype.setValue = function(oValue) {
+		var oPreviousValue = this.getValue();
+		if (oPreviousValue) {
+			oValue.detachEvent("_change", this._fireValueChanged, this);
+		}
+
+		this.setAggregation("value", oValue);
+		oValue.attachEvent("_change", this._fireValueChanged, this);
+
+		this._fireValueChanged();
+
+		return this;
+	};
+
+	// Fires invalidation event for OverflowToolbar
+	GenericTag.prototype._fireValueChanged = function() {
+		this.fireEvent("_valueChanged");
 	};
 
 	/**
@@ -294,7 +321,8 @@ sap.ui.define([
 	 */
 	GenericTag.prototype.getOverflowToolbarConfig = function() {
 		var oConfig = {
-			canOverflow: true
+			canOverflow: true,
+			invalidationEvents: ["_valueChanged"]
 		};
 
 		oConfig.onBeforeEnterOverflow = this._onBeforeEnterOverflow;

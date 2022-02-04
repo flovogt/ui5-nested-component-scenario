@@ -20,7 +20,7 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 			background: transparent;
 		}
 
-		&.sapMSltIconOnly.sapMSlt:focus  {
+		&.sapMSltIconOnly.sapMSlt.sapMSltFocused  {
 			outline: none;
 			> .sapMSltIcon {
 					outline: 1px dotted @sapUiContentFocusColor;
@@ -28,7 +28,7 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 				}
 		}
 
-		&.sapMSltIconOnly.sapMSltPressed.sapMSlt:focus > .sapMSltIcon {
+		&.sapMSltIconOnly.sapMSltPressed.sapMSlt.sapMSltFocused > .sapMSltIcon {
 			outline: none;
 		}
 
@@ -112,18 +112,19 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 			line-height: @sapUiFiori3HSArrowDimensions;
 			height: @sapUiFiori3HSArrowDimensions;
 			width: @sapUiFiori3HSArrowDimensions;
-			margin: 0.1875rem; // 3px needed in order not to overlap the focus of the parent
+			margin: 0.1875rem 0.1875rem 0.1875rem auto; // 3px needed in order not to overlap the focus of the parent
 		}
 
 		& .sapMSltLabel {
-			line-height: @sapElement_LineHeight;
-
+			line-height: 3rem;
+			box-sizing: border-box;
 			&::after {
 				content: "";
 				position: absolute;
-				width: 100%;
-				top: 1.6rem;
+				bottom: 0;
+				height: 0;
 				left: -@sapUiFiori3HSUnderlineOffsetAndHeight;
+				right: -@sapUiFiori3HSUnderlineOffsetAndHeight;;
 				padding: (@sapUiFiori3HSUnderlineOffsetAndHeight / 2) @sapUiFiori3HSUnderlineOffsetAndHeight;
 				border-top-left-radius: @sapUiFiori3HSUnderlineTopRadius;
 				border-top-right-radius: @sapUiFiori3HSUnderlineTopRadius;
@@ -149,7 +150,9 @@ html.sap-desktop .sapUxAPHierarchicalSelect {
 /* OVERVIEW BUTTON */
 .sapUxAPObjectPageLayout-Std-Tablet,
 .sapUxAPObjectPageLayout-Std-Desktop,
-.sapUiSizeCompact .sapUxAPObjectPageLayout-Std-Desktop {
+.sapUxAPObjectPageLayout-Std-Desktop-XL,
+.sapUiSizeCompact .sapUxAPObjectPageLayout-Std-Desktop,
+.sapUiSizeCompact .sapUxAPObjectPageLayout-Std-Desktop-XL {
 	.sapUxAPHierarchicalSelect.sapMSltIconOnly {
 		height: @sapElement_LineHeight;
 	}
@@ -161,5 +164,19 @@ html[data-sap-ui-browser^="cr4"].sapUxAPObjectPageLayout-Std-Phone,
 html[data-sap-ui-browser^="cr4"].sap-phone {
 	.sapUxAPHierarchicalSelect .sapMSltLabel {
 		box-shadow: inset 0 -0.0625rem @sapUiSelected;
+	}
+}
+
+html[data-sap-ui-browser^="ie"].sap-desktop,
+html[data-sap-ui-browser^="ed"].sap-desktop {
+	.sapUxAPHierarchicalSelect.sapMSltHoverable.sapMSltIconOnly.sapMSlt.sapMSltFocused:not(.sapMSltPressed) {
+		&::before {
+			border: none;
+		}
+		&> .sapMSltIcon {
+			top: 0.5rem;
+			outline: none;
+			border: 0.0625rem dashed @sapUiContentFocusColor;
+		}
 	}
 }

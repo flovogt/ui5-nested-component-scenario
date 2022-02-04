@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2020 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	"sap/ui/core/util/ResponsivePaddingsEnablement",
 	"sap/ui/Device",
 	"./WizardRenderer",
+	"sap/ui/core/CustomData",
 	"sap/ui/dom/containsOrEquals",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
@@ -26,6 +27,7 @@ sap.ui.define([
 	ResponsivePaddingsEnablement,
 	Device,
 	WizardRenderer,
+	CustomData,
 	containsOrEquals,
 	Log,
 	jQuery
@@ -34,6 +36,7 @@ sap.ui.define([
 
 		// shortcut for sap.m.PageBackgroundDesign
 		var WizardBackgroundDesign = library.PageBackgroundDesign;
+		var WizardRenderMode = library.WizardRenderMode;
 
 		/**
 		 * Constructor for a new Wizard.
@@ -54,6 +57,7 @@ sap.ui.define([
 		 * <li>Steps can be branching depending on choices the user made in their input - this is set by the <code>enableBranching</code> property. </li>
 		 * <li>Steps can have different visual representations - numbers or icons. You can add labels for better readability </li>
 		 * </ul>
+		 * <strong>Note:</strong> Dynamic step insertion is not supported. Even if branching steps are used, the steps should be known in advance.
 		 * <h4>Content</h4>
 		 * The content occupies the main part of the page. It can hold any type of input controls. The content is kept in {@link sap.m.WizardStep wizard steps}.
 		 * <h4>Next Step Button</h4>
@@ -80,7 +84,7 @@ sap.ui.define([
 		 *
 		 * @extends sap.ui.core.Control
 		 * @author SAP SE
-		 * @version 1.79.0
+		 * @version 1.96.4
 		 *
 		 * @constructor
 		 * @public
@@ -134,6 +138,15 @@ sap.ui.define([
 						type: "sap.m.PageBackgroundDesign",
 						group: "Appearance",
 						defaultValue: WizardBackgroundDesign.Standard
+					},
+					/**
+					 * Defines how the steps of the Wizard would be visualized.
+					 * @experimental since 1.84
+					 */
+					renderMode: {
+						type: "sap.m.WizardRenderMode",
+						group: "Appearance",
+						defaultValue: WizardRenderMode.Scroll
 					}
 				},
 				defaultAggregation: "steps",
@@ -204,9 +217,9 @@ sap.ui.define([
 			this._bScrollLocked = false;
 			this._oScroller = this._initScrollEnablement();
 			this._oResourceBundle = Core.getLibraryResourceBundle("sap.m");
-			this._fnHandleNextButtonPressListener = this._handleNextButtonPress.bind(this);
 			this._initProgressNavigator();
 			this._initResponsivePaddingsEnablement();
+			this._iNextButtonHeight = 0;
 		};
 
 		Wizard.prototype.onBeforeRendering = function () {
@@ -236,6 +249,58 @@ sap.ui.define([
 			}
 
 			this._attachScrollHandler();
+			this._renderPageMode();
+		};
+
+		/**
+		 * Renders Wizard in Page mode. The rendering is manual.
+		 *
+		 * @param {sap.m.WizardStep} oStep [optional] The step to be rendered.
+		 * @private
+		 */
+		Wizard.prototype._renderPageMode = function (oStep) {
+			var iCurrentStepIndex, oCurrentStep, oRenderManager;
+
+			if (this.getRenderMode() !== WizardRenderMode.Page) {
+				return;
+			}
+
+			if (oStep) {
+				iCurrentStepIndex = this._aStepPath.indexOf(oStep) + 1;
+				oCurrentStep = oStep;
+			} else {
+				iCurrentStepIndex = this._getProgressNavigator().getCurrentStep();
+				oCurrentStep = this._aStepPath[iCurrentStepIndex - 1];
+			}
+
+			oRenderManager = Core.createRenderManager();
+			oRenderManager.renderControl(
+				this._updateStepTitleNumber(oCurrentStep, iCurrentStepIndex));
+			oRenderManager.flush(this.getDomRef("step-container"));
+			oRenderManager.destroy();
+		};
+
+		/**
+		 * Adds custom data with the current order of the step.
+		 *
+		 * @param oStep
+		 * @param iStepIndex
+		 * @returns {*}
+		 * @private
+		 */
+		Wizard.prototype._updateStepTitleNumber = function (oStep, iStepIndex) {
+			var oData = oStep.getCustomData()
+				.filter(function (oCustomData) {
+					return oCustomData.getKey() === "stepIndex";
+				})[0];
+
+			if (oData) {
+				oData.setValue(iStepIndex);
+			} else {
+				oStep.addCustomData(new CustomData({key: "stepIndex", value: iStepIndex}));
+			}
+
+			return oStep;
 		};
 
 		/**
@@ -253,7 +318,7 @@ sap.ui.define([
 			this._iStepCount = null;
 			this._bScrollLocked = null;
 			this._oResourceBundle = null;
-			this._fnHandleNextButtonPressListener = null;
+			this._iNextButtonHeight = null;
 		};
 
 		/**************************************** PUBLIC METHODS ***************************************/
@@ -261,7 +326,7 @@ sap.ui.define([
 		/**
 		 * Validates the given step.
 		 * @param {sap.m.WizardStep} oStep The step to be validated.
-		 * @returns {sap.m.Wizard} Pointer to the control instance for chaining.
+		 * @returns {this} Pointer to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.validateStep = function (oStep) {
@@ -278,7 +343,7 @@ sap.ui.define([
 		/**
 		 * Invalidates the given step.
 		 * @param {sap.m.WizardStep} oStep The step to be invalidated.
-		 * @returns {sap.m.Wizard} Pointer to the control instance for chaining.
+		 * @returns {this} Pointer to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.invalidateStep = function (oStep) {
@@ -294,7 +359,7 @@ sap.ui.define([
 
 		/**
 		 * Validates the current step, and moves one step further.
-		 * @returns {sap.m.Wizard} Pointer to the control instance for chaining.
+		 * @returns {this} Pointer to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.nextStep = function () {
@@ -308,7 +373,7 @@ sap.ui.define([
 
 		/**
 		 * Discards the current step and goes one step back.
-		 * @returns {sap.m.Wizard} Pointer to the control instance for chaining.
+		 * @returns {this} Pointer to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.previousStep = function () {
@@ -343,11 +408,21 @@ sap.ui.define([
 		 * that haven't been reached yet.
 		 * @param {sap.m.WizardStep} oStep The step to go to.
 		 * @param {boolean} bFocusFirstStepElement Defines whether the focus should be changed to the first element.
-		 * @returns {sap.m.Wizard} Pointer to the control instance for chaining.
+		 * @returns {this} Pointer to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.goToStep = function (oStep, bFocusFirstStepElement) {
+			var fnUpdateProgressNavigator = function () {
+				var oProgressNavigator = this._getProgressNavigator();
+				oProgressNavigator && oProgressNavigator._updateCurrentStep(this._aStepPath.indexOf(oStep) + 1);
+			};
+
 			if (!this.getVisible() || this._aStepPath.indexOf(oStep) < 0) {
+				return this;
+			} else if (this.getRenderMode() === WizardRenderMode.Page) {
+				fnUpdateProgressNavigator.call(this);
+				this._renderPageMode(oStep);
+
 				return this;
 			}
 
@@ -364,13 +439,8 @@ sap.ui.define([
 					},
 					complete: function () {
 						that._bScrollLocked = false;
-						var oProgressNavigator = that._getProgressNavigator();
+						fnUpdateProgressNavigator.call(that);
 
-						if (!oProgressNavigator) {
-							return;
-						}
-
-						oProgressNavigator._updateCurrentStep(that._aStepPath.indexOf(oStep) + 1);
 						if (bFocusFirstStepElement || bFocusFirstStepElement === undefined) {
 							that._focusFirstStepElement(oStep);
 						}
@@ -387,7 +457,7 @@ sap.ui.define([
 		 * The verified state of the steps is returned to the initial provided.
 		 * @param {sap.m.WizardStep} oStep The step after which the progress is discarded.
 		 * @param {boolean} bPreserveNextStep Indicating whether we should preserve next step
-		 * @returns {sap.m.Wizard} Pointer to the control instance for chaining.
+		 * @returns {this} Pointer to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.discardProgress = function (oStep, bPreserveNextStep) {
@@ -436,8 +506,8 @@ sap.ui.define([
 		/**
 		 * Sets association currentStep to the given step.
 		 *
-		 * @param {sap.m.WizardStep | String} vStepId The step of the wizard that will be currently activated (meaning the last step).
-		 * @returns {sap.m.Wizard} Reference to the control instance for chaining.
+		 * @param {sap.m.WizardStep | sap.ui.core.ID} vStepId The step of the wizard that will be currently activated (meaning the last step).
+		 * @returns {this} Reference to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.setCurrentStep = function (vStepId) {
@@ -459,7 +529,7 @@ sap.ui.define([
 		/**
 		 * Sets the visibility of the next button.
 		 * @param {boolean} bValue True to show the button or false to hide it.
-		 * @returns {sap.m.Wizard} Reference to the control instance for chaining.
+		 * @returns {this} Reference to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.setShowNextButton = function (bValue) {
@@ -489,7 +559,7 @@ sap.ui.define([
 		/**
 		 * Adds a new step to the Wizard.
 		 * @param {sap.m.WizardStep} oWizardStep New WizardStep to add to the Wizard.
-		 * @returns {sap.m.Wizard} Pointer to the control instance for chaining.
+		 * @returns {this} Pointer to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.addStep = function (oWizardStep) {
@@ -499,7 +569,6 @@ sap.ui.define([
 			}
 
 			oWizardStep.setWizardContext({bParentAllowsButtonShow: this.getShowNextButton()});
-			oWizardStep.attachComplete(this._fnHandleNextButtonPressListener);
 			this._incrementStepCount();
 
 			return this.addAggregation("steps", oWizardStep);
@@ -509,7 +578,7 @@ sap.ui.define([
 		 * Sets background design.
 		 *
 		 * @param {string} sBgDesign The new background design parameter.
-		 * @returns {sap.m.Wizard} <code>this</code> to facilitate method chaining.
+		 * @returns {this} <code>this</code> to facilitate method chaining.
 		 */
 		Wizard.prototype.setBackgroundDesign = function (sBgDesign) {
 			var sBgDesignOld = this.getBackgroundDesign();
@@ -549,14 +618,13 @@ sap.ui.define([
 			this._resetStepCount();
 			return this.removeAllAggregation("steps")
 				.map(function (oStep) {
-					oStep.detachComplete(this._fnHandleNextButtonPressListener);
 					return oStep;
 				}, this);
 		};
 
 		/**
 		 * Destroys all aggregated steps in the Wizard.
-		 * @returns {sap.m.Wizard} Pointer to the control instance for chaining.
+		 * @returns {this} Pointer to the control instance for chaining.
 		 * @public
 		 */
 		Wizard.prototype.destroySteps = function () {
@@ -729,11 +797,13 @@ sap.ui.define([
 		 * @private
 		 */
 		Wizard.prototype._getStepScrollOffset = function (oStep) {
-			var iScrollerTop = this._oScroller.getScrollTop(),
-				oProgressStep = this._getCurrentStepInstance(),
-				oNextButton = this._getNextButton(),
+			var oStepContainer = this.getDomRef("step-container"),
+				iScrollerTop = oStepContainer ? oStepContainer.scrollTop : 0,
+				iStepTop = 0,
 				iAdditionalOffset = 0,
-				iStepTop = 0;
+				iNextButtonHeight = this._getNextButtonHeight(),
+				iStepScrollHeight = oStep.getDomRef() ? oStep.getDomRef().scrollHeight : 0,
+				iStepContainerClientHeight = oStepContainer ? oStepContainer.clientHeight : 0;
 
 			if (oStep && oStep.$() && oStep.$().position()) {
 				iStepTop = oStep.$().position().top || 0;
@@ -742,14 +812,16 @@ sap.ui.define([
 			/**
 			 * Additional Offset is added in case of new step activation.
 			 * Because the rendering from step.addContent(button) happens with delay,
-			 * we can't properly detect the offset of the step, that's why
-			 * additionalOffset is added like this.
+			 * we can't properly detect the offset of the step.
+			 *
+			 * This offset will only be added if the step is taller than the
+			 * step container's client height. - BCP: 2180339806
 			 */
-			if (!Device.system.phone &&
-				oProgressStep && oNextButton &&
-				!containsOrEquals(oProgressStep.getDomRef(), oNextButton.getDomRef())) {
-				iAdditionalOffset = oNextButton.$().outerHeight();
+			if (iNextButtonHeight > 0 && iStepScrollHeight > iStepContainerClientHeight) {
+				iAdditionalOffset = iNextButtonHeight;
 			}
+
+			this._setNextButtonHeight(0);
 
 			return (iScrollerTop + iStepTop) - (Wizard.CONSTANTS.SCROLL_OFFSET + iAdditionalOffset);
 		};
@@ -788,7 +860,10 @@ sap.ui.define([
 		Wizard.prototype._handleStepActivated = function (iIndex) {
 			var iPreviousStepIndex = iIndex - 2,
 				oPreviousStep = this._aStepPath[iPreviousStepIndex],
-				oNextStep = this._getNextStep(oPreviousStep, iPreviousStepIndex);
+				oNextStep = this._getNextStep(oPreviousStep, iPreviousStepIndex),
+				oNextButtonDomRef = this._getNextButton().getDomRef();
+
+			this._setNextButtonHeight(oNextButtonDomRef ? oNextButtonDomRef.offsetHeight : 0);
 
 			this._activateStep(oNextStep);
 			this._updateProgressNavigator();
@@ -1056,7 +1131,8 @@ sap.ui.define([
 
 			var iScrollTop = oEvent.target.scrollTop,
 				oProgressNavigator = this._getProgressNavigator(),
-				oCurrentStepDOM = this._aStepPath[oProgressNavigator.getCurrentStep() - 1].getDomRef();
+				oCurrentStep = this._aStepPath[oProgressNavigator.getCurrentStep() - 1],
+				oCurrentStepDOM = oCurrentStep && oCurrentStep.getDomRef();
 
 			if (!oCurrentStepDOM) {
 				return;
@@ -1077,7 +1153,8 @@ sap.ui.define([
 					oProgressNavigator.previousStep();
 
 					// update the currentStep reference
-					oCurrentStepDOM = this._aStepPath[oProgressNavigator.getCurrentStep() - 1].getDomRef();
+					oCurrentStep = this._aStepPath[oProgressNavigator.getCurrentStep() - 1];
+					oCurrentStepDOM = oCurrentStep && oCurrentStep.getDomRef();
 
 					if (!oCurrentStepDOM) {
 						break;
@@ -1130,6 +1207,24 @@ sap.ui.define([
 
 			this._aStepPath.push(oStep);
 			oStep._activate();
+		};
+
+		/**
+		 * Gets the value of the _iNextButtonHeight property.
+		 * @returns {number} The height of the "next" button.
+		 * @private
+		 */
+		Wizard.prototype._getNextButtonHeight = function () {
+			return this._iNextButtonHeight;
+		};
+
+		/**
+		 * Sets the value of the _iNextButtonHeight property.
+		 * @param {number} iHeight The height of the "next" button.
+		 * @private
+		 */
+		Wizard.prototype._setNextButtonHeight = function (iHeight) {
+			this._iNextButtonHeight = iHeight;
 		};
 
 		return Wizard;

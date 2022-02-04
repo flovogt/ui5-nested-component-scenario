@@ -33,7 +33,9 @@
 	display: block;
 	position: relative;
 	width: 100%;
-	bottom: (@_sap_m_WizardProgressNavigator_ListHeight - @_sap_m_WizardProgressNavigator_NavHeight) / 2 - @_sap_m_WizardProgressNavigator_BoxShadow + @_sap_m_WizardProgressNavigator_StepUnderlineHeight;
+	border-top-left-radius: 0.125rem;
+	border-top-right-radius: 0.125rem;
+	bottom: -0.625rem;
 }
 
 .sapMWizardProgressNavStep[data-sap-ui-wpn-step-current="true"] .sapMWizardProgressNavStepContainer::after {

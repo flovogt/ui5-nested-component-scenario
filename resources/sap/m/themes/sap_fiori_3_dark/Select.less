@@ -15,6 +15,10 @@
 
 .sapMSltIconOnly.sapMSltHoverable:hover:not(.sapMSltState) {
 	background: @sapUiButtonLiteHoverBackground;
+
+	&.sapMSltWithIcon {
+		border: 0.0625rem solid @sapUiButtonLiteHoverBorderColor;
+	}
 }
 
 /*IconOnly Pressed */
@@ -43,7 +47,7 @@
 	color: @sapUiButtonActiveTextColor;
 }
 
-html.sap-desktop .sapMSlt:not(.sapMSltExpanded):not(.sapMSltDisabled):focus {
+html.sap-desktop .sapMSlt.sapMSltFocused:not(.sapMSltExpanded):not(.sapMSltDisabled) {
 	&:before {
 		pointer-events: none;
 		content: "";
@@ -58,40 +62,16 @@ html.sap-desktop .sapMSlt:not(.sapMSltExpanded):not(.sapMSltDisabled):focus {
 
 }
 
-html.sap-desktop .sapMSlt:not(.sapMSltExpanded):not(.sapMSltDisabled):not(.sapMSltState):focus:before {
+html.sap-desktop .sapMSlt.sapMSltFocused:not(.sapMSltExpanded):not(.sapMSltDisabled):not(.sapMSltState):before {
 	outline-offset: -2px;
 }
 
-html.sap-desktop .sapMSlt:not(.sapMSltExpanded):not(.sapMSltDisabled).sapMSltState:focus:before {
+html.sap-desktop .sapMSlt.sapMSltFocused:not(.sapMSltExpanded):not(.sapMSltDisabled).sapMSltState:before {
 	outline-offset: -2px;
 }
 
-html.sap-desktop .sapMSltIconOnly:not(.sapMSltExpanded):not(.sapMSltDisabled).sapMSltPressed:focus {
+html.sap-desktop .sapMSltIconOnly.sapMSltFocused:not(.sapMSltExpanded):not(.sapMSltDisabled).sapMSltPressed {
 	outline-color: @sapUiContentContrastFocusColor;
-}
-
-/* TODO remove after the end of support for Internet Explorer */
-html[data-sap-ui-browser^="ie"].sap-desktop,
-html[data-sap-ui-browser^="ed"].sap-desktop {
-	.sapMSlt:not(.sapMSltExpanded):not(.sapMSltDisabled):focus {
-	  	outline: none;
-
-		&:before {
-			content: "";
-			position: absolute;
-			border: 1px dashed @sapUiContentFocusColor;
-			top: 1px;
-			right: 1px;
-			bottom: 1px;
-			left: 1px;
-			pointer-events: none;
-			outline: none;
-		}
-
-		&.sapMSltIconOnly.sapMSltPressed:before {
-			border: 1px dashed @sapUiContentContrastFocusColor;
-		}
-	}
 }
 
 .sapMSltHoverable:not(.sapMSltState):not(.sapMSltIconOnly):hover {

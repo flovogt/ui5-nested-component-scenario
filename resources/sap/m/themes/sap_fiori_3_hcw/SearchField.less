@@ -24,6 +24,18 @@
 	opacity: 0.5;
 }
 
+html.sap-desktop .sapMFocus > .sapMSFF::before {
+	border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+	position: absolute;
+	content: " ";
+	top: 1px;
+	right: 1px;
+	bottom: 1px;
+	left: 1px;
+	z-index: 2;
+	pointer-events: none;
+}
+
 /* custom buttons */
 .sapMSFB:focus {
 	outline: none;

@@ -14,12 +14,12 @@ jobs:
     - name: Setup Node.js environment
       uses: actions/setup-node@v2
       with:
-        node-version: "14"
+        node-version: "16"
     - name: Install the Dependencies
       run: yarn
       working-directory: ./demo
     - name: Test the Application
-      run: npm run test
+      run: yarn test
       working-directory: ./demo/RootComponent
     - name: Coveralls
       uses: coverallsapp/github-action@master

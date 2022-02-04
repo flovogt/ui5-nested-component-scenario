@@ -23,14 +23,14 @@ jobs:
     - name: Setup Node.js environment
       uses: actions/setup-node@v2
       with:
-        node-version: "14"
+        node-version: "16"
 
     - name: Install the Dependencies
       run: yarn
       working-directory: ./demo
 
     - name: Build the Application
-      run: npm run build
+      run: yarn build
       working-directory: ./demo/RootComponent
 
     - name: GitHub Pages action

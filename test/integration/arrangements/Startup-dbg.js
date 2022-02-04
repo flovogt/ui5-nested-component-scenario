@@ -28,10 +28,11 @@ sap.ui.define([
 			this.iWaitForPromise(oMockServerInitialized);
 			
 			// start the app UI component
-			return this.iStartMyUIComponent({
+			this.iStartMyUIComponent({
 				componentConfig: {
 					name: "my.lib.sample.root",
-					async: true
+					async: true,
+					manifest: true
 				},
 				hash: oOptions.hash,
 				autoWait: oOptions.autoWait

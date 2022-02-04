@@ -1,10 +1,10 @@
-specVersion: '2.1'
+specVersion: "2.6"
 metadata:
   name: RootComponent
 type: application
 framework:
   name: OpenUI5
-  version: 1.79.0
+  version: 1.96.4
   libraries:
     - name: sap.ui.core
     - name: sap.m

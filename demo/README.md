@@ -1,6 +1,6 @@
-![Deploy](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Deploy/badge.svg?branch=master)
-![Test](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Test/badge.svg?branch=master)
-[![Coverage Status](https://coveralls.io/repos/github/flovogt/ui5con20-ui5-routing/badge.svg?branch=master)](https://coveralls.io/github/flovogt/ui5con20-ui5-routing?branch=master)
+![Deploy](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Deploy/badge.svg?branch=main)
+![Test](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Test/badge.svg?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/flovogt/ui5con20-ui5-routing/badge.svg?branch=main)](https://coveralls.io/github/flovogt/ui5con20-ui5-routing?branch=main)
 
 
 # ui5con20-ui5-routing - Demo

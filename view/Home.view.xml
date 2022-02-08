@@ -6,7 +6,7 @@
 		class="sapUiContentPadding">
 		<content>
 			<FormattedText htmlText="{/HTML}" />
-			<Image src="./img/diagram.jpg" class="sapUiMediumMarginTopBottom maxWidth100" />
+			<Image src="./img/diagram.jpg" class="sapUiMediumMarginTopBottom maxWidth100" lazyLoading="true"/>
 		</content>
 	</Page>
 </mvc:View>

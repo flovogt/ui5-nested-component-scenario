@@ -27,8 +27,9 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The P13nGroupPanel control is used to define group-specific settings for table personalization.
 	 * @extends sap.m.P13nPanel
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @constructor
+	 * @deprecated as of version 1.98. Use the {@link sap.m.p13n.GroupPanel} instead.
 	 * @public
 	 * @since 1.26.0
 	 * @alias sap.m.P13nGroupPanel
@@ -37,7 +38,7 @@ sap.ui.define([
 	var P13nGroupPanel = P13nPanel.extend("sap.m.P13nGroupPanel", /** @lends sap.m.P13nGroupPanel.prototype */
 	{
 		metadata: {
-
+			deprecated:true,
 			library: "sap.m",
 			properties: {
 

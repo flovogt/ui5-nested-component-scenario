@@ -27,6 +27,8 @@ sap.ui.define([
 	"./AvatarType",
 	"./AvatarColor",
 	"./AvatarImageFitType",
+	"./IllustratedMessageSize",
+	"./IllustratedMessageType",
 	"./upload/UploaderHttpRequestMethod",
 	"sap/ui/core/theming/Parameters",
 	"sap/ui/core/LocaleData",
@@ -52,6 +54,8 @@ sap.ui.define([
 	AvatarType,
 	AvatarColor,
 	AvatarImageFitType,
+	IllustratedMessageSize,
+	IllustratedMessageType,
 	UploaderHttpRequestMethod,
 	Parameters,
 	LocaleData
@@ -63,7 +67,7 @@ sap.ui.define([
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.m",
-		version: "1.96.4",
+		version: "1.98.0",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
 		types: [
@@ -103,6 +107,8 @@ sap.ui.define([
 			"sap.m.IconTabDensityMode",
 			"sap.m.IconTabFilterDesign",
 			"sap.m.IconTabHeaderMode",
+			"sap.m.IllustratedMessageSize",
+			"sap.m.IllustratedMessageType",
 			"sap.m.ImageMode",
 			"sap.m.InputTextFormatMode",
 			"sap.m.InputType",
@@ -169,6 +175,7 @@ sap.ui.define([
 			"sap.m.IBar",
 			"sap.m.IBadge",
 			"sap.m.IBreadcrumbs",
+			"sap.m.p13n.IContent",
 			"sap.m.IconTab",
 			"sap.m.IScale",
 			"sap.m.semantic.IGroup",
@@ -230,6 +237,7 @@ sap.ui.define([
 			"sap.m.IconTabBarSelectList",
 			"sap.m.IconTabFilterExpandButtonBadge",
 			"sap.m.IconTabHeader",
+			"sap.m.IllustratedMessage",
 			"sap.m.Image",
 			"sap.m.ImageContent",
 			"sap.m.Input",
@@ -364,7 +372,9 @@ sap.ui.define([
 			"sap.m.p13n.GroupPanel",
 			"sap.m.p13n.QueryPanel",
 			"sap.m.p13n.SelectionPanel",
-			"sap.m.p13n.SortPanel"
+			"sap.m.p13n.SortPanel",
+			"sap.m.p13n.Popup",
+			"sap.m.table.ColumnMenu"
 		],
 		elements: [
 			"sap.m.BadgeCustomData",
@@ -452,7 +462,12 @@ sap.ui.define([
 			"sap.m.semantic.SendMessageAction",
 			"sap.m.semantic.ShareInJamAction",
 			"sap.m.semantic.SortAction",
-			"sap.m.semantic.SortSelect"
+			"sap.m.semantic.SortSelect",
+			"sap.m.table.ColumnMenuEntry",
+			"sap.m.table.Item",
+			"sap.m.table.ItemBase",
+			"sap.m.table.QuickAction",
+			"sap.m.table.QuickActionBase"
 		],
 		extensions: {
 			flChangeHandlers: {
@@ -582,7 +597,7 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @since 1.4
 	 * @public
 	 */
@@ -3027,6 +3042,58 @@ sap.ui.define([
 	};
 
 	/**
+	 *
+	 * Interface for P13nPopup which are suitable as content for the <code>sap.m.p13n.Popup</code>.
+	 * Implementation of this interface should include the following methods:
+	 * <ul>
+	 * <li><code>getTitle</code></li>
+	 * </ul>
+	 *
+	 * @since 1.97
+	 * @name sap.m.p13n.IContent
+	 * @interface
+	 * @private
+	 * @ui5-restricted
+	 * @experimental
+	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
+	 */
+
+	/**
+	 * Returns the title, which should be displayed in the P13nPopup to describe related content.
+	 *
+	 * @returns {string} The title for the corresponding content to be displayed in the <code>sap.m.p13n.Popup</code>.
+	 *
+	 * @function
+	 * @name sap.m.p13n.IContent.getTitle
+	 * @private
+	 * @ui5-restricted
+	 * @experimental
+	 */
+
+	/**
+	 * Type of popup used in the <code>sap.m.p13n.Popup</code>.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
+	 */
+	thisLib.P13nPopupMode = {
+
+		/**
+		 * Dialog type as popup type.
+		 * @public
+		 */
+		Dialog: "Dialog",
+
+		/**
+		 * ResponsivePopover type as popup type.
+		 * @public
+		 */
+		 ResponsivePopover: "ResponsivePopover"
+
+	};
+
+	/**
 	 * @enum {string}
 	 * @public
 	 * @experimental since version 1.26 !!! THIS TYPE IS ONLY FOR INTERNAL USE !!!
@@ -3329,52 +3396,282 @@ sap.ui.define([
 	 * The option keys of all the standard options of a DynamicDateRange control.
 	 *
 	 * @public
-	 * @ui5-metamodel This array also will be described in the UI5 (legacy) designtime metamodel
+	 * @enum {string}
+	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @experimental Since 1.92. These keys are experimental. The API might be changed in future.
 	 */
-	thisLib.StandardDynamicDateRangeKeys = [
-		"DATE",
-		"TODAY",
-		"YESTERDAY",
-		"TOMORROW",
+	thisLib.StandardDynamicDateRangeKeys = {
 
-		"DATERANGE",
-		"FROM",
-		"TO",
-		"YEARTODATE",
-		"LASTDAYS",
-		"LASTWEEKS",
-		"LASTMONTHS",
-		"LASTQUARTERS",
-		"LASTYEARS",
-		"NEXTDAYS",
-		"NEXTWEEKS",
-		"NEXTMONTHS",
-		"NEXTQUARTERS",
-		"NEXTYEARS",
-		"TODAYFROMTO",
+		/**
+		 * The date will be selected from a calendar.
+		 * @public
+		 */
+		DATE : "DATE",
 
-		"THISWEEK",
-		"LASTWEEK",
-		"NEXTWEEK",
+		/**
+		 * The date will be the day of selection.
+		 * @public
+		 */
+		TODAY : "TODAY",
 
-		"SPECIFICMONTH",
-		"THISMONTH",
-		"LASTMONTH",
-		"NEXTMONTH",
+		/**
+		 * The date will be the day before the day of selection.
+		 * @public
+		 */
+		YESTERDAY : "YESTERDAY",
 
-		"THISQUARTER",
-		"LASTQUARTER",
-		"NEXTQUARTER",
-		"QUARTER1",
-		"QUARTER2",
-		"QUARTER3",
-		"QUARTER4",
+		/**
+		 * The date will be the day after the day of selection.
+		 * @public
+		 */
+		TOMORROW : "TOMORROW",
 
-		"THISYEAR",
-		"LASTYEAR",
-		"NEXTYEAR"
-	];
+		/**
+		 * The date will be the first day of the current week.
+		 * @public
+		 */
+		FIRSTDAYWEEK : "FIRSTDAYWEEK",
+
+		/**
+		 * The date will be the last day of the current week.
+		 * @public
+		 */
+		LASTDAYWEEK : "LASTDAYWEEK",
+
+		/**
+		 * The date will be the first day of the current month.
+		 * @public
+		 */
+		FIRSTDAYMONTH : "FIRSTDAYMONTH",
+
+		/**
+		 * The date will be the last day of the current month.
+		 * @public
+		 */
+		LASTDAYMONTH : "LASTDAYMONTH",
+
+		/**
+		 * The date will be the first day of the current quarter.
+		 * @public
+		 */
+		FIRSTDAYQUARTER : "FIRSTDAYQUARTER",
+
+		/**
+		 * The date will be the last day of the current quarter.
+		 * @public
+		 */
+		LASTDAYQUARTER : "LASTDAYQUARTER",
+
+		/**
+		 * The date will be the first day of the current year.
+		 * @public
+		 */
+		FIRSTDAYYEAR : "FIRSTDAYYEAR",
+
+		/**
+		 * The date will be the last day of the current year.
+		 * @public
+		 */
+		LASTDAYYEAR : "LASTDAYYEAR",
+
+		/**
+		 * The range will be selected from a calendar.
+		 * @public
+		 */
+		DATERANGE : "DATERANGE",
+
+		/**
+		 * The range will start from a date selected from a calendar.
+		 * @public
+		 */
+		FROM : "FROM",
+
+		/**
+		 * The range will end in a date selected from a calendar.
+		 * @public
+		 */
+		TO : "TO",
+
+		/**
+		 * The range will start from the first day of the current year and ends with the date selected from a calendar.
+		 * @public
+		 */
+		YEARTODATE : "YEARTODATE",
+
+		/**
+		 * The range will start from the date selected from a calendar and ends with the last day of the current year.
+		 * @public
+		 */
+		DATETOYEAR : "DATETOYEAR",
+
+		/**
+		 * The range will contain the last X days. The count of the days is selected from a StepInput.
+		 * @public
+		 */
+		LASTDAYS : "LASTDAYS",
+
+		/**
+		 * The range will contain the last X weeks. The count of the weeks is selected from a StepInput.
+		 * @public
+		 */
+		LASTWEEKS : "LASTWEEKS",
+
+		/**
+		 * The range will contain the last X months. The count of the months is selected from a StepInput.
+		 * @public
+		 */
+		LASTMONTHS : "LASTMONTHS",
+
+		/**
+		 * The range will contain the last X quarters. The count of the quarters is selected from a StepInput.
+		 * @public
+		 */
+		LASTQUARTERS : "LASTQUARTERS",
+
+		/**
+		 * The range will contain the last X years. The count of the years is selected from a StepInput.
+		 * @public
+		 */
+		LASTYEARS : "LASTYEARS",
+
+		/**
+		 * The range will contain the next X days. The count of the days is selected from a StepInput.
+		 * @public
+		 */
+		NEXTDAYS : "NEXTDAYS",
+
+		/**
+		 * The range will contain the next X weeks. The count of the weeks is selected from a StepInput.
+		 * @public
+		 */
+		NEXTWEEKS : "NEXTWEEKS",
+
+		/**
+		 * The range will contain the next X months. The count of the months is selected from a StepInput.
+		 * @public
+		 */
+		NEXTMONTHS : "NEXTMONTHS",
+
+		/**
+		 * The range will contain the next X quarters. The count of the quarters is selected from a StepInput.
+		 * @public
+		 */
+		NEXTQUARTERS: "NEXTQUARTERS",
+
+		/**
+		 * The range will contain the next X years. The count of the years is selected from a StepInput.
+		 * @public
+		 */
+		NEXTYEARS : "NEXTYEARS",
+
+		/**
+		 * The range will contain the last X days and the next Y days. The count of the days is selected from a StepInput.
+		 * @public
+		 */
+		TODAYFROMTO : "TODAYFROMTO",
+
+		/**
+		 * The range will contain the days of the current week.
+		 * @public
+		 */
+		THISWEEK : "THISWEEK",
+
+		/**
+		 * The range will contain the days of the last week.
+		 * @public
+		 */
+		LASTWEEK : "LASTWEEK",
+
+		/**
+		 * The range will contain the days of the next week.
+		 * @public
+		 */
+		NEXTWEEK : "NEXTWEEK",
+
+		/**
+		 * The range will contain a month selected from a MonthPicker.
+		 * @public
+		 */
+		SPECIFICMONTH : "SPECIFICMONTH",
+
+		/**
+		 * The range will contain the days in the current month.
+		 * @public
+		 */
+		THISMONTH : "THISMONTH",
+
+		/**
+		 * The range will contain the days in the last month.
+		 * @public
+		 */
+		LASTMONTH : "LASTMONTH",
+
+		/**
+		 * The range will contain the days in the next month.
+		 * @public
+		 */
+		NEXTMONTH : "NEXTMONTH",
+
+		/**
+		 * The range will contain the days in the current quarter.
+		 * @public
+		 */
+		THISQUARTER : "THISQUARTER",
+
+		/**
+		 * The range will contain the days in the last quarter.
+		 * @public
+		 */
+		LASTQUARTER : "LASTQUARTER",
+
+		/**
+		 * The range will contain the days in the next quarter.
+		 * @public
+		 */
+		NEXTQUARTER : "NEXTQUARTER",
+
+		/**
+		 * The range will contain the days in the first quarter.
+		 * @public
+		 */
+		QUARTER1 : "QUARTER1",
+
+		/**
+		 * The range will contain the days in the second quarter.
+		 * @public
+		 */
+		QUARTER2 : "QUARTER2",
+
+		/**
+		 * The range will contain the days in the third quarter.
+		 * @public
+		 */
+		QUARTER3 : "QUARTER3",
+
+		/**
+		 * The range will contain the days in the fourth quarter.
+		 * @public
+		 */
+		QUARTER4 : "QUARTER4",
+
+		/**
+		 * The range will contain the days in the current year.
+		 * @public
+		 */
+		THISYEAR: "THISYEAR",
+
+		/**
+		 * The range will contain the days in the last year.
+		 * @public
+		 */
+		LASTYEAR : "LASTYEAR",
+
+		/**
+		 * The range will contain the days in the next year.
+		 * @public
+		 */
+		NEXTYEAR : "NEXTYEAR"
+	};
 
 	/**
 	 * QuickViewGroupElement is a combination of one label and another control (Link or Text) associated to this label.
@@ -4362,6 +4659,9 @@ sap.ui.define([
 	thisLib.AvatarType = AvatarType;
 	thisLib.AvatarColor = AvatarColor;
 	thisLib.AvatarImageFitType = AvatarImageFitType;
+
+	thisLib.IllustratedMessageSize = IllustratedMessageSize;
+	thisLib.IllustratedMessageType = IllustratedMessageType;
 
 		/**
 		 * Wizard rendering mode.
@@ -5513,8 +5813,8 @@ sap.ui.define([
 		bFinal: true
 	});
 
-	/* Android and Blackberry browsers do not scroll a focused input into the view correctly after resize */
-	if (Device.os.blackberry || Device.os.android && Device.os.version >= 4) {
+	/* Android browsers do not scroll a focused input into the view correctly after resize */
+	if (Device.os.android) {
 		jQuery(window).on("resize", function(){
 			var oActive = document.activeElement;
 			var sTagName = oActive ? oActive.tagName : "";

@@ -209,8 +209,6 @@ sap.ui.define([
 		}
 		_Helper.setPrivateAnnotation(oGroupNode, "spliced", aElements.splice(iIndex + 1, iCount));
 		aElements.$count -= iCount;
-		_Helper.updateAll(this.mChangeListeners, sGroupNodePath, oGroupNode,
-			{"@$ui5.node.groupLevelCount" : undefined});
 
 		return iCount;
 	};
@@ -700,7 +698,7 @@ sap.ui.define([
 	 *   A map from meta paths to entity types (as delivered by {@link #fetchTypes})
 	 * @param {string} sMetaPath
 	 *   The meta path for the given element
-	 * @returns {string}
+	 * @returns {string|undefined}
 	 *   The key predicate or <code>undefined</code>, if key predicate cannot be determined
 	 *
 	 * @public
@@ -823,7 +821,7 @@ sap.ui.define([
 		}
 
 		if (mQueryOptions.$$filterBeforeAggregate) {
-			mQueryOptions.$apply = "filter(" +  mQueryOptions.$$filterBeforeAggregate + ")/"
+			mQueryOptions.$apply = "filter(" + mQueryOptions.$$filterBeforeAggregate + ")/"
 				+ mQueryOptions.$apply;
 			delete mQueryOptions.$$filterBeforeAggregate;
 		}

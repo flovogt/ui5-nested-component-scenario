@@ -17,7 +17,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class An abstract base type for <code>panels</code> aggregation in <code>P13nDialog</code> control.
 	 * @extends sap.ui.core.Control
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @constructor
 	 * @public
 	 * @abstract
@@ -30,6 +30,9 @@ sap.ui.define([
 		metadata: {
 			"abstract": true,
 			library: "sap.m",
+			interfaces: [
+				"sap.m.p13n.IContent"
+			],
 			properties: {
 				/**
 				 * Title text appears in the panel.

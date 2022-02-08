@@ -76,7 +76,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.96.4
+		 * @version 1.98.0
 		 *
 		 * @constructor
 		 * @private
@@ -101,7 +101,15 @@ sap.ui.define([
 					 * The drag and drop interaction is visualized by a placeholder highlighting the area where the
 					 * appointment can be dropped by the user.
 					 */
-					enableAppointmentsDragAndDrop: { type: "boolean", group: "Misc", defaultValue: false }
+					enableAppointmentsDragAndDrop: { type: "boolean", group: "Misc", defaultValue: false },
+
+					/**
+					 * If set, the first day of the displayed week is this day. Valid values are 0 to 6 starting on Sunday.
+					 * If there is no valid value set, the default of the used locale is used.
+					 *
+					 * @since 1.98
+					 */
+					firstDayOfWeek : {type : "int", group : "Appearance", defaultValue : -1}
 				},
 				aggregations: {
 
@@ -476,6 +484,7 @@ sap.ui.define([
 
 		SinglePlanningCalendarMonthGrid.prototype._getVisibleDays = function(oStartDate) {
 			var oCalStartDate,
+				iAPIFirstDayOfWeek,
 				oDay,
 				oCalDate,
 				iDaysOldMonth,
@@ -489,7 +498,8 @@ sap.ui.define([
 			}
 
 			oCalStartDate = CalendarDate.fromLocalJSDate(oStartDate);
-			iFirstDayOfWeek = this._getCoreLocaleData().getFirstDayOfWeek();
+			iAPIFirstDayOfWeek = this.getFirstDayOfWeek();
+			iFirstDayOfWeek = iAPIFirstDayOfWeek > 0 ? iAPIFirstDayOfWeek : this._getCoreLocaleData().getFirstDayOfWeek();
 
 			// determine weekday of first day in month
 			oFirstDay = new CalendarDate(oCalStartDate);

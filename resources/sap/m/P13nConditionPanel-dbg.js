@@ -112,7 +112,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The ConditionPanel Control will be used to implement the Sorting, Filtering and Grouping panel of the new Personalization dialog.
 	 * @extends sap.ui.core.Control
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
@@ -751,13 +751,13 @@ sap.ui.define([
 		this._iConditionPageSize = 10;
 
 		this._oInvisibleTextField = new InvisibleText({
-			text: this._oRb.getText("CONDITIONPANEL_FIELD_ARIA_LABEL")
+			text: this._oRb.getText("CONDITIONPANEL_FIELD_LABEL")
 		});
 		this._oInvisibleTextOperatorInputValue = new InvisibleText({
 			text: this._oRb.getText("CONDITIONPANEL_FIELD_VALUE_ARIA_LABEL")
 		});
 		this._oInvisibleTextOperator = new InvisibleText({
-			text: this._oRb.getText("CONDITIONPANEL_OPERATOR_LABEL")
+			text: this._oRb.getText("CONDITIONPANEL_OPERATOR_ARIA_LABEL")
 		});
 		this._oInvisibleTextOperatorAddButton = new InvisibleText({
 			text: this._oRb.getText("CONDITIONPANEL_ADD_SCREENREADER_DESCRIPTION")

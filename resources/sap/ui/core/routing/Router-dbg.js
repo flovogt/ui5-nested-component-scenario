@@ -43,7 +43,7 @@ sap.ui.define([
 		var oRouters = {};
 
 		/**
-		 * Instantiates a SAPUI5 Router
+		 * Instantiates a router
 		 *
 		 * @class
 		 * @extends sap.ui.base.EventProvider
@@ -164,7 +164,8 @@ sap.ui.define([
 		 *     {
 		 *          //same name as in the config.bypassed.target
 		 *          notFound: {
-		 *              viewName: "notFound",
+		 *              type: "View"
+		 *              name: "notFound",
 		 *              ...
 		 *              // more properties to place the view in the correct container
 		 *          }

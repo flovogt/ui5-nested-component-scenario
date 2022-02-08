@@ -88,7 +88,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -261,7 +261,6 @@ sap.ui.define([
 	 * Lifecycle Methods
 	 */
 	CheckBox.prototype.init = function() {
-		this.addActiveState(this);
 		this._handleReferencingLabels();
 	};
 
@@ -324,23 +323,6 @@ sap.ui.define([
 		oLabel.setWrapping(bWrap);
 
 		return this;
-	};
-
-	/**
-	 * Add ActiveState to non-supported mobile platform
-	 * @private
-	 */
-	CheckBox.prototype.addActiveState = function(oControl) {
-		if (Device.os.blackberry) {
-			oControl.addDelegate({
-				ontouchstart: function(oEvent){
-					jQuery(oControl.getDomRef()).addClass("sapMActive");
-				},
-				ontouchend: function(oEvent){
-					jQuery(oControl.getDomRef()).removeClass("sapMActive");
-				}
-			});
-		}
 	};
 
 	CheckBox.prototype.getFormattedState = function() {

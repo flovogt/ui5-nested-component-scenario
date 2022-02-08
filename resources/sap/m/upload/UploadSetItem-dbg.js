@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class Item that represents one file to be uploaded using the {@link sap.m.upload.UploadSet} control.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @constructor
 	 * @public
 	 * @since 1.63
@@ -341,7 +341,7 @@ sap.ui.define([
 		if (this.getThumbnailUrl() != sUrl) {
 			this.setProperty("thumbnailUrl", sUrl, true);
 			// Below we handle change of icon case for existing uploadSetItem.For creation of uploadSetItem icon is created using _getIcon method.
-			if (this._oListItem) {
+			if (this._oListItem && sUrl) {
 				for (var i = 0; i < this._oListItem.getContent().length; i++) {
 					if (this._oListItem.getContent()[i] instanceof sap.ui.core.Icon || this._oListItem.getContent()[i] instanceof sap.m.Image) {
 						var oItem = this._oListItem.getContent()[i];
@@ -429,6 +429,18 @@ sap.ui.define([
 		}
 
 		return oParent._getActiveUploader().downloadItem(this, [], bAskForLocation);
+	};
+
+	/**
+	 * Validates if the item is restricted, which means that it is restricted for the file type, media type, maximum file name length and maximum file size limit.
+	 *
+	 * @public
+         * @since 1.98
+	 * @returns {boolean} <code>true</code> if item is restricted, <code>false</code> otherwise.
+	 *
+	 */
+	 UploadSetItem.prototype.isRestricted = function () {
+		return this._isRestricted();
 	};
 
 	/* ============== */

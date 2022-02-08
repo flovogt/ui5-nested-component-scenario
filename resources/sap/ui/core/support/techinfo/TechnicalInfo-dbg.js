@@ -77,7 +77,7 @@ sap.ui.define([
 				return;
 			}
 
-			// set module info passed in from jquery.sap.global
+			// set module info passed in by caller
 			this._oModuleSystemInfo = fnCallback() || {};
 
 			// create dialog lazily
@@ -708,11 +708,7 @@ sap.ui.define([
 				},
 				{
 					"DisplayName": "OpenUI5 (Nightly)",
-					"Value": "https://openui5nightly.hana.ondemand.com/resources/sap/ui/support/"
-				},
-				{
-					"DisplayName": "OpenUI5 (Beta)",
-					"Value": "https://openui5beta.hana.ondemand.com/resources/sap/ui/support/"
+						"Value": "https://openui5nightly.hana.ondemand.com/resources/sap/ui/support/"
 				},
 				{
 					"DisplayName": "SAPUI5 CDN",

@@ -66,7 +66,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -143,7 +143,9 @@ sap.ui.define([
 		this._resizeTimeout     = null;
 
 		// Context bound method for easy (de-)registering at the ResizeHandler
-		this._resizeCallback    = this._delayedResize.bind(this);
+		this._resizeCallback    = function (oEvent) {
+			this._delayedResize(0);
+		}.bind(this);
 		this._resizeHandlerId   = null;
 		// We need the information whether auto resize is enabled to temporarily disable it
 		// during live resize and then set it back to the value before
@@ -686,8 +688,12 @@ sap.ui.define([
 	 */
 	Splitter.prototype._resize = function() {
 		var oDomRef = this.getDomRef();
-		if (!oDomRef || RenderManager.getPreserveAreaRef().contains(oDomRef)) {
-			// Do not attempt to resize the content areas in case we are in the preserved area
+
+		// Do not attempt to resize the content areas in case the splitter
+		if (
+			!oDomRef || RenderManager.getPreserveAreaRef().contains(oDomRef) // is in the preserved area
+			|| oDomRef.scrollHeight === 0 || oDomRef.scrollWidth === 0 // has 0 width or height (display: none, etc.)
+		) {
 			return;
 		}
 

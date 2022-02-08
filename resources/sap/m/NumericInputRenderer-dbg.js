@@ -54,6 +54,7 @@ sap.ui.define(["sap/ui/core/Renderer", "./InputRenderer", "sap/ui/Device", "sap/
 			fMax,
 			fNow,
 			sDescription,
+			sDescriptionLabel,
 			aAriaLabelledByRefs,
 			aReferencingLabels,
 			sDescribedBy,
@@ -84,7 +85,10 @@ sap.ui.define(["sap/ui/core/Renderer", "./InputRenderer", "sap/ui/Device", "sap/
 
 		if (sDescription) {
 			// If there is a description, we should add a reference to it in the aria-labelledby
-			aAriaLabelledByRefs.push(oStepInput._getInput().getId() + "-descr");
+			sDescriptionLabel = oStepInput._getInput().getId() + "-descr";
+			if (aAriaLabelledByRefs.indexOf(sDescriptionLabel) === -1) {
+				aAriaLabelledByRefs.push(sDescriptionLabel);
+			}
 		}
 
 		sResultingLabelledBy = aReferencingLabels.concat(aAriaLabelledByRefs).join(" ");

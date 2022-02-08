@@ -32,7 +32,7 @@ sap.ui.define([
 	 * If used inside the calendar the properties and aggregation are directly taken from the parent
 	 * (To not duplicate and sync DateRanges and so on...)
 	 * @extends sap.ui.unified.calendar.Month
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public

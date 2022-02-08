@@ -54,6 +54,8 @@ sap.ui.define(["sap/ui/Device"], function(Device) {
 				}
 			}
 
+			oRm.renderControl(oControl._getCurrentTimeButton());
+
 			oRm.close("div"); // outer wrapper
 		}
 	};

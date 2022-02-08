@@ -26,7 +26,7 @@ sap.ui.define([
 	 *
 	 * @class Metadata for a class.
 	 * @author Frank Weigel
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @since 0.8.6
 	 * @public
 	 * @alias sap.ui.base.Metadata
@@ -131,11 +131,9 @@ sap.ui.define([
 	Metadata.prototype.afterApplySettings = function() {
 		// create the flattened "all" view
 		if ( this._oParent ) {
-			//this._aAllInterfaces = jQuery.sap.unique(this._oParent._aAllInterfaces.concat(this._aInterfaces));
 			this._aAllPublicMethods = this._oParent._aAllPublicMethods.concat(this._aPublicMethods);
 			this._bInterfacesUnique = false;
 		} else {
-			//this._aAllInterfaces = this._aInterfaces;
 			this._aAllPublicMethods = this._aPublicMethods;
 		}
 

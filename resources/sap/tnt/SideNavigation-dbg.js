@@ -40,7 +40,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.96.4
+		 * @version 1.98.0
 		 *
 		 * @constructor
 		 * @public
@@ -65,8 +65,7 @@ sap.ui.define([
 					selectedKey: {type: "string", group: "Data"},
 					/**
 					 * Specifies an optional aria-label that can be used by the screen readers.
-					 *
-                                         * @since 1.96.2
+					 * @since 1.98
 					 */
 					ariaLabel: {type : "string", group : "Accessibility", defaultValue : null}
 				},

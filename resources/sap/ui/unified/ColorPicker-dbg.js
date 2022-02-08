@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -569,16 +569,22 @@ sap.ui.define([
 		this.bResponsive = Library.ColorPickerHelper.isResponsive();
 
 		// Color picker cursor size in px obtained from less parameter. Keep in mind width and height are the same.
-		var circleSize = this.bResponsive ? "_sap_ui_unified_ColorPicker_CircleSize" : "_sap_ui_commons_ColorPicker_CircleSize";
-		this._iCPCursorSize = parseInt(Parameters.get(circleSize));
+		var sCircleSizeCSSParameterName = this.bResponsive ? "_sap_ui_unified_ColorPicker_CircleSize" : "_sap_ui_unified_ColorPicker_commonsCircleSize";
+		this._iCPCursorSize = 0;
+		var sCircleSizeCSSParameter = Parameters.get({
+			name: sCircleSizeCSSParameterName,
+			callback: function (_mParams) {
+				this._iCPCursorSize = parseInt(_mParams);
+			}.bind(this)
+		});
+
+		if (sCircleSizeCSSParameter) {
+			this._iCPCursorSize = parseInt(sCircleSizeCSSParameter);
+		}
 
 		// Init _processChanges and _bHSLMode according to default control mode
 		this._processChanges = this._processHSVChanges;
 		this._bHSLMode = false;
-
-		if (this.getDisplayMode() === ColorPickerDisplayMode.Simplified) {
-			CONSTANTS.HideForDisplay.value = ".hideDisplay";
-		}
 
 		this.bPressed = false;
 	};
@@ -1040,6 +1046,9 @@ sap.ui.define([
 
 		// Create internal controls
 		this._createInteractionControls();
+		if (this.getDisplayMode() === ColorPickerDisplayMode.Large) {
+			this._toggleInputsEnabled(this.Color.formatHSL);
+		}
 
 		// Layout Data - that will be needed for visual state update
 		this.oCPBoxGD = new GridData({span: "L6 M6 S12"}); // Color picker box
@@ -1339,12 +1348,20 @@ sap.ui.define([
 	/**
 	 * Event handler for changes of RGB or HSL radio button field.
 	 */
-	ColorPicker.prototype._handleRGBorHSLValueChange = function() {
-		// store new value
-		var oUnifiedRBGroup = this.oRGBorHSLRBUnifiedGroup;
-		this.Color.formatHSL = oUnifiedRBGroup ? oUnifiedRBGroup.getSelectedIndex() === 1 : this.oRGBorHSLRBGroup.getSelectedIndex() === 1;
-
+	ColorPicker.prototype._handleRGBorHSLValueChange = function(oEvent) {
+		this.Color.formatHSL = oEvent.getParameter("selectedIndex") === 1;
+		this._toggleInputsEnabled(this.Color.formatHSL);
 		this._updateColorStringProperty(true, true);
+	};
+
+	ColorPicker.prototype._toggleInputsEnabled = function(bHSL) {
+		this.oRedField.setEnabled(!bHSL);
+		this.oGreenField.setEnabled(!bHSL);
+		this.oBlueField.setEnabled(!bHSL);
+		this.oHueField.setEnabled(!!bHSL);
+		this.oSatField.setEnabled(!!bHSL);
+		this.oLitField.setEnabled(!!bHSL);
+		this.oValField.setEnabled(!!bHSL);
 	};
 
 	/**

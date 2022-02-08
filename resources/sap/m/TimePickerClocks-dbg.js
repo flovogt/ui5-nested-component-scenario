@@ -50,7 +50,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.96.4
+		 * @version 1.98.0
 		 *
 		 * @constructor
 		 * @public
@@ -991,6 +991,11 @@ sap.ui.define([
 					tooltip: this._oResourceBundle.getText("TIMEPICKER_AMPM_BUTTON_TOOLTIP")
 				}));
 			}
+
+			if (!this.getAggregation("_nowButton")) {
+				this.setAggregation("_nowButton", this._getCurrentTimeButton());
+			}
+
 			aButtons = this.getAggregation("_buttons");
 			aClocks = this.getAggregation("_clocks");
 			this._clockCount = aClocks.length;

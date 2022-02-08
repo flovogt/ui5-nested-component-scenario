@@ -64,7 +64,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -1083,7 +1083,7 @@ sap.ui.define([
 
             this._oTitle.setProperty("maxLines", 2, true);
 
-		} else if (frameType === FrameType.TwoByOne && this.getMode() === GenericTileMode.ActionMode) {
+        } else if (frameType === FrameType.TwoByOne && this.getMode() === GenericTileMode.ActionMode) {
 			this._oTitle.setProperty("maxLines", 2, true);
 		} else if (frameType === FrameType.OneByHalf || frameType === FrameType.TwoByHalf) {
 			this._oTitle.setProperty("maxLines", 2, true);

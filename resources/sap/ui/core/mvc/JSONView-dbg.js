@@ -43,7 +43,7 @@ sap.ui.define([
 	 * @class
 	 * A View defined using JSON.
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.JSONView
@@ -68,6 +68,7 @@ sap.ui.define([
 	 * The given controller instance overrides the controller defined in the view definition. Sharing a controller instance
 	 * between multiple views is not supported.
 	 * @public
+	 * @since 1.56.0
 	 * @static
 	 * @returns {Promise<sap.ui.core.mvc.JSONView>} A promise which resolves with the created <code>JSONView</code> instance.
 	 */

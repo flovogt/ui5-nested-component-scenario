@@ -54,9 +54,7 @@ sap.ui.define([
 	 * Used by the AnalyticalTable to display the sum row.
 	 */
 	AnalyticalTreeBindingAdapter.prototype.getGrandTotalContext = function () {
-		if (this._oRootNode) {
-			return this._oRootNode.context;
-		}
+		return this._oRootNode && this._oRootNode.context;
 	};
 
 	/*
@@ -64,9 +62,7 @@ sap.ui.define([
 	 * Used by the AnalyticalTable to display the sum row.
 	 */
 	AnalyticalTreeBindingAdapter.prototype.getGrandTotalNode = function () {
-		if (this._oRootNode) {
-			return this._oRootNode;
-		}
+		return this._oRootNode;
 	};
 
 	/*
@@ -109,7 +105,6 @@ sap.ui.define([
 
 		// if the node was not found in the current tree snapshot -> rebuild the tree, and if necessary request the node
 		if (!oNode || !oNode.context) {
-			//@TODO: Maybe preserve the Row Index Cache, before calling getContexts, and restore it afterwards
 			//Beware: getContexts might return nothing, if the context was not yet loaded!
 			oNode = {context: this.getContexts(iIndex, 1, 0)[0]};
 		}
@@ -192,8 +187,9 @@ sap.ui.define([
 		var aContexts = [];
 		//find missing spots in our visible section
 		var mMissingSections;
+		var oNode;
 		for (var i = 0; i < aNodes.length; i++) {
-			var oNode = aNodes[i];
+			oNode = aNodes[i];
 
 			//user scrolled into the water mark node, which is the last of the guaranteed loaded page (length + threshold)
 			if (this._isRunningInAutoExpand(TreeAutoExpandMode.Bundled) && this._oWatermark) {
@@ -233,7 +229,7 @@ sap.ui.define([
 			// try to fill gaps in our return array if we already have new data (thanks to thresholding)
 			aContexts = [];
 			for (var j = 0; j < aNodes.length; j++) {
-				var oNode = aNodes[j];
+				oNode = aNodes[j];
 				aContexts.push(oNode.context);
 			}
 		}
@@ -281,6 +277,8 @@ sap.ui.define([
 				aResults.push(oNode.sumNode);
 			}
 		}
+
+		return undefined;
 	};
 
 	/*
@@ -589,17 +587,15 @@ sap.ui.define([
 		// in case we have no grouping at all, the "groupID" for each node is based on its position as the roots child
 		if (!this.isGrouped() && oNode && oNode.positionInParent) {
 			sGroupID = "/" + oNode.positionInParent + "/";
-		} else {
+		} else if (oNode.level > iMaxLevel) {
 			// if the level of the node exceeds the maximum level (in the analytical case, this is the aggregation level),
 			// the group id is also appended with the relative parent position
-			if (oNode.level > iMaxLevel) {
-				sGroupID = this._getGroupIdFromContext(oNode.context, iMaxLevel);
-				assert(oNode.positionInParent != undefined, "If the node level is greater than the number of grouped columns, the position of the node to its parent must be defined!");
-				sGroupID +=  oNode.positionInParent + "/";
-			} else {
-				//this is the best case, the node sits on a higher level than the aggregation level
-				sGroupID = this._getGroupIdFromContext(oNode.context, oNode.level);
-			}
+			sGroupID = this._getGroupIdFromContext(oNode.context, iMaxLevel);
+			assert(oNode.positionInParent != undefined, "If the node level is greater than the number of grouped columns, the position of the node to its parent must be defined!");
+			sGroupID +=  oNode.positionInParent + "/";
+		} else {
+			//this is the best case, the node sits on a higher level than the aggregation level
+			sGroupID = this._getGroupIdFromContext(oNode.context, oNode.level);
 		}
 		return sGroupID;
 	};
@@ -779,6 +775,8 @@ sap.ui.define([
 				bHasMeasures = true;
 				return false;
 			}
+
+			return true;
 		});
 		return bHasMeasures;
 	};

@@ -16,7 +16,7 @@ sap.ui.define(['./Model'],
 	 * @extends sap.ui.model.Model
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.MetaModel
@@ -39,7 +39,7 @@ sap.ui.define(['./Model'],
 	 * @param {boolean} [bReload]
 	 *   force reload even if data is already available. For server side models this should
 	 *   refetch the data from the server
-	 * @return {sap.ui.model.Context} the binding context, if it could be created synchronously
+	 * @return {sap.ui.model.Context|undefined} the binding context, if it could be created synchronously
 
 	 * @see sap.ui.model.Model.prototype.createBindingContext
 	 *

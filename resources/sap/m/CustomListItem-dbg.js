@@ -24,7 +24,7 @@ sap.ui.define(['./ListItemBase', './library', './CustomListItemRenderer'],
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public

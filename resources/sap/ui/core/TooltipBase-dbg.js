@@ -31,7 +31,7 @@ sap.ui.define([
 	 * @class
 	 * Abstract class that can be extended in order to implement any extended tooltip. For example, RichTooltip Control is based on it. It provides the opening/closing behavior and the main "text" property.
 	 * @extends sap.ui.core.Control
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.TooltipBase
@@ -136,7 +136,7 @@ sap.ui.define([
 			var oPopup = this._getPopup();
 			if (!(oPopup.isOpen() && oPopup.getContent() == this)) {
 				// Update Tooltip or create a new span with texts.
-				sap.ui.getCore().getRenderManager().render(this, sap.ui.getCore().getStaticAreaRef(), true);
+				sap.ui.getCore().createRenderManager().render(this, sap.ui.getCore().getStaticAreaRef(), true);
 			}
 
 			// Attach accessibility info to the control oSC

@@ -30,9 +30,8 @@ sap.ui.define([
 		CountMode, ODataFilter, ODataUtils,  OperationMode) {
 	"use strict";
 
-	/*global Set */
-
-	var aCreateParametersAllowlist = ["changeSetId", "error", "expand", "groupId", "success"];
+	var aCreateParametersAllowlist = ["changeSetId", "error", "expand", "groupId", "inactive",
+			"success"];
 
 	/**
 	 * @class
@@ -49,7 +48,7 @@ sap.ui.define([
 	 *           if not specified, the default count mode of the <code>oModel</code> is applied
 	 * @param {string} [mParameters.createdEntitiesKey=""]
 	 *   A key used in combination with the resolved path of this binding to identify the entities
-	 *   created this binding's {@link #create} method.
+	 *   created by this binding's {@link #create} method.
 	 *
 	 *   <b>Note:</b> Different controls or control aggregation bindings to the same collection must
 	 *   have different <code>createdEntitiesKey</code> values.
@@ -138,19 +137,79 @@ sap.ui.define([
 				this.bThresholdRejected = true;
 			}
 
-			var bUseExpandedList = this.checkExpandedList();
-			if (!bUseExpandedList) {
+			if (!this.checkExpandedList()) {
+				this._removePersistedCreatedContexts();
 				this.resetData();
 			}
 		},
 
 		metadata : {
-			publicMethods : [
-			                 "getLength"
-			                 ]
+			publicMethods : ["getLength"]
 		}
 
 	});
+
+	/**
+	 * The 'createActivate' event is fired when a property is changed on a context in an 'inactive'
+	 * state (see {@link #create}). The context then changes its state to 'transient'.
+	 *
+	 * @param {sap.ui.base.Event} oEvent The event object
+	 * @param {sap.ui.model.odata.v2.ODataListBinding} oEvent.getSource() This binding
+	 *
+	 * @event sap.ui.model.odata.v2.ODataListBinding#createActivate
+	 * @public
+	 * @since 1.98.0
+	 */
+
+	/**
+	 * Attach event handler <code>fnFunction</code> to the 'createActivate' event of this binding.
+	 *
+	 * @param {function} fnFunction The function to call when the event occurs
+	 * @param {object} [oListener] Object on which to call the given function
+	 *
+	 * @public
+	 * @since 1.98.0
+	 */
+	 ODataListBinding.prototype.attachCreateActivate = function (fnFunction, oListener) {
+		this.attachEvent("createActivate", fnFunction, oListener);
+	};
+
+	/**
+	 * Detach event handler <code>fnFunction</code> from the 'createActivate' event of this binding.
+	 *
+	 * @param {function} fnFunction The function to call when the event occurs
+	 * @param {object} [oListener] Object on which to call the given function
+	 *
+	 * @public
+	 * @since 1.98.0
+	 */
+	ODataListBinding.prototype.detachCreateActivate = function (fnFunction, oListener) {
+		this.detachEvent("createActivate", fnFunction, oListener);
+	};
+
+	/**
+	 * Returns all current contexts of this list binding in no special order. Just like
+	 * {@link #getCurrentContexts}, this method does not request any data from a back end and does
+	 * not change the binding's state. In contrast to {@link #getCurrentContexts}, it does not only
+	 * return those contexts that were last requested by a control, but all contexts that are
+	 * currently available in the binding.
+	 *
+	 * @returns {sap.ui.model.odata.v2.Context[]}
+	 *   All current contexts of this list binding, in no special order
+	 *
+	 * @public
+	 * @since 1.98.0
+	 */
+	ODataListBinding.prototype.getAllCurrentContexts = function () {
+		var aContexts = this._getCreatedContexts(),
+			that = this;
+
+		this.aKeys.forEach(function (sKey) {
+			aContexts.push(that.oModel.getContext("/" + sKey));
+		});
+
+		return aContexts;
+	};
 
 	/**
 	 * Return contexts for the list.
@@ -232,6 +291,12 @@ sap.ui.define([
 
 		if (this.bRefresh) {
 			this.bRefresh = false;
+			// if we do not need to load data after a refresh event (e.g. we have enough created
+			// contexts) we need to fire a change event to fulfill the contract that after a refresh
+			// event a change event is triggered when the data is available.
+			if (!aContexts.dataRequested && aContexts.length > 0) {
+				this._fireChange({reason : ChangeReason.Change});
+			}
 		} else {
 			// Do not create context data and diff in case of refresh, only if real data has been received
 			// The current behaviour is wrong and makes diff detection useless for OData in case of refresh
@@ -262,6 +327,9 @@ sap.ui.define([
 	 * As in OData all entities have a unique ID in the URL, the path of the
 	 * context is suitable here.
 	 *
+	 * @param {sap.ui.model.Context} oContext The context
+	 * @returns {string} The entry key for the given context
+	 *
 	 * @private
 	 */
 	ODataListBinding.prototype.getEntryKey = function(oContext) {
@@ -271,7 +339,14 @@ sap.ui.define([
 	/**
 	 * Returns the entry data as required for change detection/diff.
 	 *
-	 * This is a JSON serialization of the entity, in case select/expand were used with only the selected/expanded parts.
+	 * This is a JSON serialization of the entity, in case select/expand were used with only the
+	 * selected/expanded parts.
+	 *
+	 * @param {sap.ui.model.Context} oContext
+	 *   The context
+	 * @returns {any}
+	 *   The value for the given context or <code>undefined</code> if data or entity type
+	 *   cannot be found or if not all selected properties are available
 	 *
 	 * @private
 	 */
@@ -280,19 +355,21 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns contexts for the list.
+	 * Returns contexts for the list without gaps.
 	 *
 	 * @param {number} [iStartIndex=0]
 	 *   The start index of the requested contexts
 	 * @param {number} [iLength]
 	 *   The requested amount of contexts
 	 * @return {sap.ui.model.odata.v2.Context[]}
-	 *   The available contexts for the given range
+	 *   The available contexts for the given range; if there is no context for an index in this
+	 *   range, the succeeding indexes are not considered so that the returned array has no gaps
 	 *
 	 * @private
 	 */
 	ODataListBinding.prototype._getContexts = function (iStartIndex, iLength) {
-		var oContext, i, sKey,
+		var oContext, i, iEndIndex, sKey,
+			bAtEnd = this.isFirstCreateAtEnd(),
 			aContexts = [],
 			aCreatedContexts = this._getCreatedContexts(),
 			iCreated = aCreatedContexts.length,
@@ -304,21 +381,24 @@ sap.ui.define([
 		if (!iLength) {
 			iLength = this._getMaximumLength();
 		}
-		for (i = iStartIndex; i < iCreated && iLength > 0; i += 1) {
-			aContexts.push(aCreatedContexts[i]);
-			iLength -= 1;
-		}
-		iStartIndex = Math.max(0, iStartIndex - iCreated);
-		// Loop through known data and check whether we already have all rows loaded
-		for (i = iStartIndex; iLength > 0; i += 1) {
-			sKey = this.aKeys[i];
-			if (!sKey) {
-				break;
+		iEndIndex = iStartIndex + iLength;
+		for (i = iStartIndex; i < iEndIndex; i += 1) {
+			if (!bAtEnd && i < iCreated) { // creation area at the start
+				oContext = aCreatedContexts[i];
+			} else if (bAtEnd && i >= this.iLength) { // creation area at the end
+				if (i - this.iLength >= iCreated) {
+					break;
+				}
+				oContext = aCreatedContexts[i - this.iLength];
+			} else { // backend contexts
+				sKey = this.aKeys[bAtEnd ? i : i - iCreated];
+				if (!sKey) {
+					break; // avoid gaps
+				}
+				oContext = this.oModel.getContext('/' + sKey,
+					sDeepPath + sKey.substr(sKey.indexOf("(")));
 			}
-			oContext = this.oModel.getContext('/' + sKey,
-				sDeepPath + sKey.substr(sKey.indexOf("(")));
 			aContexts.push(oContext);
-			iLength -= 1;
 		}
 
 		return aContexts;
@@ -326,6 +406,10 @@ sap.ui.define([
 
 	/**
 	 * Setter for context.
+	 *
+	 * Entities that have been created via {@link #create} and saved in the back end are removed
+	 * from the creation rows area and inserted at the right position based on the current filters
+	 * and sorters.
 	 *
 	 * @param {Object} oContext
 	 *   The new context object
@@ -387,6 +471,7 @@ sap.ui.define([
 				this.abortPendingRequest();
 				this._fireChange({reason : ChangeReason.Context});
 			} else {
+				this._removePersistedCreatedContexts();
 				this._refresh();
 			}
 		}
@@ -479,19 +564,78 @@ sap.ui.define([
 	};
 
 	/**
-	 * Load data from model.
+	 * Adds the $filter query option to the given array of URL parameters if needed.
+	 * The application/control filters, as stored in <code>this.sFilterParams</code> are considered
+	 * only if the given <code>bUseFilterParams</code> is set. The exclude filter for created
+	 * persisted entities is always considered to avoid duplicates or a wrong count.
+	 *
+	 * @param {string[]} aURLParams The array of URL parameters
+	 * @param {boolean} bUseFilterParams Whether to consider <code>this.sFilterParams</code>
+	 *
+	 * @private
+	 */
+	ODataListBinding.prototype._addFilterQueryOption = function (aURLParams, bUseFilterParams) {
+		var sExcludeFilter = this._getCreatedPersistedExcludeFilter();
+
+		if (this.sFilterParams && bUseFilterParams) {
+			if (sExcludeFilter) {
+				// this.sFilterParams starts with $filter=, so slice it
+				aURLParams.push("$filter=(" + this.sFilterParams.slice(8) + ")%20and%20"
+					+ sExcludeFilter);
+			} else {
+				aURLParams.push(this.sFilterParams);
+			}
+		} else if (sExcludeFilter) {
+			aURLParams.push("$filter=" + sExcludeFilter);
+		}
+	};
+
+	/**
+	 * Gets the exclude filter for the created and persisted contexts of this list binding.
+	 *
+	 * @returns {string|undefined} The exclude filter or <code>undefined</code> if there are no
+	 *   created and persisted contexts in the cache.
+	 *
+	 * @private
+	 */
+	ODataListBinding.prototype._getCreatedPersistedExcludeFilter = function () {
+		var sExcludeFilter, aExcludeFilters,
+			aCreatedPersistedContexts = this._getCreatedContexts().filter(function (oContext) {
+				return !oContext.isTransient();
+			}),
+			that = this;
+
+		if (aCreatedPersistedContexts.length > 0) {
+			aExcludeFilters = aCreatedPersistedContexts.map(function (oContext) {
+				var sPath = oContext.getPath();
+
+				return that._getFilterForPredicate(sPath.slice(sPath.indexOf("(")));
+			});
+			sExcludeFilter = "not("
+				+ ODataUtils._createFilterParams(aExcludeFilters.length === 1
+						? aExcludeFilters[0]
+						: new Filter({filters : aExcludeFilters}),
+					this.oModel.oMetadata, this.oEntityType)
+				+ ")";
+		}
+
+		return sExcludeFilter;
+	};
+
+	/**
+	 * Load data for the given range from server.
 	 *
 	 * @param {int} iStartIndex The start index
-	 * @param {int} iLength The count of data to be requested
-	 * Load list data from the server
+	 * @param {int} iLength The amount of data to be requested
 	 * @private
 	 */
 	ODataListBinding.prototype.loadData = function(iStartIndex, iLength) {
-
-		var that = this,
-		bInlineCountRequested = false,
-		sGuid = uid(),
-		sGroupId;
+		var sGroupId,
+			sGuid = uid(),
+			bInlineCountRequested = false,
+			aParams = [],
+			sPath = this.sPath,
+			that = this;
 
 		// create range parameters and store start index for sort/filter requests
 		if (iStartIndex || iLength) {
@@ -503,18 +647,13 @@ sap.ui.define([
 
 		// create the request url
 		// $skip/$top and are excluded for OperationMode.Client and Auto if the threshold was sufficient
-		var aParams = [];
 		if (this.sRangeParams && !this.useClientMode()) {
 			aParams.push(this.sRangeParams);
 		}
 		if (this.sSortParams) {
 			aParams.push(this.sSortParams);
 		}
-		// When in OperationMode.Auto, the filters are excluded and applied clientside,
-		// except when the threshold was rejected, and the binding will internally run in Server Mode
-		if (this.sFilterParams && !this.useClientMode()) {
-			aParams.push(this.sFilterParams);
-		}
+		this._addFilterQueryOption(aParams, !this.useClientMode());
 		if (this.sCustomParams) {
 			aParams.push(this.sCustomParams);
 		}
@@ -567,48 +706,46 @@ sap.ui.define([
 				that.bLengthFinal = true;
 				that.applyFilter();
 				that.applySort();
-			} else {
 				// For server mode, update data and or length dependent on the current result
-				if (oData.results.length > 0) {
-					// Collecting contexts, after the $inlinecount was evaluated, so we do not have to clear it again when
-					// the Auto modes initial threshold <> count check failed.
-					each(oData.results, function(i, entry) {
-						that.aKeys[iStartIndex + i] = that.oModel._getKey(entry);
-					});
+			} else if (oData.results.length > 0) {
+				// Collecting contexts, after the <code>$inlinecount</code> was evaluated, so we do
+				// not have to clear it again when Auto modes initial threshold <> count check
+				// failed.
+				each(oData.results, function(i, entry) {
+					that.aKeys[iStartIndex + i] = that.oModel._getKey(entry);
+				});
 
-					// if we got data and the results + startindex is larger than the
-					// length we just apply this value to the length
-					if (that.iLength < iStartIndex + oData.results.length) {
-						that.iLength = iStartIndex + oData.results.length;
-						that.bLengthFinal = false;
-					}
+				// if we got data and the results + startindex is larger than the
+				// length we just apply this value to the length
+				if (that.iLength < iStartIndex + oData.results.length) {
+					that.iLength = iStartIndex + oData.results.length;
+					that.bLengthFinal = false;
+				}
 
-					// if less entries are returned than have been requested
-					// set length accordingly
-					if (!oData.__next && (oData.results.length < iLength || iLength === undefined)) {
-						that.iLength = iStartIndex + oData.results.length;
-						that.bLengthFinal = true;
-					}
-				} else {
-					// In fault tolerance mode, if an empty array and next link is returned,
-					// finalize the length accordingly
-					if (that.bFaultTolerant && oData.__next) {
-						that.iLength = iStartIndex;
-						that.bLengthFinal = true;
-					}
+				// if less entries are returned than have been requested set length accordingly
+				if (!oData.__next && (oData.results.length < iLength || iLength === undefined)) {
+					that.iLength = iStartIndex + oData.results.length;
+					that.bLengthFinal = true;
+				}
+			} else {
+				// In fault tolerance mode, if an empty array and next link is returned,
+				// finalize the length accordingly
+				if (that.bFaultTolerant && oData.__next) {
+					that.iLength = iStartIndex;
+					that.bLengthFinal = true;
+				}
 
-					// check if there are any results at all...
-					if (iStartIndex === 0) {
-						that.iLength = 0;
-						that.aKeys = [];
-						that.bLengthFinal = true;
-					}
+				// check if there are any results at all...
+				if (iStartIndex === 0) {
+					that.iLength = 0;
+					that.aKeys = [];
+					that.bLengthFinal = true;
+				}
 
-					// if next requested page has no results, and startindex = actual length
-					// we could set lengthFinal true as we know the length.
-					if (iStartIndex === that.iLength) {
-						that.bLengthFinal = true;
-					}
+				// if next requested page has no results, and startindex = actual length
+				// we could set lengthFinal true as we know the length.
+				if (iStartIndex === that.iLength) {
+					that.bLengthFinal = true;
 				}
 			}
 
@@ -650,8 +787,6 @@ sap.ui.define([
 			}
 
 		}
-
-		var sPath = this.sPath;
 
 		if (this.isRelative()){
 			sPath = this.getResolvedPath();
@@ -713,21 +848,15 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataListBinding.prototype._getLength = function() {
-		var that = this;
-		var sGroupId;
+		var sGroupId, sPath,
+			aParams = [],
+			that = this;
 
 		if (this.sCountMode !== CountMode.Request && this.sCountMode !== CountMode.Both) {
 			return;
 		}
 
-		// create a request object for the data request
-		// In OperationMode.Auto we explicitly omitt the filters for the count,
-		// filters will be applied afterwards on the client if count comes under the threshold
-		var aParams = [];
-		if (this.sFilterParams && this.sOperationMode != OperationMode.Auto) {
-			aParams.push(this.sFilterParams);
-		}
-
+		this._addFilterQueryOption(aParams, this.sOperationMode !== OperationMode.Auto);
 		// use only custom params for count and not expand,select params
 		if (this.mParameters && this.mParameters.custom) {
 			var oCust = { custom: {}};
@@ -765,7 +894,7 @@ sap.ui.define([
 		}
 
 		// Use context and check for relative binding
-		var sPath = this.getResolvedPath();
+		sPath = this.getResolvedPath();
 
 		// Only send request, if path is defined
 		if (sPath) {
@@ -809,6 +938,10 @@ sap.ui.define([
 	 * To update a control, even if no data has been changed, e.g. to reset a control after failed
 	 * validation, use the parameter <code>bForceUpdate</code>.
 	 *
+	 * Entities that have been created via {@link #create} and saved in the back end are removed
+	 * from the creation rows area and inserted at the right position based on the current filters
+	 * and sorters.
+	 *
 	 * @param {boolean} [bForceUpdate] Update the bound control even if no data has been changed
 	 * @param {string} [sGroupId] The group Id for the refresh
 	 *
@@ -819,12 +952,19 @@ sap.ui.define([
 			sGroupId = bForceUpdate;
 			bForceUpdate = false;
 		}
+		this._removePersistedCreatedContexts();
 		this.sRefreshGroupId = sGroupId;
 		this._refresh(bForceUpdate);
 		this.sRefreshGroupId = undefined;
 	};
 
 	/**
+	 * Refreshes the binding.
+	 *
+	 * @param {boolean} bForceUpdate Whether an update should be forced
+	 * @param {object} [mChangedEntities] A map of changed entities
+	 * @param {object} [mEntityTypes] A map of entity types
+	 *
 	 * @private
 	 */
 	ODataListBinding.prototype._refresh = function(bForceUpdate, mChangedEntities, mEntityTypes) {
@@ -854,6 +994,8 @@ sap.ui.define([
 
 						return false;
 					}
+
+					return true;
 				});
 			}
 			if (!mChangedEntities && !mEntityTypes) { // default
@@ -1047,6 +1189,8 @@ sap.ui.define([
 							bChangeDetected = true;
 							return false;
 						}
+
+						return true;
 					});
 				}
 			}
@@ -1131,17 +1275,22 @@ sap.ui.define([
 
 		sPath = this.getResolvedPath();
 
-		if (sPath) {
-			return this.oModel._createRequestUrl(sPath, null, aParams);
-		}
+		return sPath && this.oModel._createRequestUrl(sPath, null, aParams);
 	};
 
 	/**
 	 * Sorts the list.
 	 *
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} aSorters A new sorter or an array of sorters which define the sort order
-	 * @param {boolean} [bReturnSuccess=false] Whether the success indicator should be returned instead of <code>this</code>
-	 * @return {this} Reference to <code>this</code> to facilitate method chaining or the success indicator
+	 * Entities that have been created via {@link #create} and saved in the back end are removed
+	 * from the creation rows area and inserted at the right position based on the current filters
+	 * and sorters.
+	 *
+	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} aSorters
+	 *   A new sorter or an array of sorters which define the sort order
+	 * @param {boolean} [bReturnSuccess=false]
+	 *   Whether the success indicator should be returned instead of <code>this</code>
+	 * @return {this}
+	 *   Reference to <code>this</code> to facilitate method chaining or the success indicator
 	 * @public
 	 */
 	ODataListBinding.prototype.sort = function(aSorters, bReturnSuccess) {
@@ -1180,13 +1329,17 @@ sap.ui.define([
 					this.sChangeReason = ChangeReason.Sort;
 				}
 			} else {
+				// when removing the persisted created entries from the cache we break the invariant
+				// that the number of entries (read from server) does not change when sorting. So
+				// we need to update the length we received from the server
+				this.iLength += this._removePersistedCreatedContexts().length;
 				// Only reset the keys, length usually doesn't change when sorting
+				// therefore #resetData is not required
 				this.aKeys = [];
 				this.abortPendingRequest(false);
 				this.sChangeReason = ChangeReason.Sort;
 				this._fireRefresh({reason : this.sChangeReason});
 			}
-			// TODO remove this if the sort event gets removed which is now deprecated
 			this._fireSort({sorter: aSorters});
 			bSuccess = true;
 		}
@@ -1199,9 +1352,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the comparator for each sorter/filter in the array according to the
-	 * Edm type of the sort/filter property.
-	 * @param bSort Whether a comparator usable for sorting should be returned, where comparison with null returns a valid result.
+	 * Sets the comparator for each sorter/filter in the array according to the Edm type of the
+	 * sort/filter property.
+	 *
+	 * @param {object[]} aEntries
+	 *   Array of sorters/filters
+	 * @param {boolean} bSort
+	 *   Whether a comparator usable for sorting should be returned, where comparison with null
+	 *   returns a valid result
+	 *
 	 * @private
 	 */
 	ODataListBinding.prototype.addComparators = function(aEntries, bSort) {
@@ -1235,9 +1394,13 @@ sap.ui.define([
 	/**
 	 * Creates a comparator usable for sorting.
 	 *
-	 * The OData comparators return "NaN" for comparisons containing null values. While this is a valid result when used for filtering,
-	 * for sorting the null values need to be put in order, so the comparator must return either -1 or 1 instead, to have null sorted
-	 * at the top in ascending order and on the bottom in descending order.
+	 * The OData comparators return "NaN" for comparisons containing null values. While this is a
+	 * valid result when used for filtering, for sorting the null values need to be put in order, so
+	 * the comparator must return either -1 or 1 instead, to have null sorted at the top in
+	 * ascending order and on the bottom in descending order.
+	 *
+	 * @param {function} fnCompare Function to compare two values with
+	 * @returns {function} The sort comparator
 	 *
 	 * @private
 	 */
@@ -1257,8 +1420,13 @@ sap.ui.define([
 	}
 
 	/**
-	 * Does normalize the filter values according to the given Edm type. This is necessary for comparators
-	 * to work as expected, even if the wrong JavaScript type is passed to the filter (string vs number)
+	 * Does normalize the filter values according to the given Edm type. This is necessary for
+	 * comparators to work as expected, even if the wrong JavaScript type is passed to the filter
+	 * (string vs number).
+	 *
+	 * @param {string} sType The Edm type
+	 * @param {object} oFilter The filter
+	 *
 	 * @private
 	 */
 	function normalizeFilterValues(sType, oFilter) {
@@ -1323,6 +1491,10 @@ sap.ui.define([
 	 * are combined with OR, while filters on different table columns are combined with AND.
 	 * Please note that a custom filter function is only supported with operation mode <code>sap.ui.model.odata.OperationMode.Client</code>.
 	 *
+	 * Entities that have been created via {@link #create} and saved in the back end are removed
+	 * from the creation rows area and inserted at the right position based on the current filters
+	 * and sorters.
+	 *
 	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} aFilters Single filter or array of filter objects
 	 * @param {sap.ui.model.FilterType} [sFilterType=Control] Type of the filter which should be adjusted. If it is not given, type <code>Control</code> is assumed
 	 * @param {boolean} [bReturnSuccess=false] Whether the success indicator should be returned instead of <code>this</code>
@@ -1381,12 +1553,12 @@ sap.ui.define([
 					this.sChangeReason = ChangeReason.Filter;
 				}
 			} else {
+				this._removePersistedCreatedContexts();
 				this.resetData();
 				this.abortPendingRequest(true);
 				this.sChangeReason = ChangeReason.Filter;
 				this._fireRefresh({reason: this.sChangeReason});
 			}
-			// TODO remove this if the filter event gets removed which is now deprecated
 			if (sFilterType === FilterType.Application) {
 				this._fireFilter({filters: this.aApplicationFilters});
 			} else {
@@ -1529,26 +1701,23 @@ sap.ui.define([
 	};
 
 	/**
-	 * The function is experimental and the API/behaviour is not finalized and hence this must not
-	 * be used for productive usage.
+	 * Creates a new entity for this binding's collection via
+	 * {@link sap.ui.model.odata.v2.ODataModel#createEntry} using the parameters given in
+	 * <code>mParameters</code> and inserts it at the list position specified by the
+	 * <code>bAtEnd</code> parameter.
 	 *
-	 * Creates a new entity via {@link sap.ui.model.odata.v2.ODataModel#createEntry} and inserts it
-	 * at the start of the list.
-	 *
-	 * Note: If there are transient entities in the list, switching the parent context is not
-	 * supported. The transient entities are stored at the ListBinding only, that means if a table
-	 * is rebound, that is the list binding is replaced by a new instance, the newly created
-	 * entities are not visible any more. Nevertheless they still exist and the corresponding
-	 * requests are fired with the next call of {@link #submitChanges}.
-	 *
-	 * Note: The metadata have to be loaded before {@link #create} can be called.
+	 * Note: This method requires that the model metadata has been loaded; see
+	 * {@link sap.ui.model.odata.v2.ODataModel#metadataLoaded}.
 	 *
 	 * @param {object} [oInitialData={}]
-	 *   The initial data for the created entity; see <code>mParameters.properties</code> parameter
-	 *   of {@link sap.ui.model.odata.v2.ODataModel#createEntry}
+	 *   The initial data for the created entity; see the <code>mParameters.properties</code>
+	 *   parameter of {@link sap.ui.model.odata.v2.ODataModel#createEntry}
 	 * @param {boolean} [bAtEnd=false]
-	 *   Whether the entity is inserted at the end of the list. When creating multiple entities,
-	 *   this parameter must have the same value for each entity.
+	 *   Whether the entity is inserted at the end of the list. The first insertion determines the
+	 *   overall position of created contexts within the list. Every succeeding insertion is
+	 *   relative to the created contexts within this list. Note: the order of created contexts in
+	 *   the binding does not necessarily correspond to the order of the resulting back end creation
+	 *   requests.
 	 * @param {object} mParameters
 	 *   A map of parameters as specified for {@link sap.ui.model.odata.v2.ODataModel#createEntry}
 	 *   where only the following subset of these is supported.
@@ -1562,30 +1731,46 @@ sap.ui.define([
 	 * @param {string} [mParameters.groupId]
 	 *   The ID of a request group; requests belonging to the same group will be bundled in one
 	 *   batch request
+	 * @param {boolean} [mParameters.inactive]
+	 *   Whether the created context is inactive. An inactive context will only be sent to the
+	 *   server after the first property update. From then on it behaves like any other created
+	 *   context.
 	 * @param {function} [mParameters.success]
 	 *   The success callback function
 	 * @returns {sap.ui.model.odata.v2.Context}
 	 *   The context representing the created entity
 	 * @throws {Error}
-	 *   If a relative binding is unresolved, if the binding's context is transient, if
-	 *   <code>bAtEnd</code> is truthy, if the collection data has been read via
-	 *   <code>$expand</code> together with the parent entity, if the metadata is not yet available,
-	 *   or if there are unsupported parameters in the given parameters map; see
-	 *   {@link sap.ui.model.odata.v2.ODataModel#createEntry} for additional errors thrown
+	 *   If
+	 *   <ul>
+	 *   <li>a relative binding is unresolved,</li>
+	 *   <li>the binding's context is transient,</li>
+	 *   <li><code>bAtEnd</code> is truthy and the binding's length is not final,</li>
+	 *   <li>the collection data has been read via <code>$expand</code> together with the parent
+	 *     entity,</li>
+	 *   <li>the metadata is not yet available,</li>
+	 *   <li>there are unsupported parameters in the given parameters map.</li>
+	 *   </ul>
+	 *   See {@link sap.ui.model.odata.v2.ODataModel#createEntry} for additional errors thrown.
 	 *
-	 * @private
-	 * @ui5-restricted sap.suite.ui.generic.template
+	 * @public
+	 * @since 1.98.0
 	 */
 	ODataListBinding.prototype.create = function (oInitialData, bAtEnd, mParameters) {
 		var oCreatedContext, oCreatedContextsCache, sResolvedPath,
 			mCreateParameters = {
 				context : this.oContext,
 				properties : oInitialData,
-				refreshAfterChange : false},
+				refreshAfterChange : false
+			},
+			bCreationAreaAtEnd = this.isFirstCreateAtEnd(),
 			that = this;
 
-		if (bAtEnd === true) {
-			throw new Error("Option 'bAtEnd' is not supported");
+		bAtEnd = !!bAtEnd;
+		if (bCreationAreaAtEnd === undefined) {
+			bCreationAreaAtEnd = bAtEnd;
+		}
+		if (bCreationAreaAtEnd && !this.bLengthFinal) {
+			throw new Error("Must know the final length to create at the end");
 		}
 		Object.keys(mParameters || {}).forEach(function (sParameterKey) {
 			if (!aCreateParametersAllowlist.includes(sParameterKey)) {
@@ -1607,14 +1792,13 @@ sap.ui.define([
 		oCreatedContextsCache = this.oModel._getCreatedContextsCache();
 		Object.assign(mCreateParameters, mParameters);
 		oCreatedContext = this.oModel.createEntry(this.sPath, mCreateParameters);
-		oCreatedContext.created().catch(function () {
-			oCreatedContextsCache.removeContext(oCreatedContext, sResolvedPath,
-				that.sCreatedEntitiesKey);
-			that._fireChange({reason : ChangeReason.Remove});
-		});
-
 		oCreatedContextsCache.addContext(oCreatedContext, sResolvedPath,
-			this.sCreatedEntitiesKey);
+			this.sCreatedEntitiesKey, bAtEnd);
+		if (mCreateParameters.inactive) {
+			oCreatedContext.fetchActivated().then(function () {
+				that.fireEvent("createActivate");
+			});
+		}
 		this._fireChange({reason : ChangeReason.Add});
 
 		return oCreatedContext;
@@ -1683,6 +1867,22 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns whether the overall position of created entries is at the end of the list; this is
+	 * determined by the first call to {@link sap.ui.model.odata.v2.ODataListBinding#create}.
+	 *
+	 * @returns {boolean|undefined}
+	 *   Whether the overall position of created contexts is at the end, or <code>undefined</code>
+	 *   if there are no created contexts
+	 *
+	 * @public
+	 * @since 1.98.0
+	 */
+	ODataListBinding.prototype.isFirstCreateAtEnd = function () {
+		return this.oModel._getCreatedContextsCache()
+			.isAtEnd(this.getResolvedPath(), this.sCreatedEntitiesKey);
+	};
+
+	/**
 	 * Gets the array of contexts for created entities, created via {@link #create}.
 	 *
 	 * @returns {sap.ui.model.odata.v2.Context[]} The array of contexts for created entities
@@ -1696,11 +1896,12 @@ sap.ui.define([
 
 	/**
 	 * Gets an object with the values for system query options $skip and $top based on the given
-	 * start index and length, both from control point of view. It considers the number of entities
-	 * created via {@link #create}.
+	 * start index and length, both from control point of view. The number of entities created via
+	 * {@link #create} is considered for the <code>$skip</code> value if created at the beginning,
+	 * but it is not considered for the <code>$top</code> value.
 	 *
 	 * @param {number} iStartIndex The start index from control point of view
-	 * @param {number} iLength The length from control point of view
+	 * @param {number} iLength The length
 	 * @returns {object}
 	 *   An object containing the properties <code>skip</code> and <code>top</code>; the values
 	 *   correspond to the system query options <code>$skip</code> and <code>$top</code>
@@ -1708,13 +1909,52 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataListBinding.prototype._getSkipAndTop = function (iStartIndex, iLength) {
-		var iServerStartIndex = iStartIndex - this._getCreatedContexts().length,
-			iServerLength = iServerStartIndex > 0 ? iLength : iLength + iServerStartIndex;
+		var iCreatedContextsLength = this._getCreatedContexts().length,
+			iSkip = this.isFirstCreateAtEnd()
+				? iStartIndex
+				: Math.max(0, iStartIndex - iCreatedContextsLength),
+			iTop = this.bLengthFinal && iSkip + iLength >= this.iLength
+				? Math.max(0, this.iLength - iSkip)
+				: iLength;
 
-		return {
-			skip : Math.max(0, iServerStartIndex),
-			top : Math.max(0, iServerLength)
-		};
+		return {skip : iSkip, top : iTop};
+	};
+
+	/**
+	 * Removes and returns the persisted created entities for this binding.
+	 *
+	 * @returns {sap.ui.model.odata.v2.Context[]}
+	 *   An array of persisted contexts that have been removed from the created contexts cache
+	 *
+	 * @private
+	 */
+	 ODataListBinding.prototype._removePersistedCreatedContexts = function () {
+		return this.oModel._getCreatedContextsCache()
+			.removePersistedContexts(this.getResolvedPath(), this.sCreatedEntitiesKey);
+	};
+
+	/**
+	 * Returns the count of active entries in the list if the list length is final, otherwise
+	 * <code>undefined</code>. Contrary to {#getLength}, this method does not consider inactive
+	 * entries which are created via {#create}.
+	 *
+	 * @returns {number|undefined} The count of entries
+	 *
+	 * @public
+	 * @see #create
+	 * @see #getLength
+	 * @see #isLengthFinal
+	 * @see sap.ui.model.odata.v2.Context#isInactive
+	 * @since 1.98.0
+	 */
+	 ODataListBinding.prototype.getCount = function () {
+		if (!this.isLengthFinal()) {
+			return undefined;
+		}
+
+		return this.getLength() - this._getCreatedContexts().filter(function (oContext) {
+				return oContext.isInactive();
+			}).length;
 	};
 
 	return ODataListBinding;

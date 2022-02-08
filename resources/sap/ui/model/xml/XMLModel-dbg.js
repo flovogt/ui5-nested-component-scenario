@@ -47,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ClientModel
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @param {object} oData either the URL where to load the XML from or an XML
 	 * @public
@@ -181,7 +181,7 @@ sap.ui.define([
 		this.oNameSpaces[sPrefix] = sNameSpace;
 	};
 
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.bindProperty
 	 */
 	XMLModel.prototype.bindProperty = function(sPath, oContext, mParameters) {
@@ -189,7 +189,7 @@ sap.ui.define([
 		return oBinding;
 	};
 
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.bindList
 	 */
 	XMLModel.prototype.bindList = function(sPath, oContext, aSorters, aFilters, mParameters) {
@@ -197,7 +197,7 @@ sap.ui.define([
 		return oBinding;
 	};
 
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.bindTree
 	 */
 	XMLModel.prototype.bindTree = function(sPath, oContext, aFilters, mParameters, aSorters) {
@@ -267,7 +267,7 @@ sap.ui.define([
 	XMLModel.prototype.getProperty = function(sPath, oContext) {
 		var oResult = this._getObject(sPath, oContext);
 		if (oResult && typeof oResult != "string") {
-			oResult = oResult[0] ? oResult[0].textContent : ""; // TODO is this right? shouldn't we return the object?!
+			oResult = oResult[0] ? oResult[0].textContent : "";
 		}
 		return oResult;
 	};

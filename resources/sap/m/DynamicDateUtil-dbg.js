@@ -7,14 +7,68 @@
 // Provides utility class sap.m.DynamicDateUtil
 sap.ui.define([
 	"./StandardDynamicDateOption",
-	"./StandardDynamicDateRangeKeys",
-	"sap/base/Log"
+	"sap/base/Log",
+	"./library"
 ], function(
-	StandardDynamicDateOption, StandardDynamicDateRangeKeys, Log) {
+	StandardDynamicDateOption, Log, library) {
 	"use strict";
 
+	var STANDARD_KEYS_ARRAY = [
+		"DATE",
+		"TODAY",
+		"YESTERDAY",
+		"TOMORROW",
+
+		"FIRSTDAYWEEK",
+		"LASTDAYWEEK",
+		"FIRSTDAYMONTH",
+		"LASTDAYMONTH",
+		"FIRSTDAYQUARTER",
+		"LASTDAYQUARTER",
+		"FIRSTDAYYEAR",
+		"LASTDAYYEAR",
+		"DATERANGE",
+		"FROM",
+		"TO",
+		"YEARTODATE",
+		"DATETOYEAR",
+		"LASTDAYS",
+		"LASTWEEKS",
+		"LASTMONTHS",
+		"LASTQUARTERS",
+		"LASTYEARS",
+		"NEXTDAYS",
+		"NEXTWEEKS",
+		"NEXTMONTHS",
+		"NEXTQUARTERS",
+		"NEXTYEARS",
+		"TODAYFROMTO",
+
+		"THISWEEK",
+		"LASTWEEK",
+		"NEXTWEEK",
+
+		"SPECIFICMONTH",
+		"THISMONTH",
+		"LASTMONTH",
+		"NEXTMONTH",
+
+		"THISQUARTER",
+		"LASTQUARTER",
+		"NEXTQUARTER",
+		"QUARTER1",
+		"QUARTER2",
+		"QUARTER3",
+		"QUARTER4",
+
+		"THISYEAR",
+		"LASTYEAR",
+		"NEXTYEAR"
+	];
+
 	/**
-	 * A utility class for working with the DynamicDateOption instances.
+	 * @class
+	 * The DynamicDateUtil is a utility class for working with the DynamicDateOption instances.
 	 *
 	 * @alias sap.m.DynamicDateUtil
 	 * @static
@@ -26,6 +80,14 @@ sap.ui.define([
 			"TODAY": new StandardDynamicDateOption({ key: "TODAY", valueTypes: [] }),
 			"YESTERDAY": new StandardDynamicDateOption({ key: "YESTERDAY", valueTypes: [] }),
 			"TOMORROW": new StandardDynamicDateOption({ key: "TOMORROW", valueTypes: [] }),
+			"FIRSTDAYWEEK": new StandardDynamicDateOption({ key: "FIRSTDAYWEEK", valueTypes: [] }),
+			"LASTDAYWEEK": new StandardDynamicDateOption({ key: "LASTDAYWEEK", valueTypes: [] }),
+			"FIRSTDAYMONTH":new StandardDynamicDateOption({ key: "FIRSTDAYMONTH", valueTypes: [] }),
+			"LASTDAYMONTH":new StandardDynamicDateOption({ key: "LASTDAYMONTH", valueTypes: [] }),
+			"FIRSTDAYQUARTER":new StandardDynamicDateOption({ key: "FIRSTDAYQUARTER", valueTypes: [] }),
+			"LASTDAYQUARTER":new StandardDynamicDateOption({ key: "LASTDAYQUARTER", valueTypes: [] }),
+			"FIRSTDAYYEAR":new StandardDynamicDateOption({ key: "FIRSTDAYYEAR", valueTypes: [] }),
+			"LASTDAYYEAR":new StandardDynamicDateOption({ key: "LASTDAYYEAR", valueTypes: [] }),
 			"THISWEEK": new StandardDynamicDateOption({ key: "THISWEEK", valueTypes: [] }),
 			"THISMONTH": new StandardDynamicDateOption({ key: "THISMONTH", valueTypes: [] }),
 			"THISQUARTER": new StandardDynamicDateOption({ key: "THISQUARTER", valueTypes: [] }),
@@ -51,6 +113,7 @@ sap.ui.define([
 			"FROM": new StandardDynamicDateOption({ key: "FROM", valueTypes: ["date"] }),
 			"TO": new StandardDynamicDateOption({ key: "TO", valueTypes: ["date"] }),
 			"YEARTODATE": new StandardDynamicDateOption({ key: "YEARTODATE", valueTypes: [] }),
+			"DATETOYEAR": new StandardDynamicDateOption({ key: "DATETOYEAR", valueTypes: [] }),
 			"TODAYFROMTO": new StandardDynamicDateOption({ key: "TODAYFROMTO", valueTypes: ["int", "int"] }),
 			"QUARTER1": new StandardDynamicDateOption({ key: "QUARTER1", valueTypes: [] }),
 			"QUARTER2": new StandardDynamicDateOption({ key: "QUARTER2", valueTypes: [] }),
@@ -60,7 +123,7 @@ sap.ui.define([
 			"DATERANGE": new StandardDynamicDateOption({ key: "DATERANGE", valueTypes: ["date", "date"] }),
 			"DATE": new StandardDynamicDateOption({ key: "DATE", valueTypes: ["date"] })
 		},
-		_allKeys: StandardDynamicDateRangeKeys.slice(0)
+		_allKeys: STANDARD_KEYS_ARRAY.slice(0)
 	};
 
 	/**
@@ -108,6 +171,17 @@ sap.ui.define([
 	};
 
 	/**
+	 * Gets sorted array of all standard keys.
+	 *
+	 * @returns {string[]} An array of standard option keys
+	 * @static
+	 * @public
+	 */
+	DynamicDateUtil.getStandardKeys = function () {
+		return STANDARD_KEYS_ARRAY.slice(0);
+	};
+
+	/**
 	 * Parses a string to an array of objects in the DynamicDateRange's value format.
 	 * Uses the provided formatter.
 	 *
@@ -125,12 +199,13 @@ sap.ui.define([
 		}
 
 		var aResults = [],
-			oResult;
+			oResult,
+			aStandardDynamicDateRangeKeysArray = DynamicDateUtil.getStandardKeys();
 
 		aOptionKeys = aOptionKeys || Object.keys(DynamicDateUtil._options);
 
 		var aOptions = aOptionKeys.sort(function(sKey1, sKey2) {
-			return StandardDynamicDateRangeKeys.indexOf(sKey1) - StandardDynamicDateRangeKeys.indexOf(sKey2);
+			return aStandardDynamicDateRangeKeysArray.indexOf(sKey1) - aStandardDynamicDateRangeKeysArray.indexOf(sKey2);
 		}).map(function(sKey) {
 			return DynamicDateUtil._options[sKey];
 		});

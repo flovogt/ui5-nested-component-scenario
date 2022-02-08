@@ -12,6 +12,9 @@ sap.ui.define(['sap/ui/core/Element',
 	function(Element, IconPool, TabStripItem, library) {
 		"use strict";
 
+		// shortcut for sap.m.ImageHelper
+		var ImageHelper = library.ImageHelper;
+
 		/**
 		 * Constructor for a new <code>TabContainerItem</code>.
 		 *
@@ -23,7 +26,7 @@ sap.ui.define(['sap/ui/core/Element',
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.96.4
+		 * @version 1.98.0
 		 *
 		 * @constructor
 		 * @public
@@ -141,8 +144,35 @@ sap.ui.define(['sap/ui/core/Element',
 		 * @return {this} <code>this</code> to allow method chaining
 		 * @public
 		 */
-		TabContainerItem.prototype.setIcon = function(sIcon) {
-			return TabStripItem.prototype._setIcon.call(this, sIcon, true);
+		TabContainerItem.prototype.setIcon = function(sIcon, bSuppressRendering) {
+			var mProperties,
+				aCssClasses = ['sapMTabContIcon'],
+				oImage = this.getAggregation("_image"),
+				sImgId = this.getId() + "-img",
+				bDecorative = !!(this.getName() || this.getAdditionalText());
+
+			if (!sIcon) {
+				this.setProperty("icon", sIcon, bSuppressRendering);
+				if (oImage) {
+					this.destroyAggregation("_image");
+				}
+				return this;
+			}
+
+			if (this.getIcon() !== sIcon) {
+				this.setProperty("icon", sIcon, bSuppressRendering);
+
+				mProperties = {
+					src : sIcon,
+					id: sImgId,
+					decorative: bDecorative,
+					tooltip: this.getIconTooltip()
+				};
+
+				oImage = ImageHelper.getImageControl(sImgId, oImage, undefined, mProperties, aCssClasses);
+				this.setAggregation("_image", oImage, bSuppressRendering);
+			}
+			return this;
 		};
 
 		/**

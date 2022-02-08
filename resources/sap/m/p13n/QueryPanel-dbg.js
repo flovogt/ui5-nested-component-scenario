@@ -22,12 +22,11 @@ sap.ui.define([
 	 * @extends sap.m.p13n.BasePanel
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @private
 	 * @ui5-restricted
-	 * @experimental
-	 *
+	 * @experimental Since 1.96.
 	 * @since 1.96
 	 * @alias sap.m.p13n.QueryPanel
 	 */
@@ -41,7 +40,9 @@ sap.ui.define([
 				}
 			}
 		},
-		renderer: {}
+		renderer: {
+			apiVersion: 2
+		}
 	});
 
 	// shortcut for sap.m.ListType
@@ -57,6 +58,7 @@ sap.ui.define([
 
 	QueryPanel.prototype.init = function () {
 		BasePanel.prototype.init.apply(this, arguments);
+		this._bFocusOnRearrange = false;
 		this.setEnableReorder(true);
 		this.addStyleClass("sapMP13nQueryPanel");
 	};
@@ -82,6 +84,7 @@ sap.ui.define([
 
 	QueryPanel.prototype._moveTableItem = function (oItem, iNewIndex) {
 		BasePanel.prototype._moveTableItem.apply(this, arguments);
+		this._updateEnableOfMoveButtons(oItem, false);
 		this._oListControl.removeItem(oItem);
 		this._oListControl.insertItem(oItem, iNewIndex);
 	};

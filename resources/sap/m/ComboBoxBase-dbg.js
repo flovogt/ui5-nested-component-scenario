@@ -22,7 +22,9 @@ sap.ui.define([
 	"sap/base/strings/escapeRegExp",
 	"sap/m/inputUtils/forwardItemProperties",
 	"sap/m/inputUtils/highlightDOMElements",
-	"sap/m/inputUtils/ListHelpers"
+	"sap/m/inputUtils/ListHelpers",
+	"sap/ui/core/IconPool",
+	"sap/ui/core/Core"
 ],
 	function(
 		ComboBoxTextField,
@@ -42,7 +44,9 @@ sap.ui.define([
 		escapeRegExp,
 		forwardItemProperties,
 		highlightDOMElements,
-		ListHelpers
+		ListHelpers,
+		IconPool,
+		Core
 	) {
 		"use strict";
 
@@ -64,7 +68,7 @@ sap.ui.define([
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.96.4
+		 * @version 1.98.0
 		 *
 		 * @constructor
 		 * @public
@@ -98,7 +102,20 @@ sap.ui.define([
 						type: "boolean",
 						defaultValue: false,
 						hidden: true
-					}
+					},
+
+					/**
+					 * Specifies whether clear icon is shown.
+					 * Pressing the icon will clear input's value and fire the change and liveChange events.
+					 * @since 1.96
+					 */
+					showClearIcon: { type: "boolean", defaultValue: false },
+
+					/**
+					 * Specifies whether the clear icon should be shown/hidden on user interaction.
+					 * @private
+					 */
+					effectiveShowClearIcon: { type: "boolean", defaultValue: false, visibility: "hidden" }
 				},
 				aggregations: {
 
@@ -165,6 +182,17 @@ sap.ui.define([
 		/* =========================================================== */
 		/* Private methods                                             */
 		/* =========================================================== */
+
+		/**
+		 * Determines if the clear icon should be visible or hidden based on the control's state
+		 *
+		 * @returns {boolean} True if the clear icon should be shown.
+		 * @private
+		 * @ui5-restricted sap.m.ComboBox,sap.m.MultiComboBox
+		 */
+		ComboBoxBase.prototype.shouldShowClearIcon = function () {
+			return this.getProperty("effectiveShowClearIcon") && !!this.getValue() && this.getEditable() && this.getEnabled();
+		};
 
 		/**
 		 * Called whenever the binding of the aggregation items is changed.
@@ -234,16 +262,17 @@ sap.ui.define([
 		};
 
 		/**
-		 * Decorates the Input
+		 * Decorates the Input.
 		 *
-		 * @param oInput {sap.m.InputBase}
-		 * @returns {*}
+		 * @param {sap.m.InputBase} oInput The input which should be decorated
+		 * @returns {*} The decorated input or undefined
 		 * @private
 		 * @ui5-restricted
 		 */
 		ComboBoxBase.prototype._decoratePopupInput = function (oInput) {
 			if (oInput) {
 				this.setTextFieldHandler(oInput);
+				oInput.setShowClearIcon(this.getShowClearIcon());
 			}
 			return oInput;
 		};
@@ -261,7 +290,7 @@ sap.ui.define([
 			oTextField._handleEvent = function(oEvent) {
 				oTextFieldHandleEvent.apply(this, arguments);
 
-				if (/keydown|sapdown|sapup|saphome|sapend|sappagedown|sappageup|input/.test(oEvent.type)) {
+				if (/keydown|keyup|sapdown|sapup|saphome|sapend|sappagedown|sappageup|input/.test(oEvent.type)) {
 					that._handleEvent(oEvent);
 				}
 			};
@@ -448,6 +477,68 @@ sap.ui.define([
 			return this._bItemsShownWithFilter;
 		};
 
+		/**
+		 * Gets the clear icon.
+		 *
+		 * @returns {object} The clear icon
+		 * @private
+		 */
+		ComboBoxBase.prototype._getClearIcon = function () {
+			if (this._oClearIcon) {
+				return this._oClearIcon;
+			}
+
+			this._oClearIcon = this.addEndIcon({
+				src: IconPool.getIconURI("decline"),
+				noTabStop: true,
+				visible: false,
+				alt: this._oRb.getText("INPUT_CLEAR_ICON_ALT"),
+				useIconTooltip: false,
+				decorative: false,
+				press: this.handleClearIconPress.bind(this)
+			}, 0);
+
+			this._oClearIcon.addStyleClass("sapMComboBoxBaseClearIcon");
+
+			return this._oClearIcon;
+		};
+
+		/**
+		 * Function is called when the clear icon is pressed.
+		 * Should be overwritten by subclasses.
+		 *
+		 * @param {jQuery.Event} oEvent The event object
+		 * @protected
+		 * @ui5-restricted sap.m.ComboBox, sap.m.MultiComboBox
+		 */
+		ComboBoxBase.prototype.handleClearIconPress = function (oEvent) {};
+
+		/**
+		 * Function is called on key up keyboard input.
+		 *
+		 * @param {jQuery.Event} oEvent The event object
+		 * @private
+		 */
+		ComboBoxBase.prototype.onkeyup = function (oEvent) {
+			if (!this.getEnabled() || !this.getEditable()) {
+				return;
+			}
+
+			this.getShowClearIcon() && this.setProperty("effectiveShowClearIcon", !!this.getValue());
+		};
+
+		/**
+		 * Sets the value property of the control.
+		 *
+		 * @param {string} sValue The new value
+		 * @returns {this} this instance for method chaining
+		 * @public
+		 */
+		ComboBoxBase.prototype.setValue = function (sValue) {
+			ComboBoxTextField.prototype.setValue.apply(this, arguments);
+			this.setProperty("effectiveShowClearIcon", !!sValue);
+			return this;
+		};
 
 		/* =========================================================== */
 		/* Lifecycle methods                                           */
@@ -455,6 +546,7 @@ sap.ui.define([
 
 		ComboBoxBase.prototype.init = function() {
 			ComboBoxTextField.prototype.init.apply(this, arguments);
+			this._oRb = Core.getLibraryResourceBundle("sap.m");
 
 			// sets the picker popup type
 			this.setPickerType(Device.system.phone ? "Dialog" : "Dropdown");
@@ -479,13 +571,13 @@ sap.ui.define([
 			this._bOnItemsLoadedScheduled = false;
 			this._bDoTypeAhead = true;
 
-			this.getIcon().addEventDelegate({
+			this.getArrowIcon().addEventDelegate({
 				onmousedown: function (oEvent) {
 						this._bShouldClosePicker = this.isOpen();
 				}
 			}, this);
 
-			this.getIcon().attachPress(this._handlePopupOpenAndItemsLoad.bind(this, true, this));
+			this.getArrowIcon().attachPress(this._handlePopupOpenAndItemsLoad.bind(this, true, this));
 
 			// a method to define whether an item should be filtered in the picker
 			this.fnFilter = null;
@@ -520,21 +612,25 @@ sap.ui.define([
 		};
 
 		/**
-		 * Fires when an object gets removed from the items aggregation
+		 * Fires when an object gets removed from the items aggregation.
 		 *
+		 * @param {sap.ui.core.Item} oItem The item that should be removed
 		 * @protected
 		 */
 		ComboBoxBase.prototype.handleItemRemoval = function (oItem) {};
 
 		/**
-		 * Fires when an object gets inserted in the items aggregation
+		 * Fires when an object gets inserted in the items aggregation.
 		 *
+		 * @param {sap.ui.core.Item} oItem The item that should be inserted
 		 * @protected
 		 */
 		ComboBoxBase.prototype.handleItemInsertion = function (oItem) {};
 
 		/**
-		 * Sets whether the list items should be recreated
+		 * Sets whether the list items should be recreated.
+		 *
+		 * @param {boolean} bRecreate True if the list items should be recreated
 		 * @protected
 		 */
 		ComboBoxBase.prototype.setRecreateItems = function (bRecreate) {
@@ -543,6 +639,8 @@ sap.ui.define([
 
 		/**
 		 * Gets the flag indicating whether the list items should be recreated
+		 *
+		 * @returns {boolean} True if the list items should be recreated
 		 * @protected
 		 */
 		ComboBoxBase.prototype.getRecreateItems = function () {
@@ -563,6 +661,12 @@ sap.ui.define([
 				If the input has FormattedText aggregation while the suggestions popover is open then
 				it's new, because the old is already switched to have the value state header as parent */
 				this._updateSuggestionsPopoverValueState();
+			}
+
+			if (this.getShowClearIcon()) {
+				this._getClearIcon().setVisible(this.shouldShowClearIcon());
+			} else if (this._oClearIcon) {
+				this._getClearIcon().setVisible(false);
 			}
 		};
 
@@ -613,6 +717,8 @@ sap.ui.define([
 
 		ComboBoxBase.prototype.exit = function() {
 			ComboBoxTextField.prototype.exit.apply(this, arguments);
+
+			this._oRb = null;
 
 			if (this._getGroupHeaderInvisibleText()) {
 				this._getGroupHeaderInvisibleText().destroy();

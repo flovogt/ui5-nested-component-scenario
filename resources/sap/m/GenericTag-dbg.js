@@ -53,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -94,8 +94,7 @@ sap.ui.define([
 			associations : {
 				/**
 				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledBy).
-				 * Note: This is a downported feature introduced in version 1.97.0.
-	 			 * @since 1.96.4
+	 			 * @since 1.97.0
 				 */
 				ariaLabelledBy: {type : "sap.ui.core.Control", multiple : true, singularName : "ariaLabelledBy"}
 			},

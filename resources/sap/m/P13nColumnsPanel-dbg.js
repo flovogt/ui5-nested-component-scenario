@@ -38,8 +38,9 @@ sap.ui.define([
 	 * @class The <code>P13nColumnsPanel</code> control is used to define column-specific settings for table personalization.
 	 * @extends sap.m.P13nPanel
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @constructor
+	 * @deprecated as of version 1.98. Use the {@link sap.m.p13n.SelectionPanel} instead.
 	 * @public
 	 * @since 1.26.0
 	 * @alias sap.m.P13nColumnsPanel
@@ -48,6 +49,7 @@ sap.ui.define([
 	var P13nColumnsPanel = P13nPanel.extend("sap.m.P13nColumnsPanel", /** @lends sap.m.P13nColumnsPanel.prototype */
 	{
 		metadata: {
+			deprecated:true,
 			library: "sap.m",
 			properties: {
 				/**

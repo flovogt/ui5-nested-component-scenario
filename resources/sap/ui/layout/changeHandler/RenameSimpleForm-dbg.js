@@ -4,8 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-/*global sap */
-
 sap.ui.define([
 	"sap/ui/fl/changeHandler/Base",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
@@ -22,7 +20,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.layout.changeHandler.RenameForm
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @since 1.40
 	 * @private
 	 * @experimental Since 1.40. This class is experimental and provides only limited functionality. Also the API might be changed in future.
@@ -55,15 +53,11 @@ sap.ui.define([
 				return Promise.reject(new Error("no Control provided for renaming"));
 			}
 
-			return Promise.resolve()
-				.then(function() {
-					return oModifier.getProperty(oRenamedElement, "text");
-				})
-				.then(function(sProperty) {
-					oChangeWrapper.setRevertData(sProperty);
-					var sValue = oChangeDefinition.texts.formText.value;
-					oModifier.setProperty(oRenamedElement, "text", sValue);
-				});
+			return oModifier.getProperty(oRenamedElement, "text").then(function(sProperty) {
+				oChangeWrapper.setRevertData(sProperty);
+				var sValue = oChangeDefinition.texts.formText.value;
+				oModifier.setProperty(oRenamedElement, "text", sValue);
+			});
 		} else {
 			Log.error("Change does not contain sufficient information to be applied: [" + oChangeDefinition.layer + "]" + oChangeDefinition.namespace + "/" + oChangeDefinition.fileName + "." + oChangeDefinition.fileType);
 			//however subsequent changes should be applied
@@ -145,7 +139,11 @@ sap.ui.define([
 		var oElementSelector = oChange.getDefinition().content.elementSelector;
 		var oAffectedControlSelector = JsControlTreeModifier.bySelector(oElementSelector, oAppComponent).getParent().getId();
 		return {
-			affectedControls: [oAffectedControlSelector]
+			affectedControls: [oAffectedControlSelector],
+			payload: {
+				originalLabel: oChange.getRevertData(),
+				newLabel:  oChange.getDefinition().texts.formText.value
+			}
 		};
 	};
 

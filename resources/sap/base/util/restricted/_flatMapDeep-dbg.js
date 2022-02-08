@@ -10,7 +10,7 @@
  * @alias module:sap/base/util/restricted/_flatMapDeep
  * @author SAP SE
  * @since 1.80
- * @version 1.96.4
+ * @version 1.98.0
  * @private
  * @ui5-restricted
 */

@@ -26,7 +26,7 @@ sap.ui.define(['sap/ui/base/EventProvider', './Plugin', "sap/base/util/UriParame
 	 * @class This class provides the support tool functionality of UI5. This class is internal and all its functions must not be used by an application.
 	 *
 	 * @extends sap.ui.base.EventProvider
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @private
 	 * @alias sap.ui.core.support.Support
 	 */

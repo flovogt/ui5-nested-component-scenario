@@ -20,7 +20,7 @@ sap.ui.define(["sap/ui/core/Element"], function(Element) {
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @private
 	 * @experimental Since 1.73. This class is experimental and provides only limited functionality. Also the API might be changed in future.

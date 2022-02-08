@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @private
@@ -226,6 +226,17 @@ sap.ui.define([
 			fNestedItemPaddingLeft: Number.parseFloat(mParams["_sap_m_IconTabBar_SelectListItem_PaddingLeft"]),
 			fAdditionalPadding: Number.parseFloat(mParams["_sap_m_IconTabBar_SelectListItem_PaddingLeftAdditional"])
 		};
+	};
+
+	/**
+	 * Checks if all tabs are textOnly version.
+	 * @private
+	 * @returns {boolean} True if all tabs are textOnly version, otherwise false
+	 */
+	IconTabBarSelectList.prototype._checkTextOnly = function () {
+		return this.getItems().every(function (oItem) {
+			return oItem.isA('sap.m.IconTabSeparator') || !oItem.getIcon();
+		});
 	};
 
 	/**

@@ -96,7 +96,7 @@ sap.ui.define([
 	 * control's dependents aggregation or add it by using {@link sap.ui.core.mvc.XMLView#addDependent}.
 	 *
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.XMLView
@@ -233,6 +233,7 @@ sap.ui.define([
 	 *                     <strong>Note</strong>: These preprocessors are only available to this instance.
 	 *                     For global or on-demand availability use {@link sap.ui.core.mvc.XMLView.registerPreprocessor}.
 	 * @public
+	 * @since 1.56.0
 	 * @static
 	 * @returns {Promise<sap.ui.core.mvc.XMLView>} A Promise that resolves with the view instance or rejects with any thrown error.
 	 */
@@ -469,7 +470,11 @@ sap.ui.define([
 		// we don't want to write the key into the cache
 		var sKey = mCacheInput.key;
 		delete mCacheInput.key;
+		var vAdditionalData = mCacheInput.additionalData;
 		mCacheInput.xml = XMLHelper.serialize(xContent);
+		if (vAdditionalData && vAdditionalData.setAdditionalCacheData && vAdditionalData.getAdditionalCacheData) {
+			mCacheInput.additionalData = vAdditionalData.getAdditionalCacheData();
+		}
 		return Cache.set(sKey, mCacheInput);
 	}
 
@@ -479,8 +484,14 @@ sap.ui.define([
 			if (mCacheOutput && mCacheOutput.componentManifest == mCacheInput.componentManifest) {
 				mCacheOutput.xml = XMLHelper.parse(mCacheOutput.xml, "application/xml").documentElement;
 				if (mCacheOutput.additionalData) {
-					// extend the additionalData which was passed into cache configuration dynamically
-					merge(mCacheInput.additionalData, mCacheOutput.additionalData);
+					var vAdditionalData = mCacheInput.additionalData;
+					if (vAdditionalData && vAdditionalData.setAdditionalCacheData && vAdditionalData.getAdditionalCacheData) {
+						vAdditionalData.setAdditionalCacheData(mCacheOutput.additionalData);
+					} else {
+						// extend the additionalData which was passed into cache configuration dynamically
+						Log.error("Deprecated: Don't use an object reference for caching additional Data! Use a CacheDataProvider instead!");
+						merge(mCacheInput.additionalData, mCacheOutput.additionalData);
+					}
 				}
 				return mCacheOutput;
 			}
@@ -752,6 +763,7 @@ sap.ui.define([
 	 * bSyncSupport flag to true.
 	 *
 	 * @public
+	 * @since 1.30
 	 * @static
 	 * @param {string|sap.ui.core.mvc.XMLView.PreprocessorType} sType
 	 *      the type of content to be processed
@@ -797,6 +809,7 @@ sap.ui.define([
 	 * @see sap.ui.core.mvc.XMLView
 	 * @see sap.ui.core.mvc.View.Preprocessor
 	 * @enum {string}
+	 * @since 1.34
 	 * @public
 	 */
 	XMLView.PreprocessorType = {

@@ -21,7 +21,7 @@ sap.ui.define([
 					name : "string",
 					subtotals : "boolean",
 					unit : "string",
-					"with" : "string"
+					with : "string"
 				}
 			},
 			"grandTotal like 1.84" : "boolean",
@@ -62,7 +62,8 @@ sap.ui.define([
 	 * @param {string[]} aAliases - Array of all applicable aggregatable property names/aliases
 	 * @throws {Error} If "average" or "countdistinct" are used together with grand totals like 1.84
 	 */
-	function aggregate(oAggregation, aGroupBy, aAggregate, bGrandTotalLike184, sAlias, i, aAliases) {
+	function aggregate(oAggregation, aGroupBy, aAggregate, bGrandTotalLike184, sAlias, i,
+			aAliases) {
 		var oDetails = oAggregation.aggregate[sAlias],
 			sAggregate = oDetails.name || sAlias,
 			sUnit = oDetails.unit,
@@ -527,8 +528,8 @@ sap.ui.define([
 		 *   (see {@link .buildApply})
 		 * @param {number} [iLevel=0]
 		 *   The current level; use <code>0</code> to bypass group levels
-		 * @returns {string}
-		 *   The filtered "$orderby" system query option
+		 * @returns {string|undefined}
+		 *   The filtered "$orderby" system query option or <code>undefined</code>
 		 *
 		 * @private
 		 */

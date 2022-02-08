@@ -142,7 +142,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -510,6 +510,11 @@ function(
 		if (this._filterList) {
 			this._filterList.destroy();
 			this._filterList = null;
+		}
+
+		if (this._ariaFilterByInvisibleText) {
+			this._ariaFilterByInvisibleText.destroy();
+			this._ariaFilterByInvisibleText = null;
 		}
 
 		// page2 (filter details)
@@ -2127,8 +2132,7 @@ function(
 
 		this._getPage2().removeAllAggregation('content');
 
-		this._filterDetailList = new List(
-		{
+		this._filterDetailList = new List({
 			mode : (bMultiSelectMode ? ListMode.MultiSelect
 				: ListMode.SingleSelectLeft),
 			includeItemInSelection : true,
@@ -2177,7 +2181,8 @@ function(
 				// enable/disable reset button if necessary
 				this._checkResetStatus();
 
-			}.bind(this)
+			}.bind(this),
+			ariaLabelledBy: this._sFilterDetailTitleLabelId
 		});
 
 		for (var i = 0; i < aSubFilters.length; i++) {
@@ -2452,6 +2457,11 @@ function(
 		}
 		this._vContentPage = -1;
 
+		// Aria - used to label the filter by list
+		this._ariaFilterByInvisibleText = new InvisibleText(this.getId() + "-filterByLabel", {
+			text: this._rb.getText("VIEWSETTINGS_TITLE_FILTER")
+		});
+
 		this._presetFilterList = new List(
 			this.getId() + "-predefinedfilterlist",
 			{
@@ -2469,9 +2479,11 @@ function(
 				}.bind(this)
 			});
 
-		this._filterList = new List(this.getId() + "-filterlist", {});
+		this._filterList = new List(this.getId() + "-filterlist", {
+			ariaLabelledBy: this._ariaFilterByInvisibleText
+		});
 
-		this._filterContent = [ this._presetFilterList, this._filterList ];
+		this._filterContent = [ this._ariaFilterByInvisibleText, this._presetFilterList, this._filterList ];
 	};
 
 	/**

@@ -19,7 +19,7 @@ sap.ui.define([
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.ui.core",
-		version: "1.96.4",
+		version: "1.98.0",
 		designtime: "sap/ui/core/designtime/library.designtime",
 		types: [
 
@@ -86,7 +86,8 @@ sap.ui.define([
 			"sap.ui.core.IDScope",
 			"sap.ui.core.ITitleContent",
 			"sap.ui.core.IAsyncContentCreation",
-			"sap.ui.core.IPlaceholderSupport"
+			"sap.ui.core.IPlaceholderSupport",
+			"sap.ui.core.IColumnHeaderMenu"
 		],
 		controls: [
 			"sap.ui.core.ComponentContainer",
@@ -153,13 +154,13 @@ sap.ui.define([
 	/**
 	 * The SAPUI5 Core Runtime.
 	 *
-	 * Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,
-	 * base classes for Controls, Components and the Model View Controller classes.
+	 * Contains the UI5 Core and all its components, base classes for Controls,
+	 * Components and the Model View Controller classes.
 	 *
 	 * @namespace
 	 * @alias sap.ui.core
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @since 0.8
 	 * @public
 	 */
@@ -198,7 +199,7 @@ sap.ui.define([
 	 * Noteworthy details:
 	 * <ul>
 	 * <li>whitespace is mandatory around a '-' or '+' operator and optional otherwise</li>
-	 * <li>parentheses are accepted but not checked for being balanced (a limitation of regexp based checks)</li>
+	 * <li>parentheses are accepted but not checked for being balanced (a restriction of regexp based checks)</li>
 	 * <li>semantic constraints like type restrictions are not checked</li>
 	 * </ul>
 	 *
@@ -890,7 +891,7 @@ sap.ui.define([
 	 * Noteworthy details:
 	 * <ul>
 	 * <li>whitespace is mandatory around a '-' or '+' operator and optional otherwise</li>
-	 * <li>parentheses are accepted but not checked for being balanced (a limitation of regexp based checks)</li>
+	 * <li>parentheses are accepted but not checked for being balanced (a restriction of regexp based checks)</li>
 	 * <li>semantic constraints like type restrictions are not checked</li>
 	 * </ul>
 	 *
@@ -1511,7 +1512,7 @@ sap.ui.define([
 	/**
 	 * Sort order of a column.
 	 *
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @enum {string}
 	 * @public
 	 * @since 1.61.0
@@ -1725,6 +1726,42 @@ sap.ui.define([
 	 * @interface
 	 * @public
 	 * @since 1.92.0
+	 */
+
+	/**
+	 * Marker interface for controls that can serve as a menu for a table column header.
+	 *
+	 * Implementation of this interface implements the <code>openBy</code> and <code>getAriaHasPopupType</code> methods.
+	 *
+	 * @name sap.ui.core.IColumnHeaderMenu
+	 * @interface
+	 * @public
+	 * @experimental As of version 1.98
+	 * @since 1.98.0
+	 */
+
+	/**
+	 * Opens the menu using the column header.
+	 * @param {sap.ui.core.Control} oControl
+	 *   Specifies the control where the menu is placed.
+	 *
+	 * @public
+	 * @function
+	 * @experimental As of version 1.98
+	 * @since 1.98.0
+	 * @name sap.ui.core.IColumnHeaderMenu.openBy
+	 */
+
+	/**
+	 * Returns the <code>sap.ui.core.aria.HasPopup<\code> type of the menu.
+	 *
+	 * @returns {sap.ui.core.aria.HasPopup} <code>sap.ui.core.aria.HasPopup<\code> type of the menu
+	 *
+	 * @public
+	 * @function
+	 * @experimental As of version 1.98
+	 * @since 1.98.0
+	 * @name sap.ui.core.IColumnHeaderMenu.getAriaHasPopupType
 	 */
 
 	/**

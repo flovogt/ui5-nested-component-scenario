@@ -77,7 +77,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @alias sap.ui.core.Control
 	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
@@ -498,7 +498,7 @@ sap.ui.define([
 	 * <b>IMPORTANT:</b></br>
 	 * This should be only used as FALLBACK when the Control events do not cover a specific use-case! Always try using
 	 * SAPUI5 control events, as e.g. accessibility-related functionality is then provided automatically.
-	 * E.g. when working with a <code>sap.ui.commons.Button</code>, always use the Button's "press" event, not the native "click" event, because
+	 * E.g. when working with a <code>sap.m.Button</code>, always use the Button's "press" event, not the native "click" event, because
 	 * "press" is also guaranteed to be fired when certain keyboard activity is supposed to trigger the Button.
 	 *
 	 * In the event handler, <code>this</code> refers to the Control - not to the root DOM element like in jQuery. While the DOM element can
@@ -683,7 +683,7 @@ sap.ui.define([
 		} else {
 			// core not yet initialized, defer execution
 			var that = this;
-			oCore.attachInitEvent(function () {
+			oCore.attachInit(function () {
 				that.placeAt(oRef, vPosition);
 			});
 		}

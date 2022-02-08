@@ -24,8 +24,8 @@ sap.ui.define([
 
 	/*
 	 * The AppCacheBuster is only aware of resources which are relative to the
-	 * current application or have been registered via:
-	 *   - jQuery.sap.registerModulePath
+	 * current application or have been registered via resource mapping (e.g.
+	 * sap.ui.loader.config({paths...})}.
 	 */
 
 	// intercept function to avoid usage of cachebuster
@@ -369,8 +369,8 @@ sap.ui.define([
 				fnEnhancedXhrOpen = XMLHttpRequest.prototype.open;
 
 				// enhance the validateProperty function to intercept URI types
-				//  test via: new sap.ui.commons.Image({src: "acctest/img/Employee.png"}).getSrc()
-				//            new sap.ui.commons.Image({src: "./acctest/../acctest/img/Employee.png"}).getSrc()
+				//  test via: new sap.m.Image({src: "acctest/img/Employee.png"}).getSrc()
+				//            new sap.m.Image({src: "./acctest/../acctest/img/Employee.png"}).getSrc()
 				ManagedObject.prototype.validateProperty = function(sPropertyName, oValue) {
 					var oMetadata = this.getMetadata(),
 						oProperty = oMetadata.getProperty(sPropertyName),

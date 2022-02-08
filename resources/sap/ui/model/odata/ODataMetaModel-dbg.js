@@ -26,7 +26,6 @@ sap.ui.define([
 		BindingMode, ClientContextBinding, Context, FilterProcessor, MetaModel, JSONListBinding,
 		JSONModel, JSONPropertyBinding, JSONTreeBinding, Measurement) {
 	"use strict";
-	/*global Map */
 
 	var // maps the metadata URL with query parameters concatenated with the code list collection
 		// path (e.g. /foo/bar/$metadata#SAP__Currencies) to a SyncPromise resolving with the code
@@ -208,7 +207,7 @@ sap.ui.define([
 	 * {@link #loaded loaded} has been resolved!
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @alias sap.ui.model.odata.ODataMetaModel
 	 * @extends sap.ui.model.MetaModel
 	 * @public
@@ -855,7 +854,6 @@ sap.ui.define([
 					vResult = bAsPath
 						? "/dataServices/schema/" + i + "/entityContainer/" + j
 						: oSchema.entityContainer[j];
-					return false; //break
 				}
 			});
 
@@ -1298,6 +1296,8 @@ sap.ui.define([
 		} else if (sDataPath === "/##@@requestUnitsOfMeasure") {
 			return "UnitsOfMeasure";
 		}
+
+		return undefined;
 	};
 
 	return ODataMetaModel;

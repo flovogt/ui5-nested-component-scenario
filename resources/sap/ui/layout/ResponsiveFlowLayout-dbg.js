@@ -37,7 +37,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -719,7 +719,7 @@ sap.ui.define([
 
 		/**
 		 * Returns a rectangle describing the current visual positioning of 1st DOM in the collection.
-		 * The difference with the function rect() in jQuery.sap.dom.js is that the height and width are cut to the
+		 * The difference with the function rect() in sap/ui/dom/jquery/rect.js is that the height and width are cut to the
 		 * 1st digit after the decimal separator and this is consistent across all browsers.
 		 * @param {object} oElement The jQuery collection to check
 		 * @returns {object} Object with properties top, left, width and height or null if no such element

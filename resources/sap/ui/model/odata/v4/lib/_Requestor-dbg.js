@@ -17,7 +17,7 @@ sap.ui.define([
 	"use strict";
 
 	var mBatchHeaders = { // headers for the $batch request
-			"Accept" : "multipart/mixed"
+			Accept : "multipart/mixed"
 		},
 		sClassName = "sap.ui.model.odata.v4.lib._Requestor",
 		rSystemQueryOptionWithPlaceholder = /(\$\w+)=~/g,
@@ -106,14 +106,14 @@ sap.ui.define([
 	 * Predefined request headers in $batch parts for OData V4.
 	 */
 	_Requestor.prototype.mPredefinedPartHeaders = {
-		"Accept" : "application/json;odata.metadata=minimal;IEEE754Compatible=true"
+		Accept : "application/json;odata.metadata=minimal;IEEE754Compatible=true"
 	};
 
 	/**
 	 * Predefined request headers for all requests for OData V4.
 	 */
 	_Requestor.prototype.mPredefinedRequestHeaders = {
-		"Accept" : "application/json;odata.metadata=minimal;IEEE754Compatible=true",
+		Accept : "application/json;odata.metadata=minimal;IEEE754Compatible=true",
 		"OData-MaxVersion" : "4.0",
 		"OData-Version" : "4.0",
 		"X-CSRF-Token" : "Fetch"
@@ -208,8 +208,8 @@ sap.ui.define([
 			return sResourcePath;
 		}
 
-		return sResourcePath +
-			(sResourcePath.includes("?") ? "&" + sQueryString.slice(1) : sQueryString);
+		return sResourcePath
+			+ (sResourcePath.includes("?") ? "&" + sQueryString.slice(1) : sQueryString);
 	};
 
 	/**
@@ -447,7 +447,6 @@ sap.ui.define([
 	 */
 	_Requestor.prototype.checkConflictingStrictRequest = function (oRequest, aRequests,
 		iChangeSetNo) {
-
 		function isOtherChangeSetWithStrictHandling(aChangeSet, i) {
 			return iChangeSetNo !== i && aChangeSet.some(isUsingStrictHandling);
 		}
@@ -649,7 +648,7 @@ sap.ui.define([
 		// We do not pass a resource path, but within V4 this doesn't matter
 		this.doConvertSystemQueryOptions(undefined, vExpandOptions,
 			function (sOptionName, vOptionValue) {
-				aExpandOptions.push(sOptionName + '=' + vOptionValue);
+				aExpandOptions.push(sOptionName + "=" + vOptionValue);
 			},
 			undefined, bSortExpandSelect);
 		return aExpandOptions.length ? sExpandPath + "(" + aExpandOptions.join(";") + ")"
@@ -668,7 +667,8 @@ sap.ui.define([
 	 *   Whether all system query options are dropped (useful for non-GET requests)
 	 * @param {boolean} [bSortExpandSelect]
 	 *   Whether the paths in $expand and $select shall be sorted in the query string
-	 * @returns {object} The converted query options or undefined if there are no query options
+	 * @returns {object|undefined} The converted query options or <code>undefined</code> if there
+	 *   are no query options
 	 *
 	 * @private
 	 */
@@ -783,7 +783,7 @@ sap.ui.define([
 		Object.keys(mQueryOptions).forEach(function (sKey) {
 			var vValue = mQueryOptions[sKey];
 
-			if (bDropSystemQueryOptions && sKey[0] === '$') {
+			if (bDropSystemQueryOptions && sKey[0] === "$") {
 				return;
 			}
 
@@ -934,7 +934,7 @@ sap.ui.define([
 				}
 			}
 			sPath += "(" + aArguments.join(",") + ")";
-		} else { // Action
+		} else { // Action (or NavigationProperty, then mName2Parameter is empty!)
 			for (sName in mParameters) {
 				if (!(sName in mName2Parameter)) {
 					delete mParameters[sName]; // remove invalid parameter
@@ -1019,18 +1019,22 @@ sap.ui.define([
 
 		return filter(this.mRunningChangeRequests).length > 0
 			|| this.aLockedGroupLocks.some(function (oGroupLock) {
-				return (sGroupId === undefined || oGroupLock.getGroupId() === sGroupId)
+				var sGroupId0 = oGroupLock.getGroupId();
+
+				return (sGroupId === undefined || sGroupId0 === sGroupId)
 					// aLockedGroupLocks may contain modifying group locks that have been unlocked
 					// already; cleanup of aLockedGroupLocks is done only in #submitBatch. An
 					// unlocked group lock is not relevant because either the corresponding change
 					// has been reset or it has been added to the batch queue.
-					&& oGroupLock.isModifying() && oGroupLock.isLocked();
+					&& oGroupLock.isModifying() && oGroupLock.isLocked()
+					&& !sGroupId0.startsWith("$inactive.");
 			})
 			|| filter(this.mBatchQueue).some(function (sGroupId0) {
-				return that.mBatchQueue[sGroupId0].some(function (vRequests) {
-					return Array.isArray(vRequests) && vRequests.some(function (oRequest) {
-						return oRequest.$cancel;
-					});
+				return !sGroupId0.startsWith("$inactive.")
+					&& that.mBatchQueue[sGroupId0].some(function (vRequests) {
+						return Array.isArray(vRequests) && vRequests.some(function (oRequest) {
+							return oRequest.$cancel;
+						});
 				});
 			});
 	};
@@ -1059,10 +1063,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Merges all GET requests that are marked as mergeable, have the same resource path and the
-	 * same query options besides $expand and $select. One request with the merged $expand and
+	 * Merges all GET requests that are marked as mergeable and have the same owner, resource path,
+	 * and query options besides $expand and $select. One request with the merged $expand and
 	 * $select is left in the queue and all merged requests get the response of this one remaining
-	 * request.
+	 * request. For $mergeRequests, see parameter fnMergeRequests of {@link #request}.
 	 *
 	 * @param {object[]} aRequests The batch queue
 	 * @returns {object[]} The adjusted batch queue
@@ -1073,9 +1077,13 @@ sap.ui.define([
 
 		function merge(oRequest) {
 			return oRequest.$queryOptions && aResultingRequests.some(function (oCandidate) {
-				if (oCandidate.$queryOptions && oRequest.url === oCandidate.url) {
+				if (oCandidate.$queryOptions && oRequest.url === oCandidate.url
+						&& oRequest.$owner === oCandidate.$owner) {
 					_Helper.aggregateExpandSelect(oCandidate.$queryOptions, oRequest.$queryOptions);
 					oRequest.$resolve(oCandidate.$promise);
+					if (oCandidate.$mergeRequests && oRequest.$mergeRequests) {
+						oCandidate.$mergeRequests(oRequest.$mergeRequests());
+					}
 
 					return true;
 				}
@@ -1450,6 +1458,7 @@ sap.ui.define([
 		var bCanceled = this.cancelChangesByFilter(function (oChangeRequest) {
 				return oChangeRequest.$promise === oPromise;
 			});
+
 		if (!bCanceled) {
 			throw new Error("Cannot reset the changes, the batch request is running");
 		}
@@ -1545,6 +1554,12 @@ sap.ui.define([
 	 *   Query options if it is allowed to merge this request with another request having the same
 	 *   sResourcePath (only allowed for GET requests); the resulting resource path is the path from
 	 *   sResourcePath plus the merged query options; may only contain $expand and $select
+	 * @param {any} [vOwner]
+	 *   An additional precondition for the merging of GET requests: the owner must be identical.
+	 * @param {function(string[]):string[]} [fnMergeRequests]
+	 *   Function which is called during merging of GET requests. If a merged request has a
+	 *   function given, this function will be called and its return value is
+	 *   given to the one remaining request's function as a parameter.
 	 * @returns {Promise}
 	 *   A promise on the outcome of the HTTP request; it will be rejected with an error having the
 	 *   property <code>canceled = true</code> instead of sending a request if
@@ -1555,7 +1570,8 @@ sap.ui.define([
 	 * @public
 	 */
 	_Requestor.prototype.request = function (sMethod, sResourcePath, oGroupLock, mHeaders, oPayload,
-			fnSubmit, fnCancel, sMetaPath, sOriginalResourcePath, bAtFront, mQueryOptions) {
+			fnSubmit, fnCancel, sMetaPath, sOriginalResourcePath, bAtFront, mQueryOptions, vOwner,
+			fnMergeRequests) {
 		var iChangeSetNo,
 			oError,
 			sGroupId = oGroupLock && oGroupLock.getGroupId() || "$direct",
@@ -1599,7 +1615,9 @@ sap.ui.define([
 						that.mFinalHeaders),
 					body : oPayload,
 					$cancel : fnCancel,
+					$mergeRequests : fnMergeRequests,
 					$metaPath : sMetaPath,
+					$owner : vOwner,
 					$queryOptions : mQueryOptions,
 					$reject : fnReject,
 					$resolve : fnResolve,
@@ -1697,7 +1715,6 @@ sap.ui.define([
 			that = this;
 
 		return new Promise(function (fnResolve, fnReject) {
-
 			function send(bIsFreshToken) {
 				var sOldCsrfToken = that.mHeaders["X-CSRF-Token"];
 
@@ -1937,7 +1954,8 @@ sap.ui.define([
 	 * @returns {object}
 	 *   A new <code>_Requestor</code> instance
 	 */
-	_Requestor.create = function (sServiceUrl, oModelInterface, mHeaders, mQueryParams, sODataVersion) {
+	_Requestor.create = function (sServiceUrl, oModelInterface, mHeaders, mQueryParams,
+			sODataVersion) {
 		var oRequestor = new _Requestor(sServiceUrl, mHeaders, mQueryParams,
 			oModelInterface
 		);

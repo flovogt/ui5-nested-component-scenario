@@ -1229,9 +1229,59 @@ sap.ui.predefine("sap/ui/core/rules/Misc.support", ["sap/ui/support/library", ".
 		}
 	};
 
+	/**
+	 * Checks if the corresponding Component or Library of a Component is already loaded in case the Component is embeddedBy a resource.
+	 */
+	var oMissingEmbeddedByLibrary = {
+		id: "embeddedByLibNotLoaded",
+		audiences: [Audiences.Application],
+		categories: [Categories.Performance],
+		enabled: true,
+		minversion: "1.97",
+		title: "Embedding Component or Library not loaded",
+		description: "Checks if the corresponding Component or Library of a Component is already loaded in case the Component is embedded by a resource.",
+		resolution: "Before using a Component embedded by a Library or another Component, it's necessary to load the embedding Library or Component in advance. " +
+			"The 'sap.app/embeddedBy' property must be relative path inside the deployment unit (library or component).",
+		resolutionurls: [],
+		check: function(oIssueManager) {
+			var oRegisteredComponents = {}, sComponentName;
+			var filterComponents = function (sComponentName) {
+				return function (oComponent) {
+					return oComponent.getManifestObject().getEntry("/sap.app/id") === sComponentName;
+				};
+			};
+			var createIssue = function (oComponentWithMissingEmbeddedBy) {
+				return function (oComponent) {
+					oIssueManager.addIssue({
+						severity: Severity.High,
+						details: oComponentWithMissingEmbeddedBy.message,
+						context: {
+							id: oComponent.getId()
+						}
+					});
+				};
+			};
+
+			Log.getLogEntries().forEach(function(oLogEntry) {
+				var oRegexGetComponentName = /^Component '([a-zA-Z0-9\.]*)'.*$/;
+				if (oLogEntry.component === "sap.ui.core.Component#embeddedBy") {
+					oRegisteredComponents[oRegexGetComponentName.exec(oLogEntry.message)[1]] = oLogEntry;
+				}
+			});
+
+			for (sComponentName in oRegisteredComponents) {
+				if (Object.hasOwnProperty.call(oRegisteredComponents, sComponentName)) {
+					var aComponents = sap.ui.core.Component.registry.filter(filterComponents(sComponentName));
+					aComponents.forEach(createIssue(oRegisteredComponents[sComponentName]));
+				}
+			}
+		}
+	};
+
 	return [
 		oEventBusLogs,
-		oErrorLogs
+		oErrorLogs,
+		oMissingEmbeddedByLibrary
 	];
 }, true);
 /*!
@@ -1245,19 +1295,18 @@ sap.ui.predefine("sap/ui/core/rules/Misc.support", ["sap/ui/support/library", ".
 sap.ui.predefine("sap/ui/core/rules/Model.support", [
 	"sap/ui/support/library",
 	"sap/ui/support/supportRules/util/StringAnalyzer",
+	"sap/ui/model/CompositeBinding",
 	"sap/ui/model/ListBinding",
 	"sap/ui/model/json/JSONModel",
-	"sap/ui/model/odata/ODataMetadata",
-	"sap/ui/model/CompositeBinding",
-	"sap/ui/model/PropertyBinding"
+	"sap/ui/model/odata/ODataMetadata"
 ],
 	function(
 		SupportLib,
 		StringAnalyzer,
+		CompositeBinding,
 		ListBinding,
 		JSONModel,
-		ODataMetadata,
-		CompositeBinding
+		ODataMetadata
 	) {
 	"use strict";
 	/*eslint max-nested-callbacks: 0 */
@@ -1279,6 +1328,65 @@ sap.ui.predefine("sap/ui/core/rules/Model.support", [
 		});
 		return sJsonModelBestMatch;
 	}
+
+	//**********************************************************
+	// Check Functions
+	//**********************************************************
+
+	var fnCheckSelect = function (oIssueManager, oCoreFacade, oScope) {
+		oScope.getElements().forEach(function (oElement) {
+			var mBindingInfos = {};
+
+			Object.assign(mBindingInfos, oElement.mBindingInfos, oElement.mObjectBindingInfos);
+
+			Object.keys(mBindingInfos).forEach(function (sName) {
+				var oBinding = mBindingInfos[sName].binding,
+					sDetails;
+
+				if (!oBinding || oBinding.getModel().bAutoExpandSelect) {
+					return;
+				}
+
+				if (oBinding.isA("sap.ui.model.odata.v2.ODataListBinding") &&
+						(!oBinding.mParameters || !oBinding.mParameters.select)) {
+					sDetails = "The aggregation '" + sName + "' of element " + oElement.getId()
+						+ " with binding path '" + oBinding.getPath() + "' is bound against a "
+						+ "collection, yet no binding parameter 'select' is used. Using 'select' "
+						+ "may improve performance.";
+				} else if (oBinding.isA("sap.ui.model.odata.v4.ODataListBinding")
+						&& (!oBinding.mParameters || !oBinding.mParameters.$select)) {
+					sDetails = "The aggregation '" + sName + "' of element "
+						+ oElement.getId() + " with binding path '" + oBinding.getPath() + "' is "
+						+ "bound against a collection, yet no OData query option '$select' is used."
+						+ " Using '$select' may improve performance. Alternatively, enable the "
+						+ "automatic generation of '$select' and '$expand' in the model using the "
+						+ "'autoExpandSelect' parameter.";
+				} else if (oBinding.isA("sap.ui.model.odata.v2.ODataContextBinding")
+						&& (!oBinding.mParameters || !oBinding.mParameters.select)) {
+					sDetails = "The element " + oElement.getId() + " with binding path '"
+						+ oBinding.getPath() + "' is bound against an entity, yet no binding "
+						+ "parameter 'select' is used. Using 'select' may improve performance.";
+				} else if (oBinding.isA("sap.ui.model.odata.v4.ODataContextBinding")
+						&& (!oBinding.mParameters || !oBinding.mParameters.$select)) {
+					sDetails = "The element " + oElement.getId() + " with binding path '"
+						+ oBinding.getPath() + "' is bound against an entity, yet no OData query"
+						+ " option '$select' is used. Using '$select' may improve performance. "
+						+ "Alternatively, enable the automatic generation of '$select' and "
+						+ "'$expand' in the model using the 'autoExpandSelect' parameter.";
+				}
+
+				if (sDetails) {
+					oIssueManager.addIssue({
+						context : {
+							id : oElement.getId()
+						},
+						details : sDetails,
+						severity : Severity.Low
+					});
+				}
+			});
+		});
+	};
 
 	//**********************************************************
 	// Rule Definitions
@@ -1388,9 +1496,38 @@ sap.ui.predefine("sap/ui/core/rules/Model.support", [
 		}
 	};
 
-	return [
-		oBindingPathSyntaxValidation
-	];
+	/**
+	 * Checks whether the select(v2)/$select(v4) parameter is used when binding against an
+	 * aggregation.
+	 */
+	var oSelectUsedInAggregation = {
+			audiences : [Audiences.Application],
+			categories : [Categories.Bindings, Categories.Performance],
+			description : "Using $select allows the back end to send only necessary properties",
+			enabled : true,
+			id : "selectUsedInBoundAggregation",
+			minversion : "1.38",
+			resolution : "Use the '$select' binding parameter when binding an aggregation against "
+				+ "an OData V4 model, or 'select' in case of an OData V2 model",
+			resolutionurls : [{
+				href : "https://sapui5.hana.ondemand.com/#/topic/408b40efed3c416681e1bd8cdd8910d4.html#loio408b40efed3c416681e1bd8cdd8910d4/section_useSelectQuery",
+				text : "Documentation: Performance: Speed Up Your App"
+			}, {
+				href : "https://sapui5.hana.ondemand.com/#/topic/10ca58b701414f7f93cd97156f898f80",
+				text : "OData V4 only: Automatic determination of $expand and $select"
+			}, {
+				href : "https://sapui5.hana.ondemand.com/#/api/sap.ui.model.odata.v4.ODataModel%23methods/bindList",
+				text : "Documentation: v4.ODataModel#bindList"
+			}, {
+				href : "https://sapui5.hana.ondemand.com/#/api/sap.ui.model.odata.v2.ODataModel%23methods/bindList",
+				text : "Documentation: v2.ODataModel#bindList"
+			}],
+			title : "Model: Use the $select/select binding parameter when binding aggregations to "
+				+ "improve performance",
+			check : fnCheckSelect
+		};
+
+	return [oBindingPathSyntaxValidation, oSelectUsedInAggregation];
 }, true);
 /*!
  * OpenUI5
@@ -1436,10 +1573,7 @@ sap.ui.predefine("sap/ui/core/rules/Rendering.support", [
 			var aControls = oScope.getElements().filter(function (oElement) { return oElement.isA("sap.ui.core.Control"); });
 
 			aControls.forEach(function (oControl) {
-				// The XMLView is excluded for now to not produce false-positive results
-				// Due to the possibility of mixing XHTML and UI5 content in the XML content,
-				// the XMLViewRenderer cannot be migrated fully to API version 2 yet.
-				if (RenderManager.getApiVersion(oControl.getRenderer()) < 2 && !oControl.isA("sap.ui.core.mvc.XMLView")) {
+				if (RenderManager.getApiVersion(oControl.getRenderer()) < 2) {
 					var sControlName = oControl.getMetadata().getName();
 
 					oIssueManager.addIssue({
@@ -1650,8 +1784,8 @@ sap.ui.predefine("sap/ui/core/rules/Theming.support", ["sap/ui/support/library",
 /**
  * Defines support rules related to the view.
  */
-sap.ui.predefine("sap/ui/core/rules/View.support", ["sap/ui/support/library", "sap/ui/core/Element", "sap/ui/thirdparty/jquery", "sap/base/util/isEmptyObject", "sap/ui/base/DataType"],
-	function(SupportLib, Element, jQuery, isEmptyObject, DataType) {
+sap.ui.predefine("sap/ui/core/rules/View.support", ["sap/base/Log", "sap/ui/support/library", "sap/ui/core/Element", "sap/ui/thirdparty/jquery", "sap/base/util/isEmptyObject", "sap/ui/base/DataType"],
+	function(Log, SupportLib, Element, jQuery, isEmptyObject, DataType) {
 	"use strict";
 
 	// shortcuts
@@ -1747,52 +1881,20 @@ sap.ui.predefine("sap/ui/core/rules/View.support", ["sap/ui/support/library", "s
 		title: "Control tag in XML view starts with lower case",
 		description: "Control tags with lower case cannot be loaded in Linux-based systems",
 		resolution: "Start the Control tag with upper case",
-		resolutionurls: [],
+		resolutionurls: [{
+			text: "Documentation: SAPUI5 Control Development Guidelines",
+			href: "https://sapui5.hana.ondemand.com/#/topic/4549da61e2d949d6a3d20ad8a9d17a6f"
+		}],
 		check: function (oIssueManager, oCoreFacade, oScope) {
-
-			//get all aggregations of each element
-			var aAggregationsOfElements = oScope.getElements().map(
-					function (oElement) {
-						return Object.keys(oElement.getMetadata().getAllAggregations());
-					}
-			);
-			//flatten array of arrays and filter duplicates
-			var aAggregations = aAggregationsOfElements.reduce(
-				function(a, b) {
-					return a.concat(b);
-				}).filter(
-					function (x, i, a) {
-						return a.indexOf(x) === i;
-					});
-
-			var aXMLViews = oScope.getElements().filter(function (oControl) {
-				return oControl.getMetadata().getName() === "sap.ui.core.mvc.XMLView";
+			var aRelevantLogMessages = Log.getLogEntries().filter(function(oEntry) {
+				return oEntry.component === "sap.ui.core.XMLTemplateProcessor#lowerCase";
 			});
-
-			aXMLViews.forEach(function (oXMLView) {
-				var aLocalName = [];
-				var _getTags = function (oXcontent) {
-					aLocalName.push(oXcontent.localName);
-					for (var i = 0; i < oXcontent.children.length; i++) {
-						_getTags(oXcontent.children[i]);
-					}
-				};
-
-				_getTags(oXMLView._xContent);
-				aLocalName = jQuery.uniqueSort(aLocalName);
-
-				aLocalName.forEach(function (sTag) 	{
-					var sFirstLetter = sTag.charAt(0);
-					// check for lowercase, aggregations are excluded
-					if ((sFirstLetter.toLowerCase() === sFirstLetter) && !aAggregations.includes(sTag)) {
-						var sViewName = oXMLView.getViewName().split("\.").pop();
-						oIssueManager.addIssue({
-							severity: Severity.High,
-							details: "View '" + sViewName + "' (" + oXMLView.getId() + ") contains a Control tag that starts with lower case '" + sTag + "'",
-							context: {
-								id: oXMLView.getId()
-							}
-						});
+			aRelevantLogMessages.forEach(function(oMessage) {
+				oIssueManager.addIssue({
+					severity: Severity.High,
+					details: oMessage.message,
+					context: {
+						id: oMessage.details
 					}
 				});
 			});

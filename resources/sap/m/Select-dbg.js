@@ -100,7 +100,7 @@ function(
 		 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.96.4
+		 * @version 1.98.0
 		 *
 		 * @constructor
 		 * @public
@@ -539,7 +539,7 @@ function(
 			var	sValueStateText = this._getValueStateText();
 
 			if (this._oInvisibleMessage) {
-				this._oInvisibleMessage.announce(sValueStateText, InvisibleMessageMode.Assertive);
+				this._oInvisibleMessage.announce(sValueStateText, InvisibleMessageMode.Polite);
 			}
 		};
 
@@ -2157,6 +2157,9 @@ function(
 					}
 				}
 			}, this)
+			.addEventDelegate({
+				onAfterRendering: this.onAfterRenderingList
+			}, this)
 			.attachSelectionChange(this.onSelectionChange, this);
 
 			 this._oList.setProperty("_tabIndex", "-1");
@@ -2213,6 +2216,11 @@ function(
 			var fnOnAfterRenderingPickerType = this["_onAfterRendering" + this.getPickerType()];
 			fnOnAfterRenderingPickerType && fnOnAfterRenderingPickerType.call(this);
 		};
+
+		/**
+		 * This event handler is called after the SelectList is rendered.
+		 */
+		 Select.prototype.onAfterRenderingList = function(){};
 
 		/**
 		 * Open the control's picker popup.
@@ -3083,7 +3091,10 @@ function(
 		 * @returns {object} The <code>sap.m.Select</code> accessibility information
 		 */
 		Select.prototype.getAccessibilityInfo = function() {
-			var bIconOnly = this._isIconOnly(),
+			var aDescriptions = [],
+				sDescription = "",
+				oResourceBundle = Core.getLibraryResourceBundle("sap.m"),
+				bIconOnly = this._isIconOnly(),
 				oInfo = {
 					role: this.getRenderer().getAriaRole(this),
 					focusable: this.getEnabled(),
@@ -3098,13 +3109,21 @@ function(
 					sDesc = oIconInfo && oIconInfo.text ? oIconInfo.text : "";
 				}
 
-				oInfo.type = Core.getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_BUTTON");
-				oInfo.description = sDesc;
+				oInfo.type = oResourceBundle.getText("ACC_CTR_TYPE_BUTTON");
+				aDescriptions.push(sDesc);
 			} else if (this.getType() === "Default") {
-				oInfo.type = Core.getLibraryResourceBundle("sap.m").getText("SELECT_ROLE_DESCRIPTION");
-				oInfo.description = this._getSelectedItemText();
+				oInfo.type = oResourceBundle.getText("SELECT_ROLE_DESCRIPTION");
+				aDescriptions.push(this._getSelectedItemText());
 			}
 
+			if (this._isRequired()) {
+				aDescriptions.push(oResourceBundle.getText("SELECT_REQUIRED"));
+			}
+
+			sDescription = aDescriptions.join(" ").trim();
+			if (sDescription) {
+				oInfo.description = sDescription;
+			}
 			return oInfo;
 		};
 

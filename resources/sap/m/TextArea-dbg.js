@@ -82,7 +82,7 @@ function(
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -613,8 +613,8 @@ function(
 	 */
 	TextArea.prototype._behaviour = (function(oDevice) {
 		return {
-			INSIDE_SCROLLABLE_WITHOUT_FOCUS : oDevice.os.ios || oDevice.os.blackberry || oDevice.browser.chrome,
-			PAGE_NON_SCROLLABLE_AFTER_FOCUS : oDevice.os.android && oDevice.os.version >= 4.1
+			INSIDE_SCROLLABLE_WITHOUT_FOCUS : oDevice.os.ios || oDevice.browser.chrome,
+			PAGE_NON_SCROLLABLE_AFTER_FOCUS : oDevice.os.android
 		};
 	}(Device));
 
@@ -663,41 +663,6 @@ function(
 			// to prevent the rubber-band effect we are calling prevent default on touchmove
 			// from jquery.sap.mobile but this breaks the scrolling nature of the textarea
 			oEvent.setMarked();
-		}
-	};
-
-	// Flag for the Fiori Client on Windows Phone
-	var _bMSWebView = Device.os.windows_phone && (/MSAppHost/i).test(navigator.appVersion);
-
-	/**
-	 * Special handling for the focusing issue in SAP Fiori Client on Windows Phone.
-	 * @param {jQuery.Event} oEvent The event object
-	 * @private
-	 */
-	TextArea.prototype.onfocusin = function(oEvent) {
-		var scrollContainer,
-			$this = this.$();
-
-		InputBase.prototype.onfocusin.apply(this, arguments);
-
-		// Workaround for the scroll-into-view bug in the WebView Windows Phone 8.1
-		// As the browser does not scroll the window as it should, scroll the parent scroll container to make the hidden text visible
-
-		function scrollIntoView() {
-			jQuery(window).scrollTop(0);
-			scrollContainer.scrollTop($this.offset().top - scrollContainer.offset().top + scrollContainer.scrollTop());
-		}
-
-		if (_bMSWebView && $this.height() + $this.offset().top > 260) {
-			for (scrollContainer = $this.parent(); scrollContainer[0]; scrollContainer = scrollContainer.parent()) {
-				if (scrollContainer.css("overflow-y") == "auto") {
-					// make sure to have enough padding to be able to scroll even the bottom control to the top of the screen
-					scrollContainer.children().last().css("padding-bottom", jQuery(window).height() + "px");
-					// do scroll
-					window.setTimeout(scrollIntoView, 100);
-					return;
-				}
-			}
 		}
 	};
 

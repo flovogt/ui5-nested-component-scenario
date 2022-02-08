@@ -60,7 +60,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -601,7 +601,7 @@ sap.ui.define([
 				oItem.$().attr("tabindex", "0");
 			}
 			oItem.$().attr("tabindex", "-1");
-			aNavigationDomRefs.push(oItem.getDomRef());
+			aNavigationDomRefs.push(oItem.getFocusDomRef());
 		});
 
 		this.addDelegate(oItemNavigation);

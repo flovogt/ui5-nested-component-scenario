@@ -58,7 +58,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.96.4
+		 * @version 1.98.0
 		 *
 		 * @constructor
 		 * @public
@@ -339,6 +339,7 @@ sap.ui.define([
 				ariaHasPopup: coreLibrary.aria.HasPopup.Menu
 			});
 			oBtn.attachPress(this._handleButtonPress, this);
+			oBtn.onkeydown = this.handleKeydown;
 			return oBtn;
 		};
 
@@ -353,6 +354,7 @@ sap.ui.define([
 			});
 			oBtn.attachPress(this._handleActionPress, this);
 			oBtn.attachArrowPress(this._handleButtonPress, this);
+			oBtn._getArrowButton().onkeydown = this.handleKeydown;
 			return oBtn;
 		};
 
@@ -738,11 +740,13 @@ sap.ui.define([
 			this._bPopupOpen = this.getMenu() && this.getMenu()._getMenu() && this.getMenu()._getMenu().getPopup().isOpen();
 		};
 
-		MenuButton.prototype.onkeydown = function(oEvent) {
+		MenuButton.prototype.handleKeydown = function(oEvent) {
 			if ((oEvent.keyCode === KeyCodes.ENTER || oEvent.keyCode === KeyCodes.TAB) && this._bPopupOpen) {
 				this.getMenu().close();
 				this._bPopupOpen = false;
 			}
+
+			Button.prototype.onkeydown.call(this, oEvent);
 		};
 
 		MenuButton.prototype.openMenuByKeyboard = function() {

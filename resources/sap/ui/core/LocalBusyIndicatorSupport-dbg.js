@@ -15,7 +15,7 @@ sap.ui.define(['./Control', "sap/base/Log"],
 	 *
 	 * @function
 	 * @private
-	 * @deprecated
+	 * @deprecated Since 1.15
 	 * @alias sap.ui.core.LocalBusyIndicatorSupport
 	 */
 	var LocalBusyIndicatorSupport = function() {

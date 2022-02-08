@@ -5,8 +5,8 @@
  */
 
 // Provides control sap.m.PlanningCalendarLegend.
-sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointment', './PlanningCalendarLegendRenderer'],
-	function(CalendarLegend, CalendarAppointment, PlanningCalendarLegendRenderer) {
+sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointment', 'sap/ui/core/Core', './PlanningCalendarLegendRenderer'],
+	function(CalendarLegend, CalendarAppointment, Core, PlanningCalendarLegendRenderer) {
 		"use strict";
 
 
@@ -23,7 +23,7 @@ sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointm
 		 * @extends sap.ui.unified.CalendarLegend
 		 *
 		 * @author SAP SE
-		 * @version 1.96.4
+		 * @version 1.98.0
 		 *
 		 * @constructor
 		 * @public
@@ -38,12 +38,12 @@ sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointm
 				/**
 				 * Defines the text displayed in the header of the items list. It is commonly related to the calendar days.
 				 */
-				itemsHeader: { type: "string", group: "Appearance", defaultValue: "Calendar" },
+				itemsHeader: { type: "string", group: "Appearance" },
 
 				/**
 				 * Defines the text displayed in the header of the appointment items list. It is commonly related to the calendar appointments.
 				 */
-				appointmentItemsHeader: { type: "string", group: "Appearance", defaultValue: "Appointments" }
+				appointmentItemsHeader: { type: "string", group: "Appearance" }
 			},
 			aggregations : {
 				/**
@@ -107,6 +107,26 @@ sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointm
 			}
 
 			return sLegendItemText;
+		};
+
+		PlanningCalendarLegend.prototype._getItemsHeader = function() {
+			var sItemsHeader = this.getItemsHeader();
+
+			if (sItemsHeader == undefined) {
+				return Core.getLibraryResourceBundle('sap.m').getText("PLANNING_CALENDAR_LEGEND_ITEMS_HEADER");
+			}
+
+			return sItemsHeader;
+		};
+
+		PlanningCalendarLegend.prototype._getAppointmentItemsHeader = function() {
+			var sAppointmentItemsHeader = this.getAppointmentItemsHeader();
+
+			if (sAppointmentItemsHeader == undefined) {
+				return Core.getLibraryResourceBundle('sap.m').getText("PLANNING_CALENDAR_LEGEND_APPOINTMENT_ITEMS_HEADER");
+			}
+
+			return sAppointmentItemsHeader;
 		};
 
 		return PlanningCalendarLegend;

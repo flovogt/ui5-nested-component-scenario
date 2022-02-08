@@ -39,7 +39,7 @@ sap.ui.define([
 	 * and requests, unified behavior of instant and deferred uploads, as well as improved progress indication.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @constructor
 	 * @public
 	 * @since 1.63
@@ -223,7 +223,48 @@ sap.ui.define([
 						/**
 						 * The file whose upload has just been completed.
 						 */
-						item: {type: "sap.m.upload.UploadSetItem"}
+						item: {type: "sap.m.upload.UploadSetItem"},
+						/**
+						 * Response message which comes from the server.
+					 	*
+					 	* On the server side this response has to be put within the &quot;body&quot; tags of the response
+					 	* document of the iFrame. It can consist of a return code and an optional message. This does not
+					 	* work in cross-domain scenarios.
+					 	*/
+						response : {type : "string"},
+						/**
+						 * ReadyState of the XHR request.
+						 *
+						 * Required for receiving a <code>readyState</code> is to set the property <code>sendXHR</code>
+						 * to true. This property is not supported by Internet Explorer 9.
+						 */
+						readyState : {type : "string"},
+
+						/**
+					 	* Status of the XHR request.
+					 	*
+					 	* Required for receiving a <code>status</code> is to set the property <code>sendXHR</code> to true.
+					 	* This property is not supported by Internet Explorer 9.
+					 	*/
+						status : {type : "string"},
+						/**
+					 	* Http-Response which comes from the server.
+					 	*
+					 	* Required for receiving <code>responseXML</code> is to set the property <code>sendXHR</code> to true.
+						*
+					 	* This property is not supported by Internet Explorer 9.
+					 	*/
+						responseXML : {type : "string"},
+						/**
+						* Http-Response-Headers which come from the server.
+						*
+						* Provided as a JSON-map, i.e. each header-field is reflected by a property in the <code>headers</code>
+						* object, with the property value reflecting the header-field's content.
+						*
+						* Required for receiving <code>headers</code> is to set the property <code>sendXHR</code> to true.
+					 	* This property is not supported by Internet Explorer 9.
+					 	*/
+						headers : {type : "object"}
 					}
 				},
 				/**
@@ -274,6 +315,7 @@ sap.ui.define([
 				 * <code>maxFileNameLength</code> property.</li>
 				 * <li>When the file name length restriction changes, and the file to be uploaded fails to meet the new
 				 * restriction.</li>
+				 * <li>Listeners can use the item parameter to remove the incomplete item that failed to meet the restriction</li>
 				 * </ul>
 				 */
 				fileNameLengthExceeded: {
@@ -292,6 +334,7 @@ sap.ui.define([
 				 * <code>maxFileSize</code> property.</li>
 				 * <li>When the file size restriction changes, and the file to be uploaded fails to meet the new
 				 * restriction.</li>
+				 * <li>Listeners can use the item parameter to remove the incomplete item that failed to meet the restriction</li>
 				 * </ul>
 				 */
 				fileSizeExceeded: {
@@ -695,6 +738,7 @@ sap.ui.define([
 	/**
 	 * Attaches all necessary handlers to the given uploader instance, so that the progress and status of the upload can be
 	 * displayed and monitored.
+	 * This is necessary in case when custom uploader is used.
 	 * @param {sap.m.upload.Uploader} oUploader Instance of <code>sap.m.upload.Uploader</code> to which the default request handlers are attached.
 	 * @public
 	 */
@@ -726,11 +770,25 @@ sap.ui.define([
 	};
 
 	UploadSet.prototype._onUploadCompleted = function (oEvent) {
-		var oItem = oEvent.getParameter("item");
+		var oItem = oEvent.getParameter("item"),
+			oResponseXHRParams = oEvent.getParameter("responseXHR"),
+			sResponse = null;
+
+		if (oResponseXHRParams.responseXML) {
+			sResponse = oResponseXHRParams.responseXML.documentElement.textContent;
+		}
+		var oXhrParams = {
+			"item": oItem,
+			"response": oResponseXHRParams.response,
+			"responseXML": sResponse,
+			"readyState": oResponseXHRParams.readyState,
+			"status": oResponseXHRParams.status,
+			"headers": oResponseXHRParams.headers
+		};
 		oItem.setProgress(100);
 		this.insertItem(oItem, 0);
 		oItem.setUploadState(UploadState.Complete);
-		this.fireUploadCompleted({item: oItem});
+		this.fireUploadCompleted(oXhrParams);
 	};
 
 	UploadSet.prototype._onUploadAborted = function (oEvent) {

@@ -991,7 +991,26 @@ function(
 
 			} else {
 				// a plain and simple regular UI5 control
-				var vClass = findControlClass(node.namespaceURI, localName(node));
+				var sLocalName = localName(node);
+
+				// [SUPPORT-RULE]: Check, whether the control class name starts with a lower case letter
+				//                 Local tag names might be in dot-notation, e.g. "<lib:table.Column />"
+				var sControlName = sLocalName;
+				var iControlNameStart = sLocalName.lastIndexOf(".");
+				if (iControlNameStart >= 0) {
+					sControlName = sLocalName.substring(iControlNameStart + 1, sLocalName.length);
+				}
+				if (/^[a-z].*/.test(sControlName)) {
+					var sNameOrId = oView.sViewName || oView._sFragmentName || oView.getId();
+					// View or Fragment
+					Log.warning("View or Fragment '" + sNameOrId + "' contains a Control tag that starts with lower case '" + sControlName + "'",
+						oView.getId(),
+						"sap.ui.core.XMLTemplateProcessor#lowerCase"
+					);
+				}
+				// [/SUPPORT-RULE]
+
+				var vClass = findControlClass(node.namespaceURI, sLocalName);
 				if (vClass && typeof vClass.then === 'function') {
 					return vClass.then(function (fnClass) {
 						return createRegularControls(node, fnClass, pRequireContext, oClosestBinding);
@@ -1026,10 +1045,12 @@ function(
 				//    -> might refer to controls inside the node, which have been removed earlier when the StashedControl was created
 				// 3. Events
 				bStashedControl = node.getAttribute("stashed") === "true";
-				// remove stashed attribute as it is an uknown property.
-				if (!bEnrichFullIds) {
-					node.removeAttribute("stashed");
-				}
+
+
+			// remove stashed attribute as it is an uknown property.
+			if (!bEnrichFullIds) {
+				node.removeAttribute("stashed");
+			}
 
 			if (!oClass) {
 				return SyncPromise.resolve([]);

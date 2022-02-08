@@ -17,7 +17,7 @@ sap.ui.define(["sap/ui/core/library", "sap/m/library"],
 	 * @namespace
 	 * @name sap.tnt
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @since 1.36
 	 * @public
 	 */
@@ -25,7 +25,7 @@ sap.ui.define(["sap/ui/core/library", "sap/m/library"],
 	// delegate further initialization of this library to the Core
 	sap.ui.getCore().initLibrary({
 		name : "sap.tnt",
-		version: "1.96.4",
+		version: "1.98.0",
 		dependencies : ["sap.ui.core", "sap.m"],
 		designtime: "sap/tnt/designtime/library.designtime",
 		types: [

@@ -50,16 +50,16 @@ sap.ui.define([
 	 * Predefined request headers in $batch parts for OData V2.
 	 */
 	_V2Requestor.prototype.mPredefinedPartHeaders = {
-		"Accept" : "application/json"
+		Accept : "application/json"
 	};
 
 	/**
 	 * Predefined request headers for all requests for OData V2.
 	 */
 	_V2Requestor.prototype.mPredefinedRequestHeaders = {
-		"Accept" : "application/json",
-		"MaxDataServiceVersion" : "2.0",
-		"DataServiceVersion" : "2.0",
+		Accept : "application/json",
+		MaxDataServiceVersion : "2.0",
+		DataServiceVersion : "2.0",
 		"X-CSRF-Token" : "Fetch"
 	};
 
@@ -159,7 +159,7 @@ sap.ui.define([
 		} else {
 			iOffsetSign = aMatches[2] === "-" ? -1 : 1;
 			iTicks += iOffsetSign * (iOffsetHours * 60 * 60 * 1000 + iOffsetMinutes * 60 * 1000);
-			sOffset = aMatches[2] + aMatches[3] + ":"  + aMatches[4];
+			sOffset = aMatches[2] + aMatches[3] + ":" + aMatches[4];
 		}
 		if (iPrecision > 0) {
 			sPattern += "." + "".padEnd(iPrecision, "S");
@@ -573,7 +573,8 @@ sap.ui.define([
 	 */
 	// @override sap.ui.model.odata.v4.lib._Requestor#doConvertResponse
 	_V2Requestor.prototype.doConvertResponse = function (oResponsePayload, sMetaPath) {
-		var oCandidate, bIsArray, aKeys, oPayload, oPropertyMetadata, that = this;
+		var oCandidate, bIsArray, aKeys, oPayload, oPropertyMetadata,
+			that = this;
 
 		oResponsePayload = oResponsePayload.d;
 		// 'results' may be an array of entities in case of a collection request or the value when
@@ -724,7 +725,7 @@ sap.ui.define([
 		}
 
 		Object.keys(mQueryOptions).forEach(function (sName) {
-			var bIsSystemQueryOption = sName[0] === '$',
+			var bIsSystemQueryOption = sName[0] === "$",
 				vValue = mQueryOptions[sName];
 
 			if (bDropSystemQueryOptions && bIsSystemQueryOption) {
@@ -771,7 +772,7 @@ sap.ui.define([
 	 * Formats a given internal value into a literal suitable for usage in OData V2 URLs. See
 	 * http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem.
 	 *
-	 * @param {*} vValue
+	 * @param {any} vValue
 	 *   The value
 	 * @param {object} oPropertyMetadata
 	 *   The property metadata
@@ -785,10 +786,10 @@ sap.ui.define([
 	 */
 	// @override sap.ui.model.odata.v4.lib._Requestor#formatPropertyAsLiteral
 	_V2Requestor.prototype.formatPropertyAsLiteral = function (vValue, oPropertyMetadata) {
-
 		// Parse using the given formatter and check that the result is valid
 		function parseAndCheck(oDateFormat, sValue) {
 			var oDate = oDateFormat.parse(sValue);
+
 			if (!oDate) {
 				throw new Error("Not a valid " + oPropertyMetadata.$Type + " value: " + sValue);
 			}
@@ -918,8 +919,8 @@ sap.ui.define([
 		this.mTypesByName = this.mTypesByName || {};
 		oType = this.mTypesByName[sName];
 		if (!oType) {
-			oType = this.mTypesByName[sName] =
-				this.oModelInterface.fetchMetadata("/" + sName).getResult();
+			oType = this.mTypesByName[sName]
+				= this.oModelInterface.fetchMetadata("/" + sName).getResult();
 		}
 		return oType;
 	};

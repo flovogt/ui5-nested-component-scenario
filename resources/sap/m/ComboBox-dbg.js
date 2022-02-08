@@ -108,7 +108,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.96.4
+		 * @version 1.98.0
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -438,7 +438,6 @@ sap.ui.define([
 		 * @protected
 		 */
 		ComboBox.prototype.init = function() {
-			this._oRb = core.getLibraryResourceBundle("sap.m");
 			ComboBoxBase.prototype.init.apply(this, arguments);
 
 			this.bOpenValueStateMessage = true;
@@ -494,7 +493,6 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.exit = function () {
 			ComboBoxBase.prototype.exit.apply(this, arguments);
-			this._oRb = null;
 
 			this._oSelectedItemBeforeOpen = null;
 			this.setLastFocusedListItem(null);
@@ -839,7 +837,7 @@ sap.ui.define([
 
 			// deselect the text and move the text cursor at the endmost position
 			if (this.getPickerType() === "Dropdown" && !this.isPlatformTablet()) {
-				this.selectText.bind(this, this.getValue().length, this.getValue().length);
+				this.selectText(this.getValue().length, this.getValue().length);
 			}
 
 			this.close();
@@ -1792,7 +1790,22 @@ sap.ui.define([
 				}
 			}, this);
 
+			oInput.attachChange(this._handleInnerInputChange.bind(this));
+
 			return oInput;
+		};
+
+		/**
+		 * Handles the picker input change.
+		 *
+		 * @param {jQuery.Event} oEvent The event object
+		 * @private
+		 */
+		ComboBox.prototype._handleInnerInputChange = function (oEvent) {
+			if (oEvent.getParameter("value") === "") {
+				this.clearSelection();
+				this.clearFilter();
+			}
 		};
 
 		/**
@@ -1867,6 +1880,26 @@ sap.ui.define([
 				return this._getSuggestionsPopover()._getValueStateHeader().getFormattedText();
 			} else {
 				return ComboBoxTextField.prototype.getFormattedValueStateText.call(this);
+			}
+		};
+
+		/**
+		 * Handles the clear icon press.
+		 *
+		 * @param {jquery.Event} oEvent The event object
+		 * @returns {void}
+		 *
+		 * @override
+		 * @private
+		 */
+		ComboBox.prototype.handleClearIconPress = function (oEvent) {
+			if (!(this.getEnabled() && this.getEditable())) {
+				return;
+			}
+
+			if (this.getValue() !== "") {
+				this.clearSelection();
+				this.setProperty("effectiveShowClearIcon", false);
 			}
 		};
 

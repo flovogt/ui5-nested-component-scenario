@@ -207,9 +207,12 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 		 *
 		 * @param {string} sName Name of the mouse event
 		 * @param {Element} oDomRef DOM element on which the event is going to be triggered
+		 * @param {boolean} bShiftKey Indicates whether the shift key is down in addition
+	 	 * @param {boolean} bAltKey Indicates whether the alt key is down in addition
+	 	 * @param {boolean} bCtrlKey Indicates whether the ctrl key is down in addition
 		 * @private
 		 */
-		_createAndDispatchMouseEvent: function (sName, oDomRef) {
+		_createAndDispatchMouseEvent: function (sName, oDomRef, bShiftKey, bAltKey, bCtrlKey, iClientX, iClientY) {
 			// ignore scrolled down stuff (client X, Y not set)
 			// and assume stuff is over the whole screen (screen X, Y not set)
 			// See file jquery.sap.events.js for some insights to the magic
@@ -224,8 +227,14 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 				radiusY: 1,
 				rotationAngle: 0,
 				button: iLeftMouseButtonIndex,
-				type: sName // include the type so jQuery.event.fixHooks can copy properties properly
+				type: sName, // include the type so jQuery.event.fixHooks can copy properties properly
+				shiftKey: bShiftKey,
+				altKey: bAltKey,
+				ctrlKey: bCtrlKey,
+				clientX: iClientX,
+				clientY: iClientY
 			});
+
 			oDomRef.dispatchEvent(oMouseEvent);
 		},
 

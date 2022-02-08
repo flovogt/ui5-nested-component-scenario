@@ -42,6 +42,45 @@ sap.ui.define([
 	var Press = Action.extend("sap.ui.test.actions.Press", /** @lends sap.ui.test.actions.Press.prototype */ {
 
 		metadata : {
+			properties: {
+				/**
+				 * If it is set to <code>true</code>, the Alt Key modifier will be used
+				 * @since 1.97
+				 */
+				altKey: {
+					type: "boolean"
+				},
+				/**
+				 * If it is set to <code>true</code>, the Shift Key modifier will be used
+				 * @since 1.97
+				 */
+				shiftKey: {
+					type: "boolean"
+				},
+				/**
+				 * If it is set to <code>true</code>, the Control Key modifier will be used
+				 * @since 1.97
+				 */
+				ctrlKey: {
+					type: "boolean"
+				},
+				/**
+				 * Provide percent value for the X coordinate axis to calculate the position of the click event.
+				 * The value must be in the range [0 - 100]
+				 * @since 1.98
+				 */
+				xPercentage: {
+					type: "float"
+				},
+				/**
+				 * Provide percent value for the Y coordinate axis to calculate the position of the click event.
+				 * The value must be in the range [0 - 100]
+				 * @since 1.98
+				 */
+				yPercentage: {
+					type: "float"
+				}
+			},
 			publicMethods : [ "executeOn" ]
 		},
 
@@ -62,6 +101,43 @@ sap.ui.define([
 			var $ActionDomRef = this.$(oControl),
 				oActionDomRef = $ActionDomRef[0];
 
+			var iClientX, iClientY;
+
+			var bAltKey = this.getAltKey();
+			var bCtrlKey = this.getCtrlKey();
+			var bShiftKey = this.getShiftKey();
+
+			var iXPercentage = this.getXPercentage();
+			var iYPercentage = this.getYPercentage();
+
+			// check if the percentage is in the range 0-100
+			if (iXPercentage < 0 || iXPercentage > 100){
+				this.oLogger.error("Please provide a valid X percentage in the range: 0 - 100");
+				return;
+			}
+
+			if (iYPercentage < 0 || iYPercentage > 100){
+				this.oLogger.error("Please provide a valid Y percentage in the range: 0 - 100");
+				return;
+			}
+
+			// get the width and the height of the control
+			var oRect = oActionDomRef.getBoundingClientRect();
+
+			var iWidth = oRect.width;
+			var iHeight = oRect.height;
+
+			var iX = oRect.left + window.scrollX;
+			var iY = oRect.top + window.scrollY;
+
+			if (iXPercentage || iXPercentage === 0){
+				iClientX = ((iXPercentage / 100) * iWidth) + iX;
+			}
+
+			if (iYPercentage || iYPercentage === 0){
+				iClientY = ((iYPercentage / 100) * iHeight) + iY;
+			}
+
 			if ($ActionDomRef.length) {
 				this.oLogger.timestamp("opa.actions.press");
 				this.oLogger.debug("Pressed the control " + oControl);
@@ -69,10 +145,10 @@ sap.ui.define([
 				this._tryOrSimulateFocusin($ActionDomRef, oControl);
 
 				// the missing events like saptouchstart and tap will be fired by the event simulation
-				this._createAndDispatchMouseEvent("mousedown", oActionDomRef);
+				this._createAndDispatchMouseEvent("mousedown", oActionDomRef, null, null, null, iClientX, iClientY);
 				this.getUtils().triggerEvent("selectstart", oActionDomRef);
-				this._createAndDispatchMouseEvent("mouseup", oActionDomRef);
-				this._createAndDispatchMouseEvent("click", oActionDomRef);
+				this._createAndDispatchMouseEvent("mouseup", oActionDomRef, null, null, null, iClientX, iClientY);
+				this._createAndDispatchMouseEvent("click", oActionDomRef, bShiftKey, bAltKey, bCtrlKey);
 				//Focusout simulation removed in order to fix Press action behavior
 				//since in real scenario manual press action does not fire focusout event
 			}

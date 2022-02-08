@@ -296,7 +296,7 @@ sap.ui.define([
 				if (sPath.endsWith("/$Path")) {
 					sPath = sPath.slice(0, -6);
 					vRawValue = {$Path : vRawValue};
-				} else if (sPath.endsWith('/$PropertyPath')) {
+				} else if (sPath.endsWith("/$PropertyPath")) {
 					sPath = sPath.slice(0, -14);
 					vRawValue = {$PropertyPath : vRawValue};
 				}
@@ -327,7 +327,7 @@ sap.ui.define([
 							i;
 
 						if (!bIsAnnotationPath && aMatches[3]) {
-							sPrefix = sPrefix + "/";
+							sPrefix += "/";
 						} else if (!sPrefix.endsWith("/")) {
 							i = sPrefix.lastIndexOf("/");
 							sPrefix = i < 0 ? "" : sPrefix.slice(0, i + 1);
@@ -502,7 +502,7 @@ sap.ui.define([
 				var iIndexOfAt;
 
 				// Whether the given value is exactly <code>true</code>
-				function isTrue (vValue) {
+				function isTrue(vValue) {
 					return vValue === true;
 				}
 
@@ -549,7 +549,7 @@ sap.ui.define([
 			 * @param {sap.ui.model.Context} oDetails.context
 			 *   Points to the given raw value, that is
 			 *   <code>oDetails.context.getProperty("") === vRawValue</code>
-			 * @returns {string|Promise}
+			 * @returns {string|Promise|undefined}
 			 *   A data binding or a fixed text or a sequence thereof or <code>undefined</code>. If
 			 *   <code>oDetails.$$valueAsPromise</code> is <code>true</code> a <code>Promise</code>
 			 *   may be returned resolving with the value for the label.
@@ -802,7 +802,7 @@ sap.ui.define([
 				} else if (sPath.endsWith("/$Path")) {
 					sPath = sPath.slice(0, -6);
 					vRawValue = {$Path : vRawValue};
-				} else if (sPath.endsWith('/$PropertyPath')) {
+				} else if (sPath.endsWith("/$PropertyPath")) {
 					sPath = sPath.slice(0, -14);
 					vRawValue = {$PropertyPath : vRawValue};
 				}

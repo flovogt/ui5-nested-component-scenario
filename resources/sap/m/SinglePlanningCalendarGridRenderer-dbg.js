@@ -23,9 +23,9 @@ sap.ui.define([
 		unifiedLibrary) {
 		"use strict";
 
-		var iVerticalPaddingBetweenAppointments = 2;
-		var iAppointmentBottomPadding = 2;
-		var iAppointmentTopPadding = 1;
+		var iVerticalPaddingBetweenAppointments = 0.125;
+		var iAppointmentBottomPadding = 0.125;
+		var iAppointmentTopPadding = 0.0625;
 
 		// shortcut for sap.ui.unified.CalendarDayType
 		var CalendarDayType = unifiedLibrary.CalendarDayType;
@@ -65,8 +65,8 @@ sap.ui.define([
 			var iColumns = oControl._getColumns(),
 				iMaxLevel = oControl._getBlockersToRender().iMaxlevel,
 				oStartDate = oControl.getStartDate(),
-				// hackie thing to calculate the container width. When we have more than 1 line of blockers - we must add 3 px in order to render the blockers visually in the container.
-				iContainerHeight = (iMaxLevel + 1) * oControl._getBlockerRowHeight() + 3,
+				// hackie thing to calculate the container width. When we have more than 1 line of blockers - we must add 0.1875rem in order to render the blockers visually in the container.
+				iContainerHeight = (iMaxLevel + 1) * oControl._getBlockerRowHeight() + 0.1875,
 				oFormat = oControl._getDateFormatter(),
 				aSpecialDates = oControl._getSpecialDates(),
 				oCalendarDate = CalendarDate.fromLocalJSDate(oStartDate),
@@ -95,7 +95,7 @@ sap.ui.define([
 				oRm.class("sapMSpecialDaysInDayView");
 			}
 
-			oRm.style("height", iContainerHeight + "px");
+			oRm.style("height", iContainerHeight + "rem");
 			oRm.openEnd();
 
 			this.renderDndPlaceholders(oRm, oControl, oControl.getAggregation("_blockersPlaceholders"));
@@ -234,7 +234,7 @@ sap.ui.define([
 				}
 			}
 
-			oRm.style("top", iRowHeight * iBlockerLevel + 1 + "px"); // Adding 1px to render all of the blockers 1px below in order to have space on top of them.
+			oRm.style("top", iRowHeight * iBlockerLevel + 0.0625 + "rem"); // Adding 0.0625rem to render all of the blockers 0.0625rem below in order to have space on top of them.
 			oRm.style(bIsRTL ? "right" : "left", Math.max(iLeftPosition, 0) + "%");
 			oRm.style(bIsRTL ? "left" : "right", Math.max(iRightPosition, 0) + "%");
 			oRm.openEnd();
@@ -268,7 +268,7 @@ sap.ui.define([
 
 			if (iLeftPosition < 0) {
 				aClasses = ["sapUiCalendarAppArrowIconLeft", "sapUiCalendarAppArrowIcon"];
-				oRm.icon("sap-icon://arrow-left", aClasses, { title: null });
+				oRm.icon("sap-icon://arrow-left", aClasses, { title: null, role: "img" });
 			}
 
 			if (sIcon) {
@@ -277,6 +277,7 @@ sap.ui.define([
 
 				mAttributes["id"] = sId + "-Icon";
 				mAttributes["title"] = null;
+				mAttributes["role"] = "img";
 				oRm.icon(sIcon, aClasses, mAttributes);
 			}
 
@@ -290,7 +291,7 @@ sap.ui.define([
 
 			if (iRightPosition < 0) {
 				aClasses = ["sapUiCalendarAppArrowIconRight", "sapUiCalendarAppArrowIcon"];
-				oRm.icon("sap-icon://arrow-right", aClasses, { title: null });
+				oRm.icon("sap-icon://arrow-right", aClasses, { title: null, role: "img" });
 			}
 
 			oRm.openStart("span", sId + "-Descr");
@@ -546,8 +547,8 @@ sap.ui.define([
 					oRm.style("border-left-color", sColor);
 				}
 			}
-			oRm.style("top", iAppTop + "px");
-			oRm.style("bottom", iAppBottom + "px");
+			oRm.style("top", iAppTop + "rem");
+			oRm.style("bottom", iAppBottom + "rem");
 			oRm.style(sap.ui.getCore().getConfiguration().getRTL() ? "right" : "left", iAppChunkWidth * iAppointmentLevel + "%");
 			oRm.style("width", iAppChunkWidth * iAppointmentWidth + "%"); // TODO: take into account the levels
 			oRm.openEnd();
@@ -555,7 +556,7 @@ sap.ui.define([
 			oRm.openStart("div");
 			oRm.class("sapUiCalendarApp");
 
-			oRm.style("min-height", (iRowHeight - (iVerticalPaddingBetweenAppointments + iAppointmentBottomPadding + iAppointmentTopPadding)) / 2 + "px");
+			oRm.style("min-height", (iRowHeight - (iVerticalPaddingBetweenAppointments + iAppointmentBottomPadding + iAppointmentTopPadding)) / 2 + "rem");
 
 			if (oAppointment.getSelected()) {
 				oRm.class("sapUiCalendarAppSel");
@@ -605,7 +606,7 @@ sap.ui.define([
 
 			if (bArrowLeft && iStartDayDiff < 0) {
 				aClasses = ["sapUiCalendarAppArrowIconLeft", "sapUiCalendarAppArrowIcon"];
-				oRm.icon("sap-icon://arrow-left", aClasses, { title: null });
+				oRm.icon("sap-icon://arrow-left", aClasses, { title: null, role: "img" });
 			}
 
 			if (sIcon) {
@@ -614,6 +615,7 @@ sap.ui.define([
 
 				mAttributes["id"] = sId + "-Icon";
 				mAttributes["title"] = null;
+				mAttributes["role"] = "img";
 				oRm.icon(sIcon, aClasses, mAttributes);
 			}
 
@@ -642,7 +644,7 @@ sap.ui.define([
 
 			if (bArrowRight && iEndDayDiff < 0) {
 				aClasses = ["sapUiCalendarAppArrowIconRight", "sapUiCalendarAppArrowIcon"];
-				oRm.icon("sap-icon://arrow-right", aClasses, { title: null });
+				oRm.icon("sap-icon://arrow-right", aClasses, { title: null, role: "img" });
 			}
 
 			// ARIA information about start and end
@@ -677,7 +679,7 @@ sap.ui.define([
 			var oDate = new Date();
 
 			oRm.openStart("div", oControl.getId() + "-nowMarker");
-			oRm.style("top", oControl._calculateTopPosition(oDate) + "px");
+			oRm.style("top", oControl._calculateTopPosition(oDate) + "rem");
 			oRm.class("sapMSinglePCNowMarker");
 
 			if (!oControl._isVisibleHour(oDate.getHours())) {

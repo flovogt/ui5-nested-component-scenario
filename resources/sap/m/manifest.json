@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.96.4"
+      "version": "1.98.0"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -22,17 +22,17 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.96",
+      "minUI5Version": "1.98",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.96.4"
+          "minVersion": "1.98.0"
         },
         "sap.ui.layout": {
-          "minVersion": "1.96.4",
+          "minVersion": "1.98.0",
           "lazy": true
         },
         "sap.ui.unified": {
-          "minVersion": "1.96.4",
+          "minVersion": "1.98.0",
           "lazy": true
         }
       }
@@ -144,6 +144,7 @@
           "sap.m.IconTabBarSelectList",
           "sap.m.IconTabFilterExpandButtonBadge",
           "sap.m.IconTabHeader",
+          "sap.m.IllustratedMessage",
           "sap.m.Image",
           "sap.m.ImageContent",
           "sap.m.Input",
@@ -278,7 +279,9 @@
           "sap.m.p13n.GroupPanel",
           "sap.m.p13n.QueryPanel",
           "sap.m.p13n.SelectionPanel",
-          "sap.m.p13n.SortPanel"
+          "sap.m.p13n.SortPanel",
+          "sap.m.p13n.Popup",
+          "sap.m.table.ColumnMenu"
         ],
         "elements": [
           "sap.m.BadgeCustomData",
@@ -366,7 +369,12 @@
           "sap.m.semantic.SendMessageAction",
           "sap.m.semantic.ShareInJamAction",
           "sap.m.semantic.SortAction",
-          "sap.m.semantic.SortSelect"
+          "sap.m.semantic.SortSelect",
+          "sap.m.table.ColumnMenuEntry",
+          "sap.m.table.Item",
+          "sap.m.table.ItemBase",
+          "sap.m.table.QuickAction",
+          "sap.m.table.QuickActionBase"
         ],
         "types": [
           "sap.m.AvatarImageFitType",
@@ -405,6 +413,8 @@
           "sap.m.IconTabDensityMode",
           "sap.m.IconTabFilterDesign",
           "sap.m.IconTabHeaderMode",
+          "sap.m.IllustratedMessageSize",
+          "sap.m.IllustratedMessageType",
           "sap.m.ImageMode",
           "sap.m.InputTextFormatMode",
           "sap.m.InputType",
@@ -471,6 +481,7 @@
           "sap.m.IBar",
           "sap.m.IBadge",
           "sap.m.IBreadcrumbs",
+          "sap.m.p13n.IContent",
           "sap.m.IconTab",
           "sap.m.IScale",
           "sap.m.semantic.IGroup",

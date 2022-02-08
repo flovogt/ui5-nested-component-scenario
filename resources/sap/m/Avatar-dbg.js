@@ -76,7 +76,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -164,7 +164,15 @@ sap.ui.define([
 				 *
 				 * @since 1.77
 				 */
-				badgeTooltip: {type: "string", group: "Data", defaultValue: null}
+				badgeTooltip: {type: "string", group: "Data", defaultValue: null},
+				/**
+				 * Defines whether the <code>sap.m.Avatar</code> is used for decorative purposes and is ignored by accessibility tools.
+				 *
+				 * <b>Note:</b> This property doesn't take effect if <code>sap.m.Avatar</code> has a <code>press</code> handler.
+				 *
+				 * @since 1.97
+				 */
+				decorative : {type : "boolean", group : "Accessibility", defaultValue : false}
 
 			},
 			aggregations : {

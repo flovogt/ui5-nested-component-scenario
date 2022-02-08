@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @param {string} [oData] URL where to load the data from
 	 * @public
@@ -67,7 +67,7 @@ sap.ui.define([
 		return this.oData;
 	};
 
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.createBindingContext
 	 *
 	 */
@@ -95,7 +95,8 @@ sap.ui.define([
 
 
 	ClientModel.prototype._ajax = function(oParameters){
-		var that = this;
+		var oRequestHandle,
+			that = this;
 
 		if (this.bDestroyed) {
 			return;
@@ -121,7 +122,7 @@ sap.ui.define([
 		oParameters.success = wrapHandler(oParameters.success);
 		oParameters.error = wrapHandler(oParameters.error);
 
-		var oRequestHandle = jQuery.ajax(oParameters);
+		oRequestHandle = jQuery.ajax(oParameters);
 
 		// add request handle to array and return it (only for async requests)
 		if (oParameters.async) {
@@ -156,7 +157,7 @@ sap.ui.define([
 	ClientModel.prototype.destroyBindingContext = function(oContext) {
 	};
 
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.bindContext
 	 */
 	ClientModel.prototype.bindContext = function(sPath, oContext, mParameters) {

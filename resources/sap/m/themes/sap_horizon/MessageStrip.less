@@ -4,6 +4,7 @@
 /* =================================== */
 
 .sapMMsgStrip {
+	//@sapUiElementBorderCornerRadius was used but currently it results in 12px
 	border-radius: @sapElement_BorderCornerRadius;
 }
 
@@ -34,7 +35,7 @@
 		border-color: @sapErrorBackground;
 	}
 }
-
+ 
 .sapMMsgStripSuccess {
 	border-color: darken(saturate(@sapSuccessBackground, 20), 20);
 
@@ -56,7 +57,7 @@
 		border-color: @sapWarningBackground;
 	}
 }
-
+ 
 .sapMMsgStripMessage>.sapMLnk {
 	padding-right: 0.25rem;
 	padding-left: 0.25rem;

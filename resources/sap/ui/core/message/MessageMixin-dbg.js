@@ -91,7 +91,8 @@ sap.ui.define(["sap/ui/core/library", "sap/base/Log", "sap/ui/core/LabelEnableme
 			var oBindingInfo = this.mBindingInfos[sName];
 			if (oBindingInfo.binding) {
 				var oDataState = oBindingInfo.binding.getDataState();
-				var aMessages = oDataState.getMessages();
+				var aMessages = oDataState.getAllMessages();
+
 				aMessages.forEach(removeControlID);
 			}
 		}

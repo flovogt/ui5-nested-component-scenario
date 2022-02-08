@@ -175,7 +175,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @param {sap.ui.core.Core} oCore internal API of the <core>Core</code> that manages this UIArea
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
@@ -1041,8 +1041,8 @@ sap.ui.define([
 	//	if (!this.getMetadata().sEvents) {
 	//
 	//		// shorten the access to the array of events and pseudo events
-	//		var aEv = jQuery.sap.ControlEvents;
-	//		var oPsEv = jQuery.sap.PseudoEvents;
+	//		var aEv = ControlEvents.events;
+	//		var oPsEv = PseudoEvents.events; // required from sap/ui/events/PseudoEvents
 	//
 	//		// create the data structures for the event handler registration
 	//		this.sEvents = "";

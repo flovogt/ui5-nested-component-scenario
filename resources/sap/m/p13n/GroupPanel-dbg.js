@@ -15,35 +15,62 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
-	 * This control can be used to customize group personalization content
+	 * This control can be used to customize personalization content for grouping
 	 * for an associated control instance.
 	 *
 	 * @extends sap.m.p13n.QueryPanel
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
-	 * @private
-	 * @ui5-restricted
-	 * @experimental
-	 *
+	 * @public
+	 * @experimental Since 1.96.
 	 * @since 1.96
 	 * @alias sap.m.p13n.GroupPanel
 	 */
 	var GroupPanel = QueryPanel.extend("sap.m.p13n.GroupPanel", {
 		metadata: {
 			properties: {
+				/**
+				 * Toggles an additional checkbox in the group panel to define whether items are made visible.
+				 */
 				enableShowField: {
 					type: "boolean",
 					defaultValue: false
 				}
 			}
 		},
-		renderer: {}
+		renderer: {
+			apiVersion: 2
+		}
 	});
 
 	GroupPanel.prototype.PRESENCE_ATTRIBUTE = "grouped";
 	GroupPanel.prototype.CHANGE_REASON_SHOWIFGROUPED = "showifgrouped";
+
+	/**
+	 * P13n <code>GroupItem</code> object type.
+	 *
+	 * @type {sap.m.p13n.GroupItem}
+	 * @static
+	 * @constant
+	 * @typedef {Object} sap.m.p13n.GroupItem
+	 * @property {String} name The unique key of the item
+	 * @property {String} label The label describing the personalization item
+	 * @property {Boolean} grouped Defines the grouping state of the personalization item
+	 *
+	 * @public
+	 */
+
+	/**
+	 * Sets the personalization state of the panel instance.
+	 * @name sap.m.p13n.GroupPanel.setP13nData
+	 * @function
+	 * @public
+	 * @param {sap.m.p13n.GroupItem} aP13nData An array containing the personalization state
+	 * @returns {sap.m.p13n.GroupPanel} The GroupPanel instance
+	 *
+	 */
 
 	GroupPanel.prototype._createQueryRowGrid = function(oItem) {
 		var sKey = oItem.name;

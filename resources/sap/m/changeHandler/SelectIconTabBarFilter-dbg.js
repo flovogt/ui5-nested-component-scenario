@@ -14,7 +14,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.m.changeHandler.SelectIconTabBarFilter
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @experimental Since 1.96
 	 */
 	var SelectIconTabBarFilter = {};
@@ -33,8 +33,14 @@ sap.ui.define([
 		var oModifier = mPropertyBag.modifier;
 		var oChangeDefinition = oChange.getDefinition();
 
+		// Make sure the "select" event of the control is fired.
+		// By default it is not fired when the "selectedKey" property is changed,
+		// but only via user interaction
+		oControl._bFireSelectEvent = oChangeDefinition.content.fireEvent;
 		oModifier.setProperty(oControl, "selectedKey", oChangeDefinition.content.selectedKey);
-		oChange.setRevertData(oChangeDefinition.content.previousSelectedKey);
+		oControl._bFireSelectEvent = false;
+
+		oChange.setRevertData({key:oChangeDefinition.content.previousSelectedKey, fireEvent: oChangeDefinition.content.fireEvent});
 	};
 
 	/**
@@ -48,9 +54,15 @@ sap.ui.define([
 	 */
 	SelectIconTabBarFilter.revertChange = function (oChange, oControl, mPropertyBag) {
 		var oModifier = mPropertyBag.modifier;
-		var sPreviousSelectedKey = oChange.getRevertData();
+		var oRevertData = oChange.getRevertData();
 
-		oModifier.setProperty(oControl, "selectedKey", sPreviousSelectedKey);
+		// Make sure the "select" event of the control is fired.
+		// By default it is not fired when the "selectedKey" property is changed,
+		// but only via user interaction
+		oControl._bFireSelectEvent = oRevertData.fireEvent;
+		oModifier.setProperty(oControl, "selectedKey", oRevertData.key);
+		oControl._bFireSelectEvent = false;
+
 		oChange.resetRevertData();
 	};
 

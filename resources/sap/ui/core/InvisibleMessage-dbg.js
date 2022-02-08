@@ -32,7 +32,7 @@ function (coreLibrary, ManagedObject, Log) {
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @hideconstructor
 	 * @public
 	 * @since 1.78

@@ -175,7 +175,7 @@ function(
 		*
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.96.4
+		* @version 1.98.0
 		*
 		* @constructor
 		* @public
@@ -381,7 +381,7 @@ function(
 					rightButton: {type: "sap.m.Button", multiple: false, deprecated: true},
 
 					/**
-					 * In the Dialog focus is set first on the <code>beginButton</code> and then on <code>endButton</code>, when available. If another control needs to get the focus, set the <code>initialFocus</code> with the control which should be focused on. Setting <code>initialFocus</code> to input controls doesn't open the On-Screen keyboard on mobile device as, due to browser limitation, the On-Screen keyboard can't be opened with JavaScript code. The opening of On-Screen keyboard must be triggered by real user action.
+					 * In the Dialog focus is set first on the <code>beginButton</code> and then on <code>endButton</code>, when available. If another control needs to get the focus, set the <code>initialFocus</code> with the control which should be focused on. Setting <code>initialFocus</code> to input controls doesn't open the On-Screen keyboard on mobile device as, due to browser restriction, the On-Screen keyboard can't be opened with JavaScript code. The opening of On-Screen keyboard must be triggered by real user action.
 					 * @since 1.15.0
 					 */
 					initialFocus: {type: "sap.ui.core.Control", multiple: false},
@@ -454,11 +454,17 @@ function(
 
 		Dialog._bPaddingByDefault = (Core.getConfiguration().getCompatibilityVersion("sapMDialogWithPadding").compareTo("1.16") < 0);
 
-		Dialog._mIcons = {};
-		Dialog._mIcons[ValueState.Success] = IconPool.getIconURI("sys-enter-2");
-		Dialog._mIcons[ValueState.Warning] = IconPool.getIconURI("alert");
-		Dialog._mIcons[ValueState.Error] = IconPool.getIconURI("error");
-		Dialog._mIcons[ValueState.Information] = IconPool.getIconURI("information");
+		Dialog._initIcons = function () {
+			if (Dialog._mIcons) {
+				return;
+			}
+
+			Dialog._mIcons = {};
+			Dialog._mIcons[ValueState.Success] = IconPool.getIconURI("sys-enter-2");
+			Dialog._mIcons[ValueState.Warning] = IconPool.getIconURI("alert");
+			Dialog._mIcons[ValueState.Error] = IconPool.getIconURI("error");
+			Dialog._mIcons[ValueState.Information] = IconPool.getIconURI("information");
+		};
 
 		/* =========================================================== */
 		/*                  begin: Lifecycle functions                 */
@@ -733,6 +739,7 @@ function(
 			if (sState === ValueState.None) {
 				sDefaultIcon = "";
 			} else {
+				Dialog._initIcons();
 				sDefaultIcon = Dialog._mIcons[sState];
 			}
 

@@ -6,8 +6,9 @@
 
 //Provides class sap.ui.model.odata.v2.Context
 sap.ui.define([
+	"sap/ui/base/SyncPromise",
 	"sap/ui/model/Context"
-], function (BaseContext) {
+], function (SyncPromise, BaseContext) {
 	"use strict";
 
 	/**
@@ -21,7 +22,8 @@ sap.ui.define([
 	 *   The absolute deep path including all intermediate paths of the binding hierarchy
 	 * @param {sap.ui.base.SyncPromise} [oCreatePromise]
 	 *   A sync promise that is given when this context has been created by
-	 *   {@link sap.ui.model.odata.v2.ODataModel#createEntry}.
+	 *   {@link sap.ui.model.odata.v2.ODataModel#createEntry} or
+	 *   {@link sap.ui.model.odata.v2.ODataListBinding#create}.
 	 *
 	 *   When the entity represented by this context has been successfully persisted in the back
 	 *   end, the given promise resolves.
@@ -31,6 +33,8 @@ sap.ui.define([
 	 *   <code>bDeleteCreatedEntities</code> parameter set to <code>true</code>, the given promise
 	 *   rejects with an object <code>oError</code> containing the error information, where
 	 *   <code>oError.aborted === true</code>.
+	 * @param {boolean} [bInactive]
+	 *   Whether the created context is inactive
 	 * @alias sap.ui.model.odata.v2.Context
 	 * @author SAP SE
 	 * @class Implementation of an OData V2 model's context.
@@ -43,6 +47,7 @@ sap.ui.define([
 	 *   <ul>
 	 *     <li>an OData binding</li>
 	 *     <li>a view element</li>
+	 *     <li>{@link sap.ui.model.odata.v2.ODataListBinding#create}</li>
 	 *     <li>{@link sap.ui.model.odata.v2.ODataModel#callFunction}</li>
 	 *     <li>{@link sap.ui.model.odata.v2.ODataModel#createBindingContext}</li>
 	 *     <li>{@link sap.ui.model.odata.v2.ODataModel#createEntry}</li>
@@ -52,10 +57,12 @@ sap.ui.define([
 	 * @hideconstructor
 	 * @public
 	 * @since 1.93.0
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 */
 	var Context = BaseContext.extend("sap.ui.model.odata.v2.Context", {
-			constructor : function (oModel, sPath, sDeepPath, oCreatePromise) {
+			constructor : function (oModel, sPath, sDeepPath, oCreatePromise, bInactive) {
+				var that = this;
+
 				BaseContext.call(this, oModel, sPath);
 				// Promise returned by #created for a context of a newly created entity which
 				// resolves when the entity is persisted or rejects if the creation is aborted; set
@@ -76,12 +83,33 @@ sap.ui.define([
 				// whether the context is updated, e.g. path changed from a preliminary path to the
 				// canonical one
 				this.bUpdated = false;
+				// whether the context is inactive
+				this.bInactive = !!bInactive;
+				// the function to activate this context
+				this.fnActivate = undefined;
+				// the promise on activation of this context
+				this.oActivatedPromise = bInactive
+					? new SyncPromise(function (resolve) { that.fnActivate = resolve; })
+					: SyncPromise.resolve();
 			}
 		});
 
 	/**
+	 * Activates this context.
+	 *
+	 * @private
+	 */
+	Context.prototype.activate = function () {
+		this.bInactive = false;
+		if (this.fnActivate) {
+			this.fnActivate();
+		}
+	};
+
+	/**
 	 * Returns a promise on the creation state of this context if it has been created via
-	 * {@link sap.ui.model.odata.v2.ODataModel#createEntry}; otherwise returns
+	 * {@link sap.ui.model.odata.v2.ODataModel#createEntry} or
+	 * {@link sap.ui.model.odata.v2.ODataListBinding#create}; otherwise returns
 	 * <code>undefined</code>.
 	 *
 	 * As long as the promise is not yet resolved or rejected, the entity represented by this
@@ -90,9 +118,18 @@ sap.ui.define([
 	 * Once the promise is resolved, the entity for this context is stored in the back end and
 	 * {@link #getPath} returns a path including the key predicate of the new entity.
 	 *
+	 * If the context has been created via {@link sap.ui.model.odata.v2.ODataListBinding#create} and
+	 * the entity for this context has been stored in the back end, {@link #created} returns
+	 * <code>undefined</code> after the data has been re-read from the back end and inserted at the
+	 * right position based on the list binding's filters and sorters.
+	 * If the context has been created via {@link sap.ui.model.odata.v2.ODataModel#createEntry} and
+	 * the entity for this context has been stored in the back end, {@link #created} returns
+	 * <code>undefined</code>.
+	 *
 	 * @returns {Promise}
 	 *   A promise for a context which has been created via
-	 *   {@link sap.ui.model.odata.v2.ODataModel#createEntry}, otherwise <code>undefined</code>.
+	 *   {@link sap.ui.model.odata.v2.ODataModel#createEntry} or
+	 *   {@link sap.ui.model.odata.v2.ODataListBinding#create}, otherwise <code>undefined</code>.
 	 *
 	 *   When the entity represented by this context has been persisted in the back end, the promise
 	 *   resolves without data.
@@ -113,6 +150,18 @@ sap.ui.define([
 		}
 
 		return this.oCreatePromise;
+	};
+
+	/**
+	 * Returns the promise which resolves with <code>undefined</code> on activation of this context
+	 * or if this context is already active; the promise never rejects.
+	 *
+	 * @return {sap.ui.base.SyncPromise} The promise on activation of this context
+	 *
+	 * @private
+	 */
+	Context.prototype.fetchActivated = function () {
+		return this.oActivatedPromise;
 	};
 
 	/**
@@ -140,6 +189,22 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns whether this context is inactive. An inactive context will only be sent to the
+	 * server after the first property update. From then on it behaves like any other created
+	 * context.
+	 *
+	 * @return {boolean} Whether this context is inactive
+	 *
+	 * @public
+	 * @see sap.ui.model.odata.v2.ODataListBinding#create
+	 * @see sap.ui.model.odata.v2.ODataModel#createEntry
+	 * @since 1.98.0
+	 */
+	Context.prototype.isInactive = function () {
+		return this.bInactive;
+	};
+
+	/**
 	 * Whether this context's path may be used to create the request URL for dependent bindings even
 	 * if no data has been loaded for the context's entity. This can be used by dependent bindings
 	 * to send their requests in parallel to the request of the context binding.
@@ -164,15 +229,24 @@ sap.ui.define([
 	};
 
 	/**
-	 * For a context created using {@link sap.ui.model.odata.v2.ODataModel#createEntry}, the method
-	 * returns <code>true</code> if the context is transient or <code>false</code> if the context is
-	 * not transient. A transient context represents an entity created on the client which has not
-	 * been persisted in the back end.
+	 * For a context created using {@link sap.ui.model.odata.v2.ODataModel#createEntry} or
+	 * {@link sap.ui.model.odata.v2.ODataListBinding#create}, the method returns <code>true</code>
+	 * if the context is transient or <code>false</code> if the context is not transient. A
+	 * transient context represents an entity created on the client which has not been persisted in
+	 * the back end.
 	 *
 	 * @returns {boolean}
-	 *   Whether this context is transient if it has been created using
-	 *   {@link sap.ui.model.odata.v2.ODataModel#createEntry}; returns <code>undefined</code> if the
-	 *   context has not been created using {@link sap.ui.model.odata.v2.ODataModel#createEntry}
+	 *   <ul>
+	 *   <li><code>true</code>: if the context has been created via
+	 *     {@link sap.ui.model.odata.v2.ODataModel#createEntry} or
+	 *     {@link sap.ui.model.odata.v2.ODataListBinding#create} and is not yet persisted in the
+	 *     back end,</li>
+	 *   <li><code>false</code>: if the context has been created via
+	 *     {@link sap.ui.model.odata.v2.ODataListBinding#create}, data has been successfully
+	 *     persisted in the back end and the data is still displayed in the area of the inline
+	 *     creation rows, and</li>
+	 *   <li><code>undefined</code>: otherwise</li>
+	 *   </ul>
 	 *
 	 * @public
 	 * @since 1.94.0
@@ -190,6 +264,16 @@ sap.ui.define([
 	 */
 	Context.prototype.isUpdated = function () {
 		return this.bUpdated;
+	};
+
+	/**
+	 * Resets the created promise to indicate that the entity has been re-read from the back end.
+	 *
+	 * @private
+	 */
+	Context.prototype.resetCreatedPromise = function () {
+		this.oCreatePromise = undefined;
+		this.oSyncCreatePromise = undefined;
 	};
 
 	/**
@@ -234,4 +318,4 @@ sap.ui.define([
 	};
 
 	return Context;
-}, /* bExport= */ false);
+});

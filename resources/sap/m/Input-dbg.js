@@ -159,7 +159,7 @@ function(
 	 *
 	 * @extends sap.m.InputBase
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -218,7 +218,8 @@ function(
 			showSuggestion : {type : "boolean", group : "Behavior", defaultValue : false},
 
 			/**
-			 * If set to true, direct text input is disabled and the control will trigger the event "valueHelpRequest" for all user interactions. The properties "showValueHelp", "editable", and "enabled" must be set to true, otherwise the property will have no effect
+			 * If set to true, direct text input is disabled and the control will trigger the event "valueHelpRequest" for all user interactions. The properties "showValueHelp", "editable", and "enabled" must be set to true, otherwise the property will have no effect.
+			 * In this scenario, the <code>showItems</code> API will not work.
 			 * @since 1.21.0
 			 */
 			valueHelpOnly : {type : "boolean", group : "Behavior", defaultValue : false},
@@ -328,7 +329,13 @@ function(
 			 * Specifies whether the clear icon should be shown/hidden on user interaction.
 			 * @private
 			 */
-			effectiveShowClearIcon: { type: "boolean", defaultValue: false, visibility: "hidden" }
+			effectiveShowClearIcon: { type: "boolean", defaultValue: false, visibility: "hidden" },
+
+			/**
+			 * Specifies whether to display separators in tabular suggestions.
+			 * @private
+			 */
+			separateSuggestions: { type: "boolean", defaultValue: false, visibility: "hidden" }
 		},
 		defaultAggregation : "suggestionItems",
 		aggregations : {
@@ -1201,16 +1208,27 @@ function(
 			this._fireValueHelpRequestForValueHelpOnly();
 		}
 
-		if (this.isMobileDevice()
-			 && this.getEditable()
-			 && this.getEnabled()
-			 && this.getShowSuggestion()
-			 && (!this._bClearButtonPressed)
-			 && oEvent.target.id !== this.getId() + "-vhi") {
+		if (this.shouldSuggetionsPopoverOpenOnMobile(oEvent)) {
 				this._openSuggestionsPopover();
 		}
 
 		this._bClearButtonPressed = false;
+	};
+
+	/**
+	 * A helper function calculating if the SuggestionsPopover should be opened on mobile.
+	 *
+	 * @protected
+	 * @param {jQuery.Event} oEvent Ontap event.
+	 * @returns {Boolean} If the popover should be openened.
+	 */
+	Input.prototype.shouldSuggetionsPopoverOpenOnMobile = function(oEvent) {
+		return this.isMobileDevice()
+			&& this.getEditable()
+			&& this.getEnabled()
+			&& this.getShowSuggestion()
+			&& (!this._bClearButtonPressed)
+			&& oEvent.target.id !== this.getId() + "-vhi";
 	};
 
 	/**
@@ -1906,6 +1924,8 @@ function(
 
 	/**
 	 * Helper function that refreshes list all items.
+	 *
+	 * @returns {null|undefined} null or undefined
 	 */
 	Input.prototype._refreshListItems = function () {
 		var bShowSuggestion = this.getShowSuggestion(),
@@ -1932,7 +1952,7 @@ function(
 		oFilterResults = this._getFilteredSuggestionItems(sTypedChars);
 		iSuggestionsLength = oFilterResults.items.length;
 
-		if (iSuggestionsLength > 0) {
+		if (iSuggestionsLength > 0 && !this.getValueHelpOnly()) {
 			this._openSuggestionPopup(this.getValue().length >= this.getStartSuggestion());
 		} else {
 			this._hideSuggestionPopup();
@@ -2300,7 +2320,7 @@ function(
 		var oSuggestionsTable = new Table(this.getId() + "-popup-table", {
 			mode: ListMode.SingleSelectMaster,
 			showNoData: false,
-			showSeparators: ListSeparators.None,
+			showSeparators: this.getProperty("separateSuggestions") ? ListSeparators.Inner : ListSeparators.None,
 			width: "100%",
 			enableBusyIndicator: false,
 			rememberSelections : false,
@@ -2972,6 +2992,7 @@ function(
 
 	/**
 	 * Opens the <code>SuggestionsPopover</code> with the available items.
+	 * <b>Note:</b> When <code>valueHelpOnly</code> property is set to true, the <code>SuggestionsPopover</code> will not open.
 	 *
 	 * @param {function} fnFilter Function to filter the items shown in the SuggestionsPopover
 	 * @returns {void}
@@ -2985,7 +3006,7 @@ function(
 			fnFilterStore = this._getFilterFunction();
 
 		// in case of a non-editable or disabled, the popup cannot be opened
-		if (!this.getEnabled() || !this.getEditable()) {
+		if (!this.getEnabled() || !this.getEditable() || this.getValueHelpOnly()) {
 			return;
 		}
 
@@ -3259,6 +3280,26 @@ function(
 	 */
 	Input.prototype._getTypedInValue = function () {
 		return this._sTypedInValue;
+	};
+
+	/**
+	 * Setter for the separateSuggestions property representing whether to display separators in tabular suggestions.
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.comp.smartfield.SmartField
+	 * @param {boolean} bValue The new value for the property.
+	 * @returns {this} <code>this</code> to allow method chaining.
+	 */
+	Input.prototype._setSeparateSuggestions = function (bValue) {
+		var oSuggestionsTable = this._getSuggestionsTable();
+
+		this.setProperty("separateSuggestions", bValue);
+
+		if (oSuggestionsTable) {
+			oSuggestionsTable.setShowSeparators(bValue ? ListSeparators.Inner : ListSeparators.None);
+		}
+
+		return this;
 	};
 
 	return Input;

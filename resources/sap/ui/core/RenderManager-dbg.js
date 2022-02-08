@@ -182,7 +182,7 @@ sap.ui.define([
 	 *
 	 * @extends Object
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @alias sap.ui.core.RenderManager
 	 * @public
 	 */
@@ -306,7 +306,7 @@ sap.ui.define([
 		/**
 		 * Escape text for HTML and write it to the buffer.
 		 *
-		 * For details about the escaping refer to {@link jQuery.sap.encodeHTML}
+		 * For details about the escaping refer to {@link sap/base/security/encodeXML}.
 		 *
 		 * @param {any} sText the text to escape
 		 * @param {boolean} [bLineBreaks=false] Whether to convert line breaks into <br> tags
@@ -328,7 +328,7 @@ sap.ui.define([
 		/**
 		 * Writes the attribute and its value into the HTML.
 		 *
-		 * For details about the escaping refer to {@link jQuery.sap.encodeHTML}
+		 * For details about the escaping refer to {@link sap/base/security/encodeXML}.
 		 *
 		 * @param {string} sName Name of the attribute
 		 * @param {string | number | boolean} vValue Value of the attribute

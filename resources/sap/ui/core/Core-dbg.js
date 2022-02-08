@@ -210,7 +210,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 * @final
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @alias sap.ui.core.Core
 	 * @public
 	 * @hideconstructor
@@ -808,9 +808,6 @@ sap.ui.define([
 				break;
 			case Device.os.OS.ANDROID:
 				osCSS = "sap-android";
-				break;
-			case Device.os.OS.BLACKBERRY:
-				osCSS = "sap-bb";
 				break;
 		}
 		if (osCSS) {
@@ -4276,7 +4273,7 @@ sap.ui.define([
 	 * <pre>
 	 *   &lt;div id="SAPUI5UiArea">&lt;/div>
 	 *   &lt;script>
-	 *     var oRoot = new sap.ui.commons.Label();
+	 *     var oRoot = new sap.m.Label();
 	 *     oRoot.setText("Hello world!");
 	 *     sap.ui.setRoot("SAPUI5UiArea", oRoot);
 	 *   &lt;/script>

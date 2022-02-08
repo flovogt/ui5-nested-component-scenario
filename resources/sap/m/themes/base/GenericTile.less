@@ -47,6 +47,18 @@
 	border-color:  @sapUiNegativeText;
 }
 
+.sapMGTCriticalHdrTxt.Good > .sapMText {
+	color: @sapUiPositiveText;
+}
+
+.sapMGTCriticalHdrTxt.Critical > .sapMText {
+	color: @sapUiCriticalText;
+}
+
+.sapMGTCriticalHdrTxt.Error > .sapMText {
+	color: @sapUiNegativeText;
+}
+
 .sapMGTContentPlaceholder {
 	outline: none;
 	width: 300px;
@@ -328,7 +340,7 @@ border-radius: 0.25rem;
 			text-transform: uppercase;
 			margin-bottom: 0.5rem;
 			border-radius: 0.25rem 0 0 0.25rem;
-			background-color: @sapUiTileHoverBackground;
+			background-color: @sapTile_Active_Background;
 			width: fit-content;
 			float: right;
 			bottom: 0;
@@ -598,7 +610,7 @@ html.sap-desktop .sapMGT:focus:not([tabindex]) {
 			outline-offset: -2px;
 
 			&, &:hover, &:active, &:focus  {
-				border-color: @sapUiButtonBorderColor; // Explicitly needed here, because the border would otherwise be transparent in HCB on press
+				border-color: @sapTile_Interactive_BorderColor; // Explicitly needed here, because the border would otherwise be transparent in HCB on press
 				border-radius: 50% !important; // Made important because the style is not to be overridden in any way
 			}
 		}
@@ -1394,7 +1406,7 @@ html[data-sap-ui-browser*='ff'] {
 				position: absolute;
 				left: 0;
 				right: 0;
-				bottom: 0rem;
+				bottom: 0;
 				justify-content: space-between;
 				align-items: center;
 				padding-bottom: 1rem;

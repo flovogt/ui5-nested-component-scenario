@@ -15,28 +15,54 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
-	 * This control can be used to customize sort personalization content
+	 * This control can be used to customize personalization content for sorting
 	 * for an associated control instance.
 	 *
 	 * @extends sap.m.p13n.QueryPanel
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
-	 * @private
-	 * @ui5-restricted
-	 * @experimental
-	 *
+	 * @public
+	 * @experimental Since 1.96.
 	 * @since 1.96
 	 * @alias sap.m.p13n.SortPanel
 	 */
 
 	var SortPanel = QueryPanel.extend("sap.m.p13n.SortPanel", {
-		renderer: {}
+		renderer: {
+			apiVersion: 2
+		}
 	});
 
 	SortPanel.prototype.PRESENCE_ATTRIBUTE = "sorted";
 	SortPanel.prototype.CHANGE_REASON_SORTORDER = "sortorder";
+
+	/**
+	 * P13n <code>SortItem</code> object type.
+	 *
+	 * @type {sap.m.p13n.SortItem}
+	 * @static
+	 * @constant
+	 * @typedef {Object} sap.m.p13n.SortItem
+	 * @property {String} name The unique key of the item
+	 * @property {String} label The label describing the personalization item
+	 * @property {Boolean} sorted Defines the sorting state of the personalization item
+	 * @property {Boolean} descending Defines the descending state of the personalization item
+	 *
+	 * @public
+	 */
+
+	/**
+	 * Sets the personalization state of the panel instance.
+	 * @name sap.m.p13n.SortPanel.setP13nData
+	 * @public
+	 * @function
+	 *
+	 * @param {sap.m.p13n.SortItem} aP13nData An array containing the personalization state
+	 * @returns {sap.m.p13n.SortPanel} The SortPanel instance
+	 *
+	 */
 
 	SortPanel.prototype._createRemoveButton = function () {
 		var oRemvoeBtn = QueryPanel.prototype._createRemoveButton.apply(this, arguments);

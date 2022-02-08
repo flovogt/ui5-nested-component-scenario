@@ -212,8 +212,8 @@
 	 * A map of URL prefixes keyed by the corresponding module name prefix.
 	 *
 	 * Note that the empty prefix ('') will always match and thus serves as a fallback.
-	 * @type {Object.<string,{url:string,absoluteUrl:string}>}
-	 * @see jQuery.sap.registerModulePath
+	 * See {@link sap.ui.loader.config}, option <code>paths</code>.
+	 * @type {Object.<string,{url:string,absoluteUrl:string}>}.
 	 * @private
 	 */
 	var mUrlPrefixes = Object.create(null);
@@ -2973,9 +2973,9 @@
 	 * </ul>
 	 *
 	 *
-	 * <h3>Limitations, Design Considerations</h3>
+	 * <h3>Restrictions, Design Considerations</h3>
 	 * <ul>
-	 * <li><b>Limitation</b>: as dependency management is not supported for Non-UI5 modules, the only way
+	 * <li><b>Restriction</b>: as dependency management is not supported for Non-UI5 modules, the only way
 	 *     to ensure proper execution order for such modules currently is to rely on the order in the
 	 *     dependency array. Obviously, this only works as long as <code>sap.ui.define</code> uses
 	 *     synchronous loading. It will be enhanced when asynchronous loading is implemented.</li>
@@ -3059,7 +3059,7 @@
 	 * @param {string|string[]} vDependencies Dependency (dependencies) to resolve
 	 * @param {function} [fnCallback] Callback function to execute after resolving an array of dependencies
 	 * @param {function} [fnErrback] Callback function to execute if an error was detected while loading the
-	 *                      dependencies or executing the factory function. Note that due to browser limitations
+	 *                      dependencies or executing the factory function. Note that due to browser restrictions
 	 *                      not all errors will be reported via this callback. In general, module loading is
 	 *                      designed for the non-error case. Error handling is not complete.
 	 * @returns {any|undefined} A single module export value (sync probing variant) or undefined (async loading variant)
@@ -3122,10 +3122,10 @@
 	 * While a module is executing, a value of <code>undefined</code> will be returned in case it is required again during
 	 * that period of time (e.g. in case of cyclic dependencies).
 	 *
-	 * <b>Note:</b> Applications are strongly encouraged to use this method only when synchronous loading is unavoidable.
-	 * Any code that uses this method won't benefit from future performance improvements that require asynchronous
-	 * module loading (e.g. HTTP/2). And such code never can comply with stronger content security policies (CSPs)
-	 * that forbid 'eval'.
+	 * <b>Note:</b> the scope of this method is limited to the sap.ui.core library. Callers are strongly encouraged to use
+	 * this method only when synchronous loading is unavoidable. Any code that uses this method won't benefit from future
+	 * performance improvements that require asynchronous module loading (e.g. HTTP/2). And such code never can comply with
+	 * a content security policies (CSP) that forbids 'eval'.
 	 *
 	 * @param {string} sModuleName Module name in requireJS syntax
 	 * @returns {any} value of the loaded module or undefined

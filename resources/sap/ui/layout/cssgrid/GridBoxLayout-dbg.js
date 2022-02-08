@@ -48,7 +48,7 @@ sap.ui.define([
 	 * Applies a sap.ui.layout.cssgrid.GridSettings to a provided DOM element or Control.
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @extends sap.ui.layout.cssgrid.GridLayoutBase
 	 *
@@ -227,8 +227,11 @@ sap.ui.define([
 	 */
 	GridBoxLayout.prototype._applySizeClass = function (oControl) {
 
-		var oRange = Device.media.getCurrentRange("StdExt", oControl.$().width()),
-			sSizeClass = mSizeClasses[oRange.name];
+		var oRange = Device.media.getCurrentRange("StdExt", oControl.$().width());
+		if (!oRange) {
+			return;
+		}
+		var sSizeClass = mSizeClasses[oRange.name];
 
 		oControl.getGridDomRefs().forEach(function (oDomRef) {
 			//Check if the class is already applied

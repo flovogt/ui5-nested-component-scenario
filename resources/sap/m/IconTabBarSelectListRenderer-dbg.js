@@ -31,7 +31,7 @@ sap.ui.define([
 		var mParams = oSelectList._getParams(),
 			aItems = oSelectList.getVisibleItems(),
 			oIconTabHeader = oSelectList._oIconTabHeader,
-			bTextOnly = oIconTabHeader._checkTextOnly(),
+			bTextOnly = oSelectList._checkTextOnly(),
 			iTotalItemsCount = oIconTabHeader.getVisibleTabFilters().length,
 			fNestedItemPaddingLeft = mParams.fNestedItemPaddingLeft,
 			bExtraIndent = false;

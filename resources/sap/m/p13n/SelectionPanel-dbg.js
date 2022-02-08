@@ -37,18 +37,15 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
-	 * This control can be used as personalization panel to define
-	 * content that may be added/removed for an associated control instance during runtime by the user.
+	 * This control can be used to customize personalization content for adding/removing items for an associated control instance.
 	 *
 	 * @extends sap.m.p13n.BasePanel
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
-	 * @private
-	 * @ui5-restricted
-	 * @experimental
-	 *
+	 * @public
+	 * @experimental Since 1.96.
 	 * @since 1.96
 	 * @alias sap.m.p13n.SelectionPanel
 	 */
@@ -57,15 +54,15 @@ sap.ui.define([
 			library: "sap.m",
 			properties: {
 				/**
-				 * Shows an additional header with a SearchField and 'Show Selected' button
+				 * Shows an additional header with a search field and the Show Selected button.
 				 */
 				showHeader: {
 					type: "boolean",
 					defaultValue: false
 				},
 				/**
-				 * Enables a count for selected items compared to available items as '<fields> (3 / 12)' in addition
-				 * for the first provided column text
+				 * Enables a count for selected items compared to available items, for example, Currency (3/12), in addition
+				 * to the first column text.
 				 */
 				enableCount: {
 					type: "boolean",
@@ -79,7 +76,7 @@ sap.ui.define([
 					defaultValue: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("p13n.DEFAULT_DESCRIPTION")
 				},
 				 /**
-				 * The secondary column in the panel showing the movement buttons for reordering.
+				 * The second column in the panel showing the move buttons for reordering.
 				 */
 				activeColumn: {
 					type: "string",
@@ -266,7 +263,13 @@ sap.ui.define([
 		}.bind(this));
 	};
 
+	/**
+	 * Sets the personalization state of the panel instance.
+	 * @public
+	 * @param {sap.m.p13n.Item} aP13nData An array containing the personalization state that is represented by the <code>SelectionPanel</code>.
+	 */
 	SelectionPanel.prototype.setP13nData = function() {
+		this._oListControl.removeSelections();
 		BasePanel.prototype.setP13nData.apply(this, arguments);
 		this._updateCount();
 	};

@@ -13,8 +13,10 @@ sap.ui.define([
 	"sap/m/p13n/AbstractContainerItem",
 	"sap/ui/Device",
 	"sap/m/library",
-	"sap/m/StandardListItem"
-], function (AbstractContainer, Bar, Button, List, IconTabBar, IconTabFilter, ContainerItem, Device, mLibrary, StandardListItem) {
+	"sap/m/StandardListItem",
+	"sap/m/CustomListItem",
+	"sap/ui/core/Control"
+], function (AbstractContainer, Bar, Button, List, IconTabBar, IconTabFilter, ContainerItem, Device, mLibrary, StandardListItem, CustomListItem, Control) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -30,23 +32,18 @@ sap.ui.define([
 	 * @param {object} [mSettings] Initial settings for the new control
 	 *
 	 * @class
-	 * This control serves as base class for personalization implementations.
-	 * This base class is faceless and should be inherited to implement control specific personalization panels.
-	 * Constructor for a new Container. The Container can be used
-	 * to dynamically add personalization content to a switchable
-	 * layout container, by allowing to switch the content using
-	 * an <code>IconTabBar</code> or a <code>List</code> control,
-	 * depending on the desired layout mode.
+	 * Constructor for a new <code>Container</code>. The <code>Container</code> class can be used to dynamically add personalization content to a switchable
+	 * layout container. The <code>Container</code> class provides an option for switching content by using an <code>IconTabBar</code> or a <code>List</code> control
+	 * respectively, depending on the desired layout mode. See also {@link sap.m.p13n.AbstractContainer}.
 	 *
 	 * @extends sap.m.p13n.AbstractContainer
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @private
 	 * @ui5-restricted
-	 * @experimental
-	 *
+	 * @experimental Since 1.96.
 	 * @since 1.96
 	 * @alias sap.m.p13n.Container
 	 */
@@ -55,7 +52,7 @@ sap.ui.define([
 			library: "sap.m",
 			properties: {
 				listLayout: {
-					type: "Boolean",
+					type: "boolean",
 					defaultValue: false
 				}
 			}
@@ -74,11 +71,10 @@ sap.ui.define([
 	};
 
 	/**
-	 * Determines whether a <code>List</code> control should be used
-	 * as inner layout or a <code>IconTabBar</code> to display the different views.
+	 * Determines whether a <code>List</code> control or code>IconTabBar</code> is used as the inner layout to display the different views.
 	 *
-	 * @param {boolean} bListLayout Defines which layout mode should be used.
-	 * @returns {sap.ui.core.Control} The <code>Container</code> instance.
+	 * @param {boolean} bListLayout Defines which layout mode is used
+	 * @returns {sap.m.p13n.Container} The <code>Container</code> instance
 	 */
 	Container.prototype.setListLayout = function (bListLayout) {
 		this.setProperty("listLayout", bListLayout);
@@ -128,15 +124,28 @@ sap.ui.define([
 	 */
 	Container.prototype.switchView = function (sKey) {
 		AbstractContainer.prototype.switchView.apply(this, arguments);
+		if (this._bPrevented) {
+			return;
+		}
 		var oParent = this.getParent();
 		if (oParent && oParent.isA("sap.ui.core.Control")){
 			oParent.focus();
 			oParent.invalidate();
+
+			// invalidate dependents as well
+			var aDependents = oParent.getDependents();
+			if (aDependents) {
+				aDependents.forEach(function (oDependent) {
+					if (oDependent && oDependent.isA("sap.ui.core.Control")) {
+						oDependent.invalidate();
+					}
+				});
+			}
 		}
 		this.oLayout.setShowHeader(sKey !== this.DEFAULT_KEY); //Don't show header in default view (avoid empty space),
 		this._getTabBar().setSelectedKey(sKey);
 		this._getNavBackBtn().setVisible(sKey !== this.DEFAULT_KEY);
-		this._getNavBackBtn().setText(sKey);
+		this._getNavBackBtn().setText((this.getView(sKey) && this.getView(sKey).getText()) || sKey);
 	};
 
 	/**
@@ -145,6 +154,32 @@ sap.ui.define([
 	Container.prototype.addView = function (oContainerItem) {
 		AbstractContainer.prototype.addView.apply(this, arguments);
 		this._addToNavigator(oContainerItem);
+		return this;
+	};
+
+	/**
+	* @override
+	*/
+	Container.prototype.removeView = function (oContainerItem) {
+		AbstractContainer.prototype.removeView.apply(this, arguments);
+		this._removeFromNavigator(oContainerItem);
+	};
+
+	/*
+	 * This method can be used to add a separator line to the last added item.
+	 * This will only take effect in the "list" mode.
+	 *
+	 * @returns {sap.m.p13n.Container} The Container instance
+	 */
+	Container.prototype.addSeparator = function () {
+		if (!this.getProperty("listLayout")) {
+			return;
+		}
+
+		var oItems = this._getNavigationList().getItems();
+		var oLastItem = oItems[oItems.length - 1];
+		oLastItem.addStyleClass("sapMMenuDivider");
+
 		return this;
 	};
 
@@ -218,6 +253,27 @@ sap.ui.define([
 				key: sKey,
 				text: sText || sKey
 			}));
+		}
+	};
+
+	Container.prototype._removeFromNavigator = function (oContainerItem) {
+
+		var sKey = oContainerItem.getKey();
+
+		if (sKey == this.DEFAULT_KEY) {
+			return;
+		}
+
+		if (this.getListLayout()) {
+			var oItem = this._getNavigationList().getItems().find(function(oListItem){
+				return oListItem._key === sKey;
+			});
+			this._getNavigationList().removeItem(oItem);
+		} else {
+			var oTab = this._getTabBar().getItems().find(function(oTab){
+				return oTab.getKey() === sKey;
+			});
+			this._getTabBar().removeItem(oTab);
 		}
 	};
 

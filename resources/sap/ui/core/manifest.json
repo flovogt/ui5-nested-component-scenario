@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.96.4"
+      "version": "1.98.0"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -254,7 +254,7 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.96",
+      "minUI5Version": "1.98",
       "libs": {}
     },
     "library": {
@@ -414,7 +414,8 @@
           "sap.ui.core.IDScope",
           "sap.ui.core.ITitleContent",
           "sap.ui.core.IAsyncContentCreation",
-          "sap.ui.core.IPlaceholderSupport"
+          "sap.ui.core.IPlaceholderSupport",
+          "sap.ui.core.IColumnHeaderMenu"
         ]
       }
     }

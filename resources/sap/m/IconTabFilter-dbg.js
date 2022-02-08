@@ -94,7 +94,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -176,7 +176,6 @@ sap.ui.define([
 			/**
 			 * The sub items of this filter (optional).
 			 * @since 1.77
-			 * @experimental As of 1.77
 			 */
 			items : {type : "sap.m.IconTab", multiple : true, singularName : "item"},
 
@@ -669,14 +668,14 @@ sap.ui.define([
 			return;
 		}
 
-		var bTextOnly = true,
-			bIconOnly = oSelectList._bIconOnly,
+		var bIconOnly = oSelectList._bIconOnly,
+			bTextOnlyItemsInSelectList = true,
 			oIconTabHeader = oSelectList._oIconTabHeader,
 			sIconColor = this.getIconColor(),
 			bEnabled = this.getEnabled();
 
 		if (oIconTabHeader) {
-			bTextOnly = oIconTabHeader._bTextOnly;
+			bTextOnlyItemsInSelectList = oSelectList._checkTextOnly();
 		}
 
 		oRM.openStart("li", this)
@@ -726,7 +725,7 @@ sap.ui.define([
 			aLabelledByIds.push(sItemId + "-text");
 		}
 
-		if (!bTextOnly && this.getIcon()) {
+		if (!bTextOnlyItemsInSelectList && this.getIcon()) {
 			aLabelledByIds.push(sItemId + "-icon");
 		}
 
@@ -741,7 +740,7 @@ sap.ui.define([
 			this._renderIconColorDescription(oRM);
 		}
 
-		if (!bTextOnly) {
+		if (!bTextOnlyItemsInSelectList) {
 			this._renderIcon(oRM, bIconOnly);
 		}
 
@@ -871,7 +870,7 @@ sap.ui.define([
 		}
 
 		var iTabFilters = this._getIconTabHeader()
-			._getItemsForOverflow(this._bIsStartOverflow)
+			._getItemsForOverflow(this._bIsStartOverflow, true)
 			.filter(function (oItem) { return oItem.isA("sap.m.IconTabFilter"); })
 			.length;
 

@@ -80,7 +80,7 @@ sap.ui.define([
 	 * <code>sapUiResponsivePadding--header</code>.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -144,9 +144,6 @@ sap.ui.define([
 			/**
 			 * Determines the alternative text of the <code>ObjectHeader</code> icon. The text is
 			 * displayed if the image for the icon is not available, or cannot be displayed.
-			 *
-			 * <b>Note:</b> Provide an empty string value for the <code>iconAlt</code> property
-			 * in case you want to use the icon for decoration only.
 			 */
 			iconAlt : {type : "string", group : "Accessibility", defaultValue : null},
 
@@ -712,19 +709,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the alternative text of the <code>ObjectHeader</code> icon.
-	 * @override
-	 * @public
-	 * @param {boolean} sIconAlt the alternative icon text
-	 * @returns {this} this pointer for chaining
-	 */
-	ObjectHeader.prototype.setIconAlt = function(sIconAlt) {
-		this.setProperty("iconAlt", sIconAlt);
-		this.invalidate();
-		return this;
-	};
-
-	/**
 	 * @private
 	 * @param {string} markerType the type of the marker which should be created to updated
 	 * @param {boolean} bMarked visibility of the marker
@@ -1053,15 +1037,18 @@ sap.ui.define([
 	ObjectHeader.prototype._getImageControl = function() {
 		var sImgId = this.getId() + "-img";
 		var sSize = "2.5rem";
-		var mProperties = jQuery.extend({
+
+		var mProperties = jQuery.extend(
+			{
 				src : this.getIcon(),
 				tooltip: this.getIconTooltip(),
-				alt: this.isPropertyInitial("iconAlt") ? ObjectHeader._getResourceBundle().getText("OH_ARIA_ICON") : this.getIconAlt(),
+				// If there isn't an alt, then just add a default 'Icon' just in case
+				alt: this.getIconAlt() || ObjectHeader._getResourceBundle().getText("OH_ARIA_ICON"),
 				useIconTooltip : false,
 				densityAware : this.getIconDensityAware(),
 				decorative : false
 			},
-			IconPool.isIconURI(this.getIcon()) ? { size : sSize } : {}
+				IconPool.isIconURI(this.getIcon()) ? { size : sSize } : {}
 		);
 
 		if (this.getIconActive()) {

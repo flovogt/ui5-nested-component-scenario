@@ -148,7 +148,7 @@ sap.ui.define([
 	 * the close event), or select Cancel.
 	 *
 	 * @extends sap.m.DateTimeField
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @constructor
 	 * @public
@@ -211,7 +211,22 @@ sap.ui.define([
 			 *
 			 * @since 1.95
 			 */
-			showCurrentDateButton : {type : "boolean", group : "Behavior", defaultValue : false}
+			showCurrentDateButton : {type : "boolean", group : "Behavior", defaultValue : false},
+
+			/**
+			 * Determines whether the input field of the picker is hidden or visible.
+			 * When set to <code>true</code>, the input field becomes invisible and there is no way to open the picker popover.
+			 * In that case it can be opened by another control through calling of picker's <code>openBy</code> method, and
+			 * the opening control's DOM reference must be provided as parameter.
+			 *
+			 * Note: Since the picker is not responsible for accessibility attributes of the control which opens its popover,
+			 * those attributes should be added by the application developer. The following is recommended to be added to the
+			 * opening control: a text or tooltip that describes the action (example: "Open Date Picker"), and also aria-haspopup
+			 * attribute with value of <code>sap.ui.core.aria.HasPopup.Dialog</code>.
+			 *
+			 * @since 1.97
+			 */
+			 hideInput: { type: "boolean", group: "Misc", defaultValue: false }
 
 		},
 
@@ -1065,7 +1080,7 @@ sap.ui.define([
 		return this;
 	};
 
-	function _open(){
+	function _open(oDomRef){
 		this._createPopup();
 
 		this._createPopupContent();
@@ -1096,7 +1111,7 @@ sap.ui.define([
 
 		this._fillDateRange();
 
-		this._openPopup();
+		this._openPopup(oDomRef);
 
 		// Fire navigate event when the calendar popup opens
 		this.fireNavigate({
@@ -1162,13 +1177,33 @@ sap.ui.define([
 	};
 
 	// to be overwritten by DateTimePicker
-	DatePicker.prototype._openPopup = function(){
+	DatePicker.prototype._openPopup = function(oDomRef){
 		if (!this._oPopup) {
 			return;
 		}
-		this._oPopup._getPopup().setAutoCloseAreas([this.getDomRef()]);
-		this._oPopup.openBy(this);
+		if (!oDomRef) {
+			oDomRef = this.getDomRef();
+		}
+		this._oPopup._getPopup().setAutoCloseAreas([oDomRef]);
+		this._oPopup.openBy(oDomRef || this);
+	};
 
+	/**
+	 * Opens the picker popover. The popover is positioned relatively to the control given as <code>oDomRef</code> parameter on tablet or desktop
+	 * and is full screen on phone. Therefore the control parameter is only used on tablet or desktop and is ignored on phone.
+	 *
+	 * Note: use this method to open the picker popover only when the <code>hideInput</code> property is set to <code>true</code>. Please consider
+	 * opening of the picker popover by another control only in scenarios that comply with Fiori guidelines. For example, opening the picker popover
+	 * by another popover is not recommended.
+	 * The application developer should implement the following accessibility attributes to the opening control: a text or tooltip that describes
+	 * the action (example: "Open Date Picker"), and aria-haspopup attribute with value of <code>sap.ui.core.aria.HasPopup.Dialog</code>.
+	 *
+	 * @since 1.97
+	 * @param {HTMLElement} oDomRef DOM reference of the opening control. On tablet or desktop, the popover is positioned relatively to this control.
+	 * @public
+	 */
+	DatePicker.prototype.openBy = function(oDomRef) {
+		_open.call(this, oDomRef);
 	};
 
 	/**
@@ -1238,18 +1273,22 @@ sap.ui.define([
 					this._oPopup.getBeginButton().setEnabled(false);
 				}
 			}
-			this._oCalendarAfterRenderDelegate = {
-				onAfterRendering: function() {
-					var oPopup = this._oPopup && this._oPopup._getPopup();
-					oPopup && oPopup._oLastPosition && oPopup._applyPosition(oPopup._oLastPosition);
-
-					if (this._oPopup.isOpen()) {
-						this._oCalendar.focus();
-					}
-				}.bind(this)
-			};
-			this._oCalendar.addDelegate(this._oCalendarAfterRenderDelegate);
+			this._attachAfterRenderingDelegate();
 		}
+	};
+
+	DatePicker.prototype._attachAfterRenderingDelegate = function()	{
+		this._oCalendarAfterRenderDelegate = {
+			onAfterRendering: function() {
+				var oPopup = this._oPopup && this._oPopup._getPopup();
+				oPopup && oPopup._oLastPosition && oPopup._applyPosition(oPopup._oLastPosition);
+
+				if (this._oPopup.isOpen()) {
+					this._oCalendar.focus();
+				}
+			}.bind(this)
+		};
+		this._oCalendar.addDelegate(this._oCalendarAfterRenderDelegate);
 	};
 
 	/**
@@ -1562,8 +1601,6 @@ sap.ui.define([
 		}
 
 	}
-
-
 
 	function _checkSpecialDate(oSpecialDate) {
 

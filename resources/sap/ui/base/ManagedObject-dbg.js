@@ -266,7 +266,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -556,6 +556,9 @@ sap.ui.define([
 
 	}, /* Metadata constructor */ ManagedObjectMetadata);
 
+	// Marker to not 'forget' ui5Objects
+	var sUI5ObjectMarker = Symbol("ui5object");
+
 	/**
 	 * Returns the metadata for the ManagedObject class.
 	 *
@@ -637,8 +640,8 @@ sap.ui.define([
 	 * <b>'library'</b> : <i>string</i><br>
 	 * Name of the library that the new subclass should belong to. If the subclass is a control or element, it will
 	 * automatically register with that library so that authoring tools can discover it.
-	 * By convention, the name of the subclass should have the library name as a prefix, e.g. 'sap.ui.commons.Panel' belongs
-	 * to library 'sap.ui.commons'.
+	 * By convention, the name of the subclass should have the library name as a prefix, but subfolders are allowed,
+	 * e.g. <code>sap.ui.layout.form.Form</code> belongs to library <code>sap.ui.layout</code>.
 	 *
 	 *
 	 * <b>'properties'</b> : <i>object</i><br>
@@ -657,14 +660,13 @@ sap.ui.define([
 	 * <li><code>byValue: <i>boolean</i></code> (either can be omitted or set to the boolean value <code>true</code>)
 	 *     If set to <code>true</code>, the property value will be {@link module:sap/base/util/deepClone deep cloned}
 	 *     on write and read operations to ensure that the internal value can't be modified by the outside. The property
-	 *     <code>byValue</code> is currently limited to a <code>boolean</code> value. Other types are reserved for future
+	 *     <code>byValue</code> is currently restricted to a <code>boolean</code> value. Other types are reserved for future
 	 *     use. Class definitions must only use boolean values for the flag (or omit it), but readers of ManagedObject
 	 *     metadata should handle any truthy value as <code>true</code> to be future safe.
 	 *     Note that using <code>byValue:true</code> has a performance impact on property access and therefore should be
 	 *     used carefully. It also doesn't make sense to set this option for properties with a primitive type (they have
-	 *     value semantic anyhow) or for properties with arrays of primitive types (they have been cloned already in the
-	 *     past with a cheaper implementation). Future versions of UI5 might encourage this as a limitation during class
-	 *     definition.
+	 *     value semantic anyhow) or for properties with arrays of primitive types (they are already cloned
+	 *     with a less expensive implementation).
 	 * <li><code>group:<i>string</i></code> a semantic grouping of the properties, intended to be used in design time tools.
 	 *     Allowed values are (case sensitive): Accessibility, Appearance, Behavior, Data, Designtime, Dimension, Identification, Misc</li>
 	 * <li><code>defaultValue: <i>any</i></code> the default value for the property or null if there is no defaultValue.</li>
@@ -2934,6 +2936,9 @@ sap.ui.define([
 			if (oValue.Type) {
 				// if value contains the 'Type' property (capital 'T'), this is not a binding info.
 				return undefined;
+			} else if (oValue[sUI5ObjectMarker]) {
+				// no bindingInfo, delete marker
+				delete oValue[sUI5ObjectMarker];
 			} else if (oValue.ui5object) {
 				// if value contains ui5object property, this is not a binding info,
 				// remove it and not check for path or parts property
@@ -5082,6 +5087,7 @@ sap.ui.define([
 
 		// Clone properties (only those with non-default value)
 		var aKeys = Object.keys(mProps);
+		var vValue;
 		i = aKeys.length;
 		while ( i > 0 ) {
 			sKey = aKeys[--i];
@@ -5092,7 +5098,12 @@ sap.ui.define([
 				if (typeof mProps[sKey] === "string") {
 					mSettings[sKey] = escape(mProps[sKey]);
 				} else {
-					mSettings[sKey] = oProperty.byValue ? deepClone(mProps[sKey]) : mProps[sKey];
+					vValue = oProperty.byValue ? deepClone(mProps[sKey]) : mProps[sKey];
+					if (vValue && typeof vValue === "object" && !Object.isFrozen(vValue)) {
+						//mark objects to not interpret it as bindingInfos
+						vValue[sUI5ObjectMarker] = true;
+					}
+					mSettings[sKey] = vValue;
 				}
 			}
 		}

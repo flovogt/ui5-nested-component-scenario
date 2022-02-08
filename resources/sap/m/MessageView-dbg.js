@@ -112,7 +112,7 @@ sap.ui.define([
 	 * The responsiveness of the <code>MessageView</code> is determined by the container in which it is embedded. For that reason the control could not be visualized if the
 	 * container’s sizes are not defined.
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -394,6 +394,7 @@ sap.ui.define([
 
 	MessageView.prototype.onBeforeRendering = function () {
 		var oGroupedItems,
+			aListItems,
 			aItems = this.getItems();
 
 		this._clearLists();
@@ -418,9 +419,13 @@ sap.ui.define([
 		this._fillSegmentedButton();
 		this._fnFilterList(this._getCurrentMessageTypeFilter() || "all");
 
-		if (aItems.length === 1 && this._oLists.all.getItems()[0].getType()  === ListType.Navigation) {
+		aListItems = this._oLists.all.getItems().filter(function (oItem) {
+			return oItem.isA("sap.m.MessageListItem");
+		});
 
-			this._fnHandleForwardNavigation(this._oLists.all.getItems()[0], "show");
+		if (aListItems.length === 1 && aListItems[0].getType()  === ListType.Navigation) {
+
+			this._fnHandleForwardNavigation(aListItems[0], "show");
 
 			// TODO: adopt this to NavContainer's public API once a parameter for back navigation transition name is available
 			this._navContainer._pageStack[this._navContainer._pageStack.length - 1].transition = "slide";

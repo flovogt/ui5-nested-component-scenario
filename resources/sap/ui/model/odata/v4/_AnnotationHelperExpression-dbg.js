@@ -14,7 +14,7 @@ sap.ui.define([
 	"sap/ui/base/SyncPromise",
 	"sap/ui/performance/Measurement"
 ], function (Basics, Log, BindingParser, ManagedObject, SyncPromise, Measurement) {
-	'use strict';
+	"use strict";
 
 	// see http://docs.oasis-open.org/odata/odata/v4.0/errata02/os/complete/abnf/odata-abnf-construction-rules.txt
 	var sAnnotationHelper = "sap.ui.model.odata.v4.AnnotationHelper",
@@ -57,7 +57,7 @@ sap.ui.define([
 			Bool : "Edm.Boolean",
 			Float : "Edm.Double",
 			Date : "Edm.Date",
-			DateTimeOffset :"Edm.DateTimeOffset",
+			DateTimeOffset : "Edm.DateTimeOffset",
 			Decimal : "Edm.Decimal",
 			Guid : "Edm.Guid",
 			Int : "Edm.Int64",
@@ -66,13 +66,13 @@ sap.ui.define([
 			TimeOfDay : "Edm.TimeOfDay"
 		},
 		mTypeCategoryNeedsCompare = {
-			"boolean" : false,
-			"Date" : false,
-			"DateTimeOffset" : true,
-			"Decimal" : true,
-			"number" : false,
-			"string" : false,
-			"TimeOfDay" : false
+			boolean : false,
+			Date : false,
+			DateTimeOffset : true,
+			Decimal : true,
+			number : false,
+			string : false,
+			TimeOfDay : false
 		},
 		/**
 		 * This object contains helper functions to process an expression in OData V4 annotations.
@@ -248,7 +248,7 @@ sap.ui.define([
 				// convert the results to strings after we know whether the result is expression
 				aParts = aParameters.filter(function (oParameter) {
 					// ignore null (otherwise the string 'null' would appear in expressions)
-					return oParameter.type !== 'edm:Null';
+					return oParameter.type !== "edm:Null";
 				}).map(function (oParameter) {
 					if (bExpression) {
 						// the expression might have a lower operator precedence than '+'
@@ -488,7 +488,7 @@ sap.ui.define([
 		 *   the type of the property referenced by <code>oPathValue.path</code>
 		 * @param {object} mConstraints
 		 *   the type constraints for the property referenced by <code>oPathValue.path</code>
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise|undefined}
 		 *   a sync promise which resolves with a result object for the currency or unit, or is
 		 *   rejected with an error; <code>undefined</code> if there are no unit and currency
 		 *   annotations for the property referenced by <code>oPathValue.path</code>
@@ -516,8 +516,8 @@ sap.ui.define([
 				return undefined;
 			}
 			return oModel.fetchObject(sPath + "/$").then(function (oTarget) {
-				var sCompositeConstraints =
-						oModel.getObject(oPathValue.path
+				var sCompositeConstraints
+						= oModel.getObject(oPathValue.path
 							+ "@com.sap.vocabularies.UI.v1.DoNotCheckScaleOfMeasureQuantity")
 						? ",constraints:{'skipDecimalsValidation':true}"
 						: "";
@@ -568,9 +568,9 @@ sap.ui.define([
 					aParts = [],
 					sPrefix = "";
 
-				aParts.push('odata.fillUriTemplate(',
+				aParts.push("odata.fillUriTemplate(",
 					Basics.resultToString(aResults[0], true, false, true),
-					',{');
+					",{");
 				for (i = 1; i < oPathValue.value.length; i += 1) {
 					sName = Basics.property(aParameters[i], "$Name", "string");
 					aParts.push(sPrefix, Basics.toJSON(sName), ":",
@@ -618,7 +618,7 @@ sap.ui.define([
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the expression (see Expression object)
-		 * @returns {Promise|string}
+		 * @returns {Promise|string|undefined}
 		 *   the expression value or "Unsupported: oRawValue" in case of an error or
 		 *   <code>undefined</code> in case the raw value is undefined; may instead return a
 		 *   <code>Promise</code> resolving with that result.
@@ -851,10 +851,10 @@ sap.ui.define([
 					type : "Edm.String",
 					value : oResult.type === "Edm.String"
 						// Note: odata.uriEncode() is V2, but safe for Edm.String!
-						? 'odata.uriEncode(' + Basics.resultToString(oResult, true, false, true)
+						? "odata.uriEncode(" + Basics.resultToString(oResult, true, false, true)
 							+ "," + Basics.toJSON(oResult.type) + ")"
 						// Note: see _Helper.formatLiteral()
-						: 'String(' + Basics.resultToString(oResult, true, false, true) + ")"
+						: "String(" + Basics.resultToString(oResult, true, false, true) + ")"
 				};
 			});
 		},
@@ -878,5 +878,4 @@ sap.ui.define([
 	};
 
 	return Expression;
-
 }, /* bExport= */ false);

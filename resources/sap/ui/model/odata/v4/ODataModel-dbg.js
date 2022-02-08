@@ -210,7 +210,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.Model
 	 * @public
 	 * @since 1.37.0
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 */
 	var ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */
@@ -435,7 +435,8 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataModel.prototype.addPrerenderingTask = function (fnPrerenderingTask, bFirst) {
-		var fnRunTasks, iTimeoutId, that = this;
+		var fnRunTasks, iTimeoutId,
+			that = this;
 
 		function runTasks(aTasks) {
 			clearTimeout(iTimeoutId);
@@ -852,7 +853,7 @@ sap.ui.define([
 		 * @param {string[]} aAllowed The allowed system query options
 		 * @throws {error} If the given query option name is not allowed
 		 */
-		function parseAndValidateSystemQueryOption (mOptions, sOptionName, aAllowed) {
+		function parseAndValidateSystemQueryOption(mOptions, sOptionName, aAllowed) {
 			var sExpandOptionName,
 				mExpandOptions,
 				sExpandPath,
@@ -879,7 +880,7 @@ sap.ui.define([
 					}
 				}
 			} else if (sOptionName === "$count") {
-				if (typeof vValue  === "boolean") {
+				if (typeof vValue === "boolean") {
 					if (!vValue) {
 						delete mOptions.$count;
 					}
@@ -1125,7 +1126,7 @@ sap.ui.define([
 				+ "' without context");
 		}
 
-		iSeparator = sResolvedPath.indexOf('#');
+		iSeparator = sResolvedPath.indexOf("#");
 		if (iSeparator >= 0) {
 			sDataPath = sResolvedPath.slice(0, iSeparator);
 			sMetaPath = sResolvedPath.slice(iSeparator + 1);
@@ -1184,6 +1185,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
+	// eslint-disable-next-line valid-jsdoc -- .@$ui5. is not understood properly
 	ODataModel.prototype.createUI5Message = function (oRawMessage, sResourcePath, sCachePath) {
 		var bIsBound = typeof oRawMessage.target === "string",
 			sMessageLongtextUrl = oRawMessage.longtextUrl,
@@ -1553,11 +1555,24 @@ sap.ui.define([
 	};
 
 	/**
+	 * Determines whether the given group ID uses mode {@link sap.ui.model.odata.v4.SubmitMode.API}
+	 *
+	 * @param {string} sGroupId
+	 *   The group ID
+	 * @returns {boolean|undefined} Whether it is an API group
+	 *
+	 * @private
+	 */
+	ODataModel.prototype.isApiGroup = function (sGroupId) {
+		return this.getGroupProperty(sGroupId, "submit") === SubmitMode.API;
+	};
+
+	/**
 	 * Determines whether the given group ID uses mode {@link sap.ui.model.odata.v4.SubmitMode.Auto}
 	 *
 	 * @param {string} sGroupId
 	 *   The group ID
-	 * @returns {boolean|undefined} Whether it is an auto group
+	 * @returns {boolean} Whether it is an auto group
 	 *
 	 * @private
 	 */
@@ -1571,7 +1586,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sGroupId
 	 *   The group ID
-	 * @returns {boolean|undefined} Whether it is a direct group
+	 * @returns {boolean} Whether it is a direct group
 	 *
 	 * @private
 	 */
@@ -1662,7 +1677,8 @@ sap.ui.define([
 		}
 		this.checkGroupId(sGroupId);
 
-		// Note: getBindings() returns an array that contains all bindings with change listeners (owned by Model)
+		// Note: getBindings() returns an array that contains all bindings with change listeners
+		// (owned by Model)
 		this.getBindings().forEach(function (oBinding) {
 			if (oBinding.isRoot()) {
 				// ignore the group ID for suspended bindings to avoid mismatches and errors; they
@@ -1747,7 +1763,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 */
-	 ODataModel.prototype.reportStateMessages = function (sResourcePath, mPathToODataMessages,
+	ODataModel.prototype.reportStateMessages = function (sResourcePath, mPathToODataMessages,
 			aCachePaths) {
 		var sDataBindingPath = "/" + sResourcePath,
 			aNewMessages = [],
@@ -1835,7 +1851,7 @@ sap.ui.define([
 	 * @param {string[]} aAbsolutePaths
 	 *   The absolute paths to request side effects for; each path must not start with the fully
 	 *   qualified container name.
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise|undefined}
 	 *   A promise resolving without a defined result, or rejecting with an error if loading of side
 	 *   effects fails, or <code>undefined</code> if there is nothing to do
 	 *
@@ -1905,7 +1921,7 @@ sap.ui.define([
 	 *   A relative or absolute path within the data model
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context to be used as a starting point in case of a relative path
-	 * @returns {string}
+	 * @returns {string|undefined}
 	 *   Resolved path or <code>undefined</code>
 	 *
 	 * @private

@@ -70,7 +70,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 *
 	 * @public
 	 * @since 1.11.1
@@ -520,8 +520,7 @@ sap.ui.define([
 			});
 			this.setAggregation("_invisibleText", oInvisibleText, true);
 		} else {
-			// avoid triggering invalidation during rendering
-			oInvisibleText.setProperty("text", sText, true);
+			oInvisibleText.setText(sText);
 		}
 
 		return oInvisibleText;

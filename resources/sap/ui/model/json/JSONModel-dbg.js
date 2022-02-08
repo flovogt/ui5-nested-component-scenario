@@ -44,7 +44,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.ClientModel
 	 *
 	 * @author SAP SE
-	 * @version 1.96.4
+	 * @version 1.98.0
 	 * @public
 	 * @alias sap.ui.model.json.JSONModel
 	 */
@@ -294,7 +294,7 @@ sap.ui.define([
 		return this.pSequentialImportCompleted;
 	};
 
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.bindProperty
 	 *
 	 */
@@ -303,7 +303,7 @@ sap.ui.define([
 		return oBinding;
 	};
 
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.bindList
 	 *
 	 */
@@ -312,10 +312,10 @@ sap.ui.define([
 		return oBinding;
 	};
 
-	/**
+	/*
 	 * @see sap.ui.model.Model.prototype.bindTree
 	 *
-	 * @param {object} [mParameters=null]
+	 * @param {object} [mParameters]
 	 *   Additional model specific parameters; if the mParameter <code>arrayNames</code> is
 	 *   specified with an array of string names these names will be checked against the tree data
 	 *   structure and the found data in this array is included in the tree, but only if the parent
@@ -335,7 +335,7 @@ sap.ui.define([
 	 *
 	 * @param {string}  sPath path of the property to set
 	 * @param {any}     oValue value to set the property to
-	 * @param {object} [oContext=null] the context which will be used to set the property
+	 * @param {object} [oContext] the context which will be used to set the property
 	 * @param {boolean} [bAsyncUpdate] whether to update other bindings dependent on this property asynchronously
 	 * @return {boolean} true if the value was set correctly and false if errors occurred like the entry was not found.
 	 * @public
@@ -374,7 +374,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sPath
 	 *   The path to the property
-	 * @param {sap.ui.model.Context} [oContext=null]
+	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context which will be used to retrieve the property
 	 * @return {any}
 	 *   The value of the property. If the property is not found, <code>null</code> or

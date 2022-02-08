@@ -282,10 +282,10 @@ sap.ui.define([
 		 * <code>JSON.stringify</code>.
 		 * <b>Warning: <code>Date</code> objects will be turned into strings</b>
 		 *
-		 * @param {*} vValue - Any value, including <code>undefined</code>
+		 * @param {any} vValue - Any value, including <code>undefined</code>
 		 * @param {function} [fnReplacer] - The replacer function to transform the result, see
 		 *   <code>JSON.stringify</code>
-		 * @returns {*} - A clone
+		 * @returns {any} - A clone
 		 */
 		clone : function clone(vValue, fnReplacer) {
 			return vValue === undefined || vValue === Infinity || vValue === -Infinity
@@ -361,7 +361,7 @@ sap.ui.define([
 			if (jqXHR.status === 412) {
 				sPreference = jqXHR.getResponseHeader("Preference-Applied");
 
-				if (sPreference && sPreference.replace(rWhitespace, '') === "handling=strict") {
+				if (sPreference && sPreference.replace(rWhitespace, "") === "handling=strict") {
 					oResult.strictHandlingFailed = true;
 				} else {
 					oResult.isConcurrentModification = true;
@@ -608,7 +608,7 @@ sap.ui.define([
 		 *   The object to start at
 		 * @param {string[]} aSegments
 		 *   Relative path to drill-down into, as array of segments
-		 * @returns {*}
+		 * @returns {any}
 		 *   The result matching to the given path, or <code>undefined</code> if the path leads
 		 *   into void
 		 */
@@ -633,6 +633,7 @@ sap.ui.define([
 					.replace(rAmpersand, "%26")
 					.replace(rHash, "%23")
 					.replace(rPlus, "%2B");
+
 			if (bEncodeEquals) {
 				sEncoded = sEncoded.replace(rEquals, "%3D");
 			}
@@ -699,7 +700,7 @@ sap.ui.define([
 					};
 
 				Object.keys(oMessage).forEach(function (sProperty) {
-					if (sProperty[0] === '@') {
+					if (sProperty[0] === "@") {
 						// cannot use .getAnnotation() for compatibility reasons
 						if (sProperty.endsWith(".numericSeverity")) {
 							oRawMessage.numericSeverity = oMessage[sProperty];
@@ -985,7 +986,7 @@ sap.ui.define([
 		 * @param {object} sName
 		 *   The name of the annotation without prefix "@" and namespace, e.g. ".ContentID" for a
 		 *   annotation "@Org.OData.Core.V1.ContentID"
-		 * @returns {any|undefined}
+		 * @returns {any}
 		 *   The value of the annotation, or <code>undefined</code> in case there is not exactly one
 		 *   such annotation (ignoring the alias)
 		 */
@@ -1057,7 +1058,7 @@ sap.ui.define([
 		 *   A list of key properties, either as a string or an object with one property (its name
 		 *   is the alias in the key predicate, its value is the path in the instance). If not
 		 *   given, the entity's key is used.
-		 * @returns {string}
+		 * @returns {string|undefined}
 		 *   A filter using key properties without URI encoding, e.g.
 		 *   "Sector eq 'A/B&C' and ID eq 42)", or <code>undefined</code>, if at least one key
 		 *   property is undefined
@@ -1097,7 +1098,7 @@ sap.ui.define([
 		 * @param {boolean} [bKeepSingleProperty]
 		 *   If true, the property name is not omitted if there is only one property
 		 *   (like "(ID='42')")
-		 * @returns {string}
+		 * @returns {string|undefined}
 		 *   The key predicate with proper URI encoding, e.g. "(Sector='A%2FB%26C',ID='42')" or
 		 *   "('42')", or <code>undefined</code>, if at least one key property is undefined
 		 * @throws {Error}
@@ -1138,7 +1139,7 @@ sap.ui.define([
 		 *   given, the entity's key is used
 		 * @param {boolean} [bReturnAlias]
 		 *   Whether to return the aliases instead of the keys
-		 * @returns {object}
+		 * @returns {object|undefined}
 		 *   The key properties map. For the metadata
 		 *   <Key>
 		 *    <PropertyRef Name="Info/ID" Alias="EntityInfoID"/>
@@ -1340,11 +1341,11 @@ sap.ui.define([
 			} else {
 				// must fire null to guarantee that a property binding has not
 				// this.vValue === undefined, see ODataPropertyBinding.setValue
-				_Helper.fireChange(mChangeListeners, sPath,  vNew === undefined ? null : vNew);
+				_Helper.fireChange(mChangeListeners, sPath, vNew === undefined ? null : vNew);
 				vNew = {};
 			}
 
-			if (vOld && typeof  vOld === "object") {
+			if (vOld && typeof vOld === "object") {
 				Object.keys(vOld).forEach(function (sProperty) {
 					// not covered in the new value
 					if (!vNew.hasOwnProperty(sProperty)) {
@@ -1658,12 +1659,11 @@ sap.ui.define([
 		 * @param {string} sLiteral The literal value
 		 * @param {string} sType The type
 		 * @param {string} sPath The path for this literal (for error messages)
-		 * @returns {*} The model value
+		 * @returns {any} The model value
 		 * @throws {Error} If the type is invalid or unsupported; the function only validates when a
 		 *   conversion is required
 		 */
 		parseLiteral : function (sLiteral, sType, sPath) {
-
 			function checkNaN(nValue) {
 				if (!isFinite(nValue)) { // this rejects NaN, Infinity, -Infinity
 					throw new Error(sPath + ": Not a valid " + sType + " literal: " + sLiteral);
@@ -1874,7 +1874,7 @@ sap.ui.define([
 		 * properties therein.
 		 *
 		 * Restrictions:
-		 * - oTarget and oSource are expected to have the same structure; when there is an
+		 * - oTarget and oSource are expected to have the same structure: when there is an
 		 *   object at a given path in either of them, the other one must have an object or
 		 *   <code>null</code>.
 		 * - no change events for collection-valued properties; list bindings without own cache must
@@ -1937,7 +1937,7 @@ sap.ui.define([
 		 * advertised actions.
 		 *
 		 * Restrictions:
-		 * - oOldObject and oNewObject are expected to have the same structure; when there is an
+		 * - oOldObject and oNewObject are expected to have the same structure: when there is an
 		 *   object at a given path in either of them, the other one must have an object or
 		 *   <code>null</code>.
 		 * - no change events for collection-valued properties
@@ -2005,13 +2005,43 @@ sap.ui.define([
 		},
 
 		/**
+		 * Recursively adds all properties of oSource to oTarget that do not exist there yet.
+		 * Ensures that object references in oTarget remain unchanged.
+		 *
+		 * Restrictions:
+		 * - oTarget and oSource are expected to have the same structure: when there is an
+		 *   object at a given path in either of them, the other one must have an object.
+		 *   <code>null</code>, or no property at all.
+		 * - arrays are not merged in any way, they are taken either from oSource or from oTarget
+		 *
+		 * @param {object} oTarget - The target
+		 * @param {object} oSource - The source
+		 */
+		updateNonExisting : function (oTarget, oSource) {
+			Object.keys(oSource).forEach(function (sKey) {
+				var vSourceValue = oSource[sKey],
+					vTargetValue;
+
+				if (sKey in oTarget) {
+					vTargetValue = oTarget[sKey];
+					if (vSourceValue && vTargetValue
+							&& typeof vSourceValue === "object" && !Array.isArray(vSourceValue)) {
+						_Helper.updateNonExisting(vTargetValue, vSourceValue);
+					}
+				} else {
+					oTarget[sKey] = vSourceValue;
+				}
+			});
+		},
+
+		/**
 		 * Updates the old value with the given new value for the selected properties (see
 		 * {@link #updateExisting}). If no selected properties are given or if "*" is contained in
 		 * the selected properties, then all properties are selected. Fires change events for all
 		 * changed properties.
 		 *
 		 * Restrictions:
-		 * - oOldValue and oNewValue are expected to have the same structure; when there is an
+		 * - oOldValue and oNewValue are expected to have the same structure: when there is an
 		 *   object at a given path in either of them, the other one must have an object or
 		 *   <code>null</code>.
 		 * - "*" in aSelect does not work correctly if oNewValue contains navigation properties
@@ -2127,9 +2157,9 @@ sap.ui.define([
 		 * @param {function} fnFetchMetadata
 		 *   Function which fetches metadata for a given meta path
 		 *
-		 * @returns {object} The query options for the child binding or <code>undefined</code> in
-		 *   case the query options cannot be created, e.g. because $apply cannot be wrapped into
-		 *   $expand
+		 * @returns {object|undefined} The query options for the child binding or
+		 *   <code>undefined</code> in case the query options cannot be created, e.g. because $apply
+		 *   cannot be wrapped into $expand
 		 */
 		wrapChildQueryOptions : function (sBaseMetaPath, sChildMetaPath, mChildQueryOptions,
 				fnFetchMetadata) {

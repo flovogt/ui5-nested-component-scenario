@@ -84,7 +84,7 @@ var sClassName = "sap.ui.model.odata.ODataMessageParser",
  * @extends sap.ui.core.message.MessageParser
  *
  * @author SAP SE
- * @version 1.96.4
+ * @version 1.98.0
  * @public
  * @alias sap.ui.model.odata.ODataMessageParser
  */
@@ -435,7 +435,7 @@ ODataMessageParser._isResponseForCreate = function (mRequestInfo) {
 	if (oRequest.key && oRequest.created && oResponse.statusCode >= 400) {
 		return false;
 	}
-	// return undefined; otherwise
+	return undefined;
 };
 
 /**

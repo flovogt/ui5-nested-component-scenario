@@ -116,13 +116,13 @@ sap.ui.define([
 			 *   </ul>
 			 *   If the specified <code>sResponseBody</code> contains responses for change sets,
 			 *   then the corresponding response objects will be returned in a nested array.
-			 * @throws {Error}
+			 * @throws {Error} If
 			 *   <ul>
-			 *     <li> If the <code>sContentType</code> parameter does not represent a
+			 *     <li> the <code>sContentType</code> parameter does not represent a
 			 *       "multipart/mixed" media type with "boundary" parameter
-			 *     <li> If the "charset" parameter of the "Content-Type" header of a nested response
+			 *     <li> the "charset" parameter of the "Content-Type" header of a nested response
 			 *       has a value other than "UTF-8"
-			 *     <li> If there is no "Content-ID" header for a change set response or its value is
+			 *     <li> there is no "Content-ID" header for a change set response or its value is
 			 *       not a number
 			 *   </ul>
 			 *
@@ -241,7 +241,7 @@ sap.ui.define([
 						// "round" to millis: "HH:mm:ss.SSS"
 						sTimeOfDay = sTimeOfDay.slice(0, 12);
 					}
-					oTimeOfDay =  oTimeFormatter.parse(sTimeOfDay);
+					oTimeOfDay = oTimeFormatter.parse(sTimeOfDay);
 				}
 				if (!oTimeOfDay) {
 					throw new Error("Not a valid Edm.TimeOfDay value: " + sTimeOfDay);

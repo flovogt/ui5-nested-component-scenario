@@ -3,7 +3,7 @@
 	xmlns:mvc="sap.ui.core.mvc"
 	xmlns:tnt="sap.tnt"
 	displayBlock="true">
-	<tnt:ToolPage id="toolPage" class="myToolPage">
+	<tnt:ToolPage id="toolPage1" class="myToolPage">
 		<tnt:header>
 			<tnt:ToolHeader>
 				<ToolbarSpacer />

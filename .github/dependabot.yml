@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/demo/BaseComponent"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/demo/CategoriesComponent"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/demo/ProductsComponent"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/demo/RootComponent"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/demo/SuppliersComponent"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

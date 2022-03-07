@@ -77,7 +77,7 @@ sap.ui.define([
 		 */
 		version: "1.98.0",
 		// buildinfo.lastchange is deprecated and is therefore defaulted to empty string
-		buildinfo : { lastchange : "", buildtime : "20220228-1413" }
+		buildinfo : { lastchange : "", buildtime : "20220307-1417" }
 	});
 
 	var oCfgData = window["sap-ui-config"] || {};

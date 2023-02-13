@@ -13,7 +13,7 @@ jobs:
   # This workflow contains a single job called "build-and-deploy-application"
   build-and-deploy-application:
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -23,14 +23,14 @@ jobs:
     - name: Setup Node.js environment
       uses: actions/setup-node@v3
       with:
-        node-version: "16"
+        node-version: "18"
 
     - name: Install the Dependencies
-      run: yarn
+      run: npm ci
       working-directory: ./demo
 
     - name: Build the Application
-      run: yarn build
+      run: npm run build
       working-directory: ./demo/RootComponent
 
     - name: GitHub Pages action

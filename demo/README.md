@@ -14,7 +14,7 @@ Just visit the [live demo](https://flovogt.github.io/ui5con20-ui5-routing/test/m
 You wanna run the demo application on your machine? Here we go. The following steps will guide you through your local deployment.
 
 ## Getting started 
-1. Run `npm` in the shell
+1. Run `npm i` in the shell
 
 ## Development
 1. Go to folder [RootComponent](RootComponent)

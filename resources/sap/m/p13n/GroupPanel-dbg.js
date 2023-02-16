@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -21,16 +21,23 @@ sap.ui.define([
 	 * @extends sap.m.p13n.QueryPanel
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @public
-	 * @experimental Since 1.96.
-	 * @since 1.96
 	 * @alias sap.m.p13n.GroupPanel
 	 */
 	var GroupPanel = QueryPanel.extend("sap.m.p13n.GroupPanel", {
 		metadata: {
+			library: "sap.m",
 			properties: {
+				/**
+				 * A short text describing the panel.
+				 * <b>Note:</b> This text will only be displayed if the panel is being used in a <code>sap.m.p13n.Popup</code>.
+				 */
+				title: {
+					type: "string",
+					defaultValue: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("p13n.DEFAULT_TITLE_GROUP")
+				},
 				/**
 				 * Toggles an additional checkbox in the group panel to define whether items are made visible.
 				 */
@@ -51,13 +58,12 @@ sap.ui.define([
 	/**
 	 * P13n <code>GroupItem</code> object type.
 	 *
-	 * @type {sap.m.p13n.GroupItem}
 	 * @static
 	 * @constant
-	 * @typedef {Object} sap.m.p13n.GroupItem
-	 * @property {String} name The unique key of the item
-	 * @property {String} label The label describing the personalization item
-	 * @property {Boolean} grouped Defines the grouping state of the personalization item
+	 * @typedef {object} sap.m.p13n.GroupItem
+	 * @property {string} name The unique key of the item
+	 * @property {string} label The label describing the personalization item
+	 * @property {boolean} grouped Defines the grouping state of the personalization item
 	 *
 	 * @public
 	 */
@@ -134,12 +140,23 @@ sap.ui.define([
 		});
 	};
 
-	GroupPanel.prototype._selectKey = function(oEvt) {
+	GroupPanel.prototype._getPlaceholderText = function () {
+		return this._getResourceText("p13n.GROUP_PLACEHOLDER");
+	};
+
+	GroupPanel.prototype._getRemoveButtonTooltipText = function () {
+		return this._getResourceText("p13n.GROUP_REMOVEICONTOOLTIP");
+	};
+
+	GroupPanel.prototype._selectKey = function(oComboBox) {
 		QueryPanel.prototype._selectKey.apply(this, arguments);
+
 		//Enable CheckBox
-		var oListItem = oEvt.getSource().getParent().getParent();
-		var sNewKey = oEvt.getParameter("selectedItem").getKey();
-		oListItem.getContent()[0].getContent()[1].getItems()[0].setEnabled(sNewKey !== this.NONE_KEY);
+		var oListItem = oComboBox.getParent().getParent();
+		var sNewKey = oComboBox.getSelectedKey();
+		var aContent = oListItem.getContent()[0].getContent();
+
+		aContent[1].getItems()[0].setEnabled(!!sNewKey);
 	};
 
 	return GroupPanel;

@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -9,6 +9,7 @@ sap.ui.define([
 	"sap/m/ColumnListItem",
 	"sap/m/HBox",
 	"sap/m/VBox",
+	"sap/ui/core/library",
 	"sap/ui/core/Icon",
 	"sap/m/Text",
 	"sap/m/Column",
@@ -17,9 +18,14 @@ sap.ui.define([
 	"sap/m/ToolbarSpacer",
 	"sap/m/Button",
 	"sap/m/OverflowToolbar",
-	"sap/ui/model/Filter"
-], function(BasePanel, Label, ColumnListItem, HBox, VBox, Icon, Text, Column, Table, mLibrary, ToolbarSpacer, Button, OverflowToolbar, Filter) {
+	"sap/ui/model/Filter",
+	"sap/base/util/merge",
+	"sap/ui/core/InvisibleText"
+], function(BasePanel, Label, ColumnListItem, HBox, VBox, coreLibrary, Icon, Text, Column, Table, mLibrary, ToolbarSpacer, Button, OverflowToolbar, Filter, merge, InvisibleText) {
 	"use strict";
+
+	// shortcut for sap.ui.core.IconColor
+	var IconColor = coreLibrary.IconColor;
 
 	// shortcut for sap.m.ListKeyboardMode
 	var ListKeyboardMode = mLibrary.ListKeyboardMode;
@@ -42,10 +48,9 @@ sap.ui.define([
 	 * @extends sap.m.p13n.BasePanel
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @public
-	 * @experimental Since 1.96.
 	 * @since 1.96
 	 * @alias sap.m.p13n.SelectionPanel
 	 */
@@ -53,6 +58,15 @@ sap.ui.define([
 		metadata: {
 			library: "sap.m",
 			properties: {
+				/**
+				 * A short text describing the panel.
+				 * <b>Note:</b> This text will only be displayed if the panel is being used in a <code>sap.m.p13n.Popup</code>.
+				 */
+				title: {
+					type: "string",
+					defaultValue: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("p13n.DEFAULT_TITLE_SELECTION")
+				},
+				/**
 				/**
 				 * Shows an additional header with a search field and the Show Selected button.
 				 */
@@ -85,6 +99,9 @@ sap.ui.define([
 				/**
 				 * An optional callback that may be used to display additional custom content in each selectable item.
 				 * This factory can be toggled by executing the {@link sap.m.p13n.SelectionPanel#showFactory} method.
+				 *
+				 * <b>Note:</b>: The <code>getIdForLabel</code> method can be imlplemented on the returned control instance
+				 * to return a focusable children control to provide the <code>labelFor</code> reference for the associated text.
 				 */
 				itemFactory: {
 					type: "function"
@@ -105,7 +122,7 @@ sap.ui.define([
 		this._bShowFactory = false;
 		this.addStyleClass("SelectionPanelHover");
 		this._displayColumns();
-		this.setEnableReorder(true);
+		this._updateMovement(this.getEnableReorder());
 	};
 
 	SelectionPanel.prototype.setItemFactory = function(fnItemFactory) {
@@ -115,9 +132,14 @@ sap.ui.define([
 	};
 
 	SelectionPanel.prototype._getListTemplate = function() {
-		return new ColumnListItem({
+		var oColumnListItem = new ColumnListItem({
 			selected: "{" + this.P13N_MODEL + ">" + this.PRESENCE_ATTRIBUTE + "}",
-			type: ListType.Active,
+			type: {
+				path: this.P13N_MODEL + ">" + this.PRESENCE_ATTRIBUTE,
+				formatter: function(bSelected) {
+					return bSelected ? ListType.Active : ListType.Inactive;
+				}
+			},
 			cells: [
 				new VBox({
 					items: [
@@ -135,7 +157,7 @@ sap.ui.define([
 						new Icon({
 							src: "sap-icon://circle-task-2",
 							size: "0.5rem",
-							color: sap.ui.core.IconColor.Neutral,
+							color: IconColor.Neutral,
 							visible: {
 								path: this.P13N_MODEL + ">active",
 								formatter: function(bactive) {
@@ -151,7 +173,34 @@ sap.ui.define([
 				})
 			]
 		});
+
+		if (this.getActiveColumn()) {
+			// The active status is visiually represented as dot icon in the tabular view, for the screen reader it needs to be ensured
+			// that a similar information is available without the UI. This InvisibleText will provide a text in the screen reader as:
+			// "Active Field is active" & "Active Field is inactive" --> this should only be done in case the active column is being used
+			var oActiveTextOutput = new InvisibleText({
+				text: {
+					path: this.P13N_MODEL + ">active",
+					formatter: function(bactive) {
+						return bactive ? this._getResourceText("p13n.ACTIVESTATE_ACTIVE") : this._getResourceText("p13n.ACTIVESTATE_INACTIVE");
+					}.bind(this)
+				}
+			});
+
+			oColumnListItem.getCells()[1].addItem(oActiveTextOutput);
+		}
+
+		return oColumnListItem;
 	};
+
+	SelectionPanel.prototype.setActiveColumn = function(sActiveText) {
+		this.setProperty("activeColumn", sActiveText);
+		this._setTemplate(this._getListTemplate()); //recreate template since its depending on this property
+		this._displayColumns();//update header texts in Table columns
+		return this;
+	};
+
+
 
 	SelectionPanel.prototype.setShowHeader = function(bShowHeader) {
 		if (bShowHeader){
@@ -207,14 +256,16 @@ sap.ui.define([
 		//remove move buttons if unselected item is hovered (not covered by updateStarted)
 		this._removeMoveButtons();
 		//Check if the prior hovered item had a visible icon and renable it if required
-		if (this._oHoveredItem && this._oHoveredItem.getBindingContextPath()){
+		if (this._oHoveredItem && !this._oHoveredItem.bIsDestroyed && this._oHoveredItem.getBindingContextPath()){
 			var bVisible = !!this._getP13nModel().getProperty(this._oHoveredItem.getBindingContextPath()).active;
 			var oOldIcon = this._oHoveredItem.getCells()[1].getItems()[0];
 			oOldIcon.setVisible(bVisible);
 		}
 		//Store (new) hovered item and set its icon to visible: false + add move buttons to it
 		var oIcon = oHoveredItem.getCells()[1].getItems()[0];
-		oIcon.setVisible(false);
+		if (oHoveredItem.getSelected()) {
+			oIcon.setVisible(false);
+		}
 		this._oHoveredItem = oHoveredItem;
 		this._updateEnableOfMoveButtons(oHoveredItem, false);
 		this._addMoveButtons(oHoveredItem);
@@ -266,12 +317,24 @@ sap.ui.define([
 	/**
 	 * Sets the personalization state of the panel instance.
 	 * @public
-	 * @param {sap.m.p13n.Item} aP13nData An array containing the personalization state that is represented by the <code>SelectionPanel</code>.
+	 * @param {sap.m.p13n.Item[]} aP13nData An array containing the personalization state that is represented by the <code>SelectionPanel</code>.
+	 * @returns {this} The <code>SelectionPanel</code> instance
 	 */
-	SelectionPanel.prototype.setP13nData = function() {
-		this._oListControl.removeSelections();
-		BasePanel.prototype.setP13nData.apply(this, arguments);
+	SelectionPanel.prototype.setP13nData = function(aP13nData) {
+		if (this.getEnableCount()) {
+			aP13nData = merge([], aP13nData);
+			this._oListControl.removeSelections();
+		}
+		BasePanel.prototype.setP13nData.call(this, aP13nData);
 		this._updateCount();
+
+		//After explicitly updating the data (e.g. outer influences by the p13n.Popup such as reset, open & update)
+		//Ensure that the remove buttons and currently selected item will be reset, as it's not clear anymore
+		//remove the reorder buttons from their current location and hence reset the hover logic
+		this._removeMoveButtons();
+		this._oSelectedItem = null;
+
+		return this;
 	};
 
 	SelectionPanel.prototype._updateCount = function() {
@@ -303,11 +366,17 @@ sap.ui.define([
 		return this._bShowFactory;
 	};
 
+	SelectionPanel.prototype._updateMovement = function(bEnableReorder) {
+		BasePanel.prototype._updateMovement.apply(this, arguments);
+		this._displayColumns();
+	};
+
 	SelectionPanel.prototype._displayColumns = function() {
 		var aColumns = [
 			this.getFieldColumn()
 		];
-		if (!this._bShowFactory) {
+		var bShowActiveColumn = this.getEnableReorder() || this.getActiveColumn();
+		if (!this._bShowFactory && bShowActiveColumn) {
 			aColumns.push(new Column({
 				width: "30%",
 				hAlign: "Center",
@@ -351,8 +420,15 @@ sap.ui.define([
 		this._oListControl.getItems().forEach(function(oItem){
 			var oContext = oItem.getBindingContext(this.P13N_MODEL);
 			var oField = this.getItemFactory().call(this, oContext);
-			var oCell = oItem.getCells()[0];
-			oCell.addItem(oField);
+
+			//set 'labelFor'
+			var oFirstCell = oItem.getCells()[0];
+			var oLabel = oFirstCell.getItems()[0];
+			if (oLabel) {
+				oLabel.setLabelFor(oField);
+			}
+
+			oFirstCell.addItem(oField);
 		}.bind(this));
 		this.addStyleClass("sapUiMDCAFLabelMarkingList");
 	};

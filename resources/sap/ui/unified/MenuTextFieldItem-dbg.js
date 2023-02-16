@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,26 +9,27 @@ sap.ui.define([
 	'sap/ui/core/ValueStateSupport',
 	'./MenuItemBase',
 	'./library',
-	'sap/ui/core/IconPool',
 	'sap/ui/core/library',
 	'sap/ui/Device',
 	'sap/base/Log',
 	'sap/ui/events/PseudoEvents',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/Core',
-	'sap/ui/dom/jquery/cursorPos' // jQuery Plugin "cursorPos"
+	'sap/ui/core/Configuration',
+	'sap/ui/core/IconPool', // required by RenderManager#icon
+	'sap/ui/dom/jquery/cursorPos' // provides jQuery.fn.cursorPos
 ],
 	function(
 		ValueStateSupport,
 		MenuItemBase,
 		library,
-		IconPool,
 		coreLibrary,
 		Device,
 		Log,
 		PseudoEvents,
 		InvisibleText,
-		Core
+		Core,
+		Configuration
 	) {
 	"use strict";
 
@@ -51,13 +52,12 @@ sap.ui.define([
 	 * @extends sap.ui.unified.MenuItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 * @since 1.21.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.unified.MenuTextFieldItem
-	 * @ui5-metamodel This control/element will also be described in the UI5 (legacy) design time meta model
 	 */
 	var MenuTextFieldItem = MenuItemBase.extend("sap.ui.unified.MenuTextFieldItem", /** @lends sap.ui.unified.MenuTextFieldItem.prototype */ { metadata : {
 
@@ -87,7 +87,6 @@ sap.ui.define([
 	}});
 
 
-	(function() {
 
 	MenuTextFieldItem.prototype.render = function(oRenderManager, oItem, oMenu, oInfo){
 		var rm = oRenderManager,
@@ -125,12 +124,12 @@ sap.ui.define([
 		// Left border
 		rm.openStart("div").class("sapUiMnuItmL").openEnd().close("div");
 
-		// icon/check column
-		rm.openStart("div").class("sapUiMnuItmIco").openEnd();
 		if (oItem.getIcon()) {
+			// icon/check column
+			rm.openStart("div").class("sapUiMnuItmIco").openEnd();
 			rm.icon(oItem.getIcon(), null, {title: null});
+			rm.close("div");
 		}
-		rm.close("div");
 
 		// Text filed column
 		rm.openStart("div", itemId + "-txt").class("sapUiMnuItmTxt").openEnd();
@@ -350,7 +349,7 @@ sap.ui.define([
 
 
 	MenuTextFieldItem.prototype._checkCursorPosForNav = function(bForward) {
-		var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+		var bRtl = Configuration.getRTL();
 		var bBack = bForward ? bRtl : !bRtl;
 		var $input = this.$("tf");
 		var iPos = $input.cursorPos();
@@ -376,8 +375,6 @@ sap.ui.define([
 
 		return this._invisibleCountInformation;
 	};
-
-	}());
 
 
 	return MenuTextFieldItem;

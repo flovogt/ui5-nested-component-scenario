@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,17 +15,15 @@ sap.ui.define(["sap/ui/core/library", "sap/m/library"],
 	 * SAPUI5 library with controls specialized for administrative applications.
 	 *
 	 * @namespace
-	 * @name sap.tnt
+	 * @alias sap.tnt
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 * @since 1.36
 	 * @public
 	 */
-
-	// delegate further initialization of this library to the Core
-	sap.ui.getCore().initLibrary({
+	var thisLib = sap.ui.getCore().initLibrary({
 		name : "sap.tnt",
-		version: "1.98.0",
+		version: "1.110.0",
 		dependencies : ["sap.ui.core", "sap.m"],
 		designtime: "sap/tnt/designtime/library.designtime",
 		types: [
@@ -57,9 +55,8 @@ sap.ui.define(["sap/ui/core/library", "sap/m/library"],
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.tnt.RenderMode = {
+	thisLib.RenderMode = {
 		/**
 		 * When type of the content of <code>InfoLabel</code> is numeric paddings are narrow
 		 * @public
@@ -80,9 +77,8 @@ sap.ui.define(["sap/ui/core/library", "sap/m/library"],
 	 * @name sap.tnt.IToolHeader
 	 * @public
 	 * @interface
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
-	return sap.tnt;
+	return thisLib;
 
 });

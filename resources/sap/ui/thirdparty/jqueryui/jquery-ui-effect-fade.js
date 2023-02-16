@@ -12,3 +12,4 @@
  *	jquery.ui.effect.js
  */
 (function(e,t){e.effects.effect.fade=function(t,a){var f=e(this),i=e.effects.setMode(f,t.mode||"toggle");f.animate({opacity:i},{queue:false,duration:t.duration,easing:t.easing,complete:a})}})(jQuery);
+//# sourceMappingURL=jquery-ui-effect-fade.js.map

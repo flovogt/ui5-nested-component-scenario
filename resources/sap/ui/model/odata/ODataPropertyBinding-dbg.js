@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -41,6 +41,7 @@ sap.ui.define([
 			this.vOriginalValue = undefined;
 			this.getDataState().setValue(this.oValue);
 			this.setIgnoreMessages(mParameters && mParameters.ignoreMessages);
+			this.bUseUndefinedIfUnresolved = mParameters && mParameters.useUndefinedIfUnresolved;
 		}
 
 	});
@@ -73,7 +74,8 @@ sap.ui.define([
 	 * @return {object} the current value of the bound target
 	 */
 	ODataPropertyBinding.prototype._getValue = function(){
-		return this.oModel._getObject(this.sPath, this.oContext);
+		return this.oModel._getObject(this.sPath, this.oContext, /*bOriginalValue*/undefined,
+			this.bUseUndefinedIfUnresolved);
 	};
 
 	/*

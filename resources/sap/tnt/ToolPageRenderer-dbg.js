@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,51 +21,60 @@ sap.ui.define([
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRM the RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oControl an object representation of the control that should be rendered
+	 * @param {sap.tnt.ToolPage} oControl an object representation of the control that should be rendered
 	 */
 	ToolPageRenderer.render = function (oRM, oControl) {
-		var oHeader = oControl.getHeader(),
-			oSubHeader = oControl.getSubHeader();
-
 		oRM.openStart("div", oControl)
 			.class("sapTntToolPage")
 			.openEnd();
 
-		if (oHeader) {
-			oRM.openStart("header").openEnd();
+		this.renderHeader(oRM, oControl);
 
-				oRM.openStart("div", oControl.getId() + "-header")
-					.class("sapTntToolPageHeader")
-					.openEnd();
-
-				oRM.renderControl(oHeader);
-
-				oRM.close("div");
-
-			oRM.close("header");
-		}
-
-		if (oSubHeader && oSubHeader.getVisible()) {
-			oRM.openStart("header").openEnd();
-
-				oRM.openStart("div", oControl.getId() + "-subHeader")
-					.class("sapTntToolPageHeader")
-					.openEnd();
-
-				oRM.renderControl(oSubHeader);
-
-				oRM.close("div");
-
-			oRM.close("header");
-		}
-
-
-		this.renderContentWrapper(oRM, oControl);
+		this.renderContent(oRM, oControl);
 
 		oRM.close("div");
 	};
 
-	ToolPageRenderer.renderContentWrapper = function (oRM, oControl) {
+	ToolPageRenderer.renderHeader = function (oRM, oControl) {
+		var oHeader = oControl.getHeader(),
+			oSubHeader = oControl.getSubHeader();
+
+		if (oHeader || oSubHeader) {
+			oRM.openStart("div")
+				.class("sapTntToolPageHeaderWrapper")
+				.openEnd();
+
+			oRM.openStart("header").openEnd();
+		}
+
+		if (oHeader) {
+			oRM.openStart("div", oControl.getId() + "-header")
+				.class("sapTntToolPageHeader")
+				.openEnd();
+
+			oRM.renderControl(oHeader);
+
+			oRM.close("div");
+		}
+
+		if (oSubHeader && oSubHeader.getVisible()) {
+			oRM.openStart("div", oControl.getId() + "-subHeader")
+				.class("sapTntToolPageHeader")
+				.openEnd();
+
+			oRM.renderControl(oSubHeader);
+
+			oRM.close("div");
+		}
+
+		if (oHeader || oSubHeader) {
+			oRM.close("header");
+			oRM.close("div");
+		}
+
+	};
+
+	ToolPageRenderer.renderContent = function (oRM, oControl) {
 		oRM.openStart("div").class("sapTntToolPageContentWrapper");
 
 		if (!Device.system.desktop || !oControl.getSideExpanded()) {

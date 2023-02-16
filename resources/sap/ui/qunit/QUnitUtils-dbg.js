@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,6 +24,7 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 	"sap/base/strings/capitalize",
 	"sap/base/util/UriParameters",
 	"sap/base/Log",
+	"sap/ui/core/Element",
 	"sap/ui/dom/jquery/control" // jQuery Plugin "control"
 ],
 	function(
@@ -34,7 +35,8 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		camelize,
 		capitalize,
 		UriParameters,
-		Log
+		Log,
+		Element
 	) {
 	"use strict";
 
@@ -218,6 +220,16 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 
 	};
 
+	var fnClosestTo = Element.closestTo && Element.closestTo.bind(Element);
+
+	/**
+	 * @deprecated Since 1.106
+	 */
+	if ( fnClosestTo == null ) {
+		fnClosestTo = function(oElement) {
+			return jQuery(oElement).control(0); // legacy-relevant: fallback for older UI5 versions
+		};
+	}
 
 	/**
 	 * Programmatically triggers a touch event specified by its name.
@@ -236,7 +248,7 @@ sap.ui.define('sap/ui/qunit/QUnitUtils', [
 		}
 
 		var oEvent = fakeEvent(sEventName, oTarget, oParams),
-			oElement = jQuery(oTarget).control(0),
+			oElement = fnClosestTo(oTarget),
 			sEventHandlerName = (sEventHandlerPrefix == null ? 'on' : sEventHandlerPrefix) + sEventName;
 
 		if (oElement && oElement[sEventHandlerName]) {

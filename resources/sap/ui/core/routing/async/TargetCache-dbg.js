@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -58,8 +58,6 @@ sap.ui.define([
 							oOptions.settings._routerHashChanger = oRouterHashChanger;
 						}
 
-						oOptions.id = oOptions.id || oTargetCreateInfo.componentId;
-
 						if (oOptions.usage) {
 							return oOwnerComponent.createComponent(oOptions);
 						} else {
@@ -107,6 +105,10 @@ sap.ui.define([
 
 			if (oOwnerComponent) {
 				vPromiseOrObject = oOwnerComponent.runAsOwner(fnCreateObjectAsync);
+
+				if (vPromiseOrObject instanceof Promise) {
+					oOwnerComponent.registerForDestroy(vPromiseOrObject);
+				}
 			} else {
 				vPromiseOrObject = fnCreateObjectAsync();
 			}

@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["jquery.sap.global","sap/ui/util/Mobile","sap/ui/Device"],function(e,s,t){"use strict";function o(e,s){var t=Object.getOwnPropertyDescriptor(e,s);return t&&t.value}(function(){e.os=e.extend({os:t.os.name,version:t.os.versionStr,fVersion:t.os.version},o(e,"os"));e.os[t.os.name]=true;e.device=e.extend({},o(e,"device"));e.device.is=e.extend({standalone:window.navigator.standalone,landscape:t.orientation.landscape,portrait:t.orientation.portrait,iphone:t.os.ios&&t.system.phone,ipad:t.os.ios&&t.system.tablet,android_phone:t.system.phone&&t.os.android,android_tablet:t.system.tablet&&t.os.android,tablet:t.system.tablet,phone:t.system.phone,desktop:t.system.desktop},e.device.is)})();e.sap.initMobile=s.init;e.sap.setIcons=s.setIcons;e.sap.setMobileWebAppCapable=s.setWebAppCapable;return e});
+sap.ui.define(["jquery.sap.global","sap/ui/util/Mobile","sap/ui/Device"],function(jQuery,e,s){"use strict";function t(e,s){var t=Object.getOwnPropertyDescriptor(e,s);return t&&t.value}(function(){jQuery.os=jQuery.extend({os:s.os.name,version:s.os.versionStr,fVersion:s.os.version},t(jQuery,"os"));jQuery.os[s.os.name]=true;jQuery.device=jQuery.extend({},t(jQuery,"device"));jQuery.device.is=jQuery.extend({standalone:window.navigator.standalone,landscape:s.orientation.landscape,portrait:s.orientation.portrait,iphone:s.os.ios&&s.system.phone,ipad:s.os.ios&&s.system.tablet,android_phone:s.system.phone&&s.os.android,android_tablet:s.system.tablet&&s.os.android,tablet:s.system.tablet,phone:s.system.phone,desktop:s.system.desktop},jQuery.device.is)})();jQuery.sap.initMobile=e.init;jQuery.sap.setIcons=e.setIcons;jQuery.sap.setMobileWebAppCapable=e.setWebAppCapable;return jQuery});
+//# sourceMappingURL=jquery.sap.mobile.js.map

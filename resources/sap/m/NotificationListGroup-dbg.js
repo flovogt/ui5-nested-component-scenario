@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,26 +9,22 @@ sap.ui.define([
 	'sap/ui/core/Core',
 	'./NotificationListBase',
 	'sap/ui/core/InvisibleText',
-	'./ListItemBase',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/library',
 	'sap/ui/Device',
 	'sap/m/Button',
-	'./NotificationListGroupRenderer',
-	"sap/ui/events/KeyCodes"
+	'./NotificationListGroupRenderer'
 ],
 function(
 	library,
 	Core,
 	NotificationListBase,
 	InvisibleText,
-	ListItemBase,
 	IconPool,
 	coreLibrary,
 	Device,
 	Button,
-	NotificationListGroupRenderer,
-	KeyCodes
+	NotificationListGroupRenderer
 ) {
 	'use strict';
 
@@ -66,13 +62,12 @@ function(
 	 * @extends sap.m.NotificationListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.34
 	 * @alias sap.m.NotificationListGroup
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var NotificationListGroup = NotificationListBase.extend('sap.m.NotificationListGroup', /** @lends sap.m.NotificationListGroup.prototype */ {
 		metadata: {
@@ -119,7 +114,7 @@ function(
 				 *
 				 *  @deprecated As of version 1.73
 				 */
-				authorPicture: {type: 'sap.ui.core.URI', multiple: false, deprecated: true},
+				authorPicture: {type: 'sap.ui.core.URI', deprecated: true},
 
 				/**
 				 * Determines the due date of the NotificationListGroup.
@@ -156,7 +151,9 @@ function(
 					}
 				}
 			}
-		}
+		},
+
+		renderer: NotificationListGroupRenderer
 	});
 
 	NotificationListGroup.prototype._getCollapseButton = function() {
@@ -191,6 +188,16 @@ function(
 	 */
 	NotificationListGroup.prototype.init = function() {
 		this._groupTitleInvisibleText = new InvisibleText({id: this.getId() + "-invisibleGroupTitleText"});
+	};
+
+	NotificationListGroup.prototype.onAfterRendering = function() {
+		NotificationListBase.prototype.onAfterRendering.apply(this, arguments);
+
+		var collapseButtonDomRef = this._getCollapseButton().getDomRef();
+		if (collapseButtonDomRef) {
+			collapseButtonDomRef.setAttribute("aria-expanded", !this.getCollapsed());
+			collapseButtonDomRef.setAttribute("aria-controls", this.getId() + "-childrenList");
+		}
 	};
 
 	/**
@@ -320,7 +327,6 @@ function(
 	 * @private
 	 */
 	NotificationListGroup.prototype.onBeforeRendering = function () {
-
 		NotificationListBase.prototype.onBeforeRendering.apply(this, arguments);
 
 		this._getCollapseButton().setVisible(this.getEnableCollapseButtonWhenEmpty() || this._getVisibleItemsCount() > 0);
@@ -347,6 +353,22 @@ function(
 			title: RESOURCE_BUNDLE.getText('NOTIFICATION_LIST_GROUP_MAX_NOTIFICATIONS_TITLE', this.getItems().length - maxNumberOfNotifications),
 			description: RESOURCE_BUNDLE.getText('NOTIFICATION_LIST_GROUP_MAX_NOTIFICATIONS_BODY')
 		};
+	};
+
+	NotificationListGroup.prototype._collapse = function (event) {
+		if (!this.getCollapsed()) {
+			this.setCollapsed(true);
+			this.fireOnCollapse({collapsed: true});
+			event.stopImmediatePropagation();
+		}
+	};
+
+	NotificationListGroup.prototype._expand = function (event) {
+		if (this.getCollapsed()) {
+			this.setCollapsed(false);
+			this.fireOnCollapse({collapsed: false});
+			event.stopImmediatePropagation();
+		}
 	};
 
 	return NotificationListGroup;

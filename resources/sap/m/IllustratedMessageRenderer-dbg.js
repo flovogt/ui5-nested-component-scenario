@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -19,33 +19,43 @@ sap.ui.define([], function () {
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oIllustratedMessage An object representation of the control that should be rendered
+	 * @param {sap.m.IllustratedMessage} oIllustratedMessage An object representation of the control that should be rendered
 	 */
 	IllustratedMessageRenderer.render = function (oRm, oIllustratedMessage) {
 		var oIllustratedMessageIllustration = oIllustratedMessage._getIllustration(),
-			oIllustratedMessageTitle = oIllustratedMessage._getTitle(),
-			oIllustratedMessageDescription = oIllustratedMessage._getDescription(),
-			oIllustratedMessageAdditionalContent = oIllustratedMessage.getAdditionalContent();
+			sIllustratedMessageTitle = oIllustratedMessage._getTitle(),
+			sIllustratedMessageDescription = oIllustratedMessage._getDescription(),
+			aIllustratedMessageAdditionalContent = oIllustratedMessage.getAdditionalContent(),
+			bIllustratedMessageEnableVerticalResponsiveness = oIllustratedMessage.getEnableVerticalResponsiveness();
 
 		// IllustratedMessage's Root DOM Element.
 		oRm.openStart("figure", oIllustratedMessage);
-		oRm.class("sapFIllustratedMessage");
+		oRm.class("sapMIllustratedMessage");
+		if (bIllustratedMessageEnableVerticalResponsiveness) {
+			oRm.class("sapMIllustratedMessageScalable");
+		}
 		oRm.openEnd();
+
+			oRm.openStart("div");
+			oRm.class("sapMIllustratedMessageMainContent"); // wrapper div to allow horizontal layout for Dot breakpoint
+			oRm.openEnd();
 
 			oRm.renderControl(oIllustratedMessageIllustration);
 
 			oRm.openStart("figcaption").openEnd();
-				oRm.renderControl(oIllustratedMessageTitle);
-				oRm.renderControl(oIllustratedMessageDescription.addStyleClass("sapFIllustratedMessageDescription"));
+				oRm.renderControl(sIllustratedMessageTitle);
+				oRm.renderControl(sIllustratedMessageDescription.addStyleClass("sapMIllustratedMessageDescription"));
 			oRm.close("figcaption");
 
+			oRm.close("div"); // main content container end
+
 			oRm.openStart("div");
-			oRm.class("sapFIllustratedMessageAdditionalContent"); // helper class in order to hide the additional content when on Base breakpoint
+			oRm.class("sapMIllustratedMessageAdditionalContent"); // helper class in order to hide the additional content when on Base breakpoint
 			oRm.openEnd();
-				oIllustratedMessageAdditionalContent.forEach(function (oControl) {
+				aIllustratedMessageAdditionalContent.forEach(function (oControl) {
 					oRm.renderControl(oControl);
 				});
-		oRm.close("div");
+			oRm.close("div");
 
 		oRm.close("figure"); // Root end.
 	};

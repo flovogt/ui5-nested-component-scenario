@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/Device"], function (Device) {
+sap.ui.define([], function () {
 	"use strict";
 
 	/**
@@ -19,17 +19,20 @@ sap.ui.define(["sap/ui/Device"], function (Device) {
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer
-	 * @param {sap.ui.core.Control} oIllustration An object representation of the control that should be rendered
+	 * @param {sap.m.Illustration} oIllustration An object representation of the control that should be rendered
 	 */
 	IllustrationRenderer.render = function (oRm, oIllustration) {
 		var sSymbolId = oIllustration._sSymbolId;
 
 		oRm.openStart("svg", oIllustration);
-		oRm.class("sapFIllustration");
+		oRm.class("sapMIllustration");
+		oRm.accessibilityState(oIllustration);
 		oRm.openEnd();
 
 			oRm.openStart("use");
 			oRm.attr('href', "#" + sSymbolId);
+			oRm.attr('width', "100%");
+			oRm.attr('height', "100%");
 			oRm.openEnd();
 			oRm.close("use");
 

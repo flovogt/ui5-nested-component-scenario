@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,11 +44,10 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.HTML
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var HTML = Control.extend("sap.ui.core.HTML", /** @lends sap.ui.core.HTML.prototype */ {
 		metadata : {
@@ -143,7 +142,7 @@ sap.ui.define([
 
 	/**
 	 * @param {string} [sSuffix=''] Suffix of the Element to be retrieved or empty
-	 * @return {Element} The element's DOM reference or null
+	 * @returns {Element|null} The element's DOM reference or <code>null</code>
 	 * @public
 	 */
 	HTML.prototype.getDomRef = function(sSuffix) {

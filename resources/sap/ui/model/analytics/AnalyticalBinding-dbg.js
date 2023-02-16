@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -149,7 +149,7 @@ sap.ui.define([
 	 */
 	function logUnsupportedPropertyInSelect(sPath, sSelectedProperty, oDimensionOrMeasure) {
 		var sDimensionOrMeasure = oDimensionOrMeasure
-				instanceof sap.ui.model.analytics.odata4analytics.Dimension
+				instanceof odata4analytics.Dimension
 					? "dimension" : "measure";
 
 		if (oDimensionOrMeasure.getName() === sSelectedProperty) {
@@ -587,18 +587,31 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.analytics.AnalyticalBinding.prototype.getNodeContexts
-	 * @param {object}
-	 *            mParameters specifying the aggregation level for which contexts shall be fetched. Supported parameters are:
-	 * <ul>
-	 * <li>oContext: parent context identifying the requested group of child contexts</li>
-	 * <li>level: level number for oContext, because it might occur at multiple levels; context with group ID <code>"/"</code> has level 0</li>
-	 * <li>numberOfExpandedLevels: number of child levels that shall be fetched automatically</li>
-	 * <li>startIndex: index of first child entry to return from the parent context (zero-based)</li>
-	 * <li>length: number of entries to return; counting begins at the given start index</li>
-	 * <li>threshold: number of additional entries that shall be locally available in the binding for subsequent
-	 * accesses to child entries of the given parent context. </li>
-	 * </ul>
-	 * @return {array}
+	 * @param {sap.ui.model.Context} oContext
+	 *            Parent context identifying the requested group of child contexts
+	 * @param {object|int} mParameters
+	 *            Parameters, specifying the aggregation level for which contexts shall be fetched
+	 *            or (legacy signature variant) index of first child entry to return from the parent context (zero-based)
+	 * @param {int} mParameters.level
+	 *            Level number for oContext, because it might occur at multiple levels; context with group ID <code>"/"</code> has level 0
+	 * @param {int} [mParameters.numberOfExpandedLevels=0]
+	 *            Number of child levels that shall be fetched automatically
+	 * @param {int} [mParameters.startIndex=0]
+	 *            Index of first child entry to return from the parent context (zero-based)
+	 * @param {int} [mParameters.length=<model size limit>]
+	 *            Number of entries to return; counting begins at the given start index
+	 * @param {int} [mParameters.threshold=0]
+	 *            Number of additional entries that shall be locally available in the binding for subsequent
+	 *            accesses to child entries of the given parent context
+	 * @param {int} [iLength=<model size limit>]
+	 *            Same meaning as <code>mParameters.length</code>, legacy signature variant only
+	 * @param {int} [iThreshold=0]
+	 *            Same meaning as <code>mParameters.threshold</code>, legacy signature variant only
+	 * @param {int} [iLevel]
+	 *            Same meaning as <code>mParameters.level</code>, legacy signature variant only
+	 * @param {int} [iNumberOfExpandedLevels=0]
+	 *            Same meaning as <code>mParameters.numberOfExpandedLevels</code>, legacy signature variant only
+	 * @returns {sap.ui.model.Context[]}
 	 *            Array containing the requested contexts of class sap.ui.model.Context, limited by the number of entries contained
 	 *            in the entity set at that aggregation level.
 	 *            The array will contain less than the requested number of contexts, if some are not locally available and an OData request is
@@ -2568,9 +2581,11 @@ sap.ui.define([
 	};
 
 	/**
+	 * @param {object} oAnalyticalQueryRequest
 	 * @param {boolean} bAddAdditionalSelects
 	 *   Whether additional selects, computed from select binding parameter, shall be added to the
 	 *   $select query option.
+	 * @param {object} mParameters
 	 * @private
 	 */
 	AnalyticalBinding.prototype._getQueryODataRequestOptions = function(oAnalyticalQueryRequest,
@@ -3369,6 +3384,8 @@ sap.ui.define([
 					oLogger.fatal("assertion failed: failed to determine position of " + oGroupMembersRequestDetails.sGroupId + " in group " + sParentGroupId);
 				} else if (!iPositionInParentGroup) {
 					that.mFinalLength[oRequestDetails.sGroupId_Missing_AtLevel] = true;
+					// iStartIndex must be reset to 0, because a new group starts
+					oGroupMembersRequestDetails.iStartIndex = 0;
 				} else if (that._getKey(sParentGroupId, iPositionInParentGroup - 1) !== undefined) {
 					var sPreviousGroupMemberKey = that._getKey(sParentGroupId, iPositionInParentGroup - 1);
 					var sPreviousGroupId = that._getGroupIdFromContext(that.oModel.getContext('/' + sPreviousGroupMemberKey),
@@ -3799,6 +3816,7 @@ sap.ui.define([
 	};
 
 	/**
+	 * @param {string} sGroupId
 	 * @param {int} iNumLevels anchestors starting at the root if greater than 0, or starting at the parent of sGroupId if less than 0.
 	 * @private
 	 */
@@ -4635,8 +4653,7 @@ sap.ui.define([
 	/**
 	 * Check whether this Binding would provide new values and in case it changed, inform interested parties about this.
 	 *
-	 * @param {boolean}
-	 *            bForceUpdate
+	 * @param {boolean} [bForceUpdate]
 	 * @param {object} mChangedEntities
 	 * @private
 	 */
@@ -4816,14 +4833,24 @@ sap.ui.define([
 	 * @private
 	 */
 	AnalyticalBinding.prototype._addSorters = function (oSortExpression, aGroupingSorters) {
-		var aSorters = this._canApplySortersToGroups()
-				? [].concat(this.aSorter).concat(aGroupingSorters)
+		var bCanApplySortersToGroups = this._canApplySortersToGroups(),
+			aSorters = bCanApplySortersToGroups
+				? this.aSorter
 				: [].concat(aGroupingSorters).concat(this.aSorter);
 
-		aSorters.forEach(function (oSorter) {
-			oSortExpression.addSorter(oSorter.sPath, oSorter.bDescending
-				? odata4analytics.SortOrder.Descending : odata4analytics.SortOrder.Ascending);
-		});
+		function addSorter(bIgnoreIfAlreadySorted, oSorter) {
+			oSortExpression.addSorter(oSorter.sPath,
+				oSorter.bDescending
+					? odata4analytics.SortOrder.Descending
+					: odata4analytics.SortOrder.Ascending,
+				bIgnoreIfAlreadySorted);
+		}
+
+		aSorters.forEach(addSorter.bind(null, false));
+		if (bCanApplySortersToGroups) {
+			// grouping sorters must not overwrite sort order
+			aGroupingSorters.forEach(addSorter.bind(null, true));
+		}
 	};
 
 	/**

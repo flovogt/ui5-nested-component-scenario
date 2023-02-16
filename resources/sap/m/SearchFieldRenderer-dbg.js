@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -54,10 +54,7 @@ sap.ui.define([
 					value: SearchFieldRenderer._getDescribedBy(oSF),
 					append: true
 				}
-			},
-			sToolTipValue,
-			sRefreshToolTip = oSF.getRefreshButtonTooltip(),
-			sResetToolTipValue;
+			};
 
 		// container
 		rm.openStart("div", oSF)
@@ -93,6 +90,7 @@ sap.ui.define([
 			rm.voidStart('input', sId + "-I")
 				.class("sapMSFI")
 				.attr("type", "search")
+				.attr("aria-label", sPlaceholder)
 				.attr("autocomplete", "off");
 
 			if (oSF.getEnableSuggestions()) {
@@ -101,11 +99,6 @@ sap.ui.define([
 
 			if (Device.browser.safari) {
 				rm.attr("autocorrect", "off");
-			}
-
-			var sTooltip = oSF.getTooltip_AsString();
-			if (sTooltip) {
-				rm.attr("title", sTooltip);
 			}
 
 			if (oSF.getEnableSuggestions() && Device.system.phone) {
@@ -141,9 +134,6 @@ sap.ui.define([
 					.class("sapMSFB") // button
 					.attr("aria-hidden", true);
 
-				sResetToolTipValue = sValue === "" ? this.oSearchFieldToolTips.SEARCH_BUTTON_TOOLTIP : this.oSearchFieldToolTips.RESET_BUTTON_TOOLTIP;
-				rm.attr("title", sResetToolTipValue); // initial rendering reset is search when no value is set
-
 				if (Device.browser.firefox) {
 					rm.class("sapMSFBF"); // firefox, active state by preventDefault
 				}
@@ -166,14 +156,7 @@ sap.ui.define([
 						rm.class("sapMSFBF"); // firefox, active state by preventDefault
 					}
 
-					if (bShowRefreshButton) {
-						sToolTipValue = sRefreshToolTip === "" ? this.oSearchFieldToolTips.REFRESH_BUTTON_TOOLTIP : sRefreshToolTip;
-					} else {
-						sToolTipValue = this.oSearchFieldToolTips.SEARCH_BUTTON_TOOLTIP;
-					}
-
-					rm.attr("title", sToolTipValue)
-						.openEnd()
+					rm.openEnd()
 						.close("div");
 				}
 			}

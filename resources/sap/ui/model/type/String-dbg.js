@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @alias sap.ui.model.type.String
 	 * @param {object} [oFormatOptions]
@@ -73,7 +73,7 @@ sap.ui.define([
 	 *   The target type; may be "any", "boolean", "float", "int" or "string", or a type with "any",
 	 *   "boolean", "float", "int" or "string" as its
 	 *   {@link sap.ui.base.DataType#getPrimitiveType primitive type}
-	 * @returns {string|number|boolean}
+	 * @returns {string|number|boolean|null}
 	 *   The formatted output value in the target type; <code>undefined</code> and <code>null</code>
 	 *   are always formatted to <code>null</code>
 	 * @throws {sap.ui.model.FormatException}

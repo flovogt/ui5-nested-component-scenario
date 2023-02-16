@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,7 +12,8 @@ sap.ui.define([
 ], function (_Helper, _Parser, Filter) {
 	"use strict";
 
-	var mAggregationType = {
+	var rComma = /,|%2C|%2c/,
+		mDataAggregationType = {
 			aggregate : {
 				"*" : {
 					grandTotal : "boolean",
@@ -35,12 +36,18 @@ sap.ui.define([
 			search : "string",
 			subtotalsAtBottomOnly : "boolean"
 		},
-		rComma = /,|%2C|%2c/,
+		oFrozenCollapsed = Object.freeze({"@$ui5.node.isExpanded" : false}),
+		oFrozenExpanded = Object.freeze({"@$ui5.node.isExpanded" : true}),
 		// Example: "Texts/Country asc"
 		// capture groups: 1 - the property path
 		rOrderbyItem = new RegExp("^(" + _Parser.sODataIdentifier
 			+ "(?:/" + _Parser.sODataIdentifier + ")*"
 			+ ")(?:" + _Parser.sWhitespace + "+(?:asc|desc))?$"),
+		mRecursiveHierarchyType = {
+			expandTo : /^[1-9]\d*$/, // a positive integer
+			hierarchyQualifier : "string",
+			search : "string"
+		},
 		/**
 		 * Collection of helper methods for data aggregation.
 		 *
@@ -83,8 +90,8 @@ sap.ui.define([
 		}
 		aAggregate.push(sAggregate);
 
-		if (sUnit && aAggregate.indexOf(sUnit) < 0 && aAliases.indexOf(sUnit, i + 1) < 0
-				&& aGroupBy.indexOf(sUnit) < 0) {
+		if (sUnit && !aAggregate.includes(sUnit) && !aAliases.includes(sUnit, i + 1)
+				&& !aGroupBy.includes(sUnit)) {
 			aAggregate.push(sUnit);
 		}
 	}
@@ -92,6 +99,7 @@ sap.ui.define([
 	/*
 	 * Takes care of the $skip/$top system query options and returns the corresponding
 	 * transformation(s).
+	 *
 	 * @param {object} mQueryOptions
 	 *   A modifiable map of key-value pairs representing the query string
 	 * @param {number} [mQueryOptions.$skip]
@@ -118,6 +126,54 @@ sap.ui.define([
 
 	_AggregationHelper = {
 		/**
+		 * Before overwriting the given placeholder with the given element, perform some sanity
+		 * checks and restore some data from the placeholder to the element.
+		 *
+		 * @param {object} oPlaceholder - A placeholder
+		 * @param {object} oElement - Any node or leaf element
+		 * @param {sap.ui.model.odata.v4.lib._CollectionCache} oCache
+		 *   The group level cache which the given element has been read from
+		 * @param {number} iIndex
+		 *   The index of the given element within the cache's collection
+		 * @throws {Error}
+		 *   In case an unexpected element or placeholder would be overwritten, or in case of a
+		 *   structural change
+		 *
+		 * @private
+		 */
+		beforeOverwritePlaceholder : function (oPlaceholder, oElement, oCache, iIndex) {
+			var oParent = _Helper.getPrivateAnnotation(oPlaceholder, "parent");
+
+			if (!_Helper.hasPrivateAnnotation(oPlaceholder, "placeholder")) {
+				throw new Error("Unexpected element");
+			}
+			if (oParent !== oCache
+				|| _Helper.getPrivateAnnotation(oPlaceholder, "index") !== iIndex
+				|| oPlaceholder["@$ui5.node.level"] !== oElement["@$ui5.node.level"]
+				// Note: level 0 is used for initial placeholders of 1st level cache in case
+				// expandTo > 1
+				&& oPlaceholder["@$ui5.node.level"] !== 0) {
+				throw new Error("Wrong placeholder");
+			}
+			["descendants", "filter", "predicate"].forEach(function (sAnnotation) {
+				if (_Helper.hasPrivateAnnotation(oPlaceholder, sAnnotation)
+					&& _Helper.getPrivateAnnotation(oElement, sAnnotation)
+						!== _Helper.getPrivateAnnotation(oPlaceholder, sAnnotation)) {
+					throw new Error("Unexpected structural change: " + sAnnotation);
+				}
+			});
+
+			_Helper.copyPrivateAnnotation(oPlaceholder, "spliced", oElement);
+			if ("@$ui5.node.isExpanded" in oPlaceholder) {
+				if ((oElement["@$ui5.node.isExpanded"] === undefined)
+						!== (oPlaceholder["@$ui5.node.isExpanded"] === undefined)) {
+					throw new Error("Not a leaf anymore (or vice versa)");
+				}
+				oElement["@$ui5.node.isExpanded"] = oPlaceholder["@$ui5.node.isExpanded"];
+			}
+		},
+
+		/**
 		 * Builds the value for a "$apply" system query option based on the given data aggregation
 		 * information. The value is "groupby((&lt;groupable_1,...,groupable_N),aggregate(
 		 * &lt;aggregatable> with &lt;method> as &lt;alias>,...))" where the "aggregate" part is
@@ -140,6 +196,9 @@ sap.ui.define([
 		 * @param {object} oAggregation
 		 *   An object holding the information needed for data aggregation; see
 		 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}.
+		* @param {string} [oAggregation.hierarchyQualifier]
+		*   If present, a recursive hierarchy w/o data aggregation is defined and
+		*   {@link _AggregationHelper.buildApply4Hierarchy} is invoked instead.
 		 * @param {object} [mQueryOptions={}]
 		 *   A map of key-value pairs representing the query string; it is not modified
 		 * @param {boolean} [mQueryOptions.$count]
@@ -178,8 +237,6 @@ sap.ui.define([
 		 *   A map of key-value pairs representing the query string, including a value for the
 		 *   "$apply" system query option if needed; it is a modified copy of
 		 *   <code>mQueryOptions</code>, with values removed as described above
-		 * @throws {Error}
-		 *   If the given data aggregation object is unsupported
 		 *
 		 * @public
 		 */
@@ -221,9 +278,12 @@ sap.ui.define([
 				}
 			}
 
-			mQueryOptions = Object.assign({}, mQueryOptions);
+			if (oAggregation.hierarchyQualifier) {
+				return _AggregationHelper
+					.buildApply4Hierarchy(oAggregation, mQueryOptions, !iLevel);
+			}
 
-			_AggregationHelper.checkTypeof(oAggregation, mAggregationType, "$$aggregation");
+			mQueryOptions = Object.assign({}, mQueryOptions);
 			oAggregation.groupLevels = oAggregation.groupLevels || [];
 			bIsLeafLevel = !iLevel || iLevel > oAggregation.groupLevels.length;
 
@@ -233,7 +293,7 @@ sap.ui.define([
 			});
 			aGroupBy = bIsLeafLevel
 				? Object.keys(oAggregation.group).sort().filter(function (sGroup) {
-					return oAggregation.groupLevels.indexOf(sGroup) < 0;
+					return !oAggregation.groupLevels.includes(sGroup);
 				})
 				: [oAggregation.groupLevels[iLevel - 1]];
 			if (!iLevel) {
@@ -334,6 +394,124 @@ sap.ui.define([
 		},
 
 		/**
+		 * Builds the value for a "$apply" system query option based on the given data aggregation
+		 * information for a recursive hierarchy. If no query options are given, only a symbolic
+		 * "$apply" is constructed to avoid timing issues with metadata. The property paths for
+		 * DistanceFromRootProperty, DrillStateProperty, and LimitedDescendantCountProperty are
+		 * stored at <code>oAggregation</code> using a "$" prefix (if not already stored).
+		 *
+		 * @param {object} oAggregation
+		 *   An object holding the information needed for a recursive hierarchy; see
+		 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}.
+		 * @param {string} [oAggregation.search]
+		 *   Like the value for a "$search" system query option (remember ODATA-1452); it is turned
+		 *   into the search expression parameter of an "ancestors()" transformation
+		 * @param {object} [mQueryOptions={}]
+		 *   A map of key-value pairs representing the query string; it is not modified
+		 * @param {string} [mQueryOptions.$filter]
+		 *   The value for a "$filter" system query option; it is removed from the returned map and
+		 *   turned into the filter expression parameter of an "ancestors()" transformation
+		 * @param {string} [mQueryOptions.$orderby]
+		 *   The value for a "$orderby" system query option; it is removed from the returned map and
+		 *   turned into an "orderby()" transformation
+		 * @param {string[]} [mQueryOptions.$select]
+		 *   The value for a "$select" system query option; additional technical properties are
+		 *   added to the returned copy
+		 * @param {boolean} [bAllLevels]
+		 *   Whether to expand all levels
+		 * @returns {object}
+		 *   A map of key-value pairs representing the query string, including a value for the
+		 *   "$apply" system query option; it is a modified copy of <code>mQueryOptions</code>, with
+		 *   values changed as described above
+		 *
+		 * @public
+		 */
+		buildApply4Hierarchy : function (oAggregation, mQueryOptions, bAllLevels) {
+			var sApply = "",
+				sHierarchyQualifier = oAggregation.hierarchyQualifier,
+				sPath = oAggregation.$path,
+				sNodeProperty = mQueryOptions
+					? oAggregation.$fetchMetadata(sPath
+						+ "/@Org.OData.Aggregation.V1.RecursiveHierarchy#" + sHierarchyQualifier
+						+ "/NodeProperty/$PropertyPath").getResult()
+					: "???",
+				mRecursiveHierarchy,
+				sSeparator = "";
+
+			function select(sProperty) {
+				var sPropertyPath;
+
+				if (mQueryOptions.$select) {
+					sPropertyPath = oAggregation["$" + sProperty];
+					if (!sPropertyPath) {
+						if (!mRecursiveHierarchy) {
+							mRecursiveHierarchy = oAggregation.$fetchMetadata(sPath
+								+ "/@com.sap.vocabularies.Hierarchy.v1.RecursiveHierarchy#"
+								+ sHierarchyQualifier).getResult();
+						}
+
+						sPropertyPath = oAggregation["$" + sProperty]
+							= mRecursiveHierarchy[sProperty].$PropertyPath;
+					}
+					mQueryOptions.$select.push(sPropertyPath);
+				}
+			}
+
+			mQueryOptions = Object.assign({}, mQueryOptions); // shallow clone
+			if (mQueryOptions.$select) {
+				mQueryOptions.$select = mQueryOptions.$select.slice();
+			}
+
+			if (mQueryOptions.$filter || oAggregation.search) {
+				if (mQueryOptions.$filter) {
+					sApply = "filter(" + mQueryOptions.$filter;
+					sSeparator = ")/";
+					delete mQueryOptions.$filter;
+				}
+				if (oAggregation.search) {
+					sApply += sSeparator + "search(" + oAggregation.search;
+				}
+				sApply = "ancestors($root" + sPath
+					+ "," + sHierarchyQualifier
+					+ "," + sNodeProperty
+					+ "," + sApply
+					+ "),keep start)/";
+			}
+			if (mQueryOptions.$$filterBeforeAggregate) { // children of a given parent
+				sApply += "descendants($root" + sPath + "," + sHierarchyQualifier
+					+ "," + sNodeProperty
+					+ ",filter(" + mQueryOptions.$$filterBeforeAggregate + "),1)";
+				delete mQueryOptions.$$filterBeforeAggregate;
+				if (mQueryOptions.$orderby) {
+					sApply += "/orderby(" + mQueryOptions.$orderby + ")";
+					delete mQueryOptions.$orderby;
+				}
+			} else { // top levels of nodes
+				if (mQueryOptions.$orderby) {
+					sApply += "orderby(" + mQueryOptions.$orderby + ")/";
+					delete mQueryOptions.$orderby;
+				}
+				sApply += "com.sap.vocabularies.Hierarchy.v1.TopLevels(HierarchyNodes=$root" + sPath
+					+ ",HierarchyQualifier='" + sHierarchyQualifier
+					+ "',NodeProperty='" + sNodeProperty
+					+ "',Levels=" + (bAllLevels ? 9 : oAggregation.expandTo || 1)
+					+ ")";
+				if (bAllLevels) {
+					select("DistanceFromRootProperty");
+				} else if (oAggregation.expandTo > 1) {
+					select("DistanceFromRootProperty");
+					select("LimitedDescendantCountProperty");
+				}
+			}
+			if (!bAllLevels) {
+				select("DrillStateProperty");
+			}
+			mQueryOptions.$apply = sApply;
+
+			return mQueryOptions;
+		},
+
+		/**
 		 * Checks that the given value is of the given type. If <code>vType</code> is a string, then
 		 * <code>typeof vValue === vType<code> must hold. If <code>vType</code> is an array (of
 		 * length 1!), then <code>vValue</code> must be an array as well and each element is checked
@@ -342,10 +520,12 @@ sap.ui.define([
 		 * property is checked recursively. If <code>vType</code> is an object with a (single)
 		 * property "*", it is deemed a map; in this case <code>vValue</code> must be an object (not
 		 * an array, not <code>null</code>) as well, with an arbitrary set of keys, and each
-		 * property is checked recursively against the type specified for "*".
+		 * property is checked recursively against the type specified for "*". If <code>vType</code>
+		 * is a regular expression, then we {@link RegExp#test test} whether it matches the given
+		 * value.
 		 *
 		 * @param {any} vValue - Any value
-		 * @param {string|string[]} vType - The expected type
+		 * @param {string|string[]|RegExp} vType - The expected type
 		 * @param {string} [sPath] - The path which lead to the given value
 		 * @throws {Error} If the value is not of the given type
 		 *
@@ -359,6 +539,10 @@ sap.ui.define([
 				vValue.forEach(function (vElement, i) {
 					_AggregationHelper.checkTypeof(vElement, vType[0], sPath + "/" + i);
 				});
+			} else if (vType instanceof RegExp) {
+				if (!vType.test(vValue)) {
+					throw new Error("Not a matching value for '" + sPath + "'");
+				}
 			} else if (typeof vType === "object") {
 				var bIsMap = "*" in vType;
 
@@ -382,7 +566,7 @@ sap.ui.define([
 		 *
 		 * @param {number} iLevel - The level
 		 * @param {number} iIndex - The index within the parent cache
-		 * @param {object} oParentCache - The parent cache
+		 * @param {sap.ui.model.odata.v4.lib._CollectionCache} oParentCache - The parent cache
 		 * @returns {object} A placeholder object
 		 *
 		 * @public
@@ -392,6 +576,7 @@ sap.ui.define([
 
 			_Helper.setPrivateAnnotation(oPlaceholder, "index", iIndex);
 			_Helper.setPrivateAnnotation(oPlaceholder, "parent", oParentCache);
+			_Helper.setPrivateAnnotation(oPlaceholder, "placeholder", true);
 
 			return oPlaceholder;
 		},
@@ -515,6 +700,21 @@ sap.ui.define([
 		},
 
 		/**
+		 * Gets an object with property updates to be applied when collapsing the given group node.
+		 *
+		 * @param {object} oGroupNode
+		 *   The group node which is about to be expanded
+		 * @returns {object}
+		 *   An object with property updates to be applied when collapsing the given group node
+		 *
+		 * @public
+		 * @see .getOrCreateExpandedObject
+		 */
+		getCollapsedObject : function (oGroupNode) {
+			return _Helper.getPrivateAnnotation(oGroupNode, "collapsed") || oFrozenCollapsed;
+		},
+
+		/**
 		 * Returns the "$orderby" system query option filtered in such a way that only aggregatable
 		 * or groupable properties, units, or additionally requested properties are used, provided
 		 * they are contained in the given aggregation information and are relevant for the given
@@ -559,14 +759,14 @@ sap.ui.define([
 			 */
 			function isUsedAtLeaf(sName) {
 				if (sName in oAggregation.group
-						&& (!iLevel || oAggregation.groupLevels.indexOf(sName) < 0)) {
+						&& (!iLevel || !oAggregation.groupLevels.includes(sName))) {
 					return true; // "quick path"
 				}
 
 				return Object.keys(oAggregation.aggregate).some(function (sAlias) {
 					return sName === oAggregation.aggregate[sAlias].unit;
 				}) || Object.keys(oAggregation.group).some(function (sGroup) {
-					return (!iLevel || oAggregation.groupLevels.indexOf(sGroup) < 0)
+					return (!iLevel || !oAggregation.groupLevels.includes(sGroup))
 						&& isUsedFor(sName, sGroup);
 				});
 			}
@@ -581,7 +781,7 @@ sap.ui.define([
 			function isUsedFor(sName, sGroup) {
 				return sName === sGroup
 					|| oAggregation.group[sGroup].additionally
-					&& oAggregation.group[sGroup].additionally.indexOf(sName) >= 0;
+					&& oAggregation.group[sGroup].additionally.includes(sName);
 			}
 
 			if (sOrderby) {
@@ -605,7 +805,7 @@ sap.ui.define([
 		/**
 		 * Gets an object with property updates to be applied when expanding the given group node,
 		 * creating it when needed for the first time. Creates a corresponding object to be applied
-		 * when collapsing the node again. Takes placement of subtotals into account.
+		 * when collapsing the node again, if needed. Takes placement of subtotals into account.
 		 *
 		 * @param {object} oAggregation
 		 *   An object holding the information needed for data aggregation;
@@ -616,20 +816,23 @@ sap.ui.define([
 		 *   An object with property updates to be applied when expanding the given group node
 		 *
 		 * @public
+		 * @see .getCollapsedObject
 		 */
 		getOrCreateExpandedObject : function (oAggregation, oGroupNode) {
-			var oCollapsed,
-				oExpanded = _Helper.getPrivateAnnotation(oGroupNode, "expanded");
+			var oCollapsed, oExpanded;
 
+			if (oAggregation.subtotalsAtBottomOnly === undefined) { // "top only"
+				return oFrozenExpanded;
+			}
+
+			oExpanded = _Helper.getPrivateAnnotation(oGroupNode, "expanded");
 			if (!oExpanded) {
 				oCollapsed = {"@$ui5.node.isExpanded" : false};
 				_Helper.setPrivateAnnotation(oGroupNode, "collapsed", oCollapsed);
 				oExpanded = {"@$ui5.node.isExpanded" : true};
 				_Helper.setPrivateAnnotation(oGroupNode, "expanded", oExpanded);
-				if (oAggregation.subtotalsAtBottomOnly !== undefined) { // "only or also at bottom"
-					_AggregationHelper.extractSubtotals(oAggregation, oGroupNode, oCollapsed,
-						oAggregation.subtotalsAtBottomOnly ? oExpanded : null);
-				}
+				_AggregationHelper.extractSubtotals(oAggregation, oGroupNode, oCollapsed,
+					oAggregation.subtotalsAtBottomOnly ? oExpanded : null);
 			}
 
 			return oExpanded;
@@ -638,7 +841,7 @@ sap.ui.define([
 		/**
 		 * Tells whether grand total values are needed for at least one aggregatable property.
 		 *
-		 * @param {object} mAggregate
+		 * @param {object} [mAggregate]
 		 *   A map from aggregatable property names/aliases to details objects
 		 * @returns {boolean}
 		 *   Whether grand total values are needed for at least one aggregatable property
@@ -646,7 +849,7 @@ sap.ui.define([
 		 * @public
 		 */
 		hasGrandTotal : function (mAggregate) {
-			return Object.keys(mAggregate).some(function (sAlias) {
+			return mAggregate && Object.keys(mAggregate).some(function (sAlias) {
 				return mAggregate[sAlias].grandTotal;
 			});
 		},
@@ -655,7 +858,7 @@ sap.ui.define([
 		 * Tells whether minimum or maximum values are needed for at least one aggregatable
 		 * property.
 		 *
-		 * @param {object} mAggregate
+		 * @param {object} [mAggregate]
 		 *   A map from aggregatable property names/aliases to details objects
 		 * @returns {boolean}
 		 *   Whether minimum or maximum values are needed for at least one aggregatable
@@ -664,7 +867,7 @@ sap.ui.define([
 		 * @public
 		 */
 		hasMinOrMax : function (mAggregate) {
-			return Object.keys(mAggregate).some(function (sAlias) {
+			return mAggregate && Object.keys(mAggregate).some(function (sAlias) {
 				var oDetails = mAggregate[sAlias];
 
 				return oDetails.min || oDetails.max;
@@ -724,6 +927,20 @@ sap.ui.define([
 		},
 
 		/**
+		 * Marks the value of the given element's private annotation "spliced" with
+		 * <code>$stale : true</code>, if available.
+		 *
+		 * @param {object} oElement - Any node or leaf element
+		 */
+		markSplicedStale : function (oElement) {
+			var aSpliced = _Helper.getPrivateAnnotation(oElement, "spliced");
+
+			if (aSpliced) { // => collapsed
+				aSpliced.$stale = true;
+			}
+		},
+
+		/**
 		 * Removes any potential "UI5grand__" prefix from the given grand totals.
 		 *
 		 * @param {object} oGrandTotal - A grand total element
@@ -743,9 +960,9 @@ sap.ui.define([
 		 *
 		 * @param {object} oElement
 		 *   Any node or leaf element
-		 * @param {boolean} bIsExpanded
+		 * @param {boolean|undefined} [bIsExpanded]
 		 *   The new value of "@$ui5.node.isExpanded"
-		 * @param {boolean} bIsTotal
+		 * @param {boolean|undefined} [bIsTotal]
 		 *   The new value of "@$ui5.node.isTotal"
 		 * @param {number} iLevel
 		 *   The new value of "@$ui5.node.level"
@@ -756,8 +973,8 @@ sap.ui.define([
 		 * @public
 		 */
 		setAnnotations : function (oElement, bIsExpanded, bIsTotal, iLevel, aAllProperties) {
-			oElement["@$ui5.node.isExpanded"] = bIsExpanded;
-			oElement["@$ui5.node.isTotal"] = bIsTotal;
+			_Helper.setAnnotation(oElement, "@$ui5.node.isExpanded", bIsExpanded);
+			_Helper.setAnnotation(oElement, "@$ui5.node.isTotal", bIsTotal);
 			oElement["@$ui5.node.level"] = iLevel;
 			if (aAllProperties) {
 				// avoid "Failed to drill-down" for missing properties
@@ -841,6 +1058,40 @@ sap.ui.define([
 			split(oFilter);
 
 			return [wrap(aFiltersAfterAggregate), wrap(aFiltersBeforeAggregate)];
+		},
+
+		/**
+		 * Validates the given data aggregation information. If successful, the given path and
+		 * function are stored inside that information as <code>$path</code> and
+		 * <code>$fetchMetadata</code> respectively.
+		 *
+		 *
+		 * @param {object} oAggregation
+		 *   An object holding the information needed for data aggregation; see
+		 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}.
+		 * @param {string} sPath
+		 *   The list binding's absolute data path
+		 * @param {function} fnFetchMetadata
+		 *   Function which fetches metadata for a given meta path
+		 * @param {boolean} bAutoExpandSelect
+		 *   The value of the model's parameter <code>autoExpandSelect</code>
+		 * @throws {Error}
+		 *   If the given data aggregation object is unsupported, or if a recursive hierarchy is
+		 *   requested, but the model does not use the <code>autoExpandSelect</code> parameter.
+		 *
+		 * @public
+		 */
+		validateAggregation : function (oAggregation, sPath, fnFetchMetadata, bAutoExpandSelect) {
+			if (oAggregation.hierarchyQualifier && !bAutoExpandSelect) {
+				throw new Error("Missing parameter autoExpandSelect at model");
+			}
+
+			_AggregationHelper.checkTypeof(oAggregation,
+				oAggregation.hierarchyQualifier ? mRecursiveHierarchyType : mDataAggregationType,
+				"$$aggregation");
+
+			oAggregation.$fetchMetadata = fnFetchMetadata;
+			oAggregation.$path = sPath;
 		}
 	};
 

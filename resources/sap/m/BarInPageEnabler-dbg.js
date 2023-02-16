@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define(['sap/ui/base/Object', 'sap/m/library', "sap/base/Log"],
 	 * @class Helper Class for implementing the IBar interface. Should be created once per IBar instance.
 	 * @version 1.22
 	 * @protected
-	 * @alias sap.m.IBarInPageEnabler
+	 * @alias sap.m.BarInPageEnabler
 	 */
 	var BarInPageEnabler = Object.extend("sap.m.BarInPageEnabler", /** @lends sap.m.BarInPageEnabler.prototype */ {
 
@@ -82,8 +82,26 @@ sap.ui.define(['sap/ui/base/Object', 'sap/m/library', "sap/base/Log"],
 		},
 
 		/**
-		 * Gets the Bar contexts inside page.
-		 * @returns {Object} with all available contexts.
+		 * @typedef {object} sap.m.BarContexts
+		 * @description The object contains the Bar contexts inside page.
+		 * @property {sap.m.BarContext} [footer]
+		 * @property {sap.m.BarContext} [header]
+		 * @property {sap.m.BarContext} [subheader]
+		 * @protected
+		 */
+
+		/**
+		 * @typedef {object} sap.m.BarContext
+		 * @description The object contains the available parameters for Bar`s context (footer, header or subheader).
+		 * @property {string} [contextClass]
+		 * @property {string} [internalAriaLabel]
+		 * @property {string} [tag]
+		 * @protected
+		 */
+
+		/**
+		 *
+		 * @returns {sap.m.BarContexts} with all available contexts.
 		 * @protected
 		 */
 		getContext : function () {

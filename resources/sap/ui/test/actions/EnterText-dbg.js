@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -31,7 +31,7 @@ sap.ui.define([
 	 *            [mSettings] Optional object with initial settings for the new instance
 	 * @extends sap.ui.test.actions.Action
 	 * @public
-	 * @name sap.ui.test.actions.EnterText
+	 * @alias sap.ui.test.actions.EnterText
 	 * @author SAP SE
 	 * @since 1.34
 	 */
@@ -130,16 +130,20 @@ sap.ui.define([
 				oUtils.triggerKeyup(oActionDomRef, KeyCodes.DELETE);
 				$ActionDomRef.val("");
 				oUtils.triggerEvent("input", oActionDomRef);
+				if (typeof oActionDomRef.selectionStart === 'number') { // element supports selection
+					oActionDomRef.selectionStart = 0;
+					oActionDomRef.selectionEnd = 0;
+				}
 			}
 
 			// Trigger events for every keystroke - livechange controls
-			var sValueBuffer = $ActionDomRef.val();
+			var sValueBuffer = this.getClearTextFirst() ? "" : $ActionDomRef.val();
 			this.getText().split("").forEach(function (sChar) {
 				sValueBuffer += sChar;
-				// Change the domref and fire the input event
-				oUtils.triggerCharacterInput(oActionDomRef, sChar, sValueBuffer);
+				// Change the domref and fire the mock 'keypress' and 'input' events
+				this.triggerCharacterInput(oActionDomRef, sChar, sValueBuffer, oControl);
 				oUtils.triggerEvent("input", oActionDomRef);
-			});
+			}, this);
 
 			if (this.getPressEnterKey()) {
 				// trigger change event with enter key
@@ -154,12 +158,43 @@ sap.ui.define([
 				// always trigger search since searchfield does not react to loosing the focus
 				oUtils.triggerEvent("search", oActionDomRef);
 			}
+		},
+
+		triggerCharacterInput: function(oInput, sChar, sValue, oControl) {
+			oControl.addEventDelegate({
+				"onkeypress": function(oEvent) {
+					if (!oEvent.isDefaultPrevented()) {
+						// mock the browser default action
+						// upon pressing a key inside a focused input
+						applyInput();
+					}
+					oControl.removeEventDelegate(this);
+				}
+			});
+
+			function applyInput() {
+				if (typeof (oInput) == "string") {
+					oInput = oInput ? document.getElementById(oInput) : null;
+				}
+				var $Input = jQuery(oInput);
+
+				if (typeof sValue !== "undefined") {
+					$Input.val(sValue);
+				} else {
+					$Input.val($Input.val() + sChar);
+				}
+			}
+
+			this.getUtils().triggerKeypress(oInput, sChar);
 		}
 	});
 
 	/**
 	 * A map of ID suffixes for controls that require a special DOM reference for
 	 * <code>EnterText</code> interaction.
+	 *
+	 * You can specify an ID suffix for specific controls in this map.
+	 * The enter text action will be triggered on the DOM element with the specified suffix.
 	 *
 	 * Here is a sublist of supported controls and their <code>EnterText</code> control adapter:
 	 * <ul>
@@ -179,8 +214,8 @@ sap.ui.define([
 	 * </code>
 	 * </pre>
 	 *
-	 * It contains two input tags in its dom.
-	 * When you render your control it creates the following dom:
+	 * It contains two input tags in its DOM.
+	 * When you render your control it creates the following DOM:
 	 *
 	 *
 	 * <pre>
@@ -200,17 +235,14 @@ sap.ui.define([
 	 *
 	 *     // Example usage
 	 *     new EnterText(); // executes on second Input since it is set as default
-	 *     new EnterText({ idSuffix: "firstInput"}); // executes on the first input has to be the same as the last part of the id in the dom
+	 *     new EnterText({ idSuffix: "firstInput"}); // executes on the first input has to be the same as the last part of the ID in the DOM
 	 * </code>
 	 * </pre>
 	 *
 	 *
 	 * @public
 	 * @static
-	 * @name sap.ui.test.actions.EnterText.controlAdapters
-	 * You can specify an Id suffix for specific controls in this map.
-	 * The enter text action will be triggered on the DOM element with the specified suffix
-	 * @type map
+	 * @type Object<string,(string|function(sap.ui.core.Control):string)>
 	 */
 	EnterText.controlAdapters = {};
 	EnterText.controlAdapters["sap.m.StepInput"] = "input-inner"; // focusDomRef: <input>

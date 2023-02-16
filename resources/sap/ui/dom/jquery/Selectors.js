@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/thirdparty/jquery"],function(e){"use strict";function t(e,t){var r=Object.getOwnPropertyDescriptor(e,t);return r&&r.value}
+sap.ui.define(["sap/ui/thirdparty/jquery"],function(jQuery){"use strict";function e(e,t){var r=Object.getOwnPropertyDescriptor(e,t);return r&&r.value}
 /*!
 	 * The following functions are taken from jQuery UI 1.8.17 but modified
 	 *
@@ -12,7 +12,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],function(e){"use strict";function t(e
 	 * http://jquery.org/license
 	 *
 	 * http://docs.jquery.com/UI
-	 */function r(t){var r=e(t).offsetParent();var a=false;var s=e(t).parents().filter(function(){if(this===r){a=true}return a});return!e(t).add(s).filter(function(){return e.css(this,"visibility")==="hidden"||e.expr.pseudos.hidden(this)}).length}function a(t,a){var s=t.nodeName.toLowerCase();if(s==="area"){var n=t.parentNode,i=n.name,u;if(!t.href||!i||n.nodeName.toLowerCase()!=="map"){return false}u=e("img[usemap='#"+i+"']")[0];return!!u&&r(u)}return(/input|select|textarea|button|object/.test(s)?!t.disabled:s=="a"?t.href||a:a)&&r(t)}if(!t(e.expr.pseudos,"focusable")){
+	 */function t(e){var t=jQuery(e).offsetParent();var r=false;var a=jQuery(e).parents().filter(function(){if(this===t){r=true}return r});return!jQuery(e).add(a).filter(function(){return jQuery.css(this,"visibility")==="hidden"||jQuery.expr.pseudos.hidden(this)}).length}function r(e,r){var a=e.nodeName.toLowerCase();if(a==="area"){var s=e.parentNode,n=s.name,i;if(!e.href||!n||s.nodeName.toLowerCase()!=="map"){return false}i=jQuery("img[usemap='#"+n+"']")[0];return!!i&&t(i)}return(/input|select|textarea|button|object/.test(a)?!e.disabled:a=="a"?e.href||r:r)&&t(e)}if(!e(jQuery.expr.pseudos,"focusable")){
 /*!
 		 * The following function is taken from jQuery UI 1.8.17
 		 *
@@ -24,7 +24,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],function(e){"use strict";function t(e
 		 *
 		 * But since visible is modified, focusable is different from the jQuery UI version too.
 		 */
-e.expr.pseudos.focusable=function(t){return a(t,!isNaN(e.attr(t,"tabindex")))}}if(!t(e.expr.pseudos,"sapTabbable")){
+jQuery.expr.pseudos.focusable=function(e){return r(e,!isNaN(jQuery.attr(e,"tabindex")))}}if(!e(jQuery.expr.pseudos,"sapTabbable")){
 /*!
 		 * The following function is taken from
 		 * jQuery UI Core 1.11.1
@@ -36,4 +36,5 @@ e.expr.pseudos.focusable=function(t){return a(t,!isNaN(e.attr(t,"tabindex")))}}i
 		 *
 		 * http://api.jqueryui.com/category/ui-core/
 		 */
-e.expr.pseudos.sapTabbable=function(t){var r=e.attr(t,"tabindex"),s=isNaN(r);return(s||r>=0)&&a(t,!s)}}if(!t(e.expr.pseudos,"sapFocusable")){e.expr.pseudos.sapFocusable=function(t){return a(t,!isNaN(e.attr(t,"tabindex")))}}return e});
+jQuery.expr.pseudos.sapTabbable=function(e){var t=jQuery.attr(e,"tabindex"),a=isNaN(t);return(a||t>=0)&&r(e,!a)}}if(!e(jQuery.expr.pseudos,"sapFocusable")){jQuery.expr.pseudos.sapFocusable=function(e){return r(e,!isNaN(jQuery.attr(e,"tabindex")))}}return jQuery});
+//# sourceMappingURL=Selectors.js.map

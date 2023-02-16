@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -17,7 +17,7 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 	 *
 	 * @abstract
 	 * @extends sap.ui.base.Object
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 * @private
 	 * @ui5-restricted
 	 * @alias sap.ui.core.support.Plugin
@@ -176,6 +176,34 @@ sap.ui.define(['sap/ui/base/Object', "sap/ui/thirdparty/jquery", "sap/base/util/
 			return jRef;
 		}
 		return new jQuery();
+	};
+
+	/**
+	 * Returns a specific DOM element from the DOM tree of this plugin.
+	 *
+	 * If the parameter <code>sSuffixOrSelector</code> is omitted or nullish,
+	 * then the root of the plugin's DOM tree is returned. If a non-empty string is given that
+	 * qualifies as an identifier, the child element with the ID this.getId() + "-" + sSuffixOrSelector is returned.
+	 * Any other string is interpreted as a selector and the first element matching that selector is returned.
+	 *
+	 * If this is the application-side of the plugin (stub), then undefined is returned.
+	 * @param {string} [sSuffixOrSelector] ID suffix or selector describing the element to retrieve
+	 * @returns {HTMLElement|null} The DOM element
+	 * @private
+	 * @ui5-restricted
+	 */
+	Plugin.prototype.dom = function(sSuffixOrSelector) {
+		if (this.isToolPlugin()) {
+			var oDomRef = document.getElementById(this.getId());
+			if ( sSuffixOrSelector == null ) {
+				return oDomRef;
+			}
+			if ( /^[\w-]+$/.test(sSuffixOrSelector) ) {
+				return document.getElementById(this.getId() + "-" + sSuffixOrSelector);
+			}
+			return oDomRef && oDomRef.querySelector(sSuffixOrSelector);
+		}
+		return null;
 	};
 
 	/**

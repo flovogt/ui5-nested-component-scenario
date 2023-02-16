@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,7 +14,6 @@ sap.ui.define([], function() {
 	 * @public
 	 * @alias sap.m.IllustratedMessageSize
 	 * @since 1.98
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var IllustratedMessageSize = {
 
@@ -31,13 +30,20 @@ sap.ui.define([], function() {
 		Auto : "Auto",
 
 		/**
-		 * Base <code>Illustration</code> size (XS breakpoint). Suitable for cards (two columns).
+		 * Base <code>Illustration</code> size. Suitable for cards (two columns).
 		 *
 		 * <b>Note:</b> When <code>Base</code> is in use, no illustration is displayed.
 		 *
 		 * @public
 		 */
 		Base : "Base",
+
+		/**
+		 * Dot <code>Illustration</code> size (XS breakpoint). Suitable for spaces with little vertical space.
+		 * @public
+		 * @since 1.108
+		 */
+		Dot : "Dot",
 
 		/**
 		 * Spot <code>Illustration</code> size (S breakpoint). Suitable for cards (four columns).

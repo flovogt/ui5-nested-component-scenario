@@ -1,16 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.core.InvisibleText.
 sap.ui.define([
-	"./Control",
 	"sap/base/Log",
 	"sap/base/security/encodeXML",
+	"./Configuration",
+	"./Control",
+	"./Lib",
 	"./library" // ensure loading of CSS
-], function(Control, Log, encodeXML) {
+], function(Log, encodeXML, Configuration, Control, Library) {
 	"use strict";
 
 
@@ -29,12 +31,11 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @since 1.27.0
 	 * @alias sap.ui.core.InvisibleText
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var InvisibleText = Control.extend("sap.ui.core.InvisibleText", /** @lends sap.ui.core.InvisibleText.prototype */ {
 		metadata : {
@@ -178,17 +179,23 @@ sap.ui.define([
 	 * @public
 	 */
 	InvisibleText.getStaticId = function(sLibrary, sTextKey) {
-		var sTextId = "", sKey, oBundle, oText;
+		var sTextId = "", sKey, oBundle, oText, oLibrary;
 
-		if ( sap.ui.getCore().getConfiguration().getAccessibility() && sTextKey ) {
+		if ( Configuration.getAccessibility() && sTextKey ) {
 			// Note: identify by lib and text key, not by text to avoid conflicts after a language change
 			sKey = sLibrary + "|" + sTextKey;
 			sTextId = mTextIds[sKey];
 			if ( sTextId == null ) {
-				oBundle = sap.ui.getCore().getLibraryResourceBundle(sLibrary);
-				oText = new InvisibleText().setText( oBundle.getText(sTextKey) );
+				oLibrary = Library.get(sLibrary);
+				if (oLibrary) {
+					oBundle = oLibrary.getResourceBundle();
+				}
+				oText = new InvisibleText().setText(oBundle ? oBundle.getText(sTextKey) : sTextKey);
 				oText.toStatic();
 				sTextId = mTextIds[sKey] = oText.getId();
+				// A potential component-owner ID is unwanted for InvisibleTexts since its DOM is cached
+				// for infinity, its lifecycle needs to be decoupled from any currently active owner component.
+				delete oText._sOwnerId;
 			}
 		}
 
@@ -201,7 +208,7 @@ sap.ui.define([
 			sKey, p, oBundle, oText;
 		for ( sKey in mTextIds ) {
 			p = sKey.indexOf('|');
-			oBundle = oCore.getLibraryResourceBundle(sKey.slice(0, p));
+			oBundle = Library.get(sKey.slice(0, p)).getResourceBundle();
 			oText = oCore.byId(mTextIds[sKey]);
 			oText && oText.setText(oBundle.getText(sKey.slice(p + 1)));
 		}

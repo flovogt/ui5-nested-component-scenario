@@ -32,3 +32,4 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 sinon.expectation.fail=sinon.assert.fail=function(t){QUnit.assert.ok(false,t)};sinon.assert.pass=function(t){QUnit.assert.ok(true,t)};sinon.config={injectIntoThis:true,injectInto:null,properties:["spy","stub","mock","clock","sandbox"],useFakeTimers:false,useFakeServer:false};(function(t){var n=QUnit.test;if(n.length===2){QUnit.test=function(t,s){return n(t,sinon.test(s))}}else{QUnit.test=t.test=function(t,s,e,i){if(arguments.length===2){e=s;s=null}return n(t,s,sinon.test(e),i)}}})(this);
+//# sourceMappingURL=sinon-qunit.js.map

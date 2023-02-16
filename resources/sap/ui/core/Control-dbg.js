@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides base class sap.ui.core.Control for all controls
 sap.ui.define([
 	'./CustomStyleClassSupport',
+	'./Core',
 	'./Element',
 	'./UIArea',
 	'./RenderManager',
@@ -18,6 +19,7 @@ sap.ui.define([
 ],
 	function(
 		CustomStyleClassSupport,
+		Core,
 		Element,
 		UIArea,
 		RenderManager,
@@ -77,11 +79,10 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 * @alias sap.ui.core.Control
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Control = Element.extend("sap.ui.core.Control", /** @lends sap.ui.core.Control */ {
+	var Control = Element.extend("sap.ui.core.Control", /** @lends sap.ui.core.Control.prototype */ {
 
 		metadata : {
 			stereotype : "control",
@@ -180,7 +181,7 @@ sap.ui.define([
 
 			Element.apply(this,arguments);
 			this.bOutput = this.getDomRef() != null; // whether this control has already produced output
-
+			this._bOnBeforeRenderingPhase = false; // whether the control is in the onBeforeRendering phase
 		},
 
 		renderer : null // Control has no renderer
@@ -275,6 +276,7 @@ sap.ui.define([
 	 * @param {string} [sIdSuffix] a suffix to be appended to the cloned element id
 	 * @param {string[]} [aLocalIds] an array of local IDs within the cloned hierarchy (internally used)
 	 * @returns {this} reference to the newly created clone
+	 * @override
 	 * @public
 	 */
 	Control.prototype.clone = function() {
@@ -324,6 +326,13 @@ sap.ui.define([
 	 */
 	Control.prototype.invalidate = function(oOrigin) {
 		var oUIArea;
+
+		// invalidations that happen in the onBeforeRendering hook of controls can be ignored
+		// since the rendering of the control has not yet been started
+		if ( this._bOnBeforeRenderingPhase ) {
+			return;
+		}
+
 		if ( this.bOutput && (oUIArea = this.getUIArea()) ) {
 			// if this control has been rendered before (bOutput)
 			// and if it is contained in a UIArea (!!oUIArea)
@@ -523,7 +532,6 @@ sap.ui.define([
 				}
 				oListener = oListener || this;
 
-				// FWE jQuery.proxy can't be used as it breaks our contract when used with same function but different listeners
 				var fnProxy = fnHandler.bind(oListener);
 
 				this.aBindParameters.push({
@@ -619,19 +627,18 @@ sap.ui.define([
 	 * @public
 	 */
 	Control.prototype.placeAt = function(oRef, vPosition) {
-		var oCore = sap.ui.getCore();
-		if (oCore.isInitialized()) {
+		if (Core.isInitialized()) {
 			// core already initialized, do it now
 
 			// 1st try to resolve the oRef as a Container control
 			var oContainer = oRef;
 			if (typeof oContainer === "string") {
-				oContainer = oCore.byId(oRef);
+				oContainer = Core.byId(oRef);
 			}
 			// if no container control is found use the corresponding UIArea
 			var bIsUIArea = false;
 			if (!(oContainer instanceof Element)) {
-				oContainer = oCore.createUIArea(oRef);
+				oContainer = UIArea.create(oRef);
 				bIsUIArea = true;
 			}
 
@@ -683,7 +690,7 @@ sap.ui.define([
 		} else {
 			// core not yet initialized, defer execution
 			var that = this;
-			oCore.attachInit(function () {
+			Core.attachInit(function () {
 				that.placeAt(oRef, vPosition);
 			});
 		}
@@ -785,10 +792,18 @@ sap.ui.define([
 
 	// ---- local busy indicator handling ---------------------------------------------------------------------------------------
 	var oRenderingDelegate = {
+		/**
+		 * @this {sap.ui.core.Control}
+		 * @private
+		 */
 		onBeforeRendering: function() {
 			// remove all block-layers to prevent leftover DOM elements and eventhandlers
 			fnRemoveAllBlockLayers.call(this);
 		},
+		/**
+		 * @this {sap.ui.core.Control}
+		 * @private
+		 */
 		onAfterRendering: function () {
 			if (this.getBlocked() && this.getDomRef() && !this.getDomRef("blockedLayer")) {
 				this._oBlockState = BlockLayerUtils.block(this, this.getId() + "-blockedLayer", this._sBlockSection);
@@ -1188,28 +1203,21 @@ sap.ui.define([
 	 * <pre>
 	 * MyControl.prototype.getAccessibilityInfo = function() {
 	 *    return {
-	 *      role: "textbox",      // String which represents the WAI-ARIA role which is implemented by the control.
-	 *      type: "date input",   // String which represents the control type (Must be a translated text). Might correlate with
-	 *                            // the role.
-	 *      description: "value", // String which describes the most relevant control state (e.g. the inputs value). Must be a
-	 *                            // translated text.
-	 *                            // Note: The type and the enabled/editable state must not be handled here.
-	 *      focusable: true,      // Boolean which describes whether the control can get the focus.
-	 *      enabled: true,        // Boolean which describes whether the control is enabled. If not relevant it must not be set or
-	 *                            // <code>null</code> can be provided.
-	 *      editable: true,       // Boolean which describes whether the control is editable. If not relevant it must not be set or
-	 *                            // <code>null</code> can be provided.
-	 *      children: []          // Aggregations of the given control (e.g. when the control is a layout). Primitive aggregations will be ignored.
-	 *                            // Note: Children should only be provided when it is helpful to understand the accessibility context
-	 *                            //       (e.g. a form control must not provide details of its internals (fields, labels, ...) but a
-	 *                            //       layout should).
+	 *      role: "textbox",
+	 *      type: "date input",
+	 *      description: "value",
+	 *      focusable: true,
+	 *      enabled: true,
+	 *      editable: true,
+	 *      required: true,
+	 *      children: []
 	 *    };
 	 * };
 	 * </pre>
 	 *
 	 * Note: The returned object provides the accessibility state of the control at the point in time when this function is called.
 	 *
-	 * @return {object} Current accessibility state of the control.
+	 * @return {sap.ui.core.AccessibilityInfo} Current accessibility state of the control.
 	 * @since 1.37.0
 	 * @function
 	 * @name sap.ui.core.Control.prototype.getAccessibilityInfo

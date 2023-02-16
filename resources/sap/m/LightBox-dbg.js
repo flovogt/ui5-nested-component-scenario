@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,12 +9,12 @@ sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/ui/core/Popup",
 	"sap/ui/core/Core",
-	"sap/m/Text",
+	"sap/m/IllustratedMessage",
+	"sap/m/IllustratedMessageType",
+	"sap/m/IllustratedMessageSize",
 	"sap/m/Button",
 	"sap/ui/core/ResizeHandler",
 	"sap/ui/Device",
-	"sap/ui/core/Icon",
-	"sap/ui/layout/VerticalLayout",
 	"./InstanceManager",
 	"sap/ui/core/InvisibleText",
 	"sap/ui/core/library",
@@ -27,12 +27,12 @@ sap.ui.define([
 	Control,
 	Popup,
 	Core,
-	Text,
+	IllustratedMessage,
+	IllustratedMessageType,
+	IllustratedMessageSize,
 	Button,
 	ResizeHandler,
 	Device,
-	Icon,
-	VerticalLayout,
 	InstanceManager,
 	InvisibleText,
 	coreLibrary,
@@ -51,9 +51,6 @@ sap.ui.define([
 
 	// shortcut for sap.ui.core.OpenState
 	var OpenState = coreLibrary.OpenState;
-
-	// shortcut for sap.ui.core.TextAlign
-	var TextAlign = coreLibrary.TextAlign;
 
 	/**
 	 * Constructor for a new LightBox.
@@ -95,17 +92,16 @@ sap.ui.define([
 	 *
 	 * <h3>Additional Information</h3>
 	 *
-	 * Check out the <a href="/#docs/api/symbols/sap.m.LightBox.html" >API Reference</a>.
+	 * Check out the {@link sap.m.LightBoxItem API Reference}.
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.LightBox
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/lightbox/ Light Box}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var LightBox = Control.extend("sap.m.LightBox", /** @lends sap.m.LightBox.prototype */ {
 		metadata: {
@@ -128,10 +124,10 @@ sap.ui.define([
 				_closeButton: {type: "sap.m.Button", multiple: false, visibility: "hidden"},
 
 				/**
-				 * A layout control used to display the error texts when the image could not be loaded.
+				 * Control used to display the error message when the image could not be loaded.
 				 * @private
 				 */
-				_verticalLayout: {type: "sap.ui.layout.VerticalLayout", multiple: false, visibility: "hidden"},
+				 _errorMessage: {type: "sap.m.IllustratedMessage", multiple: false, visibility: "hidden"},
 
 				/**
 				 * Hidden text used for accessibility of the popup.
@@ -149,7 +145,9 @@ sap.ui.define([
 			defaultAggregation: "imageContent",
 			events: {},
 			designtime: "sap/m/designtime/LightBox.designtime"
-		}
+		},
+
+		renderer: LightBoxRenderer
 	});
 
 	//================================================================================
@@ -217,6 +215,7 @@ sap.ui.define([
 				this._calculateSizes(oNativeImage);
 				break;
 			case LightBoxLoadingStates.Error:
+			case LightBoxLoadingStates.TimeOutError:
 				clearTimeout(this._iTimeoutId);
 				sInvisiblePopupText += " " + sErrorMessageTitle + " " + sErrorMessageSubtitle;
 				break;
@@ -301,7 +300,6 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @returns {this} Pointer to the control instance for chaining.
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	LightBox.prototype.open = function () {
 		/** @type {sap.m.LightBoxItem} */
@@ -310,7 +308,7 @@ sap.ui.define([
 		this._oPopup.setContent(this);
 
 		if (oImageContent && oImageContent.getImageSrc()) {
-			this._oPopup.open(300, "center center", "center center", document.body, null);
+			this._oPopup.open(300, Popup.Dock.CenterCenter, Popup.Dock.CenterCenter, window, null);
 			InstanceManager.addLightBoxInstance(this);
 		}
 
@@ -336,7 +334,6 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @returns {this} Pointer to the control instance for chaining.
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	LightBox.prototype.close = function () {
 		if (this._iResizeListenerId) {
@@ -398,13 +395,12 @@ sap.ui.define([
 	 * Forces invalidation of the control when an image loads/fails to load.
 	 *
 	 * @private
-	 * @param {sap.m.LightBoxLoadingStates} sNewState The new state of the image. Possible values are: "LOADING", "LOADED" and "ERROR".
+	 * @param {sap.m.LightBoxLoadingStates} sNewState The new state of the image.
 	 */
 	LightBox.prototype._imageStateChanged = function (sNewState) {
-		var bEndState = sNewState === LightBoxLoadingStates.Loaded || sNewState === LightBoxLoadingStates.Error;
 
-		if (bEndState && !this._isRendering) {
-			this.rerender();
+		if (sNewState !== LightBoxLoadingStates.Loading && !this._isRendering) {
+			this.invalidate();
 		}
 	};
 
@@ -448,41 +444,33 @@ sap.ui.define([
 	 * @private
 	 */
 	LightBox.prototype._createErrorControls = function() {
-		var sErrorTitle,
-			sErrorSubtitle,
-			oTitle,
-			oSubtitle,
-			oIcon;
+		var sErrorTitle = this._oRB.getText("LIGHTBOX_IMAGE_TIMED_OUT"),
+		sErrorSubtitle = this._oRB.getText("LIGHTBOX_IMAGE_TIMED_OUT_DETAILS"),
+		oIllustratedMessage;
 
-		if (this.getAggregation("_verticalLayout")) {
+		if (this.getAggregation("_errorMessage")) {
+			if (this._getImageContent()._getImageState() === LightBoxLoadingStates.TimeOutError) {
+				this.getAggregation("_errorMessage").setTitle(sErrorTitle);
+				this.getAggregation("_errorMessage").setDescription(sErrorSubtitle);
+			}
+
 			return;
 		}
 
-		if (this._getImageContent()._getImageState() === LightBoxLoadingStates.TimeOutError) {
-			sErrorTitle = this._oRB.getText("LIGHTBOX_IMAGE_TIMED_OUT");
-			sErrorSubtitle = this._oRB.getText("LIGHTBOX_IMAGE_TIMED_OUT_DETAILS");
-		} else {
+		if (this._getImageContent()._getImageState() !== LightBoxLoadingStates.TimeOutError) {
 			sErrorTitle = this._oRB.getText("LIGHTBOX_IMAGE_ERROR");
 			sErrorSubtitle = this._oRB.getText("LIGHTBOX_IMAGE_ERROR_DETAILS");
 		}
 
-		oTitle = new Text({
-			text: sErrorTitle,
-			textAlign: TextAlign.Center
-		}).addStyleClass("sapMLightBoxErrorTitle");
+		oIllustratedMessage = new IllustratedMessage({
+			illustrationType: IllustratedMessageType.UnableToLoadImage,
+			illustrationSize: Device.system.phone ? IllustratedMessageSize.Auto : IllustratedMessageSize.Scene,
+			enableVerticalResponsiveness: true,
+			title: sErrorTitle,
+			description: sErrorSubtitle
+		});
 
-		oSubtitle = new Text({
-			text: sErrorSubtitle,
-			textAlign: TextAlign.Center
-		}).addStyleClass("sapMLightBoxErrorSubtitle");
-
-		oIcon = new Icon({
-			src: "sap-icon://picture"
-		}).addStyleClass("sapMLightBoxErrorIcon");
-
-		this.setAggregation("_verticalLayout", new VerticalLayout({
-			content: [oIcon, oTitle, oSubtitle]
-		}).addStyleClass("sapMLightBoxVerticalLayout"));
+		this.setAggregation("_errorMessage", oIllustratedMessage);
 	};
 
 	/**
@@ -491,16 +479,20 @@ sap.ui.define([
 	 * @private
 	 */
 	LightBox.prototype._onResize = function () {
-		var iMinimumSideOffset = this._calculateOffset() / 2 + "px",
-			vTop = iMinimumSideOffset,
-			vLeft = iMinimumSideOffset,
-			vMarginTop = "",
-			vMarginLeft = "",
-			oImageContent = this._getImageContent(),
-			oDomRef = this.getDomRef(),
-			vLightBoxWidth,
+		var oDomRef = this.getDomRef();
+		if (!oDomRef) {
+			return;
+		}
+
+		var vLightBoxWidth,
 			vLightBoxHeight,
-			iMinimumOffset = this._calculateOffset();
+			fHeight,
+			fWidth,
+			iScrollOffsetY = Math.round(window.scrollY),
+			iScrollOffsetX = Math.round(window.scrollX),
+			iTop,
+			iLeft,
+			oImageContent = this._getImageContent();
 
 		if (oImageContent._getImageState() === LightBoxLoadingStates.Loaded) {
 			this._calculateSizes(oImageContent._getNativeImage());
@@ -515,21 +507,14 @@ sap.ui.define([
 			vLightBoxHeight = oDomRef.clientHeight;
 		}
 
-		if (window.innerWidth > vLightBoxWidth + iMinimumOffset) {
-			vLeft = "50%";
-			vMarginLeft = Math.round(-vLightBoxWidth / 2);
-		}
-
-		if (window.innerHeight > vLightBoxHeight + iMinimumOffset) {
-			vTop = "50%";
-			vMarginTop = Math.round(-vLightBoxHeight / 2);
-		}
+		fHeight = window.innerHeight - vLightBoxHeight;
+		fWidth = window.innerWidth - vLightBoxWidth;
+		iTop = iScrollOffsetY + Math.round(fHeight / 2);
+		iLeft = iScrollOffsetX + Math.round(fWidth / 2);
 
 		this._$lightBox.css({
-			"top": vTop,
-			"margin-top": vMarginTop,
-			"left": vLeft,
-			"margin-left": vMarginLeft
+			"top": iTop,
+			"left": iLeft
 		});
 	};
 
@@ -619,10 +604,10 @@ sap.ui.define([
 	 * Calculates the size for an image inside the LightBox.
 	 *
 	 * @private
-	 * @param {int} imageWidth The natural width of the loaded images in px.
-	 * @param {int} imageHeight The natural height of the loaded images in px.
-	 * @param {int} footerHeight The footer height in px.
-	 * @returns {Object} An object holding the calculated dimensions of the image
+	 * @param {int} iImageWidth The natural width of the loaded images in px.
+	 * @param {int} iImageHeight The natural height of the loaded images in px.
+	 * @param {int} iFooterHeight The footer height in px.
+	 * @returns {{width: int, height: int}} An object holding the calculated dimensions of the image
 	 */
 	LightBox.prototype._getDimensions = function (iImageWidth, iImageHeight, iFooterHeight) {
 		// minimum size of the lightbox

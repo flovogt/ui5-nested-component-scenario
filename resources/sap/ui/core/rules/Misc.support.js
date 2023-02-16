@@ -1,6 +1,168 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/support/library","./CoreHelper.support","sap/ui/thirdparty/jquery","sap/ui/dom/jquery/control"],function(e,r,o){"use strict";var t=sap.ui.require("sap/base/Log");if(!t){t=o.sap.log}var n=e.Categories;var i=e.Severity;var s=e.Audiences;var a={id:"errorLogs",audiences:[s.Control,s.Internal],categories:[n.Performance],enabled:true,minversion:"1.32",title:"Error logs",description:"Checks for the amount of error logs in the console",resolution:"Error logs should be fixed",resolutionurls:[],check:function(e,r){var o=0,n="";var s=t.getLogEntries();s.forEach(function(e){if(e.level===t.Level.ERROR){o++;if(o<=20){n+="- "+e.message+"\n"}}});if(o>0){e.addIssue({severity:i.Low,details:"Total error logs: "+o+"\n"+n,context:{id:"WEBPAGE"}})}}};var d={id:"eventBusSilentPublish",audiences:[s.Internal],categories:[n.Functionality],enabled:true,minversion:"1.32",title:"EventBus publish",description:"Checks the EventBus publications for missing listeners",resolution:"Calls to EventBus#publish should be removed or adapted such that associated listeners are found",resolutionurls:[],check:function(e,r){var o=t.getLogEntries();var n=[];o.forEach(function(e){if(e.component==="sap.ui.core.EventBus"){if(e.details&&e.details.indexOf("sap.")!==0){if(n.indexOf(e.message)===-1){n.push(e.message)}}}});n.forEach(function(r){e.addIssue({severity:i.Low,details:"EventBus publish without listeners "+r,context:{id:"WEBPAGE"}})})}};var u={id:"embeddedByLibNotLoaded",audiences:[s.Application],categories:[n.Performance],enabled:true,minversion:"1.97",title:"Embedding Component or Library not loaded",description:"Checks if the corresponding Component or Library of a Component is already loaded in case the Component is embedded by a resource.",resolution:"Before using a Component embedded by a Library or another Component, it's necessary to load the embedding Library or Component in advance. "+"The 'sap.app/embeddedBy' property must be relative path inside the deployment unit (library or component).",resolutionurls:[],check:function(e){var r={},o;var n=function(e){return function(r){return r.getManifestObject().getEntry("/sap.app/id")===e}};var s=function(r){return function(o){e.addIssue({severity:i.High,details:r.message,context:{id:o.getId()}})}};t.getLogEntries().forEach(function(e){var o=/^Component '([a-zA-Z0-9\.]*)'.*$/;if(e.component==="sap.ui.core.Component#embeddedBy"){r[o.exec(e.message)[1]]=e}});for(o in r){if(Object.hasOwnProperty.call(r,o)){var a=sap.ui.core.Component.registry.filter(n(o));a.forEach(s(r[o]))}}}};return[d,a,u]},true);
+/**
+ * Defines miscellaneous support rules.
+ */
+sap.ui.define([
+	"sap/ui/core/Component",
+	"sap/ui/support/library",
+	"./CoreHelper.support",
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/dom/jquery/control" // jQuery Plugin "control"
+], function(Component, SupportLib, CoreHelper, jQuery) {
+	"use strict";
+
+	// support rules can get loaded within a ui5 version which does not have module "sap/base/Log" yet
+	// therefore load the jQuery.sap.log fallback if not available
+	var Log = sap.ui.require("sap/base/Log");
+	if (!Log) {
+		Log = jQuery.sap.log;
+	}
+
+	// shortcuts
+	var Categories = SupportLib.Categories; // Accessibility, Performance, Memory, ...
+	var Severity = SupportLib.Severity; // Hint, Warning, Error
+	var Audiences = SupportLib.Audiences; // Control, Internal, Application
+
+	//**********************************************************
+	// Rule Definitions
+	//**********************************************************
+
+	/**
+	 * checks the error logs
+	 */
+	var oErrorLogs = {
+		id: "errorLogs",
+		audiences: [Audiences.Control, Audiences.Internal],
+		categories: [Categories.Performance],
+		enabled: true,
+		minversion: "1.32",
+		title: "Error logs",
+		description: "Checks for the amount of error logs in the console",
+		resolution: "Error logs should be fixed",
+		resolutionurls: [],
+		check: function(oIssueManager, oCoreFacade) {
+			var count = 0,
+				message = "";
+
+			var log = Log.getLogEntries();
+			log.forEach(function(logEntry) {
+				if (logEntry.level === Log.Level.ERROR) {
+					count++;
+					if (count <= 20) {
+						message += "- " + logEntry.message + "\n";
+					}
+				}
+			});
+
+			if (count > 0) {
+				oIssueManager.addIssue({
+					severity: Severity.Low,
+					details: "Total error logs: " + count + "\n" + message,
+					context: {
+						id: "WEBPAGE"
+					}
+				});
+			}
+		}
+	};
+
+	/**
+	 * checks the EventBus for logs
+	 *
+	 * Excluded are events which are published to the channel "sap." as these are internal
+	 */
+	var oEventBusLogs = {
+		id: "eventBusSilentPublish",
+		audiences: [Audiences.Internal],
+		categories: [Categories.Functionality],
+		enabled: true,
+		minversion: "1.32",
+		title: "EventBus publish",
+		description: "Checks the EventBus publications for missing listeners",
+		resolution: "Calls to EventBus#publish should be removed or adapted such that associated listeners are found",
+		resolutionurls: [],
+		check: function(oIssueManager, oCoreFacade) {
+
+			var aLogEntries = Log.getLogEntries();
+			var aMessages = [];
+			aLogEntries.forEach(function(oLogEntry) {
+				if (oLogEntry.component === "sap.ui.core.EventBus") {
+					if (oLogEntry.details && oLogEntry.details.indexOf("sap.") !== 0) {
+						if (aMessages.indexOf(oLogEntry.message) === -1) {
+							aMessages.push(oLogEntry.message);
+						}
+					}
+
+				}
+			});
+			aMessages.forEach(function(sMessage) {
+				oIssueManager.addIssue({
+					severity: Severity.Low,
+					details: "EventBus publish without listeners " + sMessage,
+					context: {
+						id: "WEBPAGE"
+					}
+				});
+			});
+		}
+	};
+
+	/**
+	 * Checks if the corresponding Component or Library of a Component is already loaded in case the Component is embeddedBy a resource.
+	 */
+	var oMissingEmbeddedByLibrary = {
+		id: "embeddedByLibNotLoaded",
+		audiences: [Audiences.Application],
+		categories: [Categories.Performance],
+		enabled: true,
+		minversion: "1.97",
+		title: "Embedding Component or Library not loaded",
+		description: "Checks if the corresponding Component or Library of a Component is already loaded in case the Component is embedded by a resource.",
+		resolution: "Before using a Component embedded by a Library or another Component, it's necessary to load the embedding Library or Component in advance. " +
+			"The 'sap.app/embeddedBy' property must be relative path inside the deployment unit (library or component).",
+		resolutionurls: [],
+		check: function(oIssueManager) {
+			var oRegisteredComponents = {}, sComponentName;
+			var filterComponents = function (sComponentName) {
+				return function (oComponent) {
+					return oComponent.getManifestObject().getEntry("/sap.app/id") === sComponentName;
+				};
+			};
+			var createIssue = function (oComponentWithMissingEmbeddedBy) {
+				return function (oComponent) {
+					oIssueManager.addIssue({
+						severity: Severity.High,
+						details: oComponentWithMissingEmbeddedBy.message,
+						context: {
+							id: oComponent.getId()
+						}
+					});
+				};
+			};
+
+			Log.getLogEntries().forEach(function(oLogEntry) {
+				var oRegexGetComponentName = /^Component '([a-zA-Z0-9\.]*)'.*$/;
+				if (oLogEntry.component === "sap.ui.core.Component#embeddedBy") {
+					oRegisteredComponents[oRegexGetComponentName.exec(oLogEntry.message)[1]] = oLogEntry;
+				}
+			});
+
+			for (sComponentName in oRegisteredComponents) {
+				if (Object.hasOwnProperty.call(oRegisteredComponents, sComponentName)) {
+					var aComponents = Component.registry.filter(filterComponents(sComponentName));
+					aComponents.forEach(createIssue(oRegisteredComponents[sComponentName]));
+				}
+			}
+		}
+	};
+
+	return [
+		oEventBusLogs,
+		oErrorLogs,
+		oMissingEmbeddedByLibrary
+	];
+}, true);

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -120,14 +120,13 @@ sap.ui.define([
 	* @implements sap.tnt.IToolHeader
 	*
 	* @author SAP SE
-	* @version 1.98.0
+	* @version 1.110.0
 	*
 	* @constructor
 	* @public
 	* @since 1.34
 	* @alias sap.tnt.ToolHeader
 	* @see {@link fiori:https://experience.sap.com/fiori-design-web/tool-header/ Tool Header}
-	* @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	*/
 	var ToolHeader = OverflowToolbar.extend("sap.tnt.ToolHeader", /** @lends sap.tnt.ToolHeader.prototype */ {
 		metadata: {
@@ -137,7 +136,9 @@ sap.ui.define([
 			},
 			aggregations: {
 			}
-		}
+		},
+
+		renderer: ToolHeaderRenderer
 	});
 
 	/**

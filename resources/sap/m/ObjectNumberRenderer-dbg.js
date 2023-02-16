@@ -1,11 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', './library', 'sap/ui/core/Core'],
-	function(Renderer, coreLibrary, library, Core) {
+sap.ui.define([
+	'sap/ui/core/Renderer',
+	'sap/ui/core/library',
+	'./library',
+	'sap/ui/core/Core'
+],
+	function(Renderer, coreLibrary, library, oCore) {
 	"use strict";
 
 
@@ -23,9 +28,6 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', './library', 'sap/
 	// shortcut for sap.m.EmptyIndicator
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
-	// shortcut for library resource bundle
-	var oRb = Core.getLibraryResourceBundle("sap.m");
-
 	/**
 	 * ObjectNumber renderer.
 	 * @namespace
@@ -38,16 +40,13 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', './library', 'sap/
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} oON An object representation of the control that should be rendered
+	 * @param {sap.m.ObjectNumber} oON An object representation of the control that should be rendered
 	 */
 	ObjectNumberRenderer.render = function(oRm, oON) {
 		var sTooltip = oON.getTooltip_AsString(),
 			sTextDir = oON.getTextDirection(),
 			sTextAlign = oON.getTextAlign(),
-			oAccAttributes = {
-				role: "group",
-				roledescription: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("OBJECTNUMBER_NAME")
-			};
+			oAccAttributes = {};
 
 		oRm.openStart("div", oON);
 		oRm.class("sapMObjectNumber");
@@ -108,10 +107,16 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', './library', 'sap/
 
 		this.renderEmphasizedInfoElement(oRm, oON);
 		this.renderHiddenARIAElement(oRm, oON);
+		this.renderRoleDescriptionInfo(oRm, oON);
 
 		oRm.close("div");
 	};
 
+	/**
+	 * @param {sap.ui.core.RenderManager} oRm
+	 * @param {sap.m.ObjectNumber} oON
+	 * @private
+	 */
 	ObjectNumberRenderer.renderText = function(oRm, oON) {
 		var sUnit = oON.getUnit() || oON.getNumberUnit();
 		oRm.openStart("span", oON.getId() + "-number");
@@ -124,6 +129,11 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', './library', 'sap/
 		oRm.close("span");
 	};
 
+	/**
+	 * @param {sap.ui.core.RenderManager} oRm
+	 * @param {sap.m.ObjectNumber} oON
+	 * @private
+	 */
 	ObjectNumberRenderer.renderUnit = function(oRm, oON) {
 		var sUnit = oON.getUnit() || oON.getNumberUnit();
 
@@ -144,7 +154,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', './library', 'sap/
 		oRm.openStart("span", oON.getId() + "-emphasized");
 		oRm.class("sapUiPseudoInvisibleText");
 		oRm.openEnd();
-		oRm.text(sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("OBJECTNUMBER_EMPHASIZED"));
+		oRm.text(oCore.getLibraryResourceBundle("sap.m").getText("OBJECTNUMBER_EMPHASIZED"));
 		oRm.close("span");
 	};
 
@@ -161,13 +171,22 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', './library', 'sap/
 		oRm.close("span");
 	};
 
+	ObjectNumberRenderer.renderRoleDescriptionInfo = function(oRm, oON) {
+		oRm.openStart("span", oON.getId() + "-roledescription");
+		oRm.class("sapUiPseudoInvisibleText");
+		oRm.openEnd();
+		oRm.text(oCore.getLibraryResourceBundle("sap.m").getText("OBJECTNUMBER_NAME"));
+		oRm.close("span");
+	};
+
 	/**
 	 * Renders the empty text indicator.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-	 * @param {sap.m.ObjectNumberRenderer} oON An object representation of the control that should be rendered.
+	 * @param {sap.m.ObjectNumber} oON An object representation of the control that should be rendered.
 	 */
 	ObjectNumberRenderer.renderEmptyIndicator = function(oRm, oON) {
+		var oRb = oCore.getLibraryResourceBundle("sap.m");
 		oRm.openStart("span");
 			oRm.class("sapMEmptyIndicator");
 			if (oON.getEmptyIndicatorMode() === EmptyIndicatorMode.Auto) {

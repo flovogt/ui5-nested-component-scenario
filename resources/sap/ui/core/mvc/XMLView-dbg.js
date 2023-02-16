@@ -1,46 +1,51 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.core.mvc.XMLView.
 sap.ui.define([
-	"sap/ui/thirdparty/jquery",
 	"./View",
-	"./XMLViewRenderer",
 	"./ViewType",
+	"./XMLViewRenderer",
+	"sap/base/Log",
+	"sap/base/strings/hash",
+	"sap/base/util/LoaderExtensions",
 	"sap/base/util/merge",
 	"sap/ui/base/ManagedObject",
-	"sap/ui/core/XMLTemplateProcessor",
+	"sap/ui/core/Configuration",
 	"sap/ui/core/Control",
 	"sap/ui/core/RenderManager",
+	"sap/ui/core/XMLTemplateProcessor",
 	"sap/ui/core/cache/CacheManager",
 	"sap/ui/model/resource/ResourceModel",
 	"sap/ui/util/XMLHelper",
-	"sap/base/strings/hash",
-	"sap/base/Log",
-	"sap/base/util/LoaderExtensions",
+	"sap/ui/Global",
+	"sap/ui/VersionInfo",
 	"sap/ui/performance/trace/Interaction",
-	"sap/ui/core/Core" // to ensure correct behaviour of sap.ui.getCore()
+	"sap/ui/thirdparty/jquery"
 ],
 	function(
-		jQuery,
 		View,
-		XMLViewRenderer,
 		ViewType,
+		XMLViewRenderer,
+		Log,
+		hash,
+		LoaderExtensions,
 		merge,
 		ManagedObject,
-		XMLTemplateProcessor,
+		Configuration,
 		Control,
 		RenderManager,
+		XMLTemplateProcessor,
 		Cache,
 		ResourceModel,
 		XMLHelper,
-		hash,
-		Log,
-		LoaderExtensions,
-		Interaction
+		Global,
+		VersionInfo,
+		Interaction,
+		jQuery
 	) {
 	"use strict";
 
@@ -91,16 +96,22 @@ sap.ui.define([
 	 * destroy</code> method. All functions can be called but may not work properly or lead to unexpected side effects.
 	 *
 	 * <strong>Note:</strong><br>
-	 * On root level, you can only define content for the default aggregation, e.g. without adding the <code>&lt;content&gt;</code> tag. If
-	 * you want to specify content for another aggregation of a view like <code>dependents</code>, place it in a child
-	 * control's dependents aggregation or add it by using {@link sap.ui.core.mvc.XMLView#addDependent}.
+	 * The XML view offers special handling for context binding and style classes.
+	 * You can specify them via the <code>binding</code> and <code>class</code> attributes on a control's XML node.
+	 * Please be aware that these attributes are not properties of the respective controls and thus
+	 * are not supported by a control's constructor.
+	 * For more information, see {@link topic:91f05e8b6f4d1014b6dd926db0e91070 Context Binding (Element Binding)}
+	 * and {@link topic:b564935324f449209354c7e2f9903f22 Using CSS Style Sheets in XML Views}.
+	 *
+	 * <strong>Note:</strong><br>
+	 * When the content aggregation of this control is bound, no HTML markup is allowed in the binding template of the
+	 * bound content aggregation. An error will be thrown when the above combination is detected.
 	 *
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.XMLView
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var XMLView = View.extend("sap.ui.core.mvc.XMLView", /** @lends sap.ui.core.mvc.XMLView.prototype */ {
 		metadata : {
@@ -270,10 +281,9 @@ sap.ui.define([
 	/**
 	 * Flag indicating whether to use the cache
 	 * @private
-	 * @experimental
 	 * @since 1.44
 	 */
-	XMLView._bUseCache = sap.ui.getCore().getConfiguration().getViewCache() && Cache._isSupportedEnvironment();
+	XMLView._bUseCache = Configuration.getViewCache() && Cache._isSupportedEnvironment();
 
 	function validatexContent(xContent) {
 		if (xContent.parseError.errorCode !== 0) {
@@ -413,7 +423,7 @@ sap.ui.define([
 		return [
 			sComponentName || window.location.host + window.location.pathname,
 			oView.getId(),
-			sap.ui.getCore().getConfiguration().getLanguageTag()
+			Configuration.getLanguageTag()
 		].concat(oRootComponent && oRootComponent.getActiveTerminologies() || []);
 	}
 
@@ -448,10 +458,10 @@ sap.ui.define([
 	}
 
 	function getVersionInfo() {
-		return sap.ui.getVersionInfo({async:true}).then(function(oInfo) {
+		return VersionInfo.load().then(function(oInfo) {
 			var sTimestamp = "";
 			if (!oInfo.libraries) {
-				sTimestamp = sap.ui.buildinfo.buildtime;
+				sTimestamp = Global.buildinfo.buildtime;
 			} else {
 				oInfo.libraries.forEach(function(oLibrary) {
 					sTimestamp += oLibrary.buildTimestamp;
@@ -460,7 +470,7 @@ sap.ui.define([
 			return sTimestamp;
 		}).catch(function(error) {
 			// Do not populate the cache if the version info could not be retrieved.
-			Log.warning("sap.ui.getVersionInfo could not be retrieved", "sap.ui.core.mvc.XMLView");
+			Log.warning("version info could not be retrieved", "sap.ui.core.mvc.XMLView");
 			Log.debug(error);
 			return "";
 		});
@@ -515,18 +525,11 @@ sap.ui.define([
 			}
 
 			// extract the properties of the view from the XML element
-			if ( !that.isSubView() ) {
-				// for a real XMLView, we need to parse the attributes of the root node
-				var mSettingsFromXML = {};
-				// enrich mSettingsFromXML
-				XMLTemplateProcessor.parseViewAttributes(xContent, that, mSettingsFromXML);
-				if (!mSettings.async) {
-					// extend mSettings which get applied implicitly during view constructor
-					Object.assign(mSettings, mSettingsFromXML);
-				} else {
-					// apply the settings from the loaded view source via an explicit call
-					that.applySettings(mSettingsFromXML);
-				}
+			if (!that.isSubView()) {
+				// extract the internal settings from the XML and set on the view. The standard properties, event
+				// handler, aggregation and association will be extracted during parsing the content and applied to the
+				// view instance by calling "applySettings"
+				XMLTemplateProcessor.parseViewAttributes(xContent, that);
 			} else {
 				// when used as fragment: prevent connection to controller, only top level XMLView must connect
 				delete mSettings.controller;
@@ -667,7 +670,7 @@ sap.ui.define([
 		View.prototype.exit.apply(this, arguments);
 	};
 
-	XMLView.prototype.onControllerConnected = function(oController) {
+	XMLView.prototype.onControllerConnected = function(oController, mSettings) {
 		var that = this;
 		// unset any preprocessors (e.g. from an enclosing JSON view)
 
@@ -682,7 +685,7 @@ sap.ui.define([
 
 		// parse the XML tree
 		if (!this.oAsyncState) {
-			this._aParsedContent = fnRunWithPreprocessor(XMLTemplateProcessor.parseTemplate.bind(null, this._xContent, this));
+			this._aParsedContent = fnRunWithPreprocessor(XMLTemplateProcessor.parseTemplate.bind(null, this._xContent, this, mSettings));
 		} else {
 			var fnDone = Interaction.notifyAsyncStep("VIEW PROCESSING");
 			return XMLTemplateProcessor.parseTemplatePromise(this._xContent, this, true, {

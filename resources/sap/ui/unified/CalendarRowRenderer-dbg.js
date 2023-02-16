@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,9 +10,9 @@ sap.ui.define([
 	'sap/ui/unified/CalendarLegendRenderer',
 	'sap/ui/Device',
 	'sap/ui/unified/library',
-	'sap/ui/core/IconPool',
 	'sap/ui/core/InvisibleText',
-	"sap/base/Log"
+	'sap/base/Log',
+	'sap/ui/core/IconPool' // required by RenderManager#icon
 	],
 	function (
 		UniversalDate,
@@ -20,7 +20,6 @@ sap.ui.define([
 		CalendarLegendRenderer,
 		Device,
 		library,
-		IconPool,
 		InvisibleText,
 		Log) {
 		"use strict";
@@ -83,7 +82,9 @@ sap.ui.define([
 		}
 
 	//		var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
-		oRm.accessibilityState(oRow/*, mAccProps*/);
+		oRm.accessibilityState(oRow, {
+			role: "row"
+		});
 		oRm.openEnd(); // div element
 
 		this.renderAppointmentsRow(oRm, oRow, aTypes);
@@ -96,6 +97,7 @@ sap.ui.define([
 		var sId = oRow.getId();
 		oRm.openStart("div", sId + "-Apps");
 		oRm.class("sapUiCalendarRowApps");
+		oRm.attr("role", "list");
 		oRm.openEnd();
 
 		this.renderBeforeAppointments(oRm, oRow);
@@ -450,7 +452,8 @@ sap.ui.define([
 
 			mAttributes["id"] = sId + "-Icon";
 			mAttributes["title"] = null;
-			mAttributes["role"] = "img";
+			mAttributes["alt"] = null;
+			mAttributes["role"] = "presentation";
 			oRm.icon(sIcon, aClasses, mAttributes);
 		}
 
@@ -477,8 +480,8 @@ sap.ui.define([
 		}
 
 		// ARIA information about start and end
-		sStartEndAriaText = oRow._oRb.getText("CALENDAR_START_TIME") + ": " + oRow._oFormatAria.format(oIntervalHeader.appointment.getStartDate())
-				+ "; " + oRow._oRb.getText("CALENDAR_END_TIME") + ": " + oRow._oFormatAria.format(oIntervalHeader.appointment.getEndDate());
+		sStartEndAriaText = oRow._oRb.getText("CALENDAR_START_TIME") + ": " + oRow._oFormatAria.format(oIntervalHeader.appointment._getStartDateWithTimezoneAdaptation())
+				+ "; " + oRow._oRb.getText("CALENDAR_END_TIME") + ": " + oRow._oFormatAria.format(oIntervalHeader.appointment._getEndDateWithTimezoneAdaptation());
 
 		if (sType && sType !== CalendarDayType.None) {
 
@@ -508,6 +511,7 @@ sap.ui.define([
 		var sId = oAppointment.getId();
 		var bReducedHeight = oRow._getAppointmentReducedHeight(oAppointmentInfo);
 		var mAccProps = {
+			role: "listitem",
 			labelledby: {value: InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT") + " " + sId + "-Descr", append: true},
 			selected: null
 		};
@@ -610,7 +614,8 @@ sap.ui.define([
 				var mAttributes = {};
 				mAttributes["id"] = sId + "-Icon";
 				mAttributes["title"] = null;
-				mAttributes["role"] = "img";
+				mAttributes["alt"] = null;
+				mAttributes["role"] = "presentation";
 				oRm.icon(sIcon, aClasses, mAttributes);
 			}
 			oRm.openStart("div");
@@ -644,12 +649,12 @@ sap.ui.define([
 		}
 
 		// ARIA information about start and end
-		var sAriaText = oRow._oRb.getText("CALENDAR_START_TIME") + ": " + oRow._oFormatAria.format(oAppointment.getStartDate());
-		sAriaText = sAriaText + "; " + oRow._oRb.getText("CALENDAR_END_TIME") + ": " + oRow._oFormatAria.format(oAppointment.getEndDate());
+		var sAriaText = oRow._oRb.getText("CALENDAR_START_TIME") + ": " + oRow._oFormatAria.format(oAppointment._getStartDateWithTimezoneAdaptation());
+		sAriaText = sAriaText + "; " + oRow._oRb.getText("CALENDAR_END_TIME") + ": " + oRow._oFormatAria.format(oAppointment._getEndDateWithTimezoneAdaptation());
 		if (oRow._getRelativeInfo && oRow._getRelativeInfo().bIsRelative) {
 			var oRelativeInfo = oRow._getRelativeInfo();
-			sAriaText = oRow._oRb.getText("CALENDAR_START_TIME") + ": " + oRelativeInfo.intervalLabelFormatter(oRelativeInfo._getIndexFromDate(oAppointment.getStartDate()));
-			sAriaText = sAriaText + "; " + oRow._oRb.getText("CALENDAR_END_TIME") + ": " + oRelativeInfo.intervalLabelFormatter(oRelativeInfo._getIndexFromDate(oAppointment.getEndDate()));
+			sAriaText = oRow._oRb.getText("CALENDAR_START_TIME") + ": " + oRelativeInfo.intervalLabelFormatter(oRelativeInfo._getIndexFromDate(oAppointment._getStartDateWithTimezoneAdaptation()));
+			sAriaText = sAriaText + "; " + oRow._oRb.getText("CALENDAR_END_TIME") + ": " + oRelativeInfo.intervalLabelFormatter(oRelativeInfo._getIndexFromDate(oAppointment._getEndDateWithTimezoneAdaptation()));
 		}
 		if (sType && sType != CalendarDayType.None) {
 			sAriaText = sAriaText + "; " + this.getAriaTextForType(sType, aTypes);
@@ -686,8 +691,8 @@ sap.ui.define([
 
 		oRowStartDate.setHours(0, 0, 0, 0); // get the appointments and interval headers for the whole day
 		aSortedAppInfos = aAppointments.concat(oRow.getIntervalHeaders().filter(function(oIntHeadApp) {
-			var iAppStart = oIntHeadApp.getStartDate().getTime(),
-				iAppEnd = oIntHeadApp.getEndDate().getTime(),
+			var iAppStart = oIntHeadApp._getStartDateWithTimezoneAdaptation().getTime(),
+				iAppEnd = oIntHeadApp._getEndDateWithTimezoneAdaptation().getTime(),
 				iRowStart = oRowStartDate.getTime(),
 				iRowEnd = iRowStart + 1000 * 60 * 60 * 24;
 			return !(iAppStart >= iRowEnd || iAppEnd <= iRowStart);

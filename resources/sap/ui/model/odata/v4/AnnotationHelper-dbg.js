@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,12 +15,11 @@ sap.ui.define([
 		rPaths = /\$(?:(?:Annotation)|(?:(?:Navigation)?Property))?Path/,
 		rSplitPathSegment = /^(.+?\/(\$(?:Annotation)?Path))(\/?)(.*)$/,
 		rUnsupportedPathSegments = /\$(?:Navigation)?PropertyPath/,
-
 		/**
 		 * @classdesc
-		 * A collection of methods which help to consume
-		 * <a href="http://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html">
-		 * OData V4 annotations</a> in XML template views. Every context argument must belong to a
+		 * A collection of methods which help to consume <a href=
+		 * "https://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html#_Vocabulary_and_Annotation"
+		 * >OData V4 annotations</a> in XML template views. Every context argument must belong to a
 		 * {@link sap.ui.model.odata.v4.ODataMetaModel} instance.
 		 *
 		 * @alias sap.ui.model.odata.v4.AnnotationHelper
@@ -113,16 +112,16 @@ sap.ui.define([
 			 * Example for "$AnnotationPath" in the context's path:
 			 * <pre>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi.v0001.EQUIPMENT">
-			 *	&lt;Annotation Term="com.sap.vocabularies.UI.v1.Facets">
-			 *		&lt;Collection>
-			 *			&lt;Record Type="com.sap.vocabularies.UI.v1.ReferenceFacet">
-			 *				&lt;PropertyValue Property="Target" AnnotationPath="EQUIPMENT_2_PRODUCT/@com.sap.vocabularies.Common.v1.QuickInfo" />
-			 *			&lt;/Record>
-			 *		&lt;/Collection>
-			 *	&lt;/Annotation>
+			 *   &lt;Annotation Term="com.sap.vocabularies.UI.v1.Facets">
+			 *     &lt;Collection>
+			 *       &lt;Record Type="com.sap.vocabularies.UI.v1.ReferenceFacet">
+			 *         &lt;PropertyValue Property="Target" AnnotationPath="EQUIPMENT_2_PRODUCT/@com.sap.vocabularies.Common.v1.QuickInfo" />
+			 *       &lt;/Record>
+			 *     &lt;/Collection>
+			 *   &lt;/Annotation>
 			 * &lt;/Annotations>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi_product.v0001.Product">
-			 *	&lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="Name" />
+			 *   &lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="Name" />
 			 * &lt;/Annotations>
 			 * </pre>
 			 * <pre>
@@ -134,16 +133,16 @@ sap.ui.define([
 			 * Example for "$Path" in the context's path:
 			 * <pre>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi.v0001.EQUIPMENT">
-			 *	&lt;Annotation Term="com.sap.vocabularies.UI.v1.LineItem">
-			 *		&lt;Collection>
-			 *			&lt;Record Type="com.sap.vocabularies.UI.v1.DataField">
-			 *				&lt;PropertyValue Property="Value" Path="EQUIPMENT_2_PRODUCT/Name" />
-			 *			&lt;/Record>
-			 *		&lt;/Collection>
-			 *	&lt;/Annotation>
+			 *   &lt;Annotation Term="com.sap.vocabularies.UI.v1.LineItem">
+			 *     &lt;Collection>
+			 *       &lt;Record Type="com.sap.vocabularies.UI.v1.DataField">
+			 *         &lt;PropertyValue Property="Value" Path="EQUIPMENT_2_PRODUCT/Name" />
+			 *       &lt;/Record>
+			 *     &lt;/Collection>
+			 *   &lt;/Annotation>
 			 * &lt;/Annotations>
 			 * &lt;Annotations Target="com.sap.gateway.default.iwbep.tea_busi_product.v0001.Product/Name">
-			 *	&lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="PRODUCT_2_SUPPLIER/Supplier_Name" />
+			 *   &lt;Annotation Term="com.sap.vocabularies.Common.v1.QuickInfo" Path="PRODUCT_2_SUPPLIER/Supplier_Name" />
 			 * &lt;/Annotations>
 			 * </pre>
 			 * <pre>

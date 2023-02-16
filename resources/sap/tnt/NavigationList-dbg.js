@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -41,13 +41,12 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.98.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.34
 		 * @alias sap.tnt.NavigationList
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var NavigationList = Control.extend("sap.tnt.NavigationList", /** @lends sap.tnt.NavigationList.prototype */ {
 			metadata: {
@@ -107,7 +106,9 @@ sap.ui.define([
 						}
 					}
 				}
-			}
+			},
+
+			renderer: NavigationListRenderer
 		});
 
 		/**
@@ -270,7 +271,7 @@ sap.ui.define([
 		/**
 		 * Gets the currently selected <code>NavigationListItem</code>.
 		 * @public
-		 * @return {sap.tnt.NavigationListItem|null} The selected item or null if nothing is selected
+		 * @return {sap.tnt.NavigationListItem|null} The selected item or <code>null</code> if nothing is selected
 		 */
 		NavigationList.prototype.getSelectedItem = function () {
 			var selectedItem = this.getAssociation('selectedItem');

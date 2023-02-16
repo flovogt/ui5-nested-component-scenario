@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,7 +26,7 @@ function (library, Log, Element) {
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
@@ -59,7 +59,15 @@ function (library, Log, Element) {
 				 *
 				 * @since 1.98
 				 */
-				firstDayOfWeek : {type : "int", group : "Appearance", defaultValue : -1}
+				firstDayOfWeek : {type : "int", group : "Appearance", defaultValue : -1},
+
+				/**
+			 	 * If set, the calendar week numbering is used for display.
+				 * If not set, the calendar week numbering of the global configuration is used.
+				 * Note: This property should not be used with firstDayOfWeek property.
+				 * @since 1.110.0
+				 */
+				calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 
 			}
 		}
@@ -92,7 +100,7 @@ function (library, Log, Element) {
 	 * Should calculate the startDate which will be displayed in the <code>sap.m.SinglePlanningCalendar</code>
 	 * based on a given date.
 	 *
-	 * @param {object} oDate the given date
+	 * @param {Date} oDate A JavaScript Date
 	 * @public
 	 * @abstract
 	 */

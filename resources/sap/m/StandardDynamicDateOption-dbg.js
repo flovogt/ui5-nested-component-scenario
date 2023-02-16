@@ -1,36 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.StandardDynamicDateOption.
 sap.ui.define([
 		'sap/ui/core/library',
-		'sap/ui/core/Element',
 		'./DynamicDateOption',
 		'./Label',
-		'./StepInput',
 		'./RadioButton',
 		'./RadioButtonGroup',
-		'sap/ui/unified/Calendar',
-		'sap/ui/unified/calendar/MonthPicker',
-		'sap/ui/core/format/DateFormat',
 		'sap/ui/core/date/UniversalDateUtils',
 		'sap/ui/core/date/UniversalDate',
 		'sap/m/DynamicDateValueHelpUIType',
 		'./library'],
 	function(
 		coreLibrary,
-		Element,
 		DynamicDateOption,
 		Label,
-		StepInput,
 		RadioButton,
 		RadioButtonGroup,
-		Calendar,
-		MonthPicker,
-		DateFormat,
 		UniversalDateUtils,
 		UniversalDate,
 		DynamicDateValueHelpUIType,
@@ -52,11 +42,10 @@ sap.ui.define([
 		 * @extends sap.m.DynamicDateOption
 		 *
 		 * @author SAP SE
-		 * @version 1.98.0
+		 * @version 1.110.0
 		 *
 		 * @public
 		 * @alias sap.m.StandardDynamicDateOption
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 * @experimental Since 1.92. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 		 */
 		var StandardDynamicDateOption = DynamicDateOption.extend("sap.m.StandardDynamicDateOption", /** @lends sap.m.StandardDynamicDateOption.prototype */ {
@@ -70,11 +59,14 @@ sap.ui.define([
 
 		var Keys = {
 			"DATE": "DATE",
+			"DATETIME": "DATETIME",
 			"DATERANGE": "DATERANGE",
+			"DATETIMERANGE": "DATETIMERANGE",
 			"TODAY": "TODAY",
 			"YESTERDAY": "YESTERDAY",
 			"TOMORROW": "TOMORROW",
 			"SPECIFICMONTH": "SPECIFICMONTH",
+			"SPECIFICMONTHINYEAR": "SPECIFICMONTHINYEAR",
 			"FIRSTDAYWEEK": "FIRSTDAYWEEK",
 			"LASTDAYWEEK": "LASTDAYWEEK",
 			"FIRSTDAYMONTH":"FIRSTDAYMONTH",
@@ -107,6 +99,8 @@ sap.ui.define([
 			"NEXTYEARS": "NEXTYEARS",
 			"FROM": "FROM",
 			"TO": "TO",
+			"FROMDATETIME": "FROMDATETIME",
+			"TODATETIME": "TODATETIME",
 			"YEARTODATE": "YEARTODATE",
 			"DATETOYEAR":"DATETOYEAR",
 			"TODAYFROMTO": "TODAYFROMTO",
@@ -127,11 +121,14 @@ sap.ui.define([
 
 		var _OptionsGroup = {
 			"DATE": _Groups.SingleDates,
+			"DATETIME": _Groups.SingleDates,
 			"DATERANGE": _Groups.DateRanges,
+			"DATETIMERANGE": _Groups.DateRanges,
 			"TODAY": _Groups.SingleDates,
 			"YESTERDAY": _Groups.SingleDates,
 			"TOMORROW": _Groups.SingleDates,
 			"SPECIFICMONTH": _Groups.Months,
+			"SPECIFICMONTHINYEAR": _Groups.Months,
 			"FIRSTDAYWEEK": _Groups.SingleDates,
 			"LASTDAYWEEK": _Groups.SingleDates,
 			"FIRSTDAYMONTH":_Groups.SingleDates,
@@ -164,6 +161,8 @@ sap.ui.define([
 			"NEXTYEARS": _Groups.DateRanges,
 			"FROM": _Groups.DateRanges,
 			"TO": _Groups.DateRanges,
+			"FROMDATETIME": _Groups.DateRanges,
+			"TODATETIME": _Groups.DateRanges,
 			"YEARTODATE": _Groups.DateRanges,
 			"DATETOYEAR": _Groups.DateRanges,
 			"TODAYFROMTO": _Groups.DateRanges,
@@ -221,6 +220,12 @@ sap.ui.define([
 				case Keys.NEXTQUARTERS:
 				case Keys.NEXTYEARS:
 					return this._getXPeriodTitle(aParams[1].getOptions());
+				case Keys.FROMDATETIME:
+				case Keys.TODATETIME:
+				case Keys.DATETIMERANGE:
+					return oControl._findOption(sKey)._bAdditionalTimeText ?
+						_resourceBundle.getText("DYNAMIC_DATE_" + sKey + "_TITLE") + " (" + _resourceBundle.getText("DYNAMIC_DATE_DATETIME_TITLE") + ")" :
+						_resourceBundle.getText("DYNAMIC_DATE_" + sKey + "_TITLE");
 				default:
 					return _resourceBundle.getText("DYNAMIC_DATE_" + sKey + "_TITLE");
 			}
@@ -262,6 +267,14 @@ sap.ui.define([
 					case Keys.QUARTER4:
 						this.aValueHelpUITypes = [];
 						break;
+					case Keys.DATETIME:
+					case Keys.FROMDATETIME:
+					case Keys.TODATETIME:
+						this.aValueHelpUITypes = [
+							new DynamicDateValueHelpUIType({
+								type: "datetime"
+							})];
+						break;
 					case Keys.DATE:
 					case Keys.FROM:
 					case Keys.TO:
@@ -280,6 +293,12 @@ sap.ui.define([
 						this.aValueHelpUITypes = [
 							new DynamicDateValueHelpUIType({
 								type: "month"
+							})];
+						break;
+					case Keys.SPECIFICMONTHINYEAR:
+						this.aValueHelpUITypes = [
+							new DynamicDateValueHelpUIType({
+								type: "custommonth"
 							})];
 						break;
 					case Keys.LASTDAYS:
@@ -311,6 +330,17 @@ sap.ui.define([
 								additionalText: _resourceBundle.getText("DDR_TODAYFROMTO_TO_ADDITIONAL_LABEL")
 							})];
 						break;
+					case Keys.DATETIMERANGE:
+							this.aValueHelpUITypes = [
+								new DynamicDateValueHelpUIType({
+									text: _resourceBundle.getText("DDR_DATETIMERANGE_FROM_LABEL"),
+									type: "datetime"
+								}),
+								new DynamicDateValueHelpUIType({
+									text: _resourceBundle.getText("DDR_DATETIMERANGE_TO_LABEL"),
+									type: "datetime"
+								})];
+							break;
 				}
 			}
 
@@ -319,22 +349,25 @@ sap.ui.define([
 
 		/**
 		 * Creates a UI for this DynamicDateOption.
-		 * @param {*} oOptions some parameters that can adapt the UI from outside
+		 * @param {sap.m.DynamicDateRange} Control to create the UI for
 		 * @param {function} fnControlsUpdated A callback invoked when any of the created controls updates its value
 		 *
-		 * Returns an array of controls which is mapped to the parameters of this DynamicDateOption.
+		 * @return {sap.ui.core.Control[]} Returns an array of controls which is mapped to the parameters of this DynamicDateOption.
 		 */
 		StandardDynamicDateOption.prototype.createValueHelpUI = function(oControl, fnControlsUpdated) {
-			var oOptions = oControl._getOptions();
-			var oValue = oControl.getValue();
-			var aParams = this.getValueHelpUITypes(oControl);
-			var aControls = [];
+			var oOptions = oControl._getOptions(),
+				oValue = oControl.getValue() && Object.assign({}, oControl.getValue()),
+				aParams = this.getValueHelpUITypes(oControl),
+				aControls = [],
+				oCurrentLabel;
+
 			if (!oControl.aControlsByParameters) {
 				oControl.aControlsByParameters = {};
 			}
 			oControl.aControlsByParameters[this.getKey()] = [];
-			var oLastOptionParam = this._getOptionParams(aLastOptions, oOptions);
-			var oNextOptionParam = this._getOptionParams(aNextOptions, oOptions);
+
+			var oLastOptionParam = this._getOptionParams(aLastOptions, oOptions),
+				oNextOptionParam = this._getOptionParams(aNextOptions, oOptions);
 
 			if (oLastOptionParam) {
 				aParams.push(oLastOptionParam);
@@ -344,19 +377,33 @@ sap.ui.define([
 				aParams.push(oNextOptionParam);
 			}
 
+			if (oValue && oValue.values) {
+				oValue.values = oValue.values.map(function(val) {
+					if (val instanceof Date) {
+						return oControl._reverseConvertDate(val);
+					}
+
+					return val;
+				});
+			}
+
 			for (var iIndex = 0; iIndex < aParams.length; iIndex++) {
+				oCurrentLabel = null;
 				if (aParams[iIndex].getOptions() && aParams[iIndex].getOptions().length <= 1) {
 					break;
-				} else if (aParams[iIndex].getText()) {
-					aControls.push(
-						new Label({
-							text: aParams[iIndex].getText(),
-							width: "100%"
-						})
-					);
+				} else if (aParams[ iIndex ].getText()) {
+					oCurrentLabel = new Label({
+						text: aParams[ iIndex ].getText(),
+						width: "100%"
+					});
+					aControls.push(oCurrentLabel);
 				}
 
 				var oInputControl;
+				var bUTC = false;
+				if (oControl && oValue) {
+					bUTC = oControl._checkFormatterUTCTimezone(oValue.operator);
+				}
 
 				switch (aParams[iIndex].getType()) {
 					case "int":
@@ -368,20 +415,34 @@ sap.ui.define([
 						}
 						break;
 					case "date":
-						oInputControl = this._createDateControl(oValue, iIndex, fnControlsUpdated);
+						oInputControl = this._createDateControl(oValue, iIndex, fnControlsUpdated, bUTC);
+						break;
+					case "datetime":
+						if (aParams.length === 1) {
+							// creates "single" DateTime option (embedded in the DynamicDateRange popup)
+							oInputControl = this._createDateTimeInnerControl(oValue, iIndex, fnControlsUpdated, bUTC);
+						} else if (aParams.length === 2) {
+							oInputControl = this._createDateTimeControl(oValue, iIndex, fnControlsUpdated, bUTC);
+						}
 						break;
 					case "daterange":
-						oInputControl = this._createDateRangeControl(oValue, iIndex, fnControlsUpdated);
+						oInputControl = this._createDateRangeControl(oValue, iIndex, fnControlsUpdated, bUTC);
 					break;
 					case "month":
 						oInputControl = this._createMonthControl(oValue, iIndex, fnControlsUpdated);
 						break;
+					case "custommonth":
+						oInputControl = this._createCustomMonthControl(oValue, iIndex, fnControlsUpdated);
+						break;
 					case "options":
 						oInputControl = this._createOptionsControl(oValue, iIndex, fnControlsUpdated, aParams);
+						break;
+					default:
 						break;
 				}
 
 				aControls.push(oInputControl);
+				oCurrentLabel && oCurrentLabel.setLabelFor(oInputControl);
 
 				if (aParams[iIndex].getAdditionalText()) {
 					aControls.push(
@@ -402,7 +463,7 @@ sap.ui.define([
 			var iMin = this.getKey() === "TODAYFROMTO" ? -MAX_VALUE_HELP_INTEGER : MIN_VALUE_HELP_INTEGER;
 			var bUseDefaultValue = !oValue || this.getKey() !== oValue.operator;
 
-			if (this.getKey() === "TODAYFROMTO" && bUseDefaultValue) {
+			if (bUseDefaultValue) {
 				oControl.setValue(1);
 			}
 
@@ -474,9 +535,20 @@ sap.ui.define([
 						}
 						break;
 					case "month":
+					case "custommonth":
 					case "date":
 					case "daterange":
 						if (!oInputControl.getSelectedDates() || oInputControl.getSelectedDates().length == 0) {
+							return false;
+						}
+						break;
+					case "datetime":
+						if (aParams.length === 1) {
+							// validates "single" DateTime option (embedded in the DynamicDateRange popup)
+							if (!oInputControl.getCalendar().getSelectedDates() || oInputControl.getCalendar().getSelectedDates().length == 0) {
+								return false;
+							}
+						} else if (!oInputControl.getDateValue() && aParams.length === 2) {
 							return false;
 						}
 						break;
@@ -484,6 +556,8 @@ sap.ui.define([
 						if (oInputControl.getSelectedIndex() < 0) {
 							return false;
 						}
+						break;
+					default:
 						break;
 				}
 			}
@@ -527,12 +601,44 @@ sap.ui.define([
 
 						vOutput = oInputControl.getSelectedDates()[0].getStartDate().getMonth();
 						break;
+					case "custommonth":
+						if (!oInputControl.getSelectedDates() || !oInputControl.getSelectedDates().length) {
+							return null;
+						}
+
+						vOutput = [oInputControl.getSelectedDates()[0].getStartDate().getMonth(), oInputControl.getSelectedDates()[0].getStartDate().getFullYear()];
+						break;
 					case "date":
 						if (!oInputControl.getSelectedDates().length) {
 							return null;
 						}
 
 						vOutput = oInputControl.getSelectedDates()[0].getStartDate();
+						break;
+					case "datetime":
+						if (aParams.length === 1) {
+							// "single" DateTime picker (embedded in the DynamicDateRange popup)
+							var oDate,
+								oTimeDate,
+								oCalendar,
+								oClocks;
+
+							oCalendar = oInputControl.getCalendar();
+							oClocks = oInputControl.getClocks();
+							if (!oCalendar.getSelectedDates().length) {
+								return null;
+							}
+							oDate = oCalendar.getSelectedDates()[0].getStartDate();
+							oTimeDate = oClocks.getTimeValues();
+							oDate.setHours(oTimeDate.getHours(), oTimeDate.getMinutes(), oTimeDate.getSeconds());
+							vOutput = oDate;
+						} else if (aParams.length === 2) {
+							if (!oInputControl.getDateValue()) {
+								return null;
+							}
+
+							vOutput = oInputControl.getDateValue();
+						}
 						break;
 					case "daterange":
 						if (!oInputControl.getSelectedDates().length) {
@@ -541,6 +647,8 @@ sap.ui.define([
 
 						var oEndDate = oInputControl.getSelectedDates()[0].getEndDate() || oInputControl.getSelectedDates()[0].getStartDate();
 						vOutput = [oInputControl.getSelectedDates()[0].getStartDate(), oEndDate];
+						break;
+					default:
 						break;
 				}
 
@@ -563,7 +671,7 @@ sap.ui.define([
 		};
 
 		StandardDynamicDateOption.prototype.format = function(oObj, oFormatter) {
-			return oFormatter.format(oObj);
+			return oFormatter.format(oObj, true);
 		};
 
 		StandardDynamicDateOption.prototype.parse = function(sValue, oFormatter) {
@@ -584,13 +692,30 @@ sap.ui.define([
 					oDate.setMonth(oValue.values[0]);
 					oDate = UniversalDateUtils.getMonthStartDate(oDate);
 					return UniversalDateUtils.getRange(0, "MONTH", oDate);
+				case "SPECIFICMONTHINYEAR":
+					var oDate = new UniversalDate();
+					oDate.setMonth(oValue.values[0]);
+					oDate.setYear(oValue.values[1]);
+					oDate = UniversalDateUtils.getMonthStartDate(oDate);
+					return UniversalDateUtils.getRange(0, "MONTH", oDate);
 				case "DATE":
 					return UniversalDateUtils.getRange(0, "DAY", UniversalDate.getInstance(oValue.values[0]));
+				case "DATETIME":
+					var oDateTime = new UniversalDate.getInstance(oValue.values[0]);
+					return [oDateTime, oDateTime];
 				case "DATERANGE":
 					var oStart = UniversalDate.getInstance(oValue.values[0]);
 					var oEnd = UniversalDate.getInstance(oValue.values[1]);
 
 					return [UniversalDateUtils.resetStartTime(oStart), UniversalDateUtils.resetEndTime(oEnd)];
+				case "DATETIMERANGE":
+					var oStart = UniversalDate.getInstance(oValue.values[0]);
+					var oEnd = UniversalDate.getInstance(oValue.values[1]);
+
+					oStart.setMilliseconds(0);
+					oEnd.setMilliseconds(999);
+
+					return [oStart, oEnd];
 				case "TODAY":
 					return UniversalDateUtils.ranges.today();
 				case "YESTERDAY":
@@ -658,9 +783,21 @@ sap.ui.define([
 				case "NEXTYEARS":
 					return UniversalDateUtils.ranges.nextYears(iParamLastNext);
 				case "FROM":
-					return [oValue.values[0], oValue.values[0]];
+					return [UniversalDate.getInstance(oValue.values[0])];
 				case "TO":
-					return [oValue.values[0], oValue.values[0]];
+					return [UniversalDate.getInstance(oValue.values[0])];
+				case "FROMDATETIME":
+					var oDate = UniversalDate.getInstance(oValue.values[0]);
+
+					oDate.setMilliseconds(0);
+
+					return [oDate];
+				case "TODATETIME":
+					var oDate = UniversalDate.getInstance(oValue.values[0]);
+
+					oDate.setMilliseconds(999);
+
+					return [oDate];
 				case "YEARTODATE":
 					return UniversalDateUtils.ranges.yearToDate();
 				case "DATETOYEAR":

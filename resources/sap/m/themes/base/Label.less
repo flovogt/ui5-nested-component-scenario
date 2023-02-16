@@ -4,6 +4,7 @@
 /* ============================ */
 
 @_sap_m_Label_AsteriskWidth: 6px;
+@_sap_m_Label_ColonWidth: 4px;
 
 .sapMLabel {
 	color: @sapUiContentLabelColor;
@@ -30,6 +31,25 @@
 
 .sapMLabel.sapMLabelRequired:not(.sapMLabelWrapped) .sapMLabelTextWrapper {
 	max-width: calc(~"100% - 0.125rem - @{_sap_m_Label_AsteriskWidth}");
+}
+
+.sapMLabel.sapMLabelRequired.sapMLabelShowColon:not(.sapMLabelWrapped) .sapMLabelTextWrapper {
+	max-width: calc(~"100% - 0.125rem - @{_sap_m_Label_AsteriskWidth} - @{_sap_m_Label_ColonWidth}");
+	&:lang(fr) {
+		max-width: calc(~"100% - 0.125rem - 1.125em - @{_sap_m_Label_AsteriskWidth} - @{_sap_m_Label_ColonWidth}");
+	}
+	&:lang(zh-TW) {
+		max-width: calc(~"100% - 0.125rem - 1.59em - @{_sap_m_Label_AsteriskWidth} - @{_sap_m_Label_ColonWidth}");
+	}
+	&:lang(zh-CN) {
+		max-width: calc(~"100% - 0.125rem - 1.59em - @{_sap_m_Label_AsteriskWidth} - @{_sap_m_Label_ColonWidth}");
+	}
+	&:lang(zh-Hans) {
+		max-width: calc(~"100% - 0.125rem - 1.59em - @{_sap_m_Label_AsteriskWidth} - @{_sap_m_Label_ColonWidth}");
+	}
+	&:lang(zh-Hant) {
+		max-width: calc(~"100% - 0.125rem - 1.59em - @{_sap_m_Label_AsteriskWidth} - @{_sap_m_Label_ColonWidth}");
+	}
 }
 
 .sapMLabelBold,
@@ -180,6 +200,15 @@ td.sapUiFormElementLbl:not(.sapUiGridLabelFull) > .sapMLabel{
 			&:lang(zh-TW) {
 				padding-right: 1.59em;
 			}
+			&:lang(zh-CN) {
+				padding-right: 1.59em;
+			}
+			&:lang(zh-Hans) {
+				padding-right: 1.59em;
+			}
+			&:lang(zh-Hant) {
+				padding-right: 1.59em;
+			}
 
 			.sapMLabelColonAndRequired {
 				position: absolute;
@@ -288,7 +317,7 @@ td.sapUiFormElementLbl:not(.sapUiGridLabelFull) > .sapMLabel{
 
 .sapUiSizeCompact,
 .sapUiSizeCondensed {
-	.sapUiTableCell .sapMLabel {
+	.sapUiTableCell:not(.sapUiTableHeaderDataCell) .sapMLabel {
 		font-weight: normal;
 		font-size: @sapMFontHeader6Size;
 	}

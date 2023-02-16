@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,8 +15,8 @@ sap.ui.define([
 	 * Constructor for a <code>Currency</code> composite type.
 	 *
 	 * @param {object} [oFormatOptions]
-	 *   See parameter <code>oFormatOptions</code> of
-	 *   {@link sap.ui.model.type.Currency#constructor}. Format options are immutable, that is,
+	 *   Format options as defined in {@link sap.ui.core.format.NumberFormat.getCurrencyInstance}.
+	 *   Format options are immutable, that is,
 	 *   they can only be set once on construction. Format options that are not supported or have a
 	 *   different default are listed below. If the format option <code>showMeasure</code> is set to
 	 *   <code>false</code>, model messages for the currency code are not propagated to the control
@@ -57,11 +57,15 @@ sap.ui.define([
 	 * customizing for the currency. Use the result of the promise returned by
 	 * {@link sap.ui.model.odata.v4.ODataMetaModel#requestCurrencyCodes} for OData V4 or by
 	 * {@link sap.ui.model.odata.ODataMetaModel#requestCurrencyCodes} for OData V2 as currency
-	 * customizing part. If no currency customizing is available, UI5's default formatting applies.
+	 * customizing part. See
+	 * {@link topic:4d1b9d44941f483f9b7f579873d38685 Currency and Unit Customizing in OData V4}
+	 * resp. {@link topic:6c47b2b39db9404582994070ec3d57a2#loioaa9024c7c5444822a68daeb21a92bd51
+	 * Currency and Unit Customizing in OData V2} for more information. If no currency customizing
+	 * is available, UI5's default formatting applies.
 	 * @extends sap.ui.model.type.Currency
 	 * @public
 	 * @since 1.63.0
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 */
 	var Currency = BaseCurrency.extend("sap.ui.model.odata.type.Currency", {
 		constructor : function (oFormatOptions, oConstraints) {

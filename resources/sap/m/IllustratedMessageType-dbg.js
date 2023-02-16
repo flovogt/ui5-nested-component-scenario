@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([], function() {
+sap.ui.define([], function () {
 	"use strict";
 
 	/**
@@ -14,7 +14,6 @@ sap.ui.define([], function() {
 	 * @public
 	 * @alias sap.m.IllustratedMessageType
 	 * @since 1.98
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var IllustratedMessageType = {
 
@@ -91,16 +90,34 @@ sap.ui.define([], function() {
 		NoTasksV1: "sapIllus-NoTasks_v1",
 
 		/**
+		 * "No Dimensions Set" illustration type.
+		 * @public
+		 */
+		NoDimensionsSet: "sapIllus-NoDimensionsSet",
+
+		/**
 		 * "Unable To Load" illustration type.
 		 * @public
 		 */
 		UnableToLoad: "sapIllus-UnableToLoad",
 
 		/**
+		 * "Unable To Load Image" illustration type.
+		 * @public
+		 */
+		UnableToLoadImage: "sapIllus-UnableToLoadImage",
+
+		/**
 		 * "Unable To Upload" illustration type.
 		 * @public
 		 */
 		UnableToUpload: "sapIllus-UnableToUpload",
+
+		/**
+		 * "Upload To Cloud" illustration type.
+		 * @public
+		 */
+		UploadToCloud: "sapIllus-UploadToCloud",
 
 		/**
 		 * "Add Column" illustration type.
@@ -113,6 +130,12 @@ sap.ui.define([], function() {
 		 * @public
 		 */
 		AddPeople: "sapIllus-AddPeople",
+
+		/**
+		 * "Add Dimensions" illustration type.
+		 * @public
+		 */
+		AddDimensions: "sapIllus-AddDimensions",
 
 		/**
 		 * "Balloon Sky" illustration type.
@@ -217,10 +240,10 @@ sap.ui.define([], function() {
 		SimpleCalendar: "sapIllus-SimpleCalendar",
 
 		/**
-		 * "Simple Checkmark" illustration type.
+		 * "Simple CheckMark" illustration type.
 		 * @public
 		 */
-		SimpleCheckmark: "sapIllus-SimpleCheckmark",
+		SimpleCheckMark: "sapIllus-SimpleCheckMark",
 
 		/**
 		 * "Simple Connection" illustration type.
@@ -293,6 +316,24 @@ sap.ui.define([], function() {
 		 * @public
 		 */
 		SortColumn: "sapIllus-SortColumn",
+
+		/**
+		 * "Success Balloon" illustration type.
+		 * @public
+		 */
+		SuccessBalloon: "sapIllus-SuccessBalloon",
+
+		/**
+		 * "Success CheckMark" illustration type.
+		 * @public
+		 */
+		SuccessCheckMark: "sapIllus-SuccessCheckMark",
+
+		/**
+		 * "Success HighFive" illustration type.
+		 * @public
+		 */
+		SuccessHighFive: "sapIllus-SuccessHighFive",
 
 		/**
 		 * "Success Screen" illustration type.

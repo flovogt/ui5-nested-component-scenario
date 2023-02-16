@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -32,13 +32,12 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 		 * @extends sap.ui.core.Item
 		 *
 		 * @author SAP SE
-		 * @version 1.98.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.34
 		 * @alias sap.tnt.NavigationListItem
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var NavigationListItem = Item.extend("sap.tnt.NavigationListItem", /** @lends sap.tnt.NavigationListItem.prototype */ {
 			metadata: {
@@ -394,8 +393,9 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 			expandIconControl.setTooltip(this._getExpandIconTooltip(false));
 
 			var $container = this.$().find('.sapTntNavLIGroupItems');
+			var oDomRef = this.getDomRef();
 			$container.stop(true, true).slideDown(duration || 'fast', function () {
-				$container.toggleClass('sapTntNavLIHiddenGroupItems');
+				oDomRef.querySelector(".sapTntNavLIGroupItems").classList.toggle('sapTntNavLIHiddenGroupItems');
 			});
 
 			this.getNavigationList()._updateNavItems();
@@ -420,8 +420,9 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 			expandIconControl.setTooltip(this._getExpandIconTooltip(true));
 
 			var $container = this.$().find('.sapTntNavLIGroupItems');
+			var oDomRef = this.getDomRef();
 			$container.stop(true, true).slideUp(duration || 'fast', function () {
-				$container.toggleClass('sapTntNavLIHiddenGroupItems');
+				oDomRef.querySelector(".sapTntNavLIGroupItems").classList.toggle('sapTntNavLIHiddenGroupItems');
 			});
 
 			this.getNavigationList()._updateNavItems();
@@ -568,6 +569,11 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 
 			rm.openStart('a', this.getId() + '-a');
 			rm.attr('tabindex', '-1');
+			rm.accessibilityState({role: 'link'});
+
+			if (!isListExpanded) {
+				rm.accessibilityState({hidden: true});
+			}
 
 			if (href) {
 				rm.attr('href', href);
@@ -719,6 +725,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 
 			rm.openStart('a', this.getId() + '-a');
 			rm.attr('tabindex', '-1');
+			rm.accessibilityState({role: 'link'});
 
 			if (href) {
 				rm.attr('href', href);
@@ -930,7 +937,6 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 		};
 
 		NavigationListItem.prototype.onfocusin = function(event) {
-
 			if (event.srcControl !== this) {
 				return;
 			}
@@ -938,21 +944,26 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 			this._updateAccessibilityText();
 		};
 
-
 		NavigationListItem.prototype._updateAccessibilityText = function() {
-			var invisibleText = NavigationListItem._getInvisibleText(),
-				navList = this.getNavigationList(),
-				bundle = this._resourceBundleMLib,
-				accType = navList.getExpanded() ? bundle.getText("ACC_CTR_TYPE_TREEITEM") : '',
+			var navList = this.getNavigationList(),
+				invisibleText = NavigationListItem._getInvisibleText();
+
+			if (!navList.getExpanded()) {
+				invisibleText.setText("");
+				return;
+			}
+
+			// for role "treeitem" we have to manually describe the role and position
+			var bundle = this._resourceBundleMLib,
 				$focusedItem = this._getAccessibilityItem(),
+				selected = navList._selectedItem === this ? bundle.getText("LIST_ITEM_SELECTED") : '',
+				accType = bundle.getText("ACC_CTR_TYPE_TREEITEM"),
 				mPosition = this._getAccessibilityPosition(),
 				itemPosition = bundle.getText("LIST_ITEM_POSITION", [mPosition.index, mPosition.size]),
-				selected = navList._selectedItem === this ? bundle.getText("LIST_ITEM_SELECTED") : '',
-				itemText = navList.getExpanded() ? this.getText() : "",
+				itemText = this.getText(),
 				text = accType + " " + selected + " " + itemText + " " + itemPosition;
 
 			invisibleText.setText(text);
-
 			$focusedItem.addAriaLabelledBy(invisibleText.getId());
 		};
 

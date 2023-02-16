@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/Core'],
@@ -24,7 +24,7 @@ sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/c
 	 * Add classes to the MultiComboBox.
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+	 * @param {sap.m.MultiComboBox} oControl An object representation of the control that should be rendered.
 	 */
 	MultiComboBoxRenderer.addOuterClasses = function(oRm, oControl) {
 		ComboBoxBaseRenderer.addOuterClasses.apply(this, arguments);
@@ -37,8 +37,8 @@ sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/c
 	/**
 	 * Returns the inner aria describedby ids for the accessibility.
 	 *
-	 * @param {sap.ui.core.Control} oControl an object representation of the control.
-	 * @returns {String|undefined}
+	 * @param {sap.m.MultiComboBox} oControl an object representation of the control.
+	 * @returns {string|undefined}
 	 */
 	MultiComboBoxRenderer.getAriaDescribedBy = function (oControl) {
 		var sAriaDescribedBy = ComboBoxTextFieldRenderer.getAriaDescribedBy.apply(this, arguments),
@@ -51,7 +51,7 @@ sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/c
 	/**
 	 * Retrieves the accessibility state of the control.
 	 *
-	 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+	 * @param {sap.m.MultiComboBox} oControl An object representation of the control that should be rendered.
 	 * @returns {object} The accessibility state of the control
 	 */
 	MultiComboBoxRenderer.getAccessibilityState = function (oControl) {

@@ -1,12 +1,12 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/ui/model/json/JSONModel', 'sap/m/VBox', 'sap/ui/core/Control', 'sap/m/Column', 'sap/m/Text', 'sap/ui/model/Filter', "sap/m/Table", "sap/m/OverflowToolbar", "sap/m/SearchField", "sap/m/ToolbarSpacer", "sap/m/OverflowToolbarButton", "sap/m/OverflowToolbarLayoutData", "sap/base/util/merge", "sap/ui/core/dnd/DragDropInfo"
-], function(JSONModel, VBox, Control, Column, Text, Filter, Table, OverflowToolbar, SearchField, ToolbarSpacer, OverflowToolbarButton, OverflowToolbarLayoutData, merge, DragDropInfo) {
+	'sap/ui/model/json/JSONModel', 'sap/m/VBox', 'sap/ui/core/Control', 'sap/m/Column', 'sap/m/Text', 'sap/ui/model/Filter', "sap/m/Table", "sap/m/OverflowToolbar", "sap/m/SearchField", "sap/m/ToolbarSpacer", "sap/m/OverflowToolbarButton", "sap/m/OverflowToolbarLayoutData", "sap/ui/core/dnd/DragDropInfo"
+], function(JSONModel, VBox, Control, Column, Text, Filter, Table, OverflowToolbar, SearchField, ToolbarSpacer, OverflowToolbarButton, OverflowToolbarLayoutData, DragDropInfo) {
 	"use strict";
 
 	/**
@@ -22,11 +22,11 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
-	 * @private
-	 * @ui5-restricted
-	 * @experimental Since 1.96.
+	 * @public
+	 * @abstract
+	 *
 	 * @since 1.96
 	 * @alias sap.m.p13n.BasePanel
 	 */
@@ -94,7 +94,7 @@ sap.ui.define([
 					 * An object containing information about the specific item that has been changed.
 					 */
 					item: {
-						type: "object"
+						type: "sap.m.p13n.Item|sap.m.p13n.Item[]"
 					}
 				}
 			}
@@ -120,6 +120,7 @@ sap.ui.define([
 	BasePanel.prototype.CHANGE_REASON_MOVE = "Move";
 	BasePanel.prototype.CHANGE_REASON_SELECTALL = "SelectAll";
 	BasePanel.prototype.CHANGE_REASON_DESELECTALL = "DeselectAll";
+	BasePanel.prototype.CHANGE_REASON_RANGESELECT = "RangeSelect";
 
 	//defines the name of the attribute describing the presence/active state
 	BasePanel.prototype.PRESENCE_ATTRIBUTE = "visible";
@@ -143,6 +144,13 @@ sap.ui.define([
 		this._oListControl.setMultiSelectMode("ClearAll");
 	};
 
+	BasePanel.prototype.onAfterRendering = function() {
+		if (!this._oResizeObserver) {
+			this._oResizeObserver = new ResizeObserver(this._onResize.bind(this));
+		}
+		this._oResizeObserver.observe(this.getDomRef());
+	};
+
 	/**
 	 * Can be overwritten if a different wrapping control is required for the inner content.
 	 */
@@ -157,10 +165,9 @@ sap.ui.define([
 	/**
 	 * P13n <code>Item</code> object type.
 	 *
-	 * @type {sap.m.p13n.Item}
 	 * @static
 	 * @constant
-	 * @typedef {Object} sap.m.p13n.Item
+	 * @typedef {object} sap.m.p13n.Item
 	 * @property {string} name The unique key of the item
 	 * @property {string} label The label describing the personalization item
 	 * @property {boolean} visible Defines the selection state of the personalization item
@@ -171,22 +178,22 @@ sap.ui.define([
 	 * Sets the personalization state of the panel instance.
 	 *
 	 * @public
-	 * @param {sap.m.p13n.Item} aP13nData An array containing the personalization state that is represented by the <code>BasePanel</code>.
-	 * @returns {sap.m.p13n.BasePanel} The BasePanel instance
+	 * @param {sap.m.p13n.Item[]} aP13nData An array containing the personalization state that is represented by the <code>BasePanel</code>.
+	 * @returns {this} The BasePanel instance
 	 */
 	BasePanel.prototype.setP13nData = function(aP13nData) {
-		this._getP13nModel().setProperty("/items", merge([], aP13nData));
+		this._getP13nModel().setProperty("/items", aP13nData);
 		return this;
 	};
 
 	/**
-	 *
+	 * Returns the personalization state that is currently displayed by the <code>BasePanel</code>.
 	 * @public
 	 * @param {boolean} bOnlyActive Determines whether only the present items is included
-	 * @returns {Array} An array containing the personalization state that is currently displayed by the <code>BasePanel</code>
+	 * @returns {sap.m.p13n.Item[]} An array containing the personalization state that is currently displayed by the <code>BasePanel</code>
 	 */
 	BasePanel.prototype.getP13nData = function (bOnlyActive) {
-		var aItems = merge([], this._getP13nModel().getProperty("/items"));
+		var aItems = this._getP13nModel().getProperty("/items");
 		if (bOnlyActive) {
 			aItems = aItems.filter(function(oItem){
 				return oItem[this.PRESENCE_ATTRIBUTE];
@@ -229,14 +236,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * The <code>enableReorder</code> property determines whether additional move buttons are shown when hovering over
-	 * the inner list. In addition, drag and drop will be enabled for the inner list control.
-	 *
 	 * @param {boolean} bEnableReorder Determines whether reordering is enabled
-	 * @public
+	 * @private
 	 * @returns {sap.m.p13n.BasePanel} The BasePanel instance
 	 */
-	BasePanel.prototype.setEnableReorder = function(bEnableReorder) {
+	BasePanel.prototype._updateMovement = function(bEnableReorder) {
 		var oTemplate = this.getAggregation("_template");
 		if (bEnableReorder) {
 			this._addHover(oTemplate);
@@ -245,11 +249,24 @@ sap.ui.define([
 		}
 		this._getDragDropConfig().setEnabled(bEnableReorder);
 		this._setMoveButtonVisibility(bEnableReorder);
-		this.setProperty("enableReorder", bEnableReorder);
 
 		return this;
 	};
 
+	/**
+	 * The <code>enableReorder</code> property determines whether additional move buttons are shown when hovering over
+	 * the inner list. In addition, drag and drop will be enabled for the inner list control.
+	 *
+	 * @param {boolean} bEnableReorder Determines whether reordering is enabled
+	 * @public
+	 * @returns {sap.m.p13n.BasePanel} The BasePanel instance
+	 */
+	BasePanel.prototype.setEnableReorder = function(bEnableReorder) {
+		this.setProperty("enableReorder", bEnableReorder);
+		this._updateMovement(bEnableReorder);
+
+		return this;
+	};
 
 	BasePanel.prototype._getDragDropConfig = function() {
 		if (!this._oDragDropInfo){
@@ -322,6 +339,16 @@ sap.ui.define([
 		}
 
 		return this._oMoveBottomButton;
+	};
+
+	BasePanel.prototype._onResize = function(aResizeEntity) {
+		var oDomRect = aResizeEntity[0].contentRect;
+		if (this._oMoveTopBtn) {
+			this._oMoveTopBtn.setVisible(oDomRect.width > 400);
+		}
+		if (this._oMoveBottomButton) {
+			this._oMoveBottomButton.setVisible(oDomRect.width > 400);
+		}
 	};
 
 	BasePanel.prototype._createInnerListControl = function() {
@@ -406,8 +433,24 @@ sap.ui.define([
 		return this._oSearchField;
 	};
 
+	/**
+	 * Getter for the initial focusable <code>control</code> on the panel.
+	 *
+	 * @returns {control} Control instance which could get the focus.
+	 *
+	 * @private
+	 * @ui5-restricted sap.m, sap.ui.mdc
+	 */
+	BasePanel.prototype.getInitialFocusedControl = function() {
+		return this._oSearchField;
+	};
+
 	BasePanel.prototype._setTemplate = function(oTemplate) {
 		oTemplate.setType("Active");
+		var oCurrentTemplate = this.getAggregation("_template");
+		if (oCurrentTemplate) {
+			oCurrentTemplate.destroy();
+		}
 		this.setAggregation("_template", oTemplate);
 		if (oTemplate) {
 			if (this.getEnableReorder()){
@@ -483,28 +526,46 @@ sap.ui.define([
 	BasePanel.prototype._onSelectionChange = function(oEvent) {
 
 		var aListItems = oEvent.getParameter("listItems");
-		var bSelectAll = oEvent.getParameter("selectAll");
-		var bDeSelectAll = !bSelectAll && aListItems.length > 1;
+		var sSpecialChangeReason = this._checkSpecialChangeReason(oEvent.getParameter("selectAll"), oEvent.getParameter("listItems"));
 
 		aListItems.forEach(function(oTableItem) {
-			this._selectTableItem(oTableItem, bSelectAll || bDeSelectAll);
+			this._selectTableItem(oTableItem, !!sSpecialChangeReason);
 		}, this);
 
-		if (bSelectAll || bDeSelectAll) {
+		if (sSpecialChangeReason) {
+
+			var aModelItems = [];
+			aListItems.forEach(function(oTableItem) {
+				aModelItems.push(this._getModelEntry(oTableItem));
+			}, this);
+
 			this.fireChange({
-				reason: bSelectAll ? this.CHANGE_REASON_SELECTALL : this.CHANGE_REASON_DESELECTALL,
-				item: undefined //No direct item is affected
+				reason: sSpecialChangeReason,
+				item: aModelItems
 			});
 		}
 
-
 		// in case of 'deselect all', the move buttons for positioning are going to be disabled
-		if (bDeSelectAll) {
+		if (sSpecialChangeReason === this.CHANGE_REASON_DESELECTALL) {
 			this._getMoveTopButton().setEnabled(false);
 			this._getMoveUpButton().setEnabled(false);
 			this._getMoveDownButton().setEnabled(false);
 			this._getMoveBottomButton().setEnabled(false);
 		}
+	};
+
+	BasePanel.prototype._checkSpecialChangeReason = function(bSelectAll, aListItems) {
+		var sSpecialChangeReason;
+
+		if (bSelectAll) {
+			sSpecialChangeReason = this.CHANGE_REASON_SELECTALL;
+		} else if (!bSelectAll && aListItems.length > 1 && !aListItems[0].getSelected()) {
+			sSpecialChangeReason = this.CHANGE_REASON_DESELECTALL;
+		} else if (aListItems.length > 1 && aListItems.length < this._oListControl.getItems().length) {
+			sSpecialChangeReason = this.CHANGE_REASON_RANGESELECT;
+		}
+
+		return sSpecialChangeReason;
 	};
 
 	BasePanel.prototype._onItemPressed = function(oEvent) {
@@ -550,10 +611,10 @@ sap.ui.define([
 		oList.getBinding("items").filter(bShowSelected ? new Filter(this.PRESENCE_ATTRIBUTE, "EQ", true) : []);
 	};
 
-	BasePanel.prototype._selectTableItem = function(oTableItem, bSelectAll) {
-		this._updateEnableOfMoveButtons(oTableItem, bSelectAll ? false : true);
+	BasePanel.prototype._selectTableItem = function(oTableItem, bSpecialChangeReason) {
+		this._updateEnableOfMoveButtons(oTableItem, bSpecialChangeReason ? false : true);
 		this._oSelectedItem = oTableItem;
-		if (!bSelectAll) {
+		if (!bSpecialChangeReason) {
 			var oItem = this._getP13nModel().getProperty(this._oSelectedItem.getBindingContext(this.P13N_MODEL).sPath);
 
 			this.fireChange({
@@ -646,6 +707,7 @@ sap.ui.define([
 
 	BasePanel.prototype.exit = function() {
 		Control.prototype.exit.apply(this, arguments);
+		this._oResizeObserver = null;
 		this._bFocusOnRearrange = null;
 		this._oHoveredItem = null;
 		this._oSelectionBindingInfo = null;

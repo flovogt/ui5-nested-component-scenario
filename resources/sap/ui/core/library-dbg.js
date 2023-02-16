@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,148 +9,13 @@
  */
 sap.ui.define([
 	'sap/ui/base/DataType',
+	'sap/ui/core/Lib',
 	'sap/ui/core/mvc/ViewType', // provides sap.ui.core.mvc.ViewType
-	'./CalendarType', // provides sap.ui.core.CalendarType
-	'./Core' // provides sap.ui.getCore()
+	'./CalendarType' // provides sap.ui.core.CalendarType
 ],
-	function(DataType, ViewType) {
+	function(DataType, Library, ViewType) {
 	"use strict";
 
-	// delegate further initialization of this library to the Core
-	sap.ui.getCore().initLibrary({
-		name : "sap.ui.core",
-		version: "1.98.0",
-		designtime: "sap/ui/core/designtime/library.designtime",
-		types: [
-
-			// builtin types
-			"any",
-			"boolean",
-			"float",
-			"int",
-			"object",
-			"string",
-			"void",
-
-			// simple types and enums
-			"sap.ui.core.AbsoluteCSSSize",
-			"sap.ui.core.AccessibleRole",
-			"sap.ui.core.AccessibleLandmarkRole",
-			"sap.ui.core.aria.HasPopup",
-			"sap.ui.core.BarColor",
-			"sap.ui.core.BusyIndicatorSize",
-			"sap.ui.core.CalendarType",
-			"sap.ui.core.CSSColor",
-			"sap.ui.core.CSSSize",
-			"sap.ui.core.CSSSizeShortHand",
-			"sap.ui.core.Collision",
-			"sap.ui.core.ComponentLifecycle",
-			"sap.ui.core.Design",
-			"sap.ui.core.Dock",
-			"sap.ui.core.HorizontalAlign",
-			"sap.ui.core.ID",
-			"sap.ui.core.IconColor",
-			"sap.ui.core.ImeMode",
-			"sap.ui.core.IndicationColor",
-			"sap.ui.core.MessageType",
-			"sap.ui.core.OpenState",
-			"sap.ui.core.Orientation",
-			"sap.ui.core.Percentage",
-			"sap.ui.core.Priority",
-			"sap.ui.core.ScrollBarAction",
-			"sap.ui.core.Scrolling",
-			"sap.ui.core.SortOrder",
-			"sap.ui.core.TextAlign",
-			"sap.ui.core.TextDirection",
-			"sap.ui.core.TitleLevel",
-			"sap.ui.core.URI",
-			"sap.ui.core.ValueState",
-			"sap.ui.core.VerticalAlign",
-			"sap.ui.core.Wrapping",
-			"sap.ui.core.InvisibleMessageMode",
-			"sap.ui.core.dnd.DropEffect",
-			"sap.ui.core.dnd.DropLayout",
-			"sap.ui.core.dnd.DropPosition",
-			"sap.ui.core.mvc.ViewType",
-			"sap.ui.core.routing.HistoryDirection"
-		],
-		interfaces: [
-			"sap.ui.core.IShrinkable",
-			"sap.ui.core.Label",
-			"sap.ui.core.PopupInterface",
-			"sap.ui.core.Toolbar",
-			"sap.ui.core.IContextMenu",
-			"sap.ui.core.IFormContent",
-			"sap.ui.core.dnd.IDragInfo",
-			"sap.ui.core.dnd.IDropInfo",
-			"sap.ui.core.IDScope",
-			"sap.ui.core.ITitleContent",
-			"sap.ui.core.IAsyncContentCreation",
-			"sap.ui.core.IPlaceholderSupport",
-			"sap.ui.core.IColumnHeaderMenu"
-		],
-		controls: [
-			"sap.ui.core.ComponentContainer",
-			"sap.ui.core.Control",
-			"sap.ui.core.HTML",
-			"sap.ui.core.Icon",
-			"sap.ui.core.InvisibleText",
-			"sap.ui.core.LocalBusyIndicator",
-			"sap.ui.core.ScrollBar",
-			"sap.ui.core.TooltipBase",
-			"sap.ui.core.XMLComposite",
-			"sap.ui.core.mvc.HTMLView",
-			"sap.ui.core.mvc.JSONView",
-			"sap.ui.core.mvc.JSView",
-			"sap.ui.core.mvc.TemplateView",
-			"sap.ui.core.mvc.View",
-			"sap.ui.core.mvc.XMLView",
-			"sap.ui.core.tmpl.DOMElement",
-			"sap.ui.core.tmpl.TemplateControl",
-			"sap.ui.core.util.Export"
-		],
-		elements: [
-			"sap.ui.core.CustomData",
-			"sap.ui.core.Element",
-			"sap.ui.core.Item",
-			"sap.ui.core.LayoutData",
-			"sap.ui.core.ListItem",
-			"sap.ui.core.Message",
-			"sap.ui.core.SeparatorItem",
-			"sap.ui.core.Title",
-			"sap.ui.core.VariantLayoutData",
-			"sap.ui.core.dnd.DragDropBase",
-			"sap.ui.core.dnd.DragInfo",
-			"sap.ui.core.dnd.DropInfo",
-			"sap.ui.core.dnd.DragDropInfo",
-			"sap.ui.core.search.OpenSearchProvider",
-			"sap.ui.core.search.SearchProvider",
-			"sap.ui.core.tmpl.DOMAttribute",
-			"sap.ui.core.util.ExportCell",
-			"sap.ui.core.InvisibleMessage"
-		],
-		extensions: {
-			"sap.ui.support" : {
-				diagnosticPlugins: [
-					"sap/ui/core/support/plugins/TechInfo",
-					"sap/ui/core/support/plugins/ControlTree",
-					"sap/ui/core/support/plugins/Debugging",
-					"sap/ui/core/support/plugins/Trace",
-					"sap/ui/core/support/plugins/Selector",
-					"sap/ui/core/support/plugins/Breakpoint",
-					"sap/ui/core/support/plugins/ViewInfo",
-					"sap/ui/core/support/plugins/LocalStorage",
-					"sap/ui/core/support/plugins/Interaction",
-					"sap/ui/core/support/plugins/Performance"
-				],
-				//Configuration used for rule loading of Support Assistant
-				publicRules:true,
-				internalRules:true
-			}
-		}
-	});
-
-	/* eslint-disable no-undef */
 	/**
 	 * The SAPUI5 Core Runtime.
 	 *
@@ -160,12 +25,142 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.core
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 * @since 0.8
 	 * @public
 	 */
-	var thisLib = sap.ui.core;
-	/* eslint-enable no-undef */
+	 var thisLib = Library.init({
+		 name: "sap.ui.core",
+		 version: "1.110.0",
+		 designtime: "sap/ui/core/designtime/library.designtime",
+		 types: [
+
+			 // builtin types
+			 "any",
+			 "boolean",
+			 "float",
+			 "int",
+			 "object",
+			 "string",
+			 "void",
+
+			 // simple types and enums
+			 "sap.ui.core.AbsoluteCSSSize",
+			 "sap.ui.core.AccessibleRole",
+			 "sap.ui.core.AccessibleLandmarkRole",
+			 "sap.ui.core.aria.HasPopup",
+			 "sap.ui.core.BarColor",
+			 "sap.ui.core.BusyIndicatorSize",
+			 "sap.ui.core.CalendarType",
+			 "sap.ui.core.CSSColor",
+			 "sap.ui.core.CSSSize",
+			 "sap.ui.core.CSSSizeShortHand",
+			 "sap.ui.core.Collision",
+			 "sap.ui.core.ComponentLifecycle",
+			 "sap.ui.core.Design",
+			 "sap.ui.core.Dock",
+			 "sap.ui.core.HorizontalAlign",
+			 "sap.ui.core.ID",
+			 "sap.ui.core.IconColor",
+			 "sap.ui.core.ImeMode",
+			 "sap.ui.core.IndicationColor",
+			 "sap.ui.core.MessageType",
+			 "sap.ui.core.OpenState",
+			 "sap.ui.core.Orientation",
+			 "sap.ui.core.Percentage",
+			 "sap.ui.core.Priority",
+			 "sap.ui.core.ScrollBarAction",
+			 "sap.ui.core.Scrolling",
+			 "sap.ui.core.SortOrder",
+			 "sap.ui.core.TextAlign",
+			 "sap.ui.core.TextDirection",
+			 "sap.ui.core.TitleLevel",
+			 "sap.ui.core.URI",
+			 "sap.ui.core.ValueState",
+			 "sap.ui.core.VerticalAlign",
+			 "sap.ui.core.Wrapping",
+			 "sap.ui.core.InvisibleMessageMode",
+			 "sap.ui.core.dnd.DropEffect",
+			 "sap.ui.core.dnd.DropLayout",
+			 "sap.ui.core.dnd.DropPosition",
+			 "sap.ui.core.mvc.ViewType",
+			 "sap.ui.core.routing.HistoryDirection"
+		 ],
+		 interfaces: [
+			 "sap.ui.core.IShrinkable",
+			 "sap.ui.core.Label",
+			 "sap.ui.core.PopupInterface",
+			 "sap.ui.core.Toolbar",
+			 "sap.ui.core.IContextMenu",
+			 "sap.ui.core.IFormContent",
+			 "sap.ui.core.dnd.IDragInfo",
+			 "sap.ui.core.dnd.IDropInfo",
+			 "sap.ui.core.IDScope",
+			 "sap.ui.core.ITitleContent",
+			 "sap.ui.core.IAsyncContentCreation",
+			 "sap.ui.core.IPlaceholderSupport",
+			 "sap.ui.core.IColumnHeaderMenu"
+		 ],
+		 controls: [
+			 "sap.ui.core.ComponentContainer",
+			 "sap.ui.core.Control",
+			 "sap.ui.core.HTML",
+			 "sap.ui.core.Icon",
+			 "sap.ui.core.InvisibleText",
+			 "sap.ui.core.LocalBusyIndicator",
+			 "sap.ui.core.ScrollBar",
+			 "sap.ui.core.TooltipBase",
+			 "sap.ui.core.XMLComposite",
+			 "sap.ui.core.mvc.HTMLView",
+			 "sap.ui.core.mvc.JSONView",
+			 "sap.ui.core.mvc.JSView",
+			 "sap.ui.core.mvc.TemplateView",
+			 "sap.ui.core.mvc.View",
+			 "sap.ui.core.mvc.XMLView",
+			 "sap.ui.core.tmpl.DOMElement",
+			 "sap.ui.core.tmpl.TemplateControl",
+			 "sap.ui.core.util.Export"
+		 ],
+		 elements: [
+			 "sap.ui.core.CustomData",
+			 "sap.ui.core.Element",
+			 "sap.ui.core.Item",
+			 "sap.ui.core.LayoutData",
+			 "sap.ui.core.ListItem",
+			 "sap.ui.core.Message",
+			 "sap.ui.core.SeparatorItem",
+			 "sap.ui.core.Title",
+			 "sap.ui.core.VariantLayoutData",
+			 "sap.ui.core.dnd.DragDropBase",
+			 "sap.ui.core.dnd.DragInfo",
+			 "sap.ui.core.dnd.DropInfo",
+			 "sap.ui.core.dnd.DragDropInfo",
+			 "sap.ui.core.search.OpenSearchProvider",
+			 "sap.ui.core.search.SearchProvider",
+			 "sap.ui.core.tmpl.DOMAttribute",
+			 "sap.ui.core.util.ExportCell",
+			 "sap.ui.core.InvisibleMessage"
+		 ],
+		 extensions: {
+			 "sap.ui.support" : {
+				 diagnosticPlugins: [
+					 "sap/ui/core/support/plugins/TechInfo",
+					 "sap/ui/core/support/plugins/ControlTree",
+					 "sap/ui/core/support/plugins/Debugging",
+					 "sap/ui/core/support/plugins/Trace",
+					 "sap/ui/core/support/plugins/Selector",
+					 "sap/ui/core/support/plugins/Breakpoint",
+					 "sap/ui/core/support/plugins/ViewInfo",
+					 "sap/ui/core/support/plugins/LocalStorage",
+					 "sap/ui/core/support/plugins/Interaction",
+					 "sap/ui/core/support/plugins/Performance"
+				 ],
+				 //Configuration used for rule loading of Support Assistant
+				 publicRules:true,
+				 internalRules:true
+			 }
+		 }
+	 });
 
 	/**
 	 * @classdesc A string type that represents non-relative CSS size values.
@@ -210,7 +205,6 @@ sap.ui.define([
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.AbsoluteCSSSize = DataType.createType('sap.ui.core.AbsoluteCSSSize', {
 			isValid : function(vValue) {
@@ -229,7 +223,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.AccessibleRole = {
 
@@ -619,7 +612,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.AccessibleLandmarkRole = {
 
@@ -717,7 +709,6 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.84
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.aria.HasPopup = {
 
@@ -760,11 +751,39 @@ sap.ui.define([
 	};
 
 	/**
+	 * The object contains accessibility information for a control.
+	 *
+	 * @typedef {object} sap.ui.core.AccessibilityInfo
+	 *
+	 * @property {string} [role]
+	 * 	The WAI-ARIA role which is implemented by the control.
+	 * @property {string} [type]
+	 * 	A translated text that represents the control type. Might correlate with the role.
+	 * @property {string} [description]
+	 * 	Describes the most relevant control state (e.g. the input's value) - it should be a translated text.
+	 * 	<b>Note:</b> The type and the enabled/editable state shouldn`t be handled here.
+	 * @property {boolean} [focusable]
+	 * 	Whether the control can get the focus.
+	 * @property {boolean | null} [enabled]
+	 * 	 Whether the control is enabled. If not relevant, it shouldn`t be set or <code>null</code> can be provided.
+	 * @property {boolean | null} [editable]
+	 * 	Whether the control is editable. If not relevant, it shouldn`t be set or <code>null</code> can be provided.
+	 * @property {boolean | null} [readonly]
+	 * 	Whether the control is readonly. If not relevant, it shouldn`t be set or <code>null</code> can be provided.
+	 * @property {sap.ui.core.Element[]} [children]
+	 * 	A list of elements or controls that are aggregated by the given control (e.g. when the control is a layout).
+	 * 	Primitive values in the list will be ignored.
+	 * 	<b>Note:</b> Children should only be provided when it is helpful to understand the accessibility context
+	 * 	(e.g. a form control shouldn`t provide details of its internals (fields, labels, ...) but a layout should).
+	 * @protected
+	 * @since 1.110
+	 */
+
+	/**
 	 * Configuration options for the colors of a progress bar.
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.BarColor = {
 
@@ -799,7 +818,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.BusyIndicatorSize = {
 		/**
@@ -824,7 +842,13 @@ sap.ui.define([
 		 * Type: Large size
 		 * @public
 		 */
-		Large : "Large"
+		Large : "Large",
+
+		/**
+		 * Type: Medium size, specifically if the BusyIndicator is displayed over a page section
+		 * @public
+		 */
+		Section : "Section"
 	};
 
 	// Note: the imported module sap/ui/core/CalendarType already defines the global sap.ui.core.CalendarType,
@@ -832,18 +856,20 @@ sap.ui.define([
 	// thisLib.CalendarType = CalendarType;
 
 	/**
-	 * @classdesc A string type that represents CSS color values.
+	 * @classdesc A string type that represents CSS color values (CSS Color Level 3).
 	 *
-	 * Allowed values are CSS hex colors like "#666666" or "#fff", RGB/HSL values like "rgb(0,0,0)"
-	 * or "hsla(50%,10%,30%,0.5)" as well as CSS color names like "green" and "darkblue" and special
-	 * values like "inherit" and "transparent".
-	 *
-	 * The empty string is also allowed and has the same effect as setting no color.
+	 * <b>Allowed values are:</b>
+	 * <ul>
+	 *   <li>Hex colors like <code>#666666</code> or <code>#fff</code>,</li>
+	 *   <li>HSL/RGB values with or without transparency, like <code>hsla(90,10%,30%,0.5)</code> or <code>rgb(0,0,0)</code>,</li>
+	 *   <li>CSS color names like <code>darkblue</code>, or special values like <code>inherit</code> and <code>transparent</code>,</li>
+	 *   <li>an empty string, which has the same effect as setting no color.</li>
+	 * </ul>
+	 * For more information about the CSS Level 3 color specification, see {@link https://www.w3.org/TR/css-color-3/#css-system}.
 	 *
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.CSSColor = DataType.createType('sap.ui.core.CSSColor', {
 			isValid : function(vValue) {
@@ -902,7 +928,6 @@ sap.ui.define([
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.CSSSize = DataType.createType('sap.ui.core.CSSSize', {
 			isValid : function(vValue) {
@@ -926,7 +951,6 @@ sap.ui.define([
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.CSSSizeShortHand = DataType.createType('sap.ui.core.CSSSizeShortHand', {
 			isValid : function(vValue) {
@@ -943,18 +967,19 @@ sap.ui.define([
 	/**
 	 * @classdesc Collision behavior: horizontal/vertical.
 	 *
-	 * Defines how the position of an element should be adjusted in case it overflows the window in some direction. For both
-	 * directions this can be "flip", "fit" or "none". If only one behavior is provided it is applied to both directions.
-	 * Examples: "flip", "fit none".
+	 * Defines how the position of an element should be adjusted in case it overflows the window in some direction.
+	 * For both directions this can be "flip", "fit", "flipfit" or "none".
+	 * If only one behavior is provided it is applied to both directions.
+	 *
+	 * Examples: "flip", "fit none", "flipfit fit"
 	 *
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.Collision = DataType.createType('sap.ui.core.Collision', {
 			isValid : function(vValue) {
-				return /^((flip|fit|none)( (flip|fit|none))?)$/.test(vValue);
+				return /^((flip|fit|flipfit|none)( (flip|fit|flipfit|none))?)$/.test(vValue);
 			}
 		},
 		DataType.getType('string')
@@ -966,7 +991,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.Design = {
 
@@ -997,7 +1021,6 @@ sap.ui.define([
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.Dock = DataType.createType('sap.ui.core.Dock', {
 			isValid : function(vValue) {
@@ -1013,7 +1036,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.HorizontalAlign = {
 
@@ -1059,7 +1081,6 @@ sap.ui.define([
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.ID = DataType.createType('sap.ui.core.ID', {
 			isValid : function(vValue) {
@@ -1084,7 +1105,6 @@ sap.ui.define([
 	 * @name sap.ui.core.IShrinkable
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 
@@ -1093,7 +1113,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.IconColor = {
 
@@ -1164,7 +1183,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.ImeMode = {
 
@@ -1199,7 +1217,6 @@ sap.ui.define([
 	 * @name sap.ui.core.Label
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	/**
@@ -1211,7 +1228,6 @@ sap.ui.define([
 	 * @public
 	 * @since 1.62.0
 	 * @see {@link fiori:/how-to-use-semantic-colors/ Semantic Colors}
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.IndicationColor = {
 
@@ -1274,7 +1290,6 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.10
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.MessageType = {
 
@@ -1317,7 +1332,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.OpenState = {
 
@@ -1354,7 +1368,6 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.22
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.Orientation = {
 
@@ -1378,7 +1391,6 @@ sap.ui.define([
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.Percentage = DataType.createType('sap.ui.core.Percentage', {
 			isValid : function(vValue) {
@@ -1394,7 +1406,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.Priority = {
 
@@ -1433,7 +1444,6 @@ sap.ui.define([
 	 * @name sap.ui.core.PopupInterface
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 
@@ -1442,7 +1452,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.ScrollBarAction = {
 
@@ -1478,7 +1487,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.Scrolling = {
 
@@ -1512,11 +1520,10 @@ sap.ui.define([
 	/**
 	 * Sort order of a column.
 	 *
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 * @enum {string}
 	 * @public
 	 * @since 1.61.0
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.SortOrder = {
 
@@ -1546,7 +1553,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.TextAlign = {
 
@@ -1595,7 +1601,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.TextDirection = {
 
@@ -1626,7 +1631,6 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.9.1
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.TitleLevel = {
 
@@ -1683,14 +1687,13 @@ sap.ui.define([
 	 * @name sap.ui.core.Toolbar
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	/**
 	 * Marker interface for subclasses of <code>sap.ui.core.UIComponent</code>.
 	 *
 	 * Implementing this interface allows a {@link sap.ui.core.UIComponent} to be created fully asynchronously.
-	 * This interface will implicitily set the component's rootView and router configuration to async.
+	 * This interface will implicitly set the component's rootView and router configuration to async.
 	 * Nested views will also be handled asynchronously.
 	 * Additionally the error handling during the processing of views is stricter and will fail if a view definition contains
 	 * errors, e.g. broken binding strings.
@@ -1737,18 +1740,18 @@ sap.ui.define([
 	 * @interface
 	 * @public
 	 * @experimental As of version 1.98
-	 * @since 1.98.0
+	 * @since 1.98
+	 *
 	 */
 
 	/**
 	 * Opens the menu using the column header.
-	 * @param {sap.ui.core.Control} oControl
-	 *   Specifies the control where the menu is placed.
+	 * @param {sap.ui.core.Control|HTMLElement} oAnchor Specifies the element where the menu is placed.
 	 *
 	 * @public
 	 * @function
 	 * @experimental As of version 1.98
-	 * @since 1.98.0
+	 * @since 1.98
 	 * @name sap.ui.core.IColumnHeaderMenu.openBy
 	 */
 
@@ -1765,7 +1768,47 @@ sap.ui.define([
 	 */
 
 	/**
+	 * Implementing this interface allows a control to be accessible via access keys.
+	 *
+	 * @name sap.ui.core.IAccessKeySupport
+	 * @interface
+	 * @public
+	 * @experimental As of version 1.104
+	 * @since 1.104
+	 */
 
+	/**
+	 * Returns a refence to DOM element to be focused during Access key navigation.
+	 * If not implemented getFocusDomRef() method is used.
+	 *
+	 * @public
+	 * @function
+	 * @experimental As of version 1.104
+	 * @since 1.104
+	 * @name sap.ui.core.IAccessKeySupport.getAccessKeysFocusTarget?
+	 */
+
+	/**
+	 * If implemented called when access keys feature is enabled and highlighting is ongoing
+	 *
+	 * @public
+	 * @function
+	 * @experimental As of version 1.104
+	 * @since 1.104
+	 * @name sap.ui.core.IAccessKeySupport.onAccKeysHighlightStart?
+	 */
+
+	/**
+	 * If implemented called when access keys feature is enabled and highlighting is over
+	 *
+	 * @public
+	 * @function
+	 * @experimental As of version 1.104
+	 * @since 1.104
+	 * @name sap.ui.core.IAccessKeySupport.onAccKeysHighlightEnd?
+	 */
+
+	/**
 	 * Marker interface for controls that can serve as a context menu.
 	 *
 	 * Implementation of this interface should implement the <code>openAsContextMenu</code> method.
@@ -1773,7 +1816,6 @@ sap.ui.define([
 	 * @name sap.ui.core.IContextMenu
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	/**
@@ -1795,7 +1837,6 @@ sap.ui.define([
 	 * @name sap.ui.core.dnd.IDragInfo
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	/**
@@ -1805,7 +1846,6 @@ sap.ui.define([
 	 * @name sap.ui.core.dnd.IDropInfo
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	/**
@@ -1816,7 +1856,6 @@ sap.ui.define([
 	 * @interface
 	 * @private
 	 * @ui5-restricted
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	/**
@@ -1826,7 +1865,6 @@ sap.ui.define([
 	 * @name sap.ui.core.mvc.IControllerExtension
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	/**
@@ -1840,7 +1878,6 @@ sap.ui.define([
 	 * @name sap.ui.core.IFormContent
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	/**
@@ -1851,7 +1888,6 @@ sap.ui.define([
 	 * @name sap.ui.core.ITitleContent
 	 * @interface
 	 * @public
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 
@@ -1886,7 +1922,6 @@ sap.ui.define([
 	 * @interface
 	 * @public
 	 * @experimental As of version 1.86
-	 * @ui5-metamodel This interface also will be described in the UI5 (legacy) designtime metamodel
 	 */
 
 	/**
@@ -1931,7 +1966,6 @@ sap.ui.define([
 	 * @final
 	 * @namespace
 	 * @public
-	 * @ui5-metamodel This simple type also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.URI = DataType.createType('sap.ui.core.URI', {
 			isValid : function(vValue) {
@@ -1948,7 +1982,6 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @see {@link fiori:/how-to-use-semantic-colors/ Semantic Colors}
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 * @since 1.0
 	 */
 	thisLib.ValueState = {
@@ -1992,7 +2025,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.VerticalAlign = {
 
@@ -2036,7 +2068,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.Wrapping = {
 
@@ -2075,7 +2106,6 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.52.0
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.dnd.DropPosition = {
 
@@ -2099,12 +2129,39 @@ sap.ui.define([
 	};
 
 	/**
+	 * Drop positions relative to a dropped element.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.100.0
+	 */
+	thisLib.dnd.RelativeDropPosition = {
+
+		/**
+		 * Drop on the control.
+		 * @public
+		 */
+		On : "On",
+
+		/**
+		 * Drop before the control.
+		 * @public
+		 */
+		Before : "Before",
+
+		/**
+		 * Drop after the control.
+		 * @public
+		 */
+		After : "After"
+	};
+
+	/**
 	 * Configuration options for the layout of the droppable controls.
 	 *
 	 * @enum {string}
 	 * @public
 	 * @since 1.52.0
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.dnd.DropLayout = {
 		/**
@@ -2132,7 +2189,6 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @since 1.52.0
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.dnd.DropEffect = {
 
@@ -2169,7 +2225,6 @@ sap.ui.define([
 	 * @enum {string}
 	 * @public
 	 * @alias sap.ui.core.mvc.ViewType
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.mvc.ViewType = ViewType;
 
@@ -2180,7 +2235,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	thisLib.routing.HistoryDirection = {
 
@@ -2216,9 +2270,8 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.ui.core.ComponentLifecycle =  {
+	thisLib.ComponentLifecycle =  {
 
 		/**
 		 * Legacy lifecycle means that the <code>ComponentContainer</code> takes care
@@ -2253,9 +2306,8 @@ sap.ui.define([
 	 * @public
 	 * @experimental Since 1.73.
 	 * @since 1.78
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	sap.ui.core.InvisibleMessageMode =  {
+	thisLib.InvisibleMessageMode =  {
 
 		/**
 		 * Indicates that updates to the region should be presented at the next graceful opportunity,
@@ -2272,50 +2324,55 @@ sap.ui.define([
 
 	};
 
-	var lazy = sap.ui.lazyRequire;
+	/**
+	 * @deprecated since 1.56 as lazy loading implies sync loading
+	 */
+	(function() {
+		var lazy = sap.ui.lazyRequire;
 
-	function each(sPackage,aClasses,sShortcutPkg) {
-		for (var i = 0; i < aClasses.length; i++) {
-			if ( sShortcutPkg ) {
-				lazy(sShortcutPkg, aClasses[i].toLowerCase(), sPackage + aClasses[i]);
-			} else {
-			  lazy(sPackage + aClasses[i], "new extend getMetadata");
+		function each(sPackage,aClasses,sShortcutPkg) {
+			for (var i = 0; i < aClasses.length; i++) {
+				if ( sShortcutPkg ) {
+					lazy(sShortcutPkg, aClasses[i].toLowerCase(), sPackage + aClasses[i]);
+				} else {
+				  lazy(sPackage + aClasses[i], "new extend getMetadata");
+				}
 			}
 		}
-	}
 
-	// lazy imports
-	lazy("sap.ui.core.BusyIndicator", "show hide attachOpen detachOpen attachClose detachClose");
-	lazy("sap.ui.core.tmpl.Template", "registerType unregisterType");
-	lazy("sap.ui.core.Fragment", "registerType byId createId");
-	lazy("sap.ui.core.IconPool", "createControlByURI addIcon getIconURI getIconInfo isIconURI getIconCollectionNames getIconNames getIconForMimeType");
-	lazy("sap.ui.core.service.ServiceFactoryRegistry", "register unregister get");
+		// lazy imports
+		lazy("sap.ui.core.BusyIndicator", "show hide attachOpen detachOpen attachClose detachClose");
+		lazy("sap.ui.core.tmpl.Template", "registerType unregisterType");
+		lazy("sap.ui.core.Fragment", "registerType byId createId");
+		lazy("sap.ui.core.IconPool", "createControlByURI addIcon getIconURI getIconInfo isIconURI getIconCollectionNames getIconNames getIconForMimeType");
+		lazy("sap.ui.core.service.ServiceFactoryRegistry", "register unregister get");
 
-	lazy("sap.ui.model.odata.AnnotationHelper", "createPropertySetting format getNavigationPath"
-		+ " gotoEntitySet gotoEntityType gotoFunctionImport isMultiple resolvePath simplePath");
-	/* eslint-disable no-undef */
-	var AnnotationHelper = sap.ui.model && sap.ui.model.odata && sap.ui.model.odata.AnnotationHelper;
-	/* eslint-enable no-undef */
-	if ( AnnotationHelper ) { // ensure that lazy stub exists before enriching it
-		AnnotationHelper.format.requiresIContext = true;
-		AnnotationHelper.getNavigationPath.requiresIContext = true;
-		AnnotationHelper.isMultiple.requiresIContext = true;
-		AnnotationHelper.simplePath.requiresIContext = true;
-	}
-	lazy("sap.ui", "xmlfragment", "sap.ui.core.Fragment"); // cannot use "each" as it assumes a module to exist for each function name
-	lazy("sap.ui", "jsfragment", "sap.ui.core.Fragment");
-	lazy("sap.ui", "htmlfragment", "sap.ui.core.Fragment");
+		lazy("sap.ui.model.odata.AnnotationHelper", "createPropertySetting format getNavigationPath"
+			+ " gotoEntitySet gotoEntityType gotoFunctionImport isMultiple resolvePath simplePath");
+		/* eslint-disable no-undef */
+		var AnnotationHelper = sap.ui.model && sap.ui.model.odata && sap.ui.model.odata.AnnotationHelper;
+		/* eslint-enable no-undef */
+		if ( AnnotationHelper ) { // ensure that lazy stub exists before enriching it
+			AnnotationHelper.format.requiresIContext = true;
+			AnnotationHelper.getNavigationPath.requiresIContext = true;
+			AnnotationHelper.isMultiple.requiresIContext = true;
+			AnnotationHelper.simplePath.requiresIContext = true;
+		}
+		lazy("sap.ui", "xmlfragment", "sap.ui.core.Fragment"); // cannot use "each" as it assumes a module to exist for each function name
+		lazy("sap.ui", "jsfragment", "sap.ui.core.Fragment");
+		lazy("sap.ui", "htmlfragment", "sap.ui.core.Fragment");
 
-	each("sap.ui.model.", ["Filter","Sorter","json.JSONModel","resource.ResourceModel","odata.ODataModel","odata.v2.ODataModel","odata.v4.ODataModel","xml.XMLModel"]);
-	each("sap.ui.model.type.", ["Boolean","Integer","Float","String","Date","Time","DateTime","FileSize","Currency","Unit","DateInterval", "DateTimeInterval", "TimeInterval"]);
-	each("sap.ui.model.odata.type.", ["Boolean","Byte","Currency","Date","DateTime","DateTimeOffset","Double","Decimal","Guid","Int16","Int32","Int64","Raw","SByte","Single","Stream","String","Time","TimeOfDay","Unit"]);
-	each("sap.ui.core.", ["Locale","LocaleData","mvc.Controller", "UIComponent"]);
-	each("sap.ui.core.mvc.", ["Controller", "View", "JSView", "JSONView", "XMLView", "HTMLView", "TemplateView"], "sap.ui");
-	each("sap.ui.core.", ["Component"], "sap.ui");
-	each("sap.ui.core.tmpl.", ["Template"], "sap.ui");
-	each("sap.ui.core.routing.", ["HashChanger", "History", "Route", "Router", "Target", "Targets", "Views"]);
-	each("sap.ui.core.service.", ["ServiceFactory", "Service"]);
+		each("sap.ui.model.", ["Filter","Sorter","json.JSONModel","resource.ResourceModel","odata.ODataModel","odata.v2.ODataModel","odata.v4.ODataModel","xml.XMLModel"]);
+		each("sap.ui.model.type.", ["Boolean","Integer","Float","String","Date","Time","DateTime","FileSize","Currency","Unit","DateInterval", "DateTimeInterval", "TimeInterval"]);
+		each("sap.ui.model.odata.type.", ["Boolean","Byte","Currency","Date","DateTime","DateTimeOffset","DateTimeWithTimezone","Decimal","Double","Guid","Int16","Int32","Int64","Raw","SByte","Single","Stream","String","Time","TimeOfDay","Unit"]);
+		each("sap.ui.core.", ["Locale","LocaleData","mvc.Controller", "UIComponent"]);
+		each("sap.ui.core.mvc.", ["Controller", "View", "JSView", "JSONView", "XMLView", "HTMLView", "TemplateView"], "sap.ui");
+		each("sap.ui.core.", ["Component"], "sap.ui");
+		each("sap.ui.core.tmpl.", ["Template"], "sap.ui");
+		each("sap.ui.core.routing.", ["HashChanger", "History", "Route", "Router", "Target", "Targets", "Views"]);
+		each("sap.ui.core.service.", ["ServiceFactory", "Service"]);
+	}());
 
-	return sap.ui.core;
+	return thisLib;
 
 });

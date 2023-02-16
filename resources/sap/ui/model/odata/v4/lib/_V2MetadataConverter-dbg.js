@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -715,7 +715,7 @@ sap.ui.define([
 
 		this.associations[sName] = this.association = {
 			referentialConstraint : null,
-			roles : {} // maps role name -> AssocationEnd
+			roles : {} // maps role name -> AssociationEnd
 		};
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,10 @@
 	}
 
 sap.ui.define([
+	'sap/base/util/extend',
+	'sap/base/util/ObjectPath',
 	'sap/ui/thirdparty/jquery',
+	'sap/ui/Global',
 	'sap/ui/base/Object',
 	'sap/ui/core/Element',
 	'sap/ui/core/mvc/View',
@@ -26,7 +29,7 @@ sap.ui.define([
 	'sap/ui/test/matchers/MatcherFactory',
 	'sap/ui/test/pipelines/MatcherPipeline',
 	'sap/ui/test/_OpaLogger'
-], function ($, UI5Object, UI5Element, View, Ancestor, MatcherFactory,
+], function (extend, ObjectPath, $, Global, UI5Object, UI5Element, View, Ancestor, MatcherFactory,
 			MatcherPipeline, _OpaLogger) {
 
 		/**
@@ -64,8 +67,8 @@ sap.ui.define([
 			 * Returns the view with a specific name. The result should be a unique view.
 			 * If there are multiple visible views with that name, none will be returned.
 			 *
-			 * @param {string} sViewName the name of the view
-			 * @returns {sap.ui.core.mvc.View} or undefined
+			 * @param {string} sViewName Name of the view
+			 * @returns {sap.ui.core.mvc.View|undefined} Unique view or <code>undefined</code>
 			 * @public
 			 */
 			getView: function (sViewName) {
@@ -419,7 +422,7 @@ sap.ui.define([
 			 */
 			_getFilteredControls : function(oOptions) {
 				var vControl = this._filterControlsByCondition(oOptions);
-				var oFilterOptions = $.extend({}, oOptions);
+				var oFilterOptions = extend({}, oOptions);
 
 				// when on the root level of oOptions, these options are already processed (see _filterControlsByCondition) and should not be processed again,
 				// as this results in error when no controls are passed to the matcher pipeline (see _filterControlsByMatchers)
@@ -456,7 +459,7 @@ sap.ui.define([
 
 			// instantiate any matchers with declarative syntax and run controls through matcher pipeline
 			_filterControlsByMatchers: function (oOptions, vControl) {
-				var oOptionsWithMatchers = $.extend({}, oOptions);
+				var oOptionsWithMatchers = extend({}, oOptions);
 				var aMatchers = this._oMatcherFactory.getFilteringMatchers(oOptionsWithMatchers);
 				var bPluginLooksForControls = this._isLookingForAControl(oOptions);
 				var vResult = null;
@@ -489,7 +492,7 @@ sap.ui.define([
 			 * @param {object} oOptions a map of match conditions. Must contain an id property
 			 * @param {string|string[]} [oOptions.id] required - ID to match. Can be string, regex or array
 			 * @param {string|function} [oOptions.controlType] optional - control type to match
-			 * @returns {sap.ui.core.Element|sap.ui.core.Element[]} all matching controls
+			 * @returns {sap.ui.core.Element|sap.ui.core.Element[]|null} all matching controls
 			 * <ul>
 			 *     <li>if a oOptions.id is a string, will return the single matching control or null if no controls match</li>
 			 *     <li>otherwise, will return an array of matching controls, or an empty array, if no controls match</li>
@@ -556,12 +559,12 @@ sap.ui.define([
 			 * @public
 			 */
 			getControlConstructor : function (sControlType) {
-				if (sap.ui.lazyRequire._isStub(sControlType)) {
+				if (isLazyStub(sControlType)) {
 					this._oLogger.debug("The control type " + sControlType + " is currently a lazy stub.");
 					return null;
 				}
 
-				var fnControlType = $.sap.getObject(sControlType);
+				var fnControlType = ObjectPath.get(sControlType);
 
 				// no control type
 				if (!fnControlType) {
@@ -642,6 +645,24 @@ sap.ui.define([
 				return sUnprefixedControlId;
 			}
 		});
+
+		/**
+		 * Checks whether the given class name is still a lazy stub.
+		 * In future, there won't be lazy stubs, that's the default implementation of this helper.
+		 * Only when sap.ui.lazyRequire._isStub still exists, this method will check something.
+		 * @param {string} sClassName
+		 * @private
+		 */
+		var isLazyStub = function isLazyStub(sClassName) {
+			return false;
+		};
+
+		/**
+		 * @deprecated since 1.56 as lazy loading implies sync loading
+		 */
+		if ( Global.lazyRequire && typeof Global.lazyRequire._isStub === "function" ) {
+			isLazyStub = Global.lazyRequire._isStub;
+		}
 
 		/**
 		 * Creates a filter function that returns true when a given element

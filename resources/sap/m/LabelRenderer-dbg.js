@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the default renderer for control sap.m.Label
-sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/Renderer', 'sap/m/library', 'sap/ui/core/library', 'sap/m/HyphenationSupport', "sap/ui/core/LabelEnablement"],
-	function(Core, Renderer, library, coreLibrary, HyphenationSupport, LabelEnablement) {
+sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/Renderer', 'sap/ui/core/AccessKeysEnablement', 'sap/m/library', 'sap/ui/core/library', 'sap/m/HyphenationSupport', "sap/ui/core/LabelEnablement"],
+	function(Core, Renderer, AccessKeysEnablement, library, coreLibrary, HyphenationSupport, LabelEnablement) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TextDirection
@@ -32,7 +32,7 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/Renderer', 'sap/m/library', 'sap
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm The RenderManager that can be used for writing to the renderer output buffer
-	 * @param {sap.ui.core.Control} oLabel An object representation of the control that should be rendered
+	 * @param {sap.m.Label} oLabel An object representation of the control that should be rendered
 	 */
 	LabelRenderer.render = function(rm, oLabel){
 		// convenience variable
@@ -73,10 +73,7 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/Renderer', 'sap/m/library', 'sap
 
 		if (sLabelForRendering) {
 			LabelEnablement.writeLabelForAttribute(rm, oLabel);
-			rm.accessibilityState({
-				label: oLabel.getText()
-			});
-		} else if (oLabel.getParent() instanceof sap.m.Toolbar) {
+		} else if (oLabel.getParent() && oLabel.getParent().isA("sap.m.Toolbar")) {
 			rm.class("sapMLabelTBHeader");
 		}
 
@@ -123,6 +120,11 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/Renderer', 'sap/m/library', 'sap
 		// wrap the label text
 		rm.openStart("span", oLabel.getId() + "-text");
 		rm.class("sapMLabelTextWrapper");
+
+		if (oLabel.getProperty("highlightAccKeysRef")) {
+			rm.class(AccessKeysEnablement.CSS_CLASS);
+		}
+
 		rm.openEnd();
 
 		// write the label text
@@ -146,6 +148,11 @@ sap.ui.define(['sap/ui/core/Core', 'sap/ui/core/Renderer', 'sap/m/library', 'sap
 		rm.openStart("span");
 		rm.class("sapMLabelColonAndRequired");
 		rm.attr("data-colon", Core.getLibraryResourceBundle("sap.m").getText("LABEL_COLON"));
+		if (sLabelForRendering || oLabel._isInColumnHeaderContext) {
+			rm.accessibilityState({
+				hidden: "true"
+			});
+		}
 		rm.openEnd();
 		rm.close("span");
 

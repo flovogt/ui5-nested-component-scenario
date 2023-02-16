@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/Core'],
-	function (ComboBoxTextFieldRenderer, Renderer, Core) {
+sap.ui.define(['./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer'],
+	function (ComboBoxTextFieldRenderer, Renderer) {
 		"use strict";
 
 		/**
@@ -26,15 +26,15 @@ sap.ui.define(['./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/co
 		 * Retrieves the accessibility state of the control.
 		 * To be overwritten by subclasses.
 		 *
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+		 * @param {sap.m.ComboBoxBase} oControl An object representation of the control that should be rendered.
 		 * @returns {object} The accessibility state of the control
 		 */
 		ComboBoxBaseRenderer.getAccessibilityState = function (oControl) {
 			var mAccessibilityState = ComboBoxTextFieldRenderer.getAccessibilityState.call(this, oControl),
-				oList = oControl._getList();
+				oPicker = oControl.getPicker();
 
-			if (oList) {
-				mAccessibilityState.controls = oList.getId();
+			if (oPicker) {
+				mAccessibilityState.controls = oPicker.getId();
 			}
 			return mAccessibilityState;
 		};
@@ -43,7 +43,7 @@ sap.ui.define(['./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/co
 		 * Add classes to the control.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered.
+		 * @param {sap.m.ComboBoxBase} oControl An object representation of the control that should be rendered.
 		 */
 		ComboBoxBaseRenderer.addOuterClasses = function (oRm, oControl) {
 			ComboBoxTextFieldRenderer.addOuterClasses.apply(this, arguments);

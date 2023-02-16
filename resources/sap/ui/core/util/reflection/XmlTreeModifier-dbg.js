@@ -2,7 +2,7 @@
 /* eslint-disable valid-jsdoc */
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,7 +13,6 @@ sap.ui.define([
 	"sap/base/util/merge",
 	"sap/ui/util/XMLHelper",
 	"sap/ui/core/mvc/EventHandlerResolver",
-	"sap/base/util/includes",
 	"sap/base/util/ObjectPath",
 	"sap/base/util/isPlainObject",
 	"sap/ui/core/Fragment"
@@ -24,7 +23,6 @@ sap.ui.define([
 	merge,
 	XMLHelper,
 	EventHandlerResolver,
-	includes,
 	ObjectPath,
 	isPlainObject,
 	Fragment
@@ -218,6 +216,21 @@ sap.ui.define([
 		/**
 		 * @inheritDoc
 		 */
+		getCustomDataInfo: function(oControl, sCustomDataKey) {
+			var oCustomData = oControl.attributes["custom.data.via.modifier:" + sCustomDataKey];
+			if (oCustomData) {
+				return {
+					customData: oCustomData,
+					customDataValue: oCustomData.value
+				};
+			} else {
+				return {};
+			}
+		},
+
+		/**
+		 * @inheritDoc
+		 */
 		createControl: function (sClassName, oAppComponent, oView, oSelector, mSettings, bAsync) {
 			var sId, sLocalName, oError;
 			if (!XmlTreeModifier.bySelector(oSelector, oAppComponent, oView)) {
@@ -306,7 +319,7 @@ sap.ui.define([
 		 */
 		getParent: function (oControl) {
 			var oParent = oControl.parentNode;
-			if (!XmlTreeModifier.getId(oParent) && !XmlTreeModifier._isExtensionPoint(oParent)) {
+			if (oParent && !XmlTreeModifier.getId(oParent) && !XmlTreeModifier._isExtensionPoint(oParent)) {
 				//go to the real control, jump over aggregation node
 				oParent = oParent.parentNode;
 			}
@@ -835,7 +848,7 @@ sap.ui.define([
 
 					sEventHandler += "(" + aParams.join(",") + ")";
 
-					if (!includes(aEventHandlers, sEventHandler)) {
+					if (!aEventHandlers.includes(sEventHandler)) {
 						aEventHandlers.push(sEventHandler);
 					}
 

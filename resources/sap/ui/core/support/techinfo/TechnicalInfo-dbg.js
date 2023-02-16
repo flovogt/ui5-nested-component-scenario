@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,9 @@ sap.ui.define([
 	"sap/ui/core/syncStyleClass",
 	"sap/base/Log",
 	"sap/ui/core/Fragment",
-	"sap/ui/thirdparty/jquery"
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Configuration",
+	"sap/ui/core/Lib"
 ], function(
 	moduleTreeHelper,
 	Device,
@@ -41,7 +43,9 @@ sap.ui.define([
 	syncStyleClass,
 	Log,
 	Fragment,
-	jQuery
+	jQuery,
+	Configuration,
+	Library
 ) {
 	"use strict";
 
@@ -137,7 +141,7 @@ sap.ui.define([
 		 * Opens the currently loaded UI5 version info file in a new tab
 		 */
 		onShowVersion: function () {
-			mobileLibrary.URLHelper.redirect(sap.ui.resource("", "sap-ui-version.json"), true);
+			mobileLibrary.URLHelper.redirect(sap.ui.require.toUrl("sap-ui-version.json"), true);
 		},
 
 		/**
@@ -436,7 +440,7 @@ sap.ui.define([
 				// enable or disable default option for version >= 1.48
 				var oCurrentItem = this._getControl("standardBootstrapURL", this._SUPPORT_ASSISTANT_POPOVER_ID).getItems()[0];
 				if (this._isVersionBiggerThanMinSupported()) {
-					var sAppVersion = sap.ui.getCore().getConfiguration().getVersion().toString();
+					var sAppVersion = Configuration.getVersion().toString();
 					oCurrentItem.setText(oCurrentItem.getText().replace("[[version]]", sAppVersion));
 					oCurrentItem.setEnabled(true);
 				} else {
@@ -467,7 +471,7 @@ sap.ui.define([
 		 * @returns {string} Locale-dependent text for the key
 		 */
 		_getText: function (sKey, aParameters) {
-			return sap.ui.getCore().getLibraryResourceBundle().getText(sKey, aParameters);
+			return Library.get("sap.ui.core").getResourceBundle().getText(sKey, aParameters);
 		},
 
 		/**
@@ -557,7 +561,7 @@ sap.ui.define([
 				.then(function success() {
 					this.close();
 					var aSettings = [oSettings.support];
-					sap.ui.getCore().loadLibrary("sap.ui.support", { async: true, url: sUrl })
+					Library.load({ name: "sap.ui.support", url: sUrl })
 						.then(function () {
 							if (oSettings.window) {
 								aSettings.push("window");
@@ -596,7 +600,7 @@ sap.ui.define([
 			// create dialog lazily
 			this._pOpenDialog =
 				Promise.all([
-					sap.ui.getCore().loadLibraries(["sap.ui.core", "sap.ui.layout", "sap.m"]),
+					Library._load(["sap.ui.core", "sap.ui.layout", "sap.m"]),
 					this._loadVersionInfo(),
 					this._pDestroyDialog // wait for a pending destroy to finish
 				]).then(function() {
@@ -704,15 +708,15 @@ sap.ui.define([
 				},
 				{
 					"DisplayName": "OpenUI5 CDN",
-					"Value": "https://openui5.hana.ondemand.com/resources/sap/ui/support/"
+					"Value": "https://sdk.openui5.org/resources/sap/ui/support/"
 				},
 				{
 					"DisplayName": "OpenUI5 (Nightly)",
-						"Value": "https://openui5nightly.hana.ondemand.com/resources/sap/ui/support/"
+						"Value": "https://sdk.openui5.org/nightly/resources/sap/ui/support/"
 				},
 				{
 					"DisplayName": "SAPUI5 CDN",
-					"Value": "https://sapui5.hana.ondemand.com/resources/sap/ui/support/"
+					"Value": "https://ui5.sap.com/resources/sap/ui/support/"
 				}
 			];
 			var sDebugModulesTitle = this._getText("TechInfo.DebugModulesConfigPopup.SelectionCounter", oViewModel.DebugModuleSelectionCount);
@@ -720,7 +724,7 @@ sap.ui.define([
 			oViewModel.setProperty("/SupportAssistantPopoverURLs", aSupportedUrls);
 			oViewModel.setProperty("/ApplicationURL", document.location.href);
 			oViewModel.setProperty("/UserAgent", navigator.userAgent);
-			oViewModel.setProperty("/DebugMode", sap.ui.getCore().getConfiguration().getDebug());
+			oViewModel.setProperty("/DebugMode", Configuration.getDebug());
 
 			// If ui version is smaller than 1.48 this sets the default location from where the SA will be loaded
 			// to OpenUI5 (Nightly) because the SA is not available in 1.44 or lower version
@@ -752,7 +756,7 @@ sap.ui.define([
 		 * @private
 		 */
 		_isVersionBiggerThanMinSupported: function () {
-			var oVersion = sap.ui.getCore().getConfiguration().getVersion();
+			var oVersion = Configuration.getVersion();
 			if (oVersion && oVersion.compareTo(this._MIN_UI5VERSION_SUPPORT_ASSISTANT) >= 0) {
 				return true;
 			}

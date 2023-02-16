@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.DataState
@@ -179,7 +179,7 @@ sap.ui.define([
 			aModelMessages = mProperties.modelMessages;
 
 		if (aModelMessages || aControlMessages) {
-			aMessages = aMessages.concat(aModelMessages || [], aControlMessages || []);
+			aMessages = aMessages.concat(aControlMessages || [], aModelMessages || []);
 			aMessages.sort(Message.compare);
 		}
 		return aMessages;
@@ -310,7 +310,7 @@ sap.ui.define([
 	 * value was not rejected it returns <code>undefined</code>. In this case the current
 	 * model value can be accessed using the {@link #getValue} method.
 	 *
-	 * @returns {any} The value that was rejected or <code>undefined</code>
+	 * @returns {any|undefined} The value that was rejected or <code>undefined</code>
 	 * @public
 	 */
 	DataState.prototype.getInvalidValue = function() {

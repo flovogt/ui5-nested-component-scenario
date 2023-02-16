@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -10,6 +10,7 @@ sap.ui.define([
 	'sap/ui/core/Core',
 	'sap/ui/core/Control',
 	'sap/ui/core/library',
+	'sap/ui/core/InvisibleText',
 	'sap/ui/Device',
 	'sap/ui/base/ManagedObject',
 	'sap/m/Link',
@@ -23,6 +24,7 @@ function(library,
 		 Core,
 		 Control,
 		 coreLibrary,
+		 InvisibleText,
 		 Device,
 		 ManagedObject,
 		 Link,
@@ -60,6 +62,9 @@ function(library,
 
 	// shortcut for sap.m.EmptyIndicator
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
+
+	// shortcut for sap.m.LinkAccessibleRole
+	var LinkAccessibleRole = library.LinkAccessibleRole;
 
 	function reduceWhitespace(sText) {
 		return sText.replace(/ {2,}/g, ' ').replace(/\t{2,}/g, ' ');
@@ -100,13 +105,12 @@ function(library,
 	 * @implements sap.ui.core.IFormContent, sap.m.IHyphenation
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.87
 	 * @alias sap.m.ExpandableText
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ExpandableText = Control.extend("sap.m.ExpandableText", /** @lends sap.m.ExpandableText.prototype */ {
 		metadata: {
@@ -172,12 +176,40 @@ function(library,
 				 * The "More" link.
 				 * @private
 				 */
-				_showMoreLink: {type: 'sap.m.Link', multiple: false, visibility: "hidden"}
+				_showMoreLink: {type: 'sap.m.Link', multiple: false, visibility: "hidden"},
+
+				/**
+				 * Screen Reader ariaLabelledBy
+				 */
+				_ariaLabelledBy: {type: "sap.ui.core.InvisibleText", multiple: false, visibility: "hidden"}
 			},
 
 			designtime: "sap/m/designtime/ExpandableText.designtime"
-		}
+		},
+
+		renderer: ExpandableTextRenderer
 	});
+
+	ExpandableText.prototype.init = function () {
+		this.setAggregation("_ariaLabelledBy", new InvisibleText());
+	};
+
+	ExpandableText.prototype.onBeforeRendering = function() {
+		this._updateAriaLabelledByText();
+	};
+
+	ExpandableText.prototype._onAfterLinkRendering = function() {
+		var oShowMoreLinkDomRef;
+
+		if (!this._isExpandable() ||
+			this.getOverflowMode() === ExpandableTextOverflowMode.Popover) {
+			return;
+		}
+
+		oShowMoreLinkDomRef = this._getShowMoreLink().getDomRef();
+		oShowMoreLinkDomRef.setAttribute("aria-expanded", this.getProperty("expanded"));
+		oShowMoreLinkDomRef.setAttribute("aria-controls", this.getId() + "-string");
+	};
 
 	/**
 	 * Gets the text.
@@ -265,7 +297,9 @@ function(library,
 
 		if (!showMoreLink) {
 			showMoreLink = new Link(this.getId() + '-showMoreLink', {
+				accessibleRole: LinkAccessibleRole.Button,
 				text: this.getProperty("expanded") ? TEXT_SHOW_LESS : TEXT_SHOW_MORE,
+				ariaLabelledBy: this.getAggregation("_ariaLabelledBy"),
 				press: function (oEvent) {
 					var oText,
 						bExpanded,
@@ -323,9 +357,15 @@ function(library,
 						oPopover.addContent(oText);
 
 						oPopover.openBy(oEvent.getSource());
+
+						this._updateAriaLabelledByText(true);
 					}
 				}.bind(this)
 			});
+
+			showMoreLink.addEventDelegate({
+				onAfterRendering: this._onAfterLinkRendering
+			}, this);
 
 			this.setAggregation("_showMoreLink", showMoreLink, true);
 		}
@@ -337,6 +377,19 @@ function(library,
 
 	ExpandableText.prototype._onPopoverBeforeClose = function () {
 		this._getShowMoreLink().setText(TEXT_SHOW_MORE);
+		this._updateAriaLabelledByText();
+	};
+
+	ExpandableText.prototype._updateAriaLabelledByText = function (bExpanded) {
+		var sAriaText = "";
+
+		bExpanded = bExpanded || this.getProperty("expanded");
+
+		if (this.getOverflowMode() === ExpandableTextOverflowMode.Popover) {
+			sAriaText = oRb.getText(bExpanded ? "EXPANDABLE_TEXT_SHOW_LESS_POPOVER_ARIA_LABEL" : "EXPANDABLE_TEXT_SHOW_MORE_POPOVER_ARIA_LABEL");
+		}
+
+		this.getAggregation("_ariaLabelledBy").setText(sAriaText);
 	};
 
 	/**
@@ -353,7 +406,7 @@ function(library,
 	 * Gets the accessibility information for the text.
 	 *
 	 * @protected
-	 * @returns {object} Accessibility information for the text.
+	 * @returns {sap.ui.core.AccessibilityInfo} Accessibility information for the text.
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 */
 	ExpandableText.prototype.getAccessibilityInfo = function () {

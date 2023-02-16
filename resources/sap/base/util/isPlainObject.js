@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([],function(){"use strict";var t={};var r=t.hasOwnProperty;var e=t.toString;var c=r.toString;var n=c.call(Object);var a=function(t){
@@ -15,3 +15,4 @@ sap.ui.define([],function(){"use strict";var t={};var r=t.hasOwnProperty;var e=t
 		 * http://jquery.org/license
 		 */
 var a,o;if(!t||e.call(t)!=="[object Object]"){return false}a=Object.getPrototypeOf(t);if(!a){return true}o=r.call(a,"constructor")&&a.constructor;return typeof o==="function"&&c.call(o)===n};return a});
+//# sourceMappingURL=isPlainObject.js.map

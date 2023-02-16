@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,7 +14,7 @@ sap.ui.define([
 
 	var aPromises = [];
 	var OriginalPromise = window.Promise; // save it to avoid 'max call stack exceeded'
-	var aStaticMethods = ["resolve", "reject", "all", "race", "allSettled"];
+	var aStaticMethods = ["resolve", "reject", "all", "any", "race", "allSettled"];
 	var thenMicrotaskPromise;	// defined only during .then() call
 
 	var PromiseWaiter = WaiterBase.extend("sap.ui.test.autowaiter._promiseWaiter", {
@@ -116,7 +116,7 @@ sap.ui.define([
 		return false;
 	}
 
-	var WrappedPromise = function (fnOriginalExecutor) {
+	var WrappedPromise = function (fnOriginalExecutor, tracking) {
 		var mPendingPromise;
 
 		var fnWrappedExecutor = function (fnOriginalResolve, fnOriginalReject) {
@@ -127,6 +127,9 @@ sap.ui.define([
 				return fnOriginalExecutor(fnOriginalResolve, fnOriginalReject);
 			} else if (sArguments === "'function () { [native code] }'") {
 				oPromiseWaiter._oLogger.trace("Ignoring internal Promise constructor");
+				return fnOriginalExecutor(fnOriginalResolve, fnOriginalReject);
+			} else if (tracking === "PROMISE_WAITER_IGNORE") {
+				oPromiseWaiter._oLogger.trace("Ignoring Promise marked to ignore");
 				return fnOriginalExecutor(fnOriginalResolve, fnOriginalReject);
 			} else {
 				mPendingPromise = _trackPromise(sArguments);

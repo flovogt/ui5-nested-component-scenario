@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,9 +11,10 @@ sap.ui.define([
 	'sap/ui/test/Opa5',
 	'sap/ui/Device',
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/test/_OpaLogger"
+	"sap/ui/test/_OpaLogger",
+	"sap/ui/test/_FocusListener"
 ],
-function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
+function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger, _FocusListener) {
 	"use strict";
 
 	/**
@@ -64,7 +65,7 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 		 * A control may have many elements in its DOM representation. The most suitable one is chosen by priority:
 		 * <ol>
 		 *     <li>If the user provided an idSuffix, return the element that matches it, or null</li>
-		 *     <li>If there is a control adapter for the action - return the element that matches it. See {@link sap.ui.test.Press.controlAdapters} for an example</li>
+		 *     <li>If there is a control adapter for the action - return the element that matches it. See <code>controlAdapters</code> at {@link sap.ui.test.Press} for an example</li>
 		 *     <li>If there is no control adapter, or it matches no elements, return the focusDomRef of the control. Note that some controls may not have a focusDomRef.</li>
 		 * </ol>
 		 * @param {object} oControl the control to execute an action on
@@ -166,8 +167,10 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 		_tryOrSimulateFocusin: function ($DomRef, oControl) {
 			var oDomRef = $DomRef[0];
 			var bFireArtificialEvents = false;
+			var bSimulateFocusout = false;
 			var isAlreadyFocused = this._isFocused(oDomRef);
 			var bIsNewFF = Device.browser.firefox && Device.browser.version >= 60;
+			var oLastFocusedElement;
 
 			if (isAlreadyFocused || bIsNewFF) {
 				// 1. If the event is already focused, make sure onfocusin event of the control will be properly fired when executing this action,
@@ -186,6 +189,17 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 			if (bFireArtificialEvents) {
 				this.oLogger.debug("Control " + oControl + " could not be focused - maybe you are debugging?");
 
+				// since we are simulating a focus shift a *new* element
+				// ensure we need to simulate the focusout/blur of the *old* focused as well
+				// unless the *old* was already blurred in a previous step, so we check that as well:
+				oLastFocusedElement = _FocusListener.getLastFocusedElement();
+				bSimulateFocusout = oLastFocusedElement
+					&& oLastFocusedElement !== oDomRef
+					&& oLastFocusedElement !== _FocusListener.getLastBlurredElement();
+
+				if (bSimulateFocusout) {
+					this._simulateFocusout(oLastFocusedElement);
+				}
 				this._createAndDispatchFocusEvent("focusin", oDomRef);
 				this._createAndDispatchFocusEvent("focus", oDomRef);
 				this._createAndDispatchFocusEvent("activate", oDomRef);
@@ -287,10 +301,10 @@ function (ManagedObject, QUnitUtils, Opa5, Device, jQueryDOM, _OpaLogger) {
 		},
 
 		_createAndDispatchScrollEvent: function (oDomRef, oOptions) {
-			if (oOptions.x) {
+			if (oOptions.x != null) {
 				oDomRef.scrollLeft = oOptions.x;
 			}
-			if (oOptions.y) {
+			if (oOptions.y != null) {
 				oDomRef.scrollTop = oOptions.y;
 			}
 			var oScrollEvent = new Event("scroll", {

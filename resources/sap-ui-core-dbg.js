@@ -2,7 +2,7 @@
 //@ui5-bundle-raw-include ui5loader.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -215,7 +215,7 @@
 	 *
 	 * Note that the empty prefix ('') will always match and thus serves as a fallback.
 	 * See {@link sap.ui.loader.config}, option <code>paths</code>.
-	 * @type {Object.<string,{url:string,absoluteUrl:string}>}.
+	 * @type {Object<string,{url:string,absoluteUrl:string}>}
 	 * @private
 	 */
 	var mUrlPrefixes = Object.create(null);
@@ -562,7 +562,7 @@
 	 *
 	 * @param {string} sURL URL to guess the resource name for
 	 * @param {boolean} [bLoadedResourcesOnly=false] Whether the guess should be limited to already loaded resources
-	 * @returns {string} Resource name or undefined if no matching name could be found
+	 * @returns {string|undefined} Resource name or <code>undefined</code> if no matching name could be found
 	 * @private
 	 */
 	function guessResourceName(sURL, bLoadedResourcesOnly) {
@@ -1091,8 +1091,10 @@
 	 * When loading modules via script tag, only the onload handler knows the relationship between executed sap.ui.define calls and
 	 * module name. It then resolves the pending modules in the queue. Only one entry can get the name of the module
 	 * if there are more entries, then this is an error
+	 *
+	 * @param {boolean} [nested] Whether this is a nested queue used during sync execution of a module
 	 */
-	function ModuleDefinitionQueue() {
+	function ModuleDefinitionQueue(nested) {
 		var aQueue = [],
 			iRun = 0,
 			vTimer;
@@ -1103,16 +1105,18 @@
 					+ (document.currentScript ? " from " + document.currentScript.src : "")
 					+ " to define queue #" + iRun);
 			}
+
+			var sModule = document.currentScript && document.currentScript.getAttribute('data-sap-ui-module');
 			aQueue.push({
 				name: name,
 				deps: deps,
 				factory: factory,
 				_export: _export,
-				guess: document.currentScript && document.currentScript.getAttribute('data-sap-ui-module')
+				guess: sModule
 			});
 
 			// trigger queue processing via a timer in case the currently executing script is not managed by the loader
-			if ( !vTimer ) {
+			if ( !vTimer && !nested && sModule == null ) {
 				vTimer = setTimeout(this.process.bind(this, null, "timer"));
 			}
 		};
@@ -1588,7 +1592,7 @@
 			try {
 
 				bForceSyncDefines = !bAsync;
-				queue = new ModuleDefinitionQueue();
+				queue = new ModuleDefinitionQueue(true);
 
 				if ( bLoggable ) {
 					if ( typeof oModule.data === "string" ) {
@@ -3064,7 +3068,7 @@
 	 *                      dependencies or executing the factory function. Note that due to browser restrictions
 	 *                      not all errors will be reported via this callback. In general, module loading is
 	 *                      designed for the non-error case. Error handling is not complete.
-	 * @returns {any|undefined} A single module export value (sync probing variant) or undefined (async loading variant)
+	 * @returns {any|undefined} A single module export value (sync probing variant) or <code>undefined</code> (async loading variant)
 	 * @public
 	 * @function
 	 * @ui5-global-only
@@ -3130,7 +3134,7 @@
 	 * a content security policies (CSP) that forbids 'eval'.
 	 *
 	 * @param {string} sModuleName Module name in requireJS syntax
-	 * @returns {any} value of the loaded module or undefined
+	 * @returns {any} Export value of the loaded module (can be <code>undefined</code>)
 	 * @private
 	 * @ui5-restricted sap.ui.core
 	 * @function
@@ -3142,7 +3146,7 @@
 //@ui5-bundle-raw-include ui5loader-autoconfig.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -3651,3 +3655,4 @@
 sap.ui.requireSync("sap/ui/core/Core");
 // as this module contains the Core, we ensure that the Core has been booted
 sap.ui.getCore().boot && sap.ui.getCore().boot();
+//# sourceMappingURL=sap-ui-core-dbg.js.map

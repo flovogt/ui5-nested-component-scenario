@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -243,6 +243,9 @@ sap.ui.define([
 
 				this._bIsDisplayed = true;
 
+				oParameters = oParameters || {};
+				oParameters.config = this._oRawOptions;
+
 				return this.fireEvent(this.M_EVENTS.DISPLAY, oParameters);
 			},
 
@@ -326,7 +329,8 @@ sap.ui.define([
 				return sName;
 			},
 
-			_updateOptions: function (oOptions) {
+			_updateOptions: function (oOrigOptions) {
+				var oOptions = Object.assign({}, oOrigOptions);
 				// convert the legacy syntax to the new one
 				// if "viewName" is set, it's converted to "type" and "name"
 				// meanwhile, the "viewPath" is also set to "path" and the
@@ -339,17 +343,29 @@ sap.ui.define([
 					}
 					oOptions.type = "View";
 					oOptions.name = oOptions.viewName;
-
+					// sync Target still only works with the legacy options
+					if (oOptions._async) {
+						delete oOptions.viewName;
+					}
 					if (oOptions.viewPath) {
 						oOptions.path = oOptions.viewPath;
+						// sync Target still only works with the legacy options
+						if (oOptions._async) {
+							delete oOptions.viewPath;
+						}
 					}
 
 					if (oOptions.viewId) {
 						oOptions.id = oOptions.viewId;
+						// sync Target still only works with the legacy options
+						if (oOptions._async) {
+							delete oOptions.viewId;
+						}
 					}
 				}
 
 				this._oOptions = oOptions;
+				this._oRawOptions = oOrigOptions;
 			},
 
 			_bindTitleInTitleProvider : function(oView) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,8 +8,9 @@
 sap.ui.define([
 	'sap/ui/events/jquery/EventTriggerHook',
 	"sap/base/Log",
+	"sap/ui/core/Lib",
 	"sap/ui/thirdparty/jquery"
-], function(EventTriggerHook, Log, jQuery) {
+], function(EventTriggerHook, Log, Library, jQuery) {
 	"use strict";
 
 	/**
@@ -73,7 +74,8 @@ sap.ui.define([
 
 			oBlockState = {
 				$parent: jQuery(oParentDomRef),
-				$blockLayer: jQuery(oBlockLayerDOM)
+				$blockLayer: jQuery(oBlockLayerDOM),
+				control: oControl
 			};
 
 			//check if the control has static position, if this is the case we need to change it,
@@ -113,6 +115,11 @@ sap.ui.define([
 			// deregister handlers and :before and :after tabbable spans
 			fnHandleInteraction.call(oBlockState, false);
 
+			// restore focus back to control when blocklayer currently has the focus
+			if (oBlockState.control && oBlockState.$blockLayer[0] && oBlockState.$blockLayer[0].contains(document.activeElement)) {
+				oBlockState.control.focus();
+			}
+
 			// remove blocklayer from dom
 			oBlockState.$blockLayer.remove();
 		}
@@ -124,7 +131,7 @@ sap.ui.define([
 	 * @private
 	 */
 	BlockLayerUtils.addAriaAttributes = function(oDOM) {
-		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core");
+		var oResourceBundle = Library.get("sap.ui.core").getResourceBundle();
 
 		oDOM.setAttribute("role", "progressbar");
 		oDOM.setAttribute("aria-valuemin", "0");

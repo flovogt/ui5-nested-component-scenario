@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -135,6 +135,7 @@ sap.ui.define([
 
 			if (Array.isArray(aSymbols)) {
 				aSymbols.forEach(function(sSymbol) {
+					IllustrationPool.loadAsset(sIllustrationSet + "-Dot-" + sSymbol);
 					IllustrationPool.loadAsset(sIllustrationSet + "-Spot-" + sSymbol);
 					IllustrationPool.loadAsset(sIllustrationSet + "-Dialog-" + sSymbol);
 					IllustrationPool.loadAsset(sIllustrationSet + "-Scene-" + sSymbol);
@@ -211,6 +212,7 @@ sap.ui.define([
 			if (oDOMPool === null) {
 				oDOMPool = document.createElement("div");
 				oDOMPool.id = SAP_ILLUSTRATION_POOL_ID;
+				oDOMPool.setAttribute("aria-hidden", "true");
 
 				Core.getStaticAreaRef().appendChild(oDOMPool);
 
@@ -336,6 +338,7 @@ sap.ui.define([
 					error: function (jqXHR, sStatus) {
 						if (sStatus !== "abort") { // log an error if it isn't aborted
 							delete oAssetRegistry[sId];
+							Core.getEventBus().publish("sapMIllusPool-assetLdgFailed");
 							Log.error(sId + " asset could not be loaded");
 							fnResolve();
 						}

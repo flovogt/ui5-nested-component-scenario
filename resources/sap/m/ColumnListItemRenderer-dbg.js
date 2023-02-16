@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,12 +8,11 @@ sap.ui.define([
 	"sap/ui/core/Renderer",
 	"sap/ui/core/library",
 	"sap/ui/core/Core",
-	"sap/ui/Device",
 	"sap/base/Log",
 	"./library",
 	"./ListItemBaseRenderer"
 ],
-	function(Renderer, coreLibrary, Core, Device, Log, library, ListItemBaseRenderer) {
+	function(Renderer, coreLibrary, Core, Log, library, ListItemBaseRenderer) {
 	"use strict";
 
 	// shortcut for sap.m.PopinDisplay
@@ -29,6 +28,15 @@ sap.ui.define([
 	var ColumnListItemRenderer = Renderer.extend(ListItemBaseRenderer);
 	ColumnListItemRenderer.apiVersion = 2;
 
+	/**
+	 * Renders the HTML for the given control, using the provided
+	 * {@link sap.ui.core.RenderManager}.
+	 *
+	 * @param {sap.ui.core.RenderManager} rm
+	 *            RenderManager that can be used to render the control's DOM
+	 * @param {sap.m.ColumnListItem} oLI
+	 *            The item to be rendered
+	 */
 	ColumnListItemRenderer.render = function(rm, oLI) {
 		var oTable = oLI.getTable();
 		if (!oTable) {
@@ -106,17 +114,6 @@ sap.ui.define([
 		return "";
 	};
 
-	/**
-	 * Renders the HTML for the given control, using the provided
-	 * {@link sap.ui.core.RenderManager}.
-	 *
-	 * @param {sap.ui.core.RenderManager}
-	 *            oRenderManager the RenderManager that can be used for writing to
-	 *            the Render-Output-Buffer
-	 * @param {sap.ui.core.Control}
-	 *            oControl an object representation of the control that should be
-	 *            rendered
-	 */
 	ColumnListItemRenderer.renderLIAttributes = function(rm, oLI) {
 		rm.class("sapMListTblRow");
 		var vAlign = oLI.getVAlign();
@@ -259,13 +256,11 @@ sap.ui.define([
 	 * @param {sap.m.Table} oTable Table control
 	 */
 	ColumnListItemRenderer.renderPopin = function(rm, oLI, oTable) {
-		// remove existing popin first
-		oLI.removePopin();
-
 		// popin row
 		rm.openStart("tr", oLI.getPopin());
 		rm.class("sapMListTblSubRow");
 		rm.attr("tabindex", "-1");
+		rm.attr("data-sap-ui-related", oLI.getId());
 
 		if (oLI.isSelectable()) {
 			rm.attr("aria-selected", oLI.getSelected());
@@ -305,7 +300,8 @@ sap.ui.define([
 			}
 
 			var aStyleClass = oColumn.getStyleClass().split(" "),
-				sPopinDisplay = oColumn.getPopinDisplay();
+				sPopinDisplay = oColumn.getPopinDisplay(),
+				oOriginalHeader = oHeader;
 
 			/* row start */
 			rm.openStart("div");
@@ -323,6 +319,9 @@ sap.ui.define([
 			/* header cell */
 			if (oHeader && sPopinDisplay != PopinDisplay.WithoutHeader) {
 				rm.openStart("div").class("sapMListTblSubCntHdr").openEnd();
+				if (oTable._aPopinHeaders.indexOf(oHeader) === -1) {
+					oTable._aPopinHeaders.push(oOriginalHeader);
+				}
 				oHeader = oHeader.clone();
 				oColumn.addDependent(oHeader);
 				oLI._addClonedHeader(oHeader);
@@ -339,7 +338,7 @@ sap.ui.define([
 				rm.class("sapMListTblSubCntVal");
 				rm.class("sapMListTblSubCntVal" + sPopinDisplay);
 				rm.openEnd();
-				this.applyAriaLabelledBy(oHeader, oCell);
+				this.applyAriaLabelledBy(oOriginalHeader, oCell);
 				rm.renderControl(oCell);
 				rm.close("div");
 			}

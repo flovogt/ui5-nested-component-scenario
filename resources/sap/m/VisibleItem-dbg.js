@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -21,7 +21,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', "sap/ui/thirdparty/jquery"],
 		 * @extends sap.ui.core.Item
 		 *
 		 * @author SAP SE
-		 * @version 1.98.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @private
@@ -68,7 +68,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', "sap/ui/thirdparty/jquery"],
 		 */
 		VisibleItem.prototype.setVisible = function(bValue) {
 			if (this.getVisible() === bValue) {
-				return;
+				return this;
 			}
 
 			var $refs = this._getRefs();

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,9 +9,10 @@ sap.ui.define([
 	'sap/ui/base/Object',
 	'sap/ui/core/Locale',
 	'sap/ui/core/LocaleData',
-	'sap/ui/core/format/NumberFormat'
+	'sap/ui/core/format/NumberFormat',
+	'sap/ui/core/Configuration'
 ],
-	function(BaseObject, Locale, LocaleData, NumberFormat) {
+	function(BaseObject, Locale, LocaleData, NumberFormat, Configuration) {
 	"use strict";
 
 
@@ -49,7 +50,7 @@ sap.ui.define([
 	 *
 	 * Supported format options (additional to NumberFormat):
 	 * <ul>
-	 * <li>binaryFilesize: if true, base 2 is used: 1 Kibibyte = 1024 Byte, ... , otherwise base 10 is used: 1 Kilobyte = 1000 Byte (Default is false)</li>
+	 * <li>binaryFilesize: Whether to use base 2, that means 1 Kibibyte = 1024 Byte, or base 10, that means 1 Kilobyte = 1000 Byte</li>
 	 * </ul>
 	 *
 	 * @public
@@ -71,8 +72,11 @@ sap.ui.define([
 	 * If no locale is given, the currently configured
 	 * {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale formatLocale} will be used.
 	 *
-	 * @param {object} [oFormatOptions] Object which defines the format options
-	 * @param {sap.ui.core.Locale} [oLocale] Locale to get the formatter for
+	 * @param {object} [oFormatOptions]
+	 *   Supports the same options as {@link sap.ui.core.format.NumberFormat.getFloatInstance}
+	 * @param {boolean} [oFormatOptions.binaryFilesize=false]
+	 *   Whether to use base 2, that means 1 Kibibyte = 1024 Byte, or base 10, that means 1 Kilobyte = 1000 Byte
+	 * @param {sap.ui.core.Locale} [oLocale] The locale to get the formatter for
 	 * @return {sap.ui.core.format.FileSizeFormat} instance of the FileSizeFormat
 	 * @static
 	 * @public
@@ -84,7 +88,14 @@ sap.ui.define([
 	/**
 	 * Create an instance of the FileSizeFormat.
 	 *
-	 * @param {object} [oFormatOptions] Object which defines the format options
+	 * If no locale is given, the currently configured
+	 * {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale formatLocale} will be used.
+	 *
+	 * @param {object} [oFormatOptions]
+	 *   Supports the same options as {@link sap.ui.core.format.NumberFormat.getFloatInstance}
+	 * @param {boolean} [oFormatOptions.binaryFilesize=false]
+	 *   Whether to use base 2, that means 1 Kibibyte = 1024 Byte, or base 10, that means 1 Kilobyte = 1000 Byte
+	 * @param {sap.ui.core.Locale} [oLocale] The locale to get the formatter for
 	 * @return {sap.ui.core.format.FileSizeFormat} the instance of the FileSizeFormat
 	 * @static
 	 * @private
@@ -96,7 +107,7 @@ sap.ui.define([
 			oFormatOptions = undefined;
 		}
 		if (!oLocale) {
-			oLocale = sap.ui.getCore().getConfiguration().getFormatSettings().getFormatLocale();
+			oLocale = Configuration.getFormatSettings().getFormatLocale();
 		}
 		oFormat.oLocale = oLocale;
 		oFormat.oLocaleData = LocaleData.getInstance(oLocale);

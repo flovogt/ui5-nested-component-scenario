@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 //Provides mixin sap.ui.model.odata.v4.lib._V2Requestor
@@ -738,7 +738,7 @@ sap.ui.define([
 					vValue = vValue ? "allpages" : "none";
 					break;
 				case "$expand":
-					vValue = convertExpand([], vValue, "");
+					vValue = convertExpand([], vValue, ""); // Note: returns a new array
 					vValue = (bSortExpandSelect ? vValue.sort() : vValue).join(",");
 					break;
 				case "$orderby":

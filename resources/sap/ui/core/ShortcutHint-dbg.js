@@ -1,15 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
-	"sap/ui/core/Core",
-	"sap/ui/core/CommandExecution"
+	"sap/ui/core/CommandExecution",
+	"sap/ui/core/Lib"
 ],
-	function(Log, Core, CommandExecution) {
+	function(Log, CommandExecution, Library) {
 		"use strict";
 
 		/**
@@ -49,7 +49,7 @@ sap.ui.define([
 		};
 
 		ShortcutHint.prototype._getShortcutHintFromMessageBundle = function(oControl, sMessageBundleKey) {
-			var oResourceBundle = Core.getLibraryResourceBundle(oControl.getMetadata().getLibraryName());
+			var oResourceBundle = Library.get(oControl.getMetadata().getLibraryName()).getResourceBundle();
 
 			return oResourceBundle.getText(sMessageBundleKey);
 		};

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,19 +27,19 @@ sap.ui.define(['sap/m/Button', 'sap/m/ButtonRenderer'],
 	 * @implements sap.f.IShellBar
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.28
 	 * @alias sap.m.OverflowToolbarButton
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var OverflowToolbarButton = Button.extend("sap.m.OverflowToolbarButton", /** @lends sap.m.OverflowToolbarButton.prototype */ {
 		metadata: {
 			interfaces: [
 				"sap.f.IShellBar",
-				"sap.m.IOverflowToolbarContent"
+				"sap.m.IOverflowToolbarContent",
+				"sap.m.IToolbarInteractiveControl"
 			]
 		},
 		renderer: ButtonRenderer
@@ -63,25 +63,38 @@ sap.ui.define(['sap/m/Button', 'sap/m/ButtonRenderer'],
 			return sTooltip;
 	};
 
-		/**
-		 * OVERFLOW TOOLBAR settings
-		 */
-		OverflowToolbarButton.prototype._onBeforeEnterOverflow = function () {this._bInOverflow = true;};
+	/**
+	 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+	 * Determines if the Control is interactive.
+	 *
+	 * @returns {boolean} If it is an interactive Control
+	 *
+	 * @private
+	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 */
+	OverflowToolbarButton.prototype._getToolbarInteractive = function () {
+		return true;
+	};
 
-		OverflowToolbarButton.prototype._onAfterExitOverflow = function () {this._bInOverflow = false;};
+	/**
+	 * OVERFLOW TOOLBAR settings
+	 */
+	OverflowToolbarButton.prototype._onBeforeEnterOverflow = function () {this._bInOverflow = true;};
 
-		OverflowToolbarButton.prototype.getOverflowToolbarConfig = function () {
-			var oConfig = {
-				canOverflow: true,
-				propsUnrelatedToSize: ["enabled", "type"],
-				autoCloseEvents: ["press"]
-			};
+	OverflowToolbarButton.prototype._onAfterExitOverflow = function () {this._bInOverflow = false;};
 
-			oConfig.onBeforeEnterOverflow = this._onBeforeEnterOverflow.bind(this);
-			oConfig.onAfterExitOverflow = this._onAfterExitOverflow.bind(this);
-
-			return oConfig;
+	OverflowToolbarButton.prototype.getOverflowToolbarConfig = function () {
+		var oConfig = {
+			canOverflow: true,
+			propsUnrelatedToSize: ["enabled", "type", "accesskey"],
+			autoCloseEvents: ["press"]
 		};
+
+		oConfig.onBeforeEnterOverflow = this._onBeforeEnterOverflow.bind(this);
+		oConfig.onAfterExitOverflow = this._onAfterExitOverflow.bind(this);
+
+		return oConfig;
+	};
 
 	return OverflowToolbarButton;
 

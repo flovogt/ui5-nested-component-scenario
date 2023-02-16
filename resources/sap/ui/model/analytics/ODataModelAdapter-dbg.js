@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -125,7 +125,8 @@ sap.ui.define(['./AnalyticalBinding', "./AnalyticalTreeBindingAdapter", './odata
 			this.oOData4SAPAnalyticsModel = new odata4analytics.Model(
 				new odata4analytics.Model.ReferenceByModel(this));
 		} catch (exception) {
-			throw "Failed to instantiate analytical extensions for given OData model: " + exception.message;
+			throw "Failed to instantiate analytical extensions for given OData model: "
+				+ (exception.message || exception);
 		}
 		return this.oOData4SAPAnalyticsModel;
 	};

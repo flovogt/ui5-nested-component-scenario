@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -76,7 +76,7 @@ sap.ui.define([
 			 *   corresponding number of milliseconds since 1 January, 1970 UTC.
 			 *   Otherwise the values are compared with the JavaScript operators <code>===</code>
 			 *   and <code>></code>.
-			 * @return {number}
+			 * @returns {number}
 			 *   The result of the comparison: <code>0</code> if the values are equal,
 			 *   <code>1</code> if the first value is larger, <code>-1</code> if the second value
 			 *   is larger, <code>NaN</code> if they cannot be compared
@@ -139,13 +139,16 @@ sap.ui.define([
 			 * and URLs.
 			 *
 			 * @param {any} vValue
-			 *   The value according to "OData JSON Format Version 4.0" section
-			 *   "7.1 Primitive Value"
+			 *   The value according to <a href=
+			 *   "https://docs.oasis-open.org/odata/odata-json-format/v4.0/os/odata-json-format-v4.0-os.html#_Primitive_Value"
+			 *   >"OData JSON Format Version 4.0" section "7.1 Primitive Value"</a>
 			 * @param {string} sType
 			 *   The OData primitive type, for example "Edm.String"
 			 * @returns {string}
-			 *   The literal according to "OData Version 4.0 Part 2: URL Conventions" section
-			 *   "5.1.1.6.1 Primitive Literals"
+			 *   The literal according to <a href=
+			 *   "https://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part2-url-conventions.html"
+			 *   >"OData Version 4.0 Part 2: URL Conventions"</a> section
+			 *   "5.1.1.11.1 Primitive Literals"
 			 * @throws {Error}
 			 *   If the value is undefined or the type is not supported
 			 *
@@ -258,22 +261,22 @@ sap.ui.define([
 			 *   requests need to be sent in scope of a change set. See example below. Change set
 			 *   requests are annotated with a property <code>$ContentID</code> containing the
 			 *   corresponding "Content-ID" header from the serialized batch request body.
-			 * @param {string} [sEpilogue]
-			 *   A string that will be included in the epilogue (which acts like a comment)
-			 * @param {string} oRequest.method
+			 * @param {string} aRequests[].method
 			 *   The HTTP method; only "GET", "POST", "PUT", "PATCH", or "DELETE" are allowed
-			 * @param {string} oRequest.url
+			 * @param {string} aRequests[].url
 			 *   An absolute or relative URL. If the URL contains a "Content-ID" reference, then the
 			 *   reference has to be specified as the zero-based index of the referenced request
 			 *   inside the change set. See example below.
-			 * @param {object} oRequest.headers
+			 * @param {object} aRequests[].headers
 			 *   A map of request headers. RFC-2047 encoding rules are not supported. Nevertheless
 			 *   non-US-ASCII values can be used. If the value of an "If-Match" header is an object,
 			 *   that object's ETag ("@odata.etag") is used instead.
-			 * @param {object} [oRequest.body]
+			 * @param {object} [aRequests[].body]
 			 *   The request body. If specified, the <code>oRequest.headers</code> map must contain
 			 *   a "Content-Type" header either without "charset" parameter or with "charset"
 			 *   parameter having value "UTF-8".
+			 * @param {string} [sEpilogue]
+			 *   A string that will be included in the epilogue (which acts like a comment)
 			 * @returns {object}
 			 *   An object containing the following properties:
 			 *   <ul>

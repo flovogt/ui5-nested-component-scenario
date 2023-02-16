@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/core/LocaleData', 'sap/base/assert'],
-	function (UniversalDate, Locale, LocaleData, assert) {
+sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/core/LocaleData', 'sap/base/assert', 'sap/ui/core/Configuration'],
+	function (UniversalDate, Locale, LocaleData, assert, Configuration) {
 		"use strict";
 
 		function clone(oUniversalDate) {
@@ -19,7 +19,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @namespace
 		 * @alias module:sap/ui/core/date/UniversalDateUtils
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		var UniversalDateUtils = {};
 
@@ -64,7 +64,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @throws {TypeError}
 		 *   If <code>oBaseDate</code> is not an instance of <code>UniversalDate</code>
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.getRange = function (iDuration, sUnit, oBaseDate, bBaseOnUnit) {
 
@@ -174,11 +174,11 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 *   defaults to the current format localе of UI5
 		 * @returns {sap.ui.core.date.UniversalDate} First day of the week
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.getWeekStartDate = function (oUniversalDate, sLocale) {
 			var oLocale = sLocale ? new Locale(sLocale)
-					: sap.ui.getCore().getConfiguration().getFormatSettings().getFormatLocale(),
+					: Configuration.getFormatSettings().getFormatLocale(),
 				oLocaleData = LocaleData.getInstance(oLocale),
 				iFirstDayOfWeek = oLocaleData.getFirstDayOfWeek();
 			oUniversalDate = oUniversalDate ? clone(oUniversalDate) : clone(UniversalDateUtils.createNewUniversalDate());
@@ -201,7 +201,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 *   defaults to the current format localе of UI5
 		 * @returns {sap.ui.core.date.UniversalDate} Last day of the week
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.getWeekLastDate = function (oUniversalDate, sLocale) {
 			var oEndDate = UniversalDateUtils.getWeekStartDate(oUniversalDate, sLocale);
@@ -219,7 +219,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @param {sap.ui.core.date.UniversalDate} [oUniversalDate=now] Base date, defaults to now
 		 * @returns {sap.ui.core.date.UniversalDate} First day of the month
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.getMonthStartDate = function (oUniversalDate) {
 			oUniversalDate = oUniversalDate ? clone(oUniversalDate) : clone(UniversalDateUtils.createNewUniversalDate());
@@ -237,7 +237,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @param {sap.ui.core.date.UniversalDate} [oUniversalDate=now] Base date, defaults to now
 		 * @returns {sap.ui.core.date.UniversalDate} Last day of the month
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.getMonthEndDate = function (oUniversalDate) {
 			var oEndDate = UniversalDateUtils.getMonthStartDate(oUniversalDate);
@@ -256,7 +256,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @param {sap.ui.core.date.UniversalDate} [oUniversalDate=now] Base date, defaults to now
 		 * @returns {sap.ui.core.date.UniversalDate} First day of the quarter of the year
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.getQuarterStartDate = function (oUniversalDate) {
 			oUniversalDate = oUniversalDate ? clone(oUniversalDate) : clone(UniversalDateUtils.createNewUniversalDate());
@@ -275,7 +275,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @param {sap.ui.core.date.UniversalDate} [oUniversalDate=now] Base date, defaults to now
 		 * @returns {sap.ui.core.date.UniversalDate} Last day of the quarter of the year
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.getQuarterEndDate = function (oUniversalDate) {
 			var oEndDate = UniversalDateUtils.getQuarterStartDate(oUniversalDate);
@@ -294,7 +294,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @param {sap.ui.core.date.UniversalDate} [oUniversalDate=now] Base date, defaults to now
 		 * @returns {sap.ui.core.date.UniversalDate} The year's start date for the given universal date
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.getYearStartDate = function (oUniversalDate) {
 			oUniversalDate = oUniversalDate ? clone(oUniversalDate) : clone(UniversalDateUtils.createNewUniversalDate());
@@ -313,7 +313,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @param {sap.ui.core.date.UniversalDate} [oUniversalDate=now] Base date, defaults to now
 		 * @returns {sap.ui.core.date.UniversalDate} The year's end date for the given universal date
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.getYearEndDate = function (oUniversalDate) {
 			oUniversalDate = oUniversalDate ? clone(oUniversalDate) : clone(UniversalDateUtils.createNewUniversalDate());
@@ -331,7 +331,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @param {sap.ui.core.date.UniversalDate} [oUniversalDate=now] Date, defaults to now
 		 * @returns {sap.ui.core.date.UniversalDate} A date with the time portion set to 00:00:00.000
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.resetStartTime = function (oUniversalDate) {
 			oUniversalDate = oUniversalDate ? clone(oUniversalDate) : clone(UniversalDateUtils.createNewUniversalDate());
@@ -347,7 +347,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * @param {sap.ui.core.date.UniversalDate} [oUniversalDate=now] Date, defaults to now
 		 * @returns {sap.ui.core.date.UniversalDate} A date with the time portion set to 23:59:59.999
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.resetEndTime = function (oUniversalDate) {
 			oUniversalDate = oUniversalDate ? clone(oUniversalDate) : clone(UniversalDateUtils.createNewUniversalDate());
@@ -363,14 +363,14 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		 * Helpers to create well-known ranges.
 		 *
 		 * @private
-		 * @ui5-restricted sap.ui.comp
+		 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 		 */
 		UniversalDateUtils.ranges = {
 			/**
 			 * @param {int} iDays Number of days before the current day
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iDays before the current day
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastDays: function (iDays) {
 				return UniversalDateUtils.getRange(-iDays, "DAY");
@@ -378,7 +378,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of yesterday's date
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			yesterday: function () {
 				return UniversalDateUtils.getRange(-1, "DAY");
@@ -386,7 +386,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of today's date
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			today: function () {
 				return UniversalDateUtils.getRange(0, "DAY");
@@ -394,7 +394,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of tomorrow's date
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			tomorrow: function () {
 				return UniversalDateUtils.getRange(1, "DAY");
@@ -403,7 +403,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iDays Number of days after the current day
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iDays after the current day
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			nextDays: function (iDays) {
 				return UniversalDateUtils.getRange(iDays, "DAY");
@@ -413,7 +413,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iWeeks Number of weeks before the current week
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iWeeks before the current week
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastWeeks: function (iWeeks) {
 				return UniversalDateUtils.getRange(-iWeeks, "WEEK");
@@ -421,7 +421,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of last week
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastWeek: function () {
 				return UniversalDateUtils.getRange(-1, "WEEK");
@@ -429,7 +429,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of the current week
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			currentWeek: function () {
 				return UniversalDateUtils.getRange(0, "WEEK");
@@ -438,7 +438,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of the first day of the current week
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			firstDayOfWeek: function () {
 				var oStartDate = UniversalDateUtils.getWeekStartDate();
@@ -449,9 +449,9 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			},
 
 			/**
-			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of the the last day of the current week
+			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of the last day of the current week
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastDayOfWeek: function () {
 				var oEndDate = UniversalDateUtils.getWeekLastDate();
@@ -464,7 +464,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of next week's
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			nextWeek: function () {
 				return UniversalDateUtils.getRange(1, "WEEK");
@@ -473,7 +473,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iWeeks Number of weeks after the current week
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iWeeks after the current week
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			nextWeeks: function (iWeeks) {
 				return UniversalDateUtils.getRange(iWeeks, "WEEK");
@@ -483,7 +483,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iMonths Number of months before the current month
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iMonths before the current month
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastMonths: function (iMonths) {
 				return UniversalDateUtils.getRange(-iMonths, "MONTH");
@@ -491,7 +491,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of last month's
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastMonth: function () {
 				return UniversalDateUtils.getRange(-1, "MONTH");
@@ -499,7 +499,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of current month
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			currentMonth: function () {
 				return UniversalDateUtils.getRange(0, "MONTH");
@@ -508,7 +508,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of first day of the current month
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			firstDayOfMonth: function () {
 				var oStartDate = UniversalDateUtils.getMonthStartDate();
@@ -521,7 +521,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of last day of the current month
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastDayOfMonth: function () {
 				var oEndDate = UniversalDateUtils.getMonthEndDate();
@@ -534,7 +534,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of next month's
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			nextMonth: function () {
 				return UniversalDateUtils.getRange(1, "MONTH");
@@ -543,7 +543,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iMonths Number of months after the current month
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iMonths after the current month
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			nextMonths: function (iMonths) {
 				return UniversalDateUtils.getRange(iMonths, "MONTH");
@@ -553,7 +553,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iQuarters Number of quarters before the current quarter
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iQuarters before the current quarter
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastQuarters: function (iQuarters) {
 				return UniversalDateUtils.getRange(-iQuarters, "QUARTER");
@@ -561,7 +561,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of last quarter
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastQuarter: function () {
 				return UniversalDateUtils.getRange(-1, "QUARTER");
@@ -570,7 +570,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of first day of the current quarter
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			firstDayOfQuarter: function () {
 				var oStartDate = UniversalDateUtils.getQuarterStartDate();
@@ -583,7 +583,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of last day of the current quarter
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastDayOfQuarter: function () {
 				var oEndDate = UniversalDateUtils.getQuarterEndDate();
@@ -596,7 +596,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of current quarter
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			currentQuarter: function () {
 				return UniversalDateUtils.getRange(0, "QUARTER");
@@ -604,7 +604,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of next quarter
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			nextQuarter: function () {
 				return UniversalDateUtils.getRange(1, "QUARTER");
@@ -613,7 +613,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iQuarters Number of quarters after the current quarter
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iQuarters after the current quarter
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			nextQuarters: function (iQuarters) {
 				return UniversalDateUtils.getRange(iQuarters, "QUARTER");
@@ -623,7 +623,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iQuarter Number of quarter of the current year
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iQuarter
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			quarter: function (iQuarter) {
 				if (iQuarter <= 2) {
@@ -639,7 +639,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iYears Number of years before the current year
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iYears before the current year
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastYears: function (iYears) {
 				return UniversalDateUtils.getRange(-iYears, "YEAR");
@@ -656,7 +656,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of first day of the current year
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			firstDayOfYear: function () {
 				var oStartDate = UniversalDateUtils.getYearStartDate();
@@ -669,7 +669,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of last day of the current year
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			lastDayOfYear: function () {
 				var oEndDate = UniversalDateUtils.getYearEndDate();
@@ -683,7 +683,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of current year
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			currentYear: function () {
 				return UniversalDateUtils.getRange(0, "YEAR");
@@ -691,7 +691,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of next year
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			nextYear: function () {
 				return UniversalDateUtils.getRange(1, "YEAR");
@@ -700,7 +700,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			 * @param {int} iYears Number of years after the current year
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iYears after the current year
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			nextYears: function (iYears) {
 				return UniversalDateUtils.getRange(iYears, "YEAR");
@@ -709,7 +709,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with first day of the current year and today
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			yearToDate: function () {
 				var oToday = UniversalDateUtils.createNewUniversalDate();
@@ -722,7 +722,7 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			/**
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with today and end of the current year
 			 * @private
-			 * @ui5-restricted sap.ui.comp
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
 			dateToYear: function () {
 				var oToday = UniversalDateUtils.createNewUniversalDate();

@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/core/Renderer", "./InputRenderer", "sap/ui/Device", "sap/ui/core/LabelEnablement"],
-	function(Renderer, InputRenderer, Device, LabelEnablement) {
+sap.ui.define(["sap/ui/core/Renderer", "./InputRenderer", "sap/ui/Device", "sap/ui/core/LabelEnablement", "sap/ui/core/Configuration"],
+	function(Renderer, InputRenderer, Device, LabelEnablement, Configuration) {
 	"use strict";
 
 	/**
@@ -29,7 +29,7 @@ sap.ui.define(["sap/ui/core/Renderer", "./InputRenderer", "sap/ui/Device", "sap/
 		// so we have to overwrite it by leaving only the text direction
 		// and the textAlign will be controlled by textAlign property of the StepInput
 
-		if (sap.ui.getCore().getConfiguration().getRTL()) {
+		if (Configuration.getRTL()) {
 			oRm.attr("dir", "ltr");
 		}
 		// prevent rendering of aria-disabled attribute to avoid having
@@ -41,6 +41,18 @@ sap.ui.define(["sap/ui/core/Renderer", "./InputRenderer", "sap/ui/Device", "sap/
 		}
 	};
 
+	/**
+	 * Returns aria accessibility role for the control.
+	 *
+	 * @protected
+	 * @override
+	 * @param {sap.m.Input} oControl An object representation of the control
+	 * @returns {string}
+	 */
+	 NumericInputRenderer.getAriaRole = function (oControl) {
+		return "spinbutton";
+	};
+
 	//Accessibility behavior of the Input needs to be extended
 	/**
 	* Overwrites the accessibility state using the <code>getAccessibilityState</code> method of the <code>InputBaseRenderer</code>.
@@ -49,7 +61,7 @@ sap.ui.define(["sap/ui/core/Renderer", "./InputRenderer", "sap/ui/Device", "sap/
 	* @returns {Array} mAccessibilityState
 	*/
 	NumericInputRenderer.getAccessibilityState = function(oNumericInput) {
-		var mAccessibilityState = InputRenderer.getAccessibilityState(oNumericInput),
+		var mAccessibilityState = InputRenderer.getAccessibilityState.apply(this, arguments),
 			fMin,
 			fMax,
 			fNow,

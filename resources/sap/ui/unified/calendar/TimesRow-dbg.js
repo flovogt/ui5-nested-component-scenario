@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,13 +13,13 @@ sap.ui.define([
 	'sap/ui/core/date/UniversalDate',
 	'sap/ui/unified/library',
 	'sap/ui/core/format/DateFormat',
-	'sap/ui/core/library',
 	'sap/ui/core/Locale',
 	"./TimesRowRenderer",
 	"sap/ui/dom/containsOrEquals",
 	"sap/base/util/deepEqual",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/unified/DateRange"
+	"sap/ui/unified/DateRange",
+	"sap/ui/core/Configuration"
 ], function(
 	Control,
 	LocaleData,
@@ -28,18 +28,15 @@ sap.ui.define([
 	UniversalDate,
 	library,
 	DateFormat,
-	coreLibrary,
 	Locale,
 	TimesRowRenderer,
 	containsOrEquals,
 	deepEqual,
 	jQuery,
-	DateRange
+	DateRange,
+	Configuration
 ) {
 	"use strict";
-
-	// shortcut for sap.ui.core.CalendarType
-	var CalendarType = coreLibrary.CalendarType;
 
 	/*
 	 * <code>UniversalDate</code> objects are used inside the <code>TimesRow</code>, whereas JavaScript dates are used in the API.
@@ -62,13 +59,12 @@ sap.ui.define([
 	 *
 	 * The TimesRow works with JavaScript Date objects.
 	 * @extends sap.ui.core.Control
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.32.0
 	 * @alias sap.ui.unified.calendar.TimesRow
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var TimesRow = Control.extend("sap.ui.unified.calendar.TimesRow", /** @lends sap.ui.unified.calendar.TimesRow.prototype */ { metadata : {
 
@@ -118,7 +114,23 @@ sap.ui.define([
 			/**
 			 * If set, a header with the years is shown to visualize what month belongs to what year.
 			 */
-			showHeader : {type : "boolean", group : "Appearance", defaultValue : false}
+			showHeader : {type : "boolean", group : "Appearance", defaultValue : false},
+
+			/**
+			 * If set, the calendar type is used for display.
+			 * If not set, the calendar type of the global configuration is used.
+			 * @private
+			 * @since 1.108.0
+			 */
+			primaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"},
+
+			/**
+			 * If set, the days are also displayed in this calendar type
+			 * If not set, the dates are only displayed in the primary calendar type
+			 * @private
+			 * @since 1.109.0
+			 */
+			secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"}
 		},
 		aggregations : {
 
@@ -172,13 +184,13 @@ sap.ui.define([
 				}
 			}
 		}
-	}});
+	}, renderer: TimesRowRenderer});
 
 	TimesRow.prototype.init = function(){
 
-		this._oFormatYyyyMMddHHmm = DateFormat.getInstance({pattern: "yyyyMMddHHmm", calendarType: CalendarType.Gregorian});
-		this._oFormatLong = DateFormat.getDateTimeInstance({style: "long/short"});
-		this._oFormatDate = DateFormat.getDateInstance({style: "medium"});
+		this._oFormatYyyyMMddHHmm = DateFormat.getInstance({pattern: "yyyyMMddHHmm", calendarType: this.getProperty("primaryCalendarType")});
+		this._oFormatLong = DateFormat.getDateTimeInstance({style: "long/short", calendarType: this.getProperty("primaryCalendarType")});
+		this._oFormatDate = DateFormat.getDateInstance({style: "medium", calendarType: this.getProperty("primaryCalendarType")});
 
 		this._mouseMoveProxy = jQuery.proxy(this._handleMouseMove, this);
 
@@ -274,6 +286,11 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Setter <code>date</code> value.
+	 * @param {Date} oDate A JavaScript Date
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 */
 	TimesRow.prototype.setDate = function(oDate){
 
 		_changeDate.call(this, oDate, false);
@@ -282,6 +299,11 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Returns a Date in UTC timezone from local timezone
+	 * @returns {sap.ui.core.date.UniversalDate} Date in UTC timezone
+	 * @private
+	 */
 	TimesRow.prototype._getDate = function(){
 
 		if (!this._oUTCDate) {
@@ -292,6 +314,11 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Sets start date, as JavaScript Date object of the row.
+	 * @param {Date} oStartDate A JavaScript Date
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 */
 	TimesRow.prototype.setStartDate = function(oStartDate){
 
 		CalendarUtils._checkJSDateObject(oStartDate);
@@ -316,6 +343,11 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Returns the start of the corresponding interval date.
+	 * @returns {sap.ui.core.date.UniversalDate} Date in UTC timezone
+	 * @private
+	 */
 	TimesRow.prototype._getStartDate = function(){
 
 		if (!this._oUTCStartDate) {
@@ -327,12 +359,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Displays the given date without setting the focus
+	 * Displays the given date without setting the focus.
 	 *
-	 * @param {object} oDate JavaScript Date object for focused date.
-	 * @returns {this} <code>this</code> to allow method chaining
+	 * @param {Date} oDate A JavaScript Date
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TimesRow.prototype.displayDate = function(oDate){
 
@@ -353,7 +384,7 @@ sap.ui.define([
 		if (oParent && oParent.getLocale) {
 			return oParent.getLocale();
 		} else if (!this._sLocale) {
-			this._sLocale = sap.ui.getCore().getConfiguration().getFormatSettings().getFormatLocale().toString();
+			this._sLocale = Configuration.getFormatSettings().getFormatLocale().toString();
 		}
 
 		return this._sLocale;
@@ -390,7 +421,7 @@ sap.ui.define([
 
 		if (this._oFormatLong.oLocale.toString() != sLocale) {
 			var oLocale = new Locale(sLocale);
-			this._oFormatLong = DateFormat.getInstance({style: "long/short"}, oLocale);
+			this._oFormatLong = DateFormat.getDateTimeInstance({style: "long/short", calendarType: this.getProperty("primaryCalendarType")}, oLocale);
 		}
 
 		return this._oFormatLong;
@@ -419,7 +450,7 @@ sap.ui.define([
 
 				if (sTimeFormatShort.search("a") >= 0) {
 					// AP/PM indicator used
-					this._oFormatTimeAmPm = DateFormat.getTimeInstance({pattern: "a"}, oLocale);
+					this._oFormatTimeAmPm = DateFormat.getTimeInstance({pattern: "a", calendarType: this.getProperty("primaryCalendarType")}, oLocale);
 				}
 			} else {
 				sPattern = sTimeFormatShort;
@@ -428,11 +459,11 @@ sap.ui.define([
 				sPattern = sPattern.replace("hh", "h");
 				if (sPattern.search("a") >= 0) {
 					// AP/PM indicator used
-					this._oFormatTimeAmPm = DateFormat.getTimeInstance({pattern: "a"}, oLocale);
+					this._oFormatTimeAmPm = DateFormat.getTimeInstance({pattern: "a", calendarType: this.getProperty("primaryCalendarType")}, oLocale);
 					sPattern = sPattern.replace("a", "").trim();
 				}
 			}
-			this._oFormatTime = DateFormat.getTimeInstance({pattern: sPattern}, oLocale);
+			this._oFormatTime = DateFormat.getTimeInstance({pattern: sPattern, calendarType: this.getProperty("primaryCalendarType")}, oLocale);
 		}
 
 		return this._oFormatTime;
@@ -448,7 +479,7 @@ sap.ui.define([
 
 		if (this._oFormatDate.oLocale.toString() != sLocale) {
 			var oLocale = new Locale(sLocale);
-			this._oFormatDate = DateFormat.getDateInstance({style: "medium"}, oLocale);
+			this._oFormatDate = DateFormat.getDateInstance({style: "medium", calendarType: this.getProperty("primaryCalendarType")}, oLocale);
 		}
 
 		return this._oFormatDate;
@@ -600,7 +631,7 @@ sap.ui.define([
 
 	/*
 	 * Checks if a date is selected and what kind of selected
-	 * @return {int} iSelected 0: not selected; 1: single day selected, 2: interval start, 3: interval end, 4: interval between, 5: one day interval (start = end)
+	 * @returns {int} iSelected 0: not selected; 1: single day selected, 2: interval start, 3: interval end, 4: interval between, 5: one day interval (start = end)
 	 * @private
 	 */
 	TimesRow.prototype._checkDateSelected = function(oDate){
@@ -664,7 +695,7 @@ sap.ui.define([
 	/*
 	 * gets the type of a single date checking the specialDates aggregation
 	 * the first hit is used
-	 * @return {object} date type and tooltip defined in CalendarDayType
+	 * @returns {object} date type and tooltip defined in CalendarDayType
 	 * @private
 	 */
 	TimesRow.prototype._getDateType = function(oDate){
@@ -716,7 +747,7 @@ sap.ui.define([
 	/*
 	 * Checks if a time is enabled
 	 * the min. and max. date of the CalendarTimeInterval are used
-	 * @return {boolean} Flag if enabled
+	 * @returns {boolean} Flag if enabled
 	 * @private
 	 */
 	TimesRow.prototype._checkTimeEnabled = function(oDate){
@@ -871,10 +902,9 @@ sap.ui.define([
 	 * Checks if a date is focusable in the current rendered output.
 	 * This means that if it is not rendered, it is not focusable.
 	 *
-	 * @param {object} oDate JavaScript Date object for focused date.
+	 * @param {Date} oDate JavaScript Date object for focused date.
 	 * @returns {boolean} flag if focusable
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	TimesRow.prototype.checkDateFocusable = function(oDate){
 
@@ -905,7 +935,7 @@ sap.ui.define([
 	* when focus is being restored back (e.g. after rerendering), we focus the needed DOM element (in this case hour)
 	*
 	* @param {object} oInfo the focus info
-	* @returns {this} <code>this</code> for method chaining.
+	* @returns {this} Reference to <code>this</code> for method chaining
 	*/
 	TimesRow.prototype.applyFocusInfo = function(oInfo){
 		this._oItemNavigation.focusItem(this._oItemNavigation.getFocusedIndex());
@@ -1280,8 +1310,8 @@ sap.ui.define([
 
 	/*
 	 * Getter for the time's preferred hour symbol. Possible options are h|H|k|K.
-	 * @param {String} sTimeFormatShort Hours time format
-	 * @return {String} Hours pattern.
+	 * @param {string} sTimeFormatShort Hours time format
+	 * @returns {string} Hours pattern.
 	 * @private
 	 */
 	function _getPreferredHourSymbol(sTimeFormatShort){

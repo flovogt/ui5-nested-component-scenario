@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,6 +13,7 @@ sap.ui.define([
 	'sap/m/ResponsivePopover',
 	'sap/ui/core/Core',
 	'sap/ui/core/Control',
+	'sap/ui/core/Element',
 	'sap/ui/core/delegate/ScrollEnablement',
 	'sap/ui/Device',
 	'sap/ui/core/InvisibleText',
@@ -23,9 +24,6 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/core/EnabledPropagator",
 	"sap/ui/core/theming/Parameters",
-	"sap/ui/thirdparty/jquery",
-	// jQuery Plugin "control"
-	"sap/ui/dom/jquery/control",
 	// jQuery Plugin "scrollLeftRTL"
 	"sap/ui/dom/jquery/scrollLeftRTL"
 ],
@@ -37,6 +35,7 @@ sap.ui.define([
 		ResponsivePopover,
 		Core,
 		Control,
+		Element,
 		ScrollEnablement,
 		Device,
 		InvisibleText,
@@ -46,9 +45,7 @@ sap.ui.define([
 		KeyCodes,
 		Log,
 		EnabledPropagator,
-		Parameters,
-		jQuery,
-		scrollLeftRTL
+		Parameters
 	) {
 	"use strict";
 
@@ -78,169 +75,172 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.22
 	 * @alias sap.m.Tokenizer
 	 * @see {@link fiori:https://experience.sap.com/fiori-design-web/token/ Tokenizer}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Tokenizer = Control.extend("sap.m.Tokenizer", /** @lends sap.m.Tokenizer.prototype */ { metadata : {
+	var Tokenizer = Control.extend("sap.m.Tokenizer", /** @lends sap.m.Tokenizer.prototype */ {
+		metadata : {
 
-		library : "sap.m",
-		properties : {
+			library : "sap.m",
+			properties : {
 
-			/**
-			 * true if tokens shall be editable otherwise false
-			 */
-			editable : {type : "boolean", group : "Misc", defaultValue : true},
+				/**
+				 * true if tokens shall be editable otherwise false
+				 */
+				editable : {type : "boolean", group : "Misc", defaultValue : true},
 
-			/**
-			 * Defines the width of the Tokenizer.
-			 */
+				/**
+				 * Defines the width of the Tokenizer.
+				 */
 
-			width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
+				width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
 
-			/**
-			 * Defines the maximum width of the Tokenizer.
-			 */
-			maxWidth : {type: "sap.ui.core.CSSSize", group: "Dimension", defaultValue : "100%"},
+				/**
+				 * Defines the maximum width of the Tokenizer.
+				 */
+				maxWidth : {type: "sap.ui.core.CSSSize", group: "Dimension", defaultValue : "100%"},
 
-			/**
-			 * Defines the mode that the Tokenizer will use:
-			 * <ul>
-			 * <li><code>sap.m.TokenizerRenderMode.Loose</code> mode shows all tokens, no matter the width of the Tokenizer</li>
-			 * <li><code>sap.m.TokenizerRenderMode.Narrow</code> mode forces the Tokenizer to show only as much tokens as possible in its width and add an n-More indicator</li>
-			 * </ul>
-			 */
-			renderMode: {type : "string", group : "Misc", defaultValue : RenderMode.Loose},
+				/**
+				 * Defines the mode that the Tokenizer will use:
+				 * <ul>
+				 * <li><code>sap.m.TokenizerRenderMode.Loose</code> mode shows all tokens, no matter the width of the Tokenizer</li>
+				 * <li><code>sap.m.TokenizerRenderMode.Narrow</code> mode forces the Tokenizer to show only as much tokens as possible in its width and add an n-More indicator</li>
+				 * </ul>
+				 */
+				renderMode: {type : "string", group : "Misc", defaultValue : RenderMode.Loose},
 
-			/**
-			 * Defines the count of hidden tokens if any. If this property is set to 0, the n-More indicator will not be shown.
-			 */
-			hiddenTokensCount: {type : "int", group : "Misc", defaultValue : 0, visibility: "hidden"}
+				/**
+				 * Defines the count of hidden tokens if any. If this property is set to 0, the n-More indicator will not be shown.
+				 */
+				hiddenTokensCount: {type : "int", group : "Misc", defaultValue : 0, visibility: "hidden"}
 
-		},
-		defaultAggregation : "tokens",
-		aggregations : {
-
-			/**
-			 * the currently displayed tokens
-			 */
-			tokens : {type : "sap.m.Token", multiple : true, singularName : "token"},
-			/**
-			 * Hidden text used for accesibility
-			 */
-			_tokensInfo: {type: "sap.ui.core.InvisibleText", multiple: false, visibility: "hidden"}
-		},
-		associations : {
-
-			/**
-			 * Association to controls / ids which describe this control (see WAI-ARIA attribute aria-describedby).
-			 */
-			ariaDescribedBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaDescribedBy"},
-
-			/**
-			 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
-			 */
-			ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
-		},
-		events : {
-
-			/**
-			 * Fired when the tokens aggregation changed (add / remove token)
-			 * @deprecated Since version 1.82, replaced by <code>tokenDelete</code> event.
-			 */
-			tokenChange : {
-				deprecated: true,
-				parameters : {
-
-					/**
-					 * type of tokenChange event.
-					 * There are four TokenChange types: "added", "removed", "removedAll", "tokensChanged".
-					 * Use sap.m.Tokenizer.TokenChangeType.Added for "added", sap.m.Tokenizer.TokenChangeType.Removed for "removed", sap.m.Tokenizer.TokenChangeType.RemovedAll for "removedAll" and sap.m.Tokenizer.TokenChangeType.TokensChanged for "tokensChanged".
-					 */
-					type: { type : "string"},
-
-					/**
-					 * the added token or removed token.
-					 * This parameter is used when tokenChange type is "added" or "removed".
-					 */
-					token: { type: "sap.m.Token"},
-
-					/**
-					 * the array of removed tokens.
-					 * This parameter is used when tokenChange type is "removedAll".
-					 */
-					tokens: { type: "sap.m.Token[]"},
-
-					/**
-					 * the array of tokens that are added.
-					 * This parameter is used when tokenChange type is "tokenChanged".
-					 */
-					addedTokens :  { type: "sap.m.Token[]"},
-
-					/**
-					 * the array of tokens that are removed.
-					 * This parameter is used when tokenChange type is "tokenChanged".
-					 */
-					removedTokens :  { type: "sap.m.Token[]"}
-				}
 			},
+			defaultAggregation : "tokens",
+			aggregations : {
 
-			/**
-			 * Fired when the tokens aggregation changed due to a user interaction (add / remove token)
-			 * @deprecated Since version 1.82, replaced by <code>tokenDelete</code> event.
-			 * @since 1.46
-			 */
-			tokenUpdate: {
-				deprecated: true,
-				allowPreventDefault : true,
-				parameters: {
-					/**
-					 * Type of tokenChange event.
-					 * There are two TokenUpdate types: "added", "removed"
-					 * Use sap.m.Tokenizer.TokenUpdateType.Added for "added" and sap.m.Tokenizer.TokenUpdateType.Removed for "removed".
-					 */
-					type: {type: "string"},
-
-					/**
-					 * The array of tokens that are added.
-					 * This parameter is used when tokenUpdate type is "added".
-					 */
-					addedTokens: {type: "sap.m.Token[]"},
-
-					/**
-					 * The array of tokens that are removed.
-					 * This parameter is used when tokenUpdate type is "removed".
-					 */
-					removedTokens: {type: "sap.m.Token[]"}
-				}
+				/**
+				 * the currently displayed tokens
+				 */
+				tokens : {type : "sap.m.Token", multiple : true, singularName : "token"},
+				/**
+				 * Hidden text used for accesibility
+				 */
+				_tokensInfo: {type: "sap.ui.core.InvisibleText", multiple: false, visibility: "hidden"}
 			},
+			associations : {
 
-			/**
-			 * Fired when a token is deleted by clicking icon, pressing backspace or delete button.
-			 * <Note:> Once the event is fired, application is responsible for removing / destroying the token from the aggregation.
-			 * @public
-			 * @since 1.82
-			 */
-			tokenDelete: {
-				parameters: {
-					/**
-					 * The array of tokens that are removed.
-					 */
-					tokens: { type: "sap.m.Token[]" },
+				/**
+				 * Association to controls / ids which describe this control (see WAI-ARIA attribute aria-describedby).
+				 */
+				ariaDescribedBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaDescribedBy"},
 
-					/**
-					 * Keycode of the key pressed for deletion (backspace or delete).
-					 */
-					keyCode: { type: "number" }
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+				 */
+				ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
+			},
+			events : {
+
+				/**
+				 * Fired when the tokens aggregation changed (add / remove token)
+				 * @deprecated Since version 1.82, replaced by <code>tokenDelete</code> event.
+				 */
+				tokenChange : {
+					deprecated: true,
+					parameters : {
+
+						/**
+						 * type of tokenChange event.
+						 * There are four TokenChange types: "added", "removed", "removedAll", "tokensChanged".
+						 * Use sap.m.Tokenizer.TokenChangeType.Added for "added", sap.m.Tokenizer.TokenChangeType.Removed for "removed", sap.m.Tokenizer.TokenChangeType.RemovedAll for "removedAll" and sap.m.Tokenizer.TokenChangeType.TokensChanged for "tokensChanged".
+						 */
+						type: { type : "string"},
+
+						/**
+						 * the added token or removed token.
+						 * This parameter is used when tokenChange type is "added" or "removed".
+						 */
+						token: { type: "sap.m.Token"},
+
+						/**
+						 * the array of removed tokens.
+						 * This parameter is used when tokenChange type is "removedAll".
+						 */
+						tokens: { type: "sap.m.Token[]"},
+
+						/**
+						 * the array of tokens that are added.
+						 * This parameter is used when tokenChange type is "tokenChanged".
+						 */
+						addedTokens :  { type: "sap.m.Token[]"},
+
+						/**
+						 * the array of tokens that are removed.
+						 * This parameter is used when tokenChange type is "tokenChanged".
+						 */
+						removedTokens :  { type: "sap.m.Token[]"}
+					}
+				},
+
+				/**
+				 * Fired when the tokens aggregation changed due to a user interaction (add / remove token)
+				 * @deprecated Since version 1.82, replaced by <code>tokenDelete</code> event.
+				 * @since 1.46
+				 */
+				tokenUpdate: {
+					deprecated: true,
+					allowPreventDefault : true,
+					parameters: {
+						/**
+						 * Type of tokenChange event.
+						 * There are two TokenUpdate types: "added", "removed"
+						 * Use sap.m.Tokenizer.TokenUpdateType.Added for "added" and sap.m.Tokenizer.TokenUpdateType.Removed for "removed".
+						 */
+						type: {type: "string"},
+
+						/**
+						 * The array of tokens that are added.
+						 * This parameter is used when tokenUpdate type is "added".
+						 */
+						addedTokens: {type: "sap.m.Token[]"},
+
+						/**
+						 * The array of tokens that are removed.
+						 * This parameter is used when tokenUpdate type is "removed".
+						 */
+						removedTokens: {type: "sap.m.Token[]"}
+					}
+				},
+
+				/**
+				 * Fired when a token is deleted by clicking icon, pressing backspace or delete button.
+				 * <Note:> Once the event is fired, application is responsible for removing / destroying the token from the aggregation.
+				 * @public
+				 * @since 1.82
+				 */
+				tokenDelete: {
+					parameters: {
+						/**
+						 * The array of tokens that are removed.
+						 */
+						tokens: { type: "sap.m.Token[]" },
+
+						/**
+						 * Keycode of the key pressed for deletion (backspace or delete).
+						 */
+						keyCode: { type: "number" }
+					}
 				}
 			}
-		}
-	}});
+		},
+
+		renderer: TokenizerRenderer
+	});
 
 	var oRb = Core.getLibraryResourceBundle("sap.m");
 
@@ -254,6 +254,7 @@ sap.ui.define([
 		this.allowTextSelection(false);
 		this._oTokensWidthMap = {};
 		this._oIndicator = null;
+		this._bShouldRenderTabIndex = null;
 		this._oScroller = new ScrollEnablement(this, this.getId() + "-scrollContainer", {
 			horizontal : true,
 			vertical : false,
@@ -279,7 +280,7 @@ sap.ui.define([
 
 			// compatibility
 			this.fireTokenChange({
-				type: sap.m.Tokenizer.TokenChangeType.Removed,
+				type: Tokenizer.TokenChangeType.Removed,
 				token: oToken,
 				tokens: aSelectedTokens.length ? aSelectedTokens : [oToken],
 				addedTokens: [],
@@ -288,7 +289,7 @@ sap.ui.define([
 
 			// compatibility
 			this.fireTokenUpdate({
-				type: sap.m.Tokenizer.TokenChangeType.Removed,
+				type: Tokenizer.TokenChangeType.Removed,
 				addedTokens: [],
 				removedTokens: aSelectedTokens.length ? aSelectedTokens : [oToken]
 			});
@@ -297,13 +298,13 @@ sap.ui.define([
 				tokens: [oToken]
 			});
 
+			oEvent.cancelBubble();
 		}, this);
 	};
 
 	/**
-	 * Function determines the callback to be executed on N-more label press.
+	 * Opens or closes the token popup when N-more label is pressed.
 	 *
-	 * @param {function} fCallback The callback
 	 * @private
 	 */
 	Tokenizer.prototype._handleNMoreIndicatorPress = function () {
@@ -512,7 +513,7 @@ sap.ui.define([
 	 * Toggles the popover.
 	 *
 	 * @private
-	 * @ui5-restricted for sap.m.MultiInput, sap.m.MultiComboBox
+	 * @ui5-restricted sap.m.MultiInput, sap.m.MultiComboBox
 	 */
 	Tokenizer.prototype._togglePopup = function (oPopover) {
 		var oOpenByDom,
@@ -904,6 +905,7 @@ sap.ui.define([
 		var aTokens = this._getVisibleTokens();
 
 		if (!aTokens.length) {
+			this._setHiddenTokensCount(0);
 			return;
 		}
 
@@ -992,6 +994,13 @@ sap.ui.define([
 		}
 	};
 
+	Tokenizer.prototype._shouldPreventModifier = function (oEvent) {
+		var bShouldPreventOnMac = Device.os.macintosh && oEvent.metaKey;
+		var bShouldPreventOnWindows = Device.os.windows && oEvent.altKey;
+
+		return bShouldPreventOnMac || bShouldPreventOnWindows;
+	};
+
 	/**
 	* Pseudo event for pseudo 'previous' event with modifiers (Ctrl, Alt or Shift).
 	*
@@ -1000,7 +1009,9 @@ sap.ui.define([
 	* @private
 	*/
 	Tokenizer.prototype.onsappreviousmodifiers = function (oEvent) {
-		this.onsapprevious(oEvent);
+		if (!this._shouldPreventModifier(oEvent)) {
+			this.onsapprevious(oEvent);
+		}
 	};
 
 	/**
@@ -1011,7 +1022,9 @@ sap.ui.define([
 	* @private
 	*/
 	Tokenizer.prototype.onsapnextmodifiers = function (oEvent) {
-		this.onsapnext(oEvent);
+		if (!this._shouldPreventModifier(oEvent)) {
+			this.onsapnext(oEvent);
+		}
 	};
 
 	/**
@@ -1045,7 +1058,7 @@ sap.ui.define([
 	Tokenizer.prototype._selectRange = function (bForwardSection) {
 		var oRange = {},
 			oTokens = this._getVisibleTokens(),
-			oFocusedControl = jQuery(document.activeElement).control()[0],
+			oFocusedControl = Element.closestTo(document.activeElement),
 			iTokenIndex = oTokens.indexOf(oFocusedControl);
 
 		if (!oFocusedControl || !oFocusedControl.isA("sap.m.Token")) {
@@ -1111,7 +1124,7 @@ sap.ui.define([
 
 		// compatibility
 		this.fireTokenChange({
-			type: sap.m.Tokenizer.TokenChangeType.Removed,
+			type: Tokenizer.TokenChangeType.Removed,
 			token: aSelectedTokens,
 			tokens: aSelectedTokens,
 			addedTokens: [],
@@ -1120,7 +1133,7 @@ sap.ui.define([
 
 		// compatibility
 		this.fireTokenUpdate({
-			type: sap.m.Tokenizer.TokenChangeType.Removed,
+			type: Tokenizer.TokenChangeType.Removed,
 			addedTokens: [],
 			removedTokens: aSelectedTokens
 		});
@@ -1225,7 +1238,7 @@ sap.ui.define([
 			return;
 		}
 
-		var oFocusedElement = jQuery(document.activeElement).control()[0];
+		var oFocusedElement = Element.closestTo(document.activeElement);
 
 		// oFocusedElement could be undefined since the focus element might not correspond to an SAPUI5 Control
 		var index = oFocusedElement ? aTokens.indexOf(oFocusedElement) : -1;
@@ -1273,7 +1286,7 @@ sap.ui.define([
 			return;
 		}
 
-		var oFocusedElement = jQuery(document.activeElement).control()[0];
+		var oFocusedElement = Element.closestTo(document.activeElement);
 
 		// oFocusedElement could be undefined since the focus element might not correspond to an SAPUI5 Control
 		var index = oFocusedElement ? aTokens.indexOf(oFocusedElement) : -1;
@@ -1364,7 +1377,7 @@ sap.ui.define([
 	 * Function parses given text, and text is separated by line break.
 	 *
 	 * @private
-	 * @param {String} sString  The texts that needs to be parsed
+	 * @param {string} sString  The texts that needs to be parsed
 	 * @returns {array} Array of string after parsing
 	 */
 	Tokenizer.prototype._parseString = function(sString) {
@@ -1482,6 +1495,26 @@ sap.ui.define([
 	};
 
 	/**
+	 * Method for handling the state for tabindex rendering
+	 *
+	 * @param {boolean} bShouldRenderTabIndex If tabindex should be rendered
+	 * @protected
+	 */
+	Tokenizer.prototype.setShouldRenderTabIndex = function (bShouldRenderTabIndex) {
+		this._bShouldRenderTabIndex = bShouldRenderTabIndex;
+	};
+
+	/**
+	 * Flag indicating if tabindex attribute should be rendered
+	 *
+	 * @returns {boolean} True if tabindex should be rendered and false if not
+	 * @protected
+	 */
+	Tokenizer.prototype.getEffectiveTabIndex = function () {
+		return this._bShouldRenderTabIndex === null ? !!this.getTokens().length : this._bShouldRenderTabIndex;
+	};
+
+	/**
 	 * Handle the focus event on the control.
 	 *
 	 * @param {jQuery.Event} oEvent The occuring event
@@ -1545,6 +1578,7 @@ sap.ui.define([
 		this._oTokensWidthMap = null;
 		this._oIndicator = null;
 		this._aTokenValidators = null;
+		this._bShouldRenderTabIndex = null;
 	};
 
 	/**

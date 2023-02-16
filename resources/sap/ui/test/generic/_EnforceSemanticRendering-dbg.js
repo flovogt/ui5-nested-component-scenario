@@ -1,17 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /* global QUnit */
-sap.ui.define([], function() {
+sap.ui.define(["sap/ui/core/Lib"], function(Library) {
 	"use strict";
 
 	/**
 	 * @namespace
 	 * @private
-	 * @ui5-restricted Only for DIST layer libraries
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	var _EnforceSemanticRendering = {
 		/**
@@ -21,14 +21,14 @@ sap.ui.define([], function() {
 		 * @returns {Promise<undefined>} Returns resovled Promise after all tests are executed
 		 *
 		 * @private
-		 * @ui5-restricted Only for DIST layer libraries
+		 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 		 */
 		run : function(mLibInfo) {
 			var sLib = mLibInfo.library;
 			var aExcludes = mLibInfo.excludes || [];
 
 			return new Promise(function(res, rej) {
-				sap.ui.getCore().loadLibrary(sLib, { async: true }).then(function(library) {
+				Library.load(sLib).then(function(library) {
 					var aControls = (library && library.controls) || [];
 					var aPromises = [];
 

@@ -1,10 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	'./Input',
 	'./ComboBoxTextField',
 	'./ComboBoxBaseRenderer',
 	'./SuggestionsPopover',
@@ -18,8 +19,6 @@ sap.ui.define([
 	"sap/ui/dom/containsOrEquals",
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
-	"sap/base/security/encodeXML",
-	"sap/base/strings/escapeRegExp",
 	"sap/m/inputUtils/forwardItemProperties",
 	"sap/m/inputUtils/highlightDOMElements",
 	"sap/m/inputUtils/ListHelpers",
@@ -27,6 +26,7 @@ sap.ui.define([
 	"sap/ui/core/Core"
 ],
 	function(
+		Input,
 		ComboBoxTextField,
 		ComboBoxBaseRenderer,
 		SuggestionsPopover,
@@ -40,8 +40,6 @@ sap.ui.define([
 		containsOrEquals,
 		KeyCodes,
 		jQuery,
-		encodeXML,
-		escapeRegExp,
 		forwardItemProperties,
 		highlightDOMElements,
 		ListHelpers,
@@ -68,13 +66,12 @@ sap.ui.define([
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.98.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.22.0
 		 * @alias sap.m.ComboBoxBase
-		 * @ui5-metamodel This control will also be described in the UI5 (legacy) design time meta model.
 		 */
 		var ComboBoxBase = ComboBoxTextField.extend("sap.m.ComboBoxBase", /** @lends sap.m.ComboBoxBase.prototype */ {
 			metadata: {
@@ -95,13 +92,12 @@ sap.ui.define([
 
 					/**
 					 * Indicates whether the picker is opened.
-					 *
+					 * @deprecated since version 1.110
 					 * @private
 					 */
 					 open: {
 						type: "boolean",
-						defaultValue: false,
-						hidden: true
+						defaultValue: false
 					},
 
 					/**
@@ -202,6 +198,9 @@ sap.ui.define([
 		ComboBoxBase.prototype.updateItems = function(sReason) {
 			this.bItemsUpdated = false;
 
+			var iItemsCount = this.getItems().length;
+			var oList;
+
 			// for backward compatibility and to keep the old data binding behavior,
 			// the items should be destroyed before calling .updateAggregation("items")
 			this.destroyItems();
@@ -216,6 +215,19 @@ sap.ui.define([
 				}
 
 				this.onItemsLoaded();
+			}
+
+			oList = this._getList();
+
+			// when there are no items both before the update and after it, we have to remove the busy state
+			if (oList && iItemsCount === this.getItems().length) {
+				oList.setBusy(false);
+				oList.setShowNoData(!this.getItems().length);
+				this.bInitialBusyIndicatorState = false;
+
+				if (this.getValue()) {
+					this.open();
+				}
 			}
 		};
 
@@ -264,8 +276,8 @@ sap.ui.define([
 		/**
 		 * Decorates the Input.
 		 *
-		 * @param {sap.m.InputBase} oInput The input which should be decorated
-		 * @returns {*} The decorated input or undefined
+		 * @param {sap.m.InputBase} [oInput] The input which should be decorated
+		 * @returns {sap.m.InputBase|undefined} The decorated input or <code>undefined</code>
 		 * @private
 		 * @ui5-restricted
 		 */
@@ -507,7 +519,7 @@ sap.ui.define([
 		 * Function is called when the clear icon is pressed.
 		 * Should be overwritten by subclasses.
 		 *
-		 * @param {jQuery.Event} oEvent The event object
+		 * @param {sap.ui.base.Event} oEvent The press event object
 		 * @protected
 		 * @ui5-restricted sap.m.ComboBox, sap.m.MultiComboBox
 		 */
@@ -661,12 +673,6 @@ sap.ui.define([
 				If the input has FormattedText aggregation while the suggestions popover is open then
 				it's new, because the old is already switched to have the value state header as parent */
 				this._updateSuggestionsPopoverValueState();
-			}
-
-			if (this.getShowClearIcon()) {
-				this._getClearIcon().setVisible(this.shouldShowClearIcon());
-			} else if (this._oClearIcon) {
-				this._getClearIcon().setVisible(false);
 			}
 		};
 
@@ -872,7 +878,7 @@ sap.ui.define([
 		/**
 		 * Gets the <code>list</code>.
 		 *
-		 * @returns {sap.m.List} The list instance object or <code>null</code>.
+		 * @returns {sap.m.List|null} The list instance object or <code>null</code>.
 		 * @protected
 		 * @deprecated As of version 1.62. The list structure should not be used as per SAP note: 2746748.
 		 */
@@ -889,7 +895,7 @@ sap.ui.define([
 		/**
 		 * Gets the <code>list</code>.
 		 *
-		 * @returns {sap.m.List} The list instance object or <code>null</code>.
+		 * @returns {sap.m.List|null} The list instance object or <code>null</code>.
 		 * @private
 		 */
 		ComboBoxBase.prototype._getList = function() {
@@ -1074,7 +1080,7 @@ sap.ui.define([
 
 			oSuggPopover.decorateParent(this);
 			// Creates the internal controls of the <code>SuggestionsPopover</code>
-			oSuggPopover.createSuggestionPopup(this, {showSelectedButton: this._hasShowSelectedButton()});
+			oSuggPopover.createSuggestionPopup(this, {showSelectedButton: this._hasShowSelectedButton()}, Input);
 			this._decoratePopupInput(oSuggPopover.getInput());
 			oSuggPopover.initContent(this.getId());
 			this.forwardEventHandlersToSuggPopover(oSuggPopover);
@@ -1389,7 +1395,7 @@ sap.ui.define([
 		 * Gets the item from the aggregation named <code>items</code> at the given 0-based index.
 		 *
 		 * @param {int} iIndex Index of the item to return.
-		 * @returns {sap.ui.core.Item} Item at the given index, or null if none.
+		 * @returns {sap.ui.core.Item|null} Item at the given index, or <code>null</code> if none.
 		 * @public
 		 */
 		ComboBoxBase.prototype.getItemAt = function(iIndex) {
@@ -1399,7 +1405,7 @@ sap.ui.define([
 		/**
 		 * Gets the first item from the aggregation named <code>items</code>.
 		 *
-		 * @returns {sap.ui.core.Item} The first item, or null if there are no items.
+		 * @returns {sap.ui.core.Item|null} The first item, or <code>null</code> if there are no items.
 		 * @public
 		 */
 		ComboBoxBase.prototype.getFirstItem = function() {
@@ -1409,7 +1415,7 @@ sap.ui.define([
 		/**
 		 * Gets the last item from the aggregation named <code>items</code>.
 		 *
-		 * @returns {sap.ui.core.Item} The last item, or null if there are no items.
+		 * @returns {sap.ui.core.Item|null} The last item, or <code>null</code> if there are no items.
 		 * @public
 		 */
 		ComboBoxBase.prototype.getLastItem = function() {
@@ -1499,7 +1505,7 @@ sap.ui.define([
 		 * Removes an item from the aggregation named <code>items</code>.
 		 *
 		 * @param {int | string | sap.ui.core.Item} vItem The item to remove or its index or ID.
-		 * @returns {sap.ui.core.Item} The removed item or null.
+		 * @returns {sap.ui.core.Item|null} The removed item or <code>null</code>.
 		 * @public
 		 */
 

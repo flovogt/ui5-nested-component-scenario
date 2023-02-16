@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,10 +13,11 @@ sap.ui.define([], function () {
 	 *
 	 * <b>Note:</b> Typed views do not rely on a <code>ViewType</code>, it must be omitted in the view settings.
 	 *
+	 * See the {@link topic:91f27e3e6f4d1014b6dd926db0e91070 documentation} for more information on the different view types.
+	 *
 	 * @enum {string}
 	 * @public
 	 * @alias sap.ui.core.mvc.ViewType
-	 * @ui5-metamodel This enumeration also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var ViewType = {
 
@@ -34,6 +35,8 @@ sap.ui.define([], function () {
 
 		/**
 		 * HTML view
+		 * @deprecated Since 1.108. Consider using {@link sap.ui.core.mvx.XMLView XMLViews} or "typed views" (view classes
+		 *             written in JavaScript) instead.
 		 * @public
 		 */
 		HTML: "HTML",

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -85,7 +85,7 @@ sap.ui.define([
 	 * @param {string} sLocale Locale to normalize
 	 * @param {boolean} [bPreserveLanguage=false] Whether to keep the language untouched, otherwise
 	 *     the language is mapped from modern to legacy ISO639 codes, e.g. "sr" to "sh"
-	 * @returns {string} Normalized locale or undefined if the locale can't be normalized
+	 * @returns {string|undefined} Normalized locale or <code>undefined</code> if the locale can't be normalized
 	 * @private
 	 */
 	function normalize(sLocale, bPreserveLanguage) {
@@ -186,7 +186,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sLocale locale to convert
 	 * @param {boolean} bConvertToModern whether to convert to modern language
-	 * @returns {string} Normalized locale or undefined if the locale can't be normalized
+	 * @returns {string|undefined} Normalized locale or <code>undefined</code> if the locale can't be normalized
 	 */
 	function convertLocaleToBCP47(sLocale, bConvertToModern) {
 		var m;
@@ -320,9 +320,6 @@ sap.ui.define([
 	 *
 	 * @param {module:sap/base/i18n/ResourceBundle} oCustomBundle an instance of a <code>sap/base/i18n/ResourceBundle</code>
 	 * @private
-	 *
-	 * @function
-	 * @name module:sap/base/i18n/ResourceBundle.prototype._enhance
 	 */
 	ResourceBundle.prototype._enhance = function(oCustomBundle) {
 		if (oCustomBundle instanceof ResourceBundle) {
@@ -337,22 +334,43 @@ sap.ui.define([
 	 * Returns a locale-specific string value for the given key sKey.
 	 *
 	 * The text is searched in this resource bundle according to the fallback chain described in
-	 * {@link module:sap/base/i18n/ResourceBundle}. If no text could be found, the key itself is used as text.
+	 * {@link module:sap/base/i18n/ResourceBundle}. If no text could be found, the key itself is used
+	 * as text.
 	 *
-	 * If the second parameter <code>aArgs</code> is given, then any placeholder of the form "{<i>n</i>}"
-	 * (with <i>n</i> being an integer) is replaced by the corresponding value from <code>aArgs</code>
-	 * with index <i>n</i>.  Note: This replacement is applied to the key if no text could be found.
+	 *
+	 * <h3>Placeholders</h3>
+	 *
+	 * A text can contain placeholders that will be replaced with concrete values when
+	 * <code>getText</code> is called. The replacement is triggered by the <code>aArgs</code> parameter.
+	 *
+	 * Whenever this parameter is given, then the text and the arguments are additionally run through
+	 * the {@link module:sap/base/strings/formatMessage} API to replace placeholders in the text with
+	 * the corresponding values from the arguments array. The resulting string is returned by
+	 * <code>getText</code>.
+	 *
+	 * As the <code>formatMessage</code> API imposes some requirements on the input text (regarding
+	 * curly braces and single apostrophes), text authors need to be aware of the specifics of the
+	 * <code>formatMessage</code> API. Callers of <code>getText</code>, on the other side, should only
+	 * supply <code>aArgs</code> when the text has been created with the <code>formatMessage</code> API
+	 * in mind. Otherwise, single apostrophes in the text might be removed unintentionally.
+	 *
+	 * When <code>getText</code> is called without <code>aArgs</code>, the <code>formatMessage</code>
+	 * API is not applied and the transformation reg. placeholders and apostrophes does not happen.
+	 *
 	 * For more details on the replacement mechanism refer to {@link module:sap/base/strings/formatMessage}.
 	 *
 	 * @param {string} sKey Key to retrieve the text for
 	 * @param {any[]} [aArgs] List of parameter values which should replace the placeholders "{<i>n</i>}"
-	 *     (<i>n</i> is the index) in the found locale-specific string value. Note that the replacement is done
-	 *     whenever <code>aArgs</code> is given, no matter whether the text contains placeholders or not
-	 *     and no matter whether <code>aArgs</code> contains a value for <i>n</i> or not.
-	 * @param {boolean} [bIgnoreKeyFallback=false] If set, <code>undefined</code> is returned instead of the key string, when the key is not found in any bundle or fallback bundle.
-	 * @returns {string} The value belonging to the key, if found; otherwise the key itself or <code>undefined</code> depending on <code>bIgnoreKeyFallback</code>.
+	 *     (<i>n</i> is the index) in the found locale-specific string value. Note that the replacement
+	 *     is done whenever <code>aArgs</code> is given, no matter whether the text contains placeholders
+	 *     or not and no matter whether <code>aArgs</code> contains a value for <i>n</i> or not.
+	 * @param {boolean} [bIgnoreKeyFallback=false]
+	 *     If set, <code>undefined</code> is returned instead of the key string, when the key is not found
+	 *     in any bundle or fallback bundle.
+	 * @returns {string|undefined}
+	 *     The value belonging to the key, if found; otherwise the key itself or <code>undefined</code>
+	 *     depending on <code>bIgnoreKeyFallback</code>.
 	 *
-	 * @function
 	 * @public
 	 */
 	ResourceBundle.prototype.getText = function(sKey, aArgs, bIgnoreKeyFallback){
@@ -383,7 +401,7 @@ sap.ui.define([
 	 * @param {string} sValue the given input value
 	 * @param {string} sKey the key within the bundle
 	 * @param {array} [aArgs] arguments to format the message
-	 * @returns {string} formatted string, <code>null</code> if sValue is not a string
+	 * @returns {string|null} formatted string, <code>null</code> if sValue is not a string
 	 * @private
 	 */
 	ResourceBundle.prototype._formatValue = function(sValue, sKey, aArgs){
@@ -412,7 +430,7 @@ sap.ui.define([
 	 * The custom bundles are checked first in reverse order.
 	 * @param {string} sKey the key within the bundle
 	 * @param {array} [aArgs] arguments to format the message
-	 * @returns {string} the formatted value if found, <code>null</code> otherwise
+	 * @returns {string|null} the formatted value if found, <code>null</code> otherwise
 	 * @private
 	 */
 	ResourceBundle.prototype._getTextFromFallback = function(sKey, aArgs){
@@ -451,7 +469,7 @@ sap.ui.define([
 	 * The custom bundles are checked first in reverse order.
 	 * @param {string} sKey the key within the bundle
 	 * @param {array} [aArgs] arguments to format the message
-	 * @returns {string} the formatted value if found, <code>null</code> otherwise
+	 * @returns {string|null} the formatted value if found, <code>null</code> otherwise
 	 * @private
 	 */
 	ResourceBundle.prototype._getTextFromProperties = function(sKey, aArgs){
@@ -491,9 +509,8 @@ sap.ui.define([
 	 * used after the resource bundle has been loaded.
 	 *
 	 * @param {string} sKey Key to check
-	 * @returns {boolean} true if the text has been found in the concrete bundle
+	 * @returns {boolean} Whether the text has been found in the concrete bundle
 	 *
-	 * @function
 	 * @public
 	 */
 	ResourceBundle.prototype.hasText = function(sKey) {
@@ -537,7 +554,8 @@ sap.ui.define([
 	 *
 	 * @param {module:sap/base/i18n/ResourceBundle} oBundle ResourceBundle to extend
 	 * @param {boolean} [bAsync=false] Whether the resource should be loaded asynchronously
-	 * @returns The newly loaded properties (sync mode) or a Promise on the properties (async mode);
+	 * @returns {module:sap/base/util/Properties|null|Promise<module:sap/base/util/Properties|null>}
+	 *         The newly loaded properties (sync mode) or a Promise on the properties (async mode);
 	 *         value / Promise fulfillment will be <code>null</code> when the properties for the
 	 *         next fallback locale should not be loaded or when loading failed or when there
 	 *         was no more fallback locale
@@ -898,6 +916,9 @@ sap.ui.define([
 			mParams.url = mParams.url || ResourceBundle._getUrl(mParams.bundleUrl, mParams.bundleName);
 		}
 
+		// Hook implemented by Core.js; adds missing terminology information from the library manifest, if available
+		mParams = ResourceBundle._enrichBundleConfig(mParams);
+
 		// Note: ResourceBundle constructor returns a Promise in async mode!
 		var vResourceBundle = new ResourceBundle(mParams.url, mParams.locale, mParams.includeInfo, !!mParams.async, mParams.supportedLocales, mParams.fallbackLocale);
 
@@ -929,6 +950,21 @@ sap.ui.define([
 		return vResourceBundle;
 	};
 
+	/**
+	 * Hook implemented by sap.ui.core.Core. to enrich bundle config with terminologies.
+	 * See also the documentation of the hook's implementation in Core.js.
+	 *
+	 * @see sap.ui.core.Core.getLibraryResourceBundle
+	 *
+	 * @params {object} the ResourceBundle.create bundle config
+	 * @private
+	 * @ui5-restricted sap.ui.core.Core
+	 */
+	ResourceBundle._enrichBundleConfig = function(mParams) {
+		// Note: the ResourceBundle is a base module, which might be used standalone without the Core,
+		// so the bundle config must remain untouched
+		return mParams;
+	};
 
 	// ---- handling of supported locales and fallback chain ------------------------------------------
 

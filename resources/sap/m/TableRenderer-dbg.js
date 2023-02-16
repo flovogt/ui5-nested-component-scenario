@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/Core", "sap/ui/core/Invisibl
 	 *
 	 * @param {sap.ui.core.RenderManager} rm RenderManager
 	 * @param {sap.m.ListBase} oTable Table control
-	 * @param {String} type Whether "Head" or "Foot"
+	 * @param {string} type Whether "Head" or "Foot"
 	 */
 	TableRenderer.renderColumns = function(rm, oTable, type) {
 		var index = 0,
@@ -123,11 +123,11 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/Core", "sap/ui/core/Invisibl
 		rm.openEnd();
 
 		rm.openStart("tr", oTable.addNavSection(idPrefix + type + "er"));
-		rm.attr("tabindex", -1);
 
 		if (bHeaderHidden) {
 			rm.class("sapMListTblHeaderNone");
 		} else {
+			rm.attr("tabindex", -1);
 			rm.class("sapMListTblRow").class("sapMListTbl" + type + "er");
 			rm.class("sapMLIBFocusable").class("sapMTableRowCustomFocus");
 		}
@@ -145,7 +145,7 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/Core", "sap/ui/core/Invisibl
 				rm.class(clsPrefix + "SelCol");
 				rm.attr("role", "presentation");
 				rm.openEnd();
-				rm.renderControl(oTable.getMultiSelectMode() == MultiSelectMode.Default ? oTable._getSelectAllCheckbox() : oTable._getClearAllButton());
+				rm.renderControl(oTable.getMultiSelectMode() == MultiSelectMode.ClearAll ? oTable._getClearAllButton() : oTable._getSelectAllCheckbox());
 				rm.close("th");
 				index++;
 			} else {
@@ -208,16 +208,19 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/Core", "sap/ui/core/Invisibl
 
 			if (control) {
 				if (type === "Head") {
-					rm.openStart("div");
+					rm.openStart("div", oColumn.getId() + "-ah");
 					rm.class("sapMColumnHeader");
 
-					var oMenu = oColumn.getColumnHeaderMenu();
+					var oMenu = oColumn._getHeaderMenuInstance();
 					if ((oTable.bActiveHeaders || oMenu)  && !control.isA("sap.ui.core.InvisibleText")) {
 						// add active header attributes and style class
 						rm.attr("tabindex", 0);
 						rm.attr("role", "button");
 						rm.class("sapMColumnHeaderActive");
 						rm.attr("aria-haspopup", oMenu ? oMenu.getAriaHasPopupType().toLowerCase() : "dialog");
+						if (control.isA("sap.m.Label") && control.getRequired()) {
+							rm.attr("aria-describedby", InvisibleText.getStaticId("sap.m", "CONTROL_IN_COLUMN_REQUIRED"));
+						}
 					} else if (oTable.bFocusableHeaders) {
 						rm.attr("tabindex", 0);
 						rm.class("sapMColumnHeaderFocusable");
@@ -290,7 +293,8 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/Core", "sap/ui/core/Invisibl
 	TableRenderer.renderListStartAttributes = function(rm, oControl) {
 		rm.openStart("table", oControl.getId("listUl"));
 		rm.class("sapMListTbl");
-		rm.attr("aria-labelledby", oControl.getAriaLabelledBy().concat(this.getAriaLabelledBy(oControl), InvisibleText.getStaticId("sap.m", "TABLE_ARIA_LABEL")).join(" "));
+		var aLabels = oControl.getAriaLabelledBy().concat(this.getAriaLabelledBy(oControl), InvisibleText.getStaticId("sap.m", "TABLE_ARIA_LABEL"));
+		rm.attr("aria-labelledby", aLabels.filter(Boolean).join(" "));
 		if (oControl.getFixedLayout() === false) {
 			rm.style("table-layout", "auto");
 		}
@@ -302,16 +306,10 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/Core", "sap/ui/core/Invisibl
 	};
 
 	/**
-	 * returns aria accessibility role
-	 */
-	TableRenderer.getAriaRole = function(oControl) {
-		return "";
-	};
-
-	/**
 	 * generate table columns
 	 */
 	TableRenderer.renderListHeadAttributes = function(rm, oControl) {
+		oControl._aPopinHeaders = [];
 		this.renderColumns(rm, oControl, "Head");
 		rm.openStart("tbody", oControl.addNavSection(oControl.getId("tblBody")));
 		rm.class("sapMListItems");
@@ -332,6 +330,32 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/Core", "sap/ui/core/Invisibl
 		rm.close("tbody"); // items should be rendered before foot
 		oControl._hasFooter && this.renderColumns(rm, oControl, "Foot");
 		rm.close("table");
+
+		// render popin headers in a separate div element for ACC
+		this.renderPopinColumnHeaders(rm, oControl);
+	};
+
+	/**
+	 * Renders the actual column header control that is moved to the pop-in area.
+	 * This ensure correct accessibility mappings to focusable content in the pop-in area.
+	 * @param {sap.ui.core.RenderManager} rm RenderManager instance
+	 * @param {sap.m.Table} oControl the table instance
+	 */
+	TableRenderer.renderPopinColumnHeaders = function(rm, oControl) {
+		if (!oControl._aPopinHeaders || !oControl._aPopinHeaders.length) {
+			return;
+		}
+
+		rm.openStart("div", oControl.getId("popin-headers"));
+		rm.class("sapMTablePopinHeaders");
+		rm.attr("aria-hidden", "true");
+		rm.openEnd();
+
+		oControl._aPopinHeaders.forEach(function(oHeader) {
+			rm.renderControl(oHeader);
+		});
+
+		rm.close("div");
 	};
 
 	/**
@@ -355,9 +379,14 @@ sap.ui.define(["sap/ui/core/Renderer", "sap/ui/core/Core", "sap/ui/core/Invisibl
 		rm.openEnd();
 
 		if (!oControl.shouldRenderItems()) {
-			rm.text(Core.getLibraryResourceBundle("sap.m").getText("TABLE_NO_COLUMNS"));
+			if (oControl.getAggregation("_noColumnsMessage")) {
+				// If _noColumnsMessage is set, there is for sure an IllustratedMessage used for no data visualization
+				rm.renderControl(oControl.getAggregation("_noColumnsMessage"));
+			} else {
+				rm.text(Core.getLibraryResourceBundle("sap.m").getText("TABLE_NO_COLUMNS"));
+			}
 		} else {
-			rm.text(oControl.getNoDataText(true));
+			this.renderNoDataArea(rm, oControl);
 		}
 
 		rm.close("td");

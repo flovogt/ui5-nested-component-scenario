@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -294,9 +294,6 @@ sap.ui.define([
 		var Targets = EventProvider.extend("sap.ui.core.routing.Targets", /** @lends sap.ui.core.routing.Targets.prototype */ {
 
 			constructor : function(oOptions) {
-				var sTargetOptions,
-					sTargetName;
-
 				EventProvider.apply(this);
 
 				this._mTargets = {};
@@ -333,18 +330,13 @@ sap.ui.define([
 					this[fn] = TargetsStub[fn];
 				}
 
-				for (sTargetOptions in oOptions.targets) {
-					if (oOptions.targets.hasOwnProperty(sTargetOptions)) {
-						this._createTarget(sTargetOptions, oOptions.targets[sTargetOptions]);
-					}
-				}
+				Object.keys(oOptions.targets).forEach(function(sTargetName) {
+					this._createTarget(sTargetName, oOptions.targets[sTargetName]);
+				}.bind(this));
 
-				for (sTargetName in this._mTargets) {
-					if (this._mTargets.hasOwnProperty(sTargetName)) {
-						this._addParentTo(this._mTargets[sTargetName]);
-					}
-				}
-
+				Object.keys(this._mTargets).forEach(function(sTargetName) {
+					this._addParentTo(this._mTargets[sTargetName]);
+				}.bind(this));
 			},
 
 			/**
@@ -435,8 +427,8 @@ sap.ui.define([
 			 * @param {string|string[]} vName the name of a single target or the name of multiple targets
 			 * @param {boolean} [bSuppressNotFoundError=false] In case no target is found for the given name, the not found
 			 *  error is supressed when this is set with true
-			 * @return {sap.ui.core.routing.Target|undefined|sap.ui.core.routing.Target[]} The target with the
-			 * coresponding name or undefined. If an array way passed as name this will return an array with all found
+			 * @returns {sap.ui.core.routing.Target|undefined|sap.ui.core.routing.Target[]} The target with the
+			 * coresponding name or undefined. If an array was passed as name, this will return an array with all found
 			 * targets. Non existing targets will not be returned and an error is logged when
 			 * <code>bSuppressNotFoundError</code> param isn't set to <code>true</code>.
 			 * @public

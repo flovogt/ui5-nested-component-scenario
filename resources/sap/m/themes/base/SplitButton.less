@@ -21,6 +21,11 @@
 
 .sapMSB .sapMSBArrow .sapMBtnIcon {
 	font-size: 0.75rem;
+	line-height: 2.25rem;
+}
+
+.sapUiSizeCompact .sapMSB .sapMSBArrow .sapMBtnIcon {
+	line-height: 1.625rem;
 }
 
 .sapMSB .sapMSBText .sapMBtnInner {
@@ -37,7 +42,9 @@
 
 .sapMTB-Transparent-CTX .sapMSB .sapMSBText:hover .sapMBtnDefault.sapMBtnInner {
 	border-right-width: 0.0625rem;
-	padding-right: 0.5rem;
+	&.sapMBtnText {
+		padding-right: 0.5rem;
+	}
 }
 
 .sapMSB .sapMSBArrow .sapMBtnInner {

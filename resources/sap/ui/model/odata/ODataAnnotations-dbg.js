@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -12,8 +12,10 @@ sap.ui.define([
 	"sap/base/util/extend",
 	"sap/base/util/isEmptyObject",
 	"sap/ui/base/EventProvider",
+	"sap/ui/core/Configuration",
 	"sap/ui/thirdparty/jquery"
-], function (AnnotationParser, assert, Log, extend, isEmptyObject, EventProvider, jQuery) {
+], function (AnnotationParser, assert, Log, extend, isEmptyObject, EventProvider, Configuration,
+		jQuery) {
 	"use strict";
 
 	/**
@@ -25,7 +27,7 @@ sap.ui.define([
 	 *
 	 * @author SAP SE
 	 * @version
-	 * 1.98.0
+	 * 1.110.0
 	 *
 	 * @public
 	 * @deprecated As of version 1.66, please use {@link sap.ui.model.odata.v2.ODataAnnotations} instead.
@@ -88,14 +90,22 @@ sap.ui.define([
 	///////////////////////////////////////////////// Prototype Members ////////////////////////////////////////////////
 
 	/**
+	 * Returns the raw annotation data
+	 *
+	 * @private
+	 * @returns {object} the annotation data
+	 */
+	ODataAnnotations.prototype.getData = function() {
+		return this.oAnnotations;
+	};
+
+	/**
 	 * returns the raw annotation data
 	 *
 	 * @public
 	 * @returns {object} returns annotations data
 	 */
-	ODataAnnotations.prototype.getAnnotationsData = function() {
-		return this.oAnnotations;
-	};
+	ODataAnnotations.prototype.getAnnotationsData = ODataAnnotations.prototype.getData;
 
 	/**
 	 * Checks whether annotations from at least one source are available
@@ -493,7 +503,7 @@ sap.ui.define([
 				url: sUrl,
 				async: that.bAsync,
 				headers: extend({}, that.mCustomHeaders, {
-					"Accept-Language": sap.ui.getCore().getConfiguration().getLanguageTag() // Always overwrite
+					"Accept-Language": Configuration.getLanguageTag() // Always overwrite
 				})
 			};
 

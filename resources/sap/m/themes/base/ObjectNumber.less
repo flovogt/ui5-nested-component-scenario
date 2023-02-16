@@ -5,6 +5,11 @@
 
 @sapMONInformativeElement: @sapUiInformativeElement;
 
+.sapMObjectNumberLarge .sapMObjectNumberText,
+.sapMObjectNumberLarge .sapMObjectNumberUnit {
+	font-size: 1.5rem;
+}
+
 .sapMObjectNumber {
 	display: block;
 	white-space: normal;
@@ -30,6 +35,15 @@
 			line-height: 2rem;
 			vertical-align: middle;
 			height: 2rem;
+		}
+	}
+
+	&.sapMObjectNumberLongText{
+		.sapMObjectNumberText {
+			word-break: break-word;
+			text-overflow: unset;
+			white-space: break-spaces;
+			-webkit-box-orient: unset;
 		}
 	}
 }

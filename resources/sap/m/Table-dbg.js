@@ -1,30 +1,29 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Table.
 sap.ui.define([
+	"sap/ui/events/KeyCodes",
 	"sap/ui/core/Core",
-	"sap/ui/Device",
 	"./library",
 	"./ListBase",
 	"./ListItemBase",
 	"./CheckBox",
 	"./TableRenderer",
-	"sap/base/Log",
 	"sap/ui/base/Object",
 	"sap/ui/core/ResizeHandler",
 	"sap/ui/core/util/PasteHelper",
-	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
 	"sap/m/ListBaseRenderer",
 	"sap/ui/core/Icon",
+	"sap/m/table/Util",
 	// jQuery custom selectors ":sapTabbable"
 	"sap/ui/dom/jquery/Selectors"
 ],
-	function(Core, Device, library, ListBase, ListItemBase, CheckBox, TableRenderer, Log, BaseObject, ResizeHandler, PasteHelper, KeyCodes, jQuery, ListBaseRenderer, Icon) {
+	function(KeyCodes, Core, library, ListBase, ListItemBase, CheckBox, TableRenderer, BaseObject, ResizeHandler, PasteHelper, jQuery, ListBaseRenderer, Icon, Util) {
 	"use strict";
 
 
@@ -66,186 +65,194 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16
 	 * @alias sap.m.Table
 	 * @see {@link fiori:/responsive-table/ Responsive Table}
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var Table = ListBase.extend("sap.m.Table", /** @lends sap.m.Table.prototype */ { metadata : {
+	var Table = ListBase.extend("sap.m.Table", /** @lends sap.m.Table.prototype */ {
+		metadata : {
 
-		library : "sap.m",
-		properties : {
+			library : "sap.m",
+			properties : {
 
-			/**
-			 * Sets the background style of the table. Depending on the theme, you can change the state of the background from <code>Solid</code> to <code>Translucent</code> or to <code>Transparent</code>.
-			 */
-			backgroundDesign : {type : "sap.m.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Translucent},
+				/**
+				 * Sets the background style of the table. Depending on the theme, you can change the state of the background from <code>Solid</code> to <code>Translucent</code> or to <code>Transparent</code>.
+				 */
+				backgroundDesign : {type : "sap.m.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Translucent},
 
-			/**
-			 * Defines the algorithm to be used to layout the table cells, rows, and columns.
-			 * This property allows three possible values:
-			 * <ul>
-			 * <li><code>true</code></li>
-			 * <li><code>false</code></li>
-			 * <li><code>Strict</code></li>
-			 * </ul>
-			 *
-			 * By default, the table is rendered with a fixed layout algorithm (<code>fixedLayout=true</code>). This means the horizontal layout only depends on the table's width and the width of the columns, not the content of the cells. Cells in subsequent rows do not affect column width. This allows a browser to provide a faster table layout since the browser can begin to display the table once the first row has been analyzed.
-			 *
-			 * If this property is set to <code>false</code>, <code>sap.m.Table</code> is rendered with an auto layout algorithm. This means, the width of the table and its cells depends on the content of the cells. The column width is set by the widest unbreakable content inside the cells. This can make the rendering slow, since the browser needs to go through all the content in the table before determining the final layout.<br>
-			 *
-			 * If this property is set to <code>Strict</code> and the <code>width</code> property is defined for all columns (and not the expected "auto" value), then the <code>sap.m.Table</code> control renders a placeholder column which occupies the remaining width of the control to ensure the column width setting is strictly applied.<br>
-			 *
-			 * If there is only one remaining column with a width larger than the table, then this column gets the maximum width available in the table. If the column width is smaller than the table, then the column width is retained, and the remaining width of the table is occupied by the placeholder column.<br>
-			 *
-			 * The placeholder column gets rendered only if there are no columns in the pop-in area.<br>
-			 *
-			 * <b>Note:</b> Since <code>sap.m.Table</code> does not have its own scrollbars, setting <code>fixedLayout</code> to false can force the table to overflow, which may cause visual problems. It is suggested to use this property when a table has a few columns in wide screens or within the horizontal scroll container (e.g <code>sap.m.Dialog</code>) to handle overflow.
-			 * In auto layout mode the <code>width</code> property of <code>sap.m.Column</code> is taken into account as a minimum width.
-			 * @since 1.22
-			 */
-			fixedLayout : {type : "any", group : "Behavior", defaultValue : true},
+				/**
+				 * Defines the algorithm to be used to layout the table cells, rows, and columns.
+				 * This property allows three possible values:
+				 * <ul>
+				 * <li><code>true</code></li>
+				 * <li><code>false</code></li>
+				 * <li><code>Strict</code></li>
+				 * </ul>
+				 *
+				 * By default, the table is rendered with a fixed layout algorithm (<code>fixedLayout=true</code>). This means the horizontal layout only depends on the table's width and the width of the columns, not the content of the cells. Cells in subsequent rows do not affect column width. This allows a browser to provide a faster table layout since the browser can begin to display the table once the first row has been analyzed.
+				 *
+				 * If this property is set to <code>false</code>, <code>sap.m.Table</code> is rendered with an auto layout algorithm. This means, the width of the table and its cells depends on the content of the cells. The column width is set by the widest unbreakable content inside the cells. This can make the rendering slow, since the browser needs to go through all the content in the table before determining the final layout.<br>
+				 *
+				 * If this property is set to <code>Strict</code> and the <code>width</code> property is defined for all columns (and not the expected "auto" value), then the <code>sap.m.Table</code> control renders a placeholder column which occupies the remaining width of the control to ensure the column width setting is strictly applied.<br>
+				 *
+				 * If there is only one remaining column with a width larger than the table, then this column gets the maximum width available in the table. If the column width is smaller than the table, then the column width is retained, and the remaining width of the table is occupied by the placeholder column.<br>
+				 *
+				 * The placeholder column gets rendered only if there are no columns in the pop-in area.<br>
+				 *
+				 * <b>Note:</b> Since <code>sap.m.Table</code> does not have its own scrollbars, setting <code>fixedLayout</code> to false can force the table to overflow, which may cause visual problems. It is suggested to use this property when a table has a few columns in wide screens or within the horizontal scroll container (e.g <code>sap.m.Dialog</code>) to handle overflow.
+				 * In auto layout mode the <code>width</code> property of <code>sap.m.Column</code> is taken into account as a minimum width.
+				 * @since 1.22
+				 */
+				fixedLayout : {type : "any", group : "Behavior", defaultValue : true},
 
-			/**
-			 * Setting this property to <code>true</code> will show an overlay on top of the table content and prevents the user interaction with it.
-			 * @since 1.22.1
-			 */
-			showOverlay : {type : "boolean", group : "Appearance", defaultValue : false},
+				/**
+				 * Setting this property to <code>true</code> will show an overlay on top of the table content and prevents the user interaction with it.
+				 * @since 1.22.1
+				 */
+				showOverlay : {type : "boolean", group : "Appearance", defaultValue : false},
 
-			/**
-			 * Enables alternating table row colors.
-			 * <b>Note:</b> This property can only be used with the Belize and Belize Deep themes.
-			 * Alternate row coloring is not available for the High Contrast Black/White themes.
-			 * @since 1.52
-			 */
-			alternateRowColors : {type : "boolean", group : "Appearance", defaultValue : false},
+				/**
+				 * Enables alternating table row colors.
+				 * <b>Note:</b> This property can only be used with the Belize and Belize Deep themes.
+				 * Alternate row coloring is not available for the High Contrast Black/White themes.
+				 * @since 1.52
+				 */
+				alternateRowColors : {type : "boolean", group : "Appearance", defaultValue : false},
 
-			/**
-			 * Defines the layout in which the table pop-in rows are rendered.
-			 * <b>Note:</b> The <code>demandPopin</code> and <code>minScreenWidth</code> properties of the <code>Column</code> control must be configured appropriately.
-			 * @since 1.52
-			 */
-			popinLayout : {type : "sap.m.PopinLayout", group : "Appearance", defaultValue : PopinLayout.Block},
+				/**
+				 * Defines the layout in which the table pop-in rows are rendered.
+				 * <b>Note:</b> The <code>demandPopin</code> and <code>minScreenWidth</code> properties of the <code>Column</code> control must be configured appropriately.
+				 * @since 1.52
+				 */
+				popinLayout : {type : "sap.m.PopinLayout", group : "Appearance", defaultValue : PopinLayout.Block},
 
-			/**
-			 * Defines the contextual width for the <code>sap.m.Table</code> control. By defining this property the table adapts the pop-in behavior based on the container in which the table is placed or the configured contextual width.
-			 * By default, <code>sap.m.Table</code> renders in pop-in behavior only depending on the window size or device.
-			 *
-			 * For example, by setting the <code>contextualWidth</code> property to 600px or Tablet, the table can be placed in a container with 600px width, where the pop-in is used.
-			 * You can use specific CSS sizes (for example, 600px or 600), you can also use the <code>sap.m.ScreenSize</code> enumeration (for example, Phone, Tablet, Desktop, Small, Medium, Large, ....).
-			 * If this property is set to <code>Auto</code>, the <code>ResizeHandler</code> will manage the contextual width of the table.
-			 * <b>Note:</b> Only "Inherit", "Auto", and pixel-based CSS sizes (for example, 200, 200px) can be applied to the <code>contextualWidth</code> property. Due to the rendering cost, we recommend to use the valid value mentioned before except for "Auto".
-			 * @since 1.60
-			 */
-			contextualWidth : {type: "string", group: "Behavior", defaultValue: "Inherit"},
+				/**
+				 * Defines the contextual width for the <code>sap.m.Table</code> control. By defining this property the table adapts the pop-in behavior based on the container in which the table is placed or the configured contextual width.
+				 * By default, <code>sap.m.Table</code> renders in pop-in behavior only depending on the window size or device.
+				 *
+				 * For example, by setting the <code>contextualWidth</code> property to 600px or Tablet, the table can be placed in a container with 600px width, where the pop-in is used.
+				 * You can use specific CSS sizes (for example, 600px or 600), you can also use the <code>sap.m.ScreenSize</code> enumeration (for example, Phone, Tablet, Desktop, Small, Medium, Large, ....).
+				 * If this property is set to <code>Auto</code>, the <code>ResizeHandler</code> will manage the contextual width of the table.
+				 * <b>Note:</b> Only "Inherit", "Auto", and pixel-based CSS sizes (for example, 200, 200px) can be applied to the <code>contextualWidth</code> property. Due to the rendering cost, we recommend to use the valid value mentioned before except for "Auto".
+				 * @since 1.60
+				 */
+				contextualWidth : {type: "string", group: "Behavior", defaultValue: "Inherit"},
 
-			/**
-			 * Enables the auto pop-in behavior for the table control.
-			 *
-			 * If this property is set to <code>true</code>, the table control overwrites the <code>demandPopin</code>
-			 * and the <code>minScreenWidth</code> properties of the <code>sap.m.Column</code> control.
-			 * The pop-in behavior depends on the <code>importance</code> property of the <code>sap.m.Column</code> control.
-			 * Columns configured with this property are moved to the pop-in area in the following order:
-			 *
-			 * <ul>
-			 * 	<li>With importance <code>High</code>: moved last</li>
-			 * 	<li>With importance <code>Medium</code> or <code>None</code>: moved second</li>
-			 * 	<li>With importance <code>Low</code>: moved first</li>
-			 * </ul>
-			 *
-			 * <b>Note:</b> If this property is changed from <code>true</code> to <code>false</code>,
-			 * the application must reconfigure the <code>demandPopin</code> and <code>minScreenWidth</code>
-			 * properties of the <code>sap.m.Column</code> control by itself.
-			 * There is no automatic mechanism that restores the old values if <code>autoPopinMode</code> was set
-			 * from <code>false</code> to <code>true</code> before.
-			 *
-			 * @since 1.76
-			 */
-			autoPopinMode: {type: "boolean", group: "Behavior", defaultValue: false},
+				/**
+				 * Enables the auto pop-in behavior for the table control.
+				 *
+				 * If this property is set to <code>true</code>, the table control overwrites the <code>demandPopin</code>
+				 * and the <code>minScreenWidth</code> properties of the <code>sap.m.Column</code> control.
+				 * The pop-in behavior depends on the <code>importance</code> property of the <code>sap.m.Column</code> control.
+				 * Columns configured with this property are moved to the pop-in area in the following order:
+				 *
+				 * <ul>
+				 * 	<li>With importance <code>High</code>: moved last</li>
+				 * 	<li>With importance <code>Medium</code> or <code>None</code>: moved second</li>
+				 * 	<li>With importance <code>Low</code>: moved first</li>
+				 * </ul>
+				 *
+				 * <b>Note:</b> If this property is changed from <code>true</code> to <code>false</code>,
+				 * the application must reconfigure the <code>demandPopin</code> and <code>minScreenWidth</code>
+				 * properties of the <code>sap.m.Column</code> control by itself.
+				 * There is no automatic mechanism that restores the old values if <code>autoPopinMode</code> was set
+				 * from <code>false</code> to <code>true</code> before.
+				 *
+				 * @since 1.76
+				 */
+				autoPopinMode: {type: "boolean", group: "Behavior", defaultValue: false},
 
-			/**
-			 * Defines which columns should be hidden instead of moved into the pop-in area
-			 * depending on their importance. See {@link sap.m.Column#getImportance}
-			 *
-			 * <b>Note:</b> To hide columns based on their importance, it's mandatory to set <code>demandPopin="true"</code>
-			 * for the <code>sap.m.Column</code> control or set <code>autoPopinMode="true"</code> for the <code>sap.m.Table</code> control.
-			 * See {@link topic:38855e06486f4910bfa6f4485f7c2bac Configuring Responsive Behavior of a Table}
-			 * and {@link sap.m.Table#getAutoPopinMode}.
-			 *
-			 * @since 1.77
-			 */
-			hiddenInPopin: {type: "sap.ui.core.Priority[]", group: "Behavior"}
-		},
-		aggregations : {
+				/**
+				 * Defines which columns should be hidden instead of moved into the pop-in area
+				 * depending on their importance. See {@link sap.m.Column#getImportance}
+				 *
+				 * <b>Note:</b> To hide columns based on their importance, it's mandatory to set <code>demandPopin="true"</code>
+				 * for the <code>sap.m.Column</code> control or set <code>autoPopinMode="true"</code> for the <code>sap.m.Table</code> control.
+				 * See {@link topic:38855e06486f4910bfa6f4485f7c2bac Configuring Responsive Behavior of a Table}
+				 * and {@link sap.m.Table#getAutoPopinMode}.
+				 *
+				 * @since 1.77
+				 */
+				hiddenInPopin: {type: "sap.ui.core.Priority[]", group: "Behavior"}
+			},
+			aggregations : {
 
-			/**
-			 * Defines the columns of the table.
-			 */
-			columns : {type : "sap.m.Column", multiple : true, singularName : "column", dnd : {draggable : true, droppable : true, layout : "Horizontal"} }
-		},
-		events : {
-			/**
-			 * Fired when the context menu is opened.
-			 * When the context menu is opened, the binding context of the item is set to the given <code>contextMenu</code>.
-			 * @since 1.54
-			 */
-			beforeOpenContextMenu : {
-				allowPreventDefault : true,
-				parameters : {
-					/**
-					 * Item in which the context menu was opened.
-					 */
-					listItem : {type : "sap.m.ColumnListItem"},
-					/**
-					 * Column in which the context menu was opened.
-					 * <b>Note:</b> This parameter might be undefined for the items that are not part of a column definition.
-					 */
-					column : {type : "sap.m.Column"}
+				/**
+				 * Defines the columns of the table.
+				 */
+				columns : {type : "sap.m.Column", multiple : true, singularName : "column", dnd : {draggable : true, droppable : true, layout : "Horizontal"} },
+
+				/**
+				 * Provides a message if no visible columns are available.
+				 */
+				_noColumnsMessage : {type: "sap.ui.core.Control", multiple: false, visibility: "hidden"}
+			},
+			events : {
+				/**
+				 * Fired when the context menu is opened.
+				 * When the context menu is opened, the binding context of the item is set to the given <code>contextMenu</code>.
+				 * @since 1.54
+				 */
+				beforeOpenContextMenu : {
+					allowPreventDefault : true,
+					parameters : {
+						/**
+						 * Item in which the context menu was opened.
+						 */
+						listItem : {type : "sap.m.ColumnListItem"},
+						/**
+						 * Column in which the context menu was opened.
+						 * <b>Note:</b> This parameter might be undefined for the items that are not part of a column definition.
+						 */
+						column : {type : "sap.m.Column"}
+					}
+				},
+				/**
+				 * This event gets fired when the user pastes content from the clipboard to the table.
+				 * Pasting can be done via the context menu or the standard paste keyboard shortcut, if the focus is inside the table.
+				 * @since 1.60
+				 */
+				paste : {
+					allowPreventDefault: true,
+					parameters : {
+						/**
+						 * 2D array of strings with data from the clipboard. The first dimension represents the rows, and the
+						 * second dimension represents the cells of the tabular data.
+						 */
+						data : {type : "string[][]"}
+					}
+				},
+				/**
+				 * Fired when the table pop-in has changed.
+				 * @since 1.77
+				 */
+				popinChanged: {
+					parameters: {
+						/**
+						 * Returns true if there are visible columns in the pop-in area
+						 */
+						hasPopin: {type: "boolean"},
+						/**
+						 * Returns array of all visible columns in the pop-in area.
+						 */
+						visibleInPopin: {type: "sap.m.Column[]"},
+						/**
+						 * Returns array of columns that are hidden in the pop-in based on their importance.
+						 * See {@link sap.m.Column#getImportance}
+						 */
+						hiddenInPopin: {type: "sap.m.Column[]"}
+					}
 				}
 			},
-			/**
-			 * This event gets fired when the user pastes content from the clipboard to the table.
-			 * Pasting can be done via the context menu or the standard paste keyboard shortcut, if the focus is inside the table.
-			 * @since 1.60
-			 */
-			paste : {
-				allowPreventDefault: true,
-				parameters : {
-					/**
-					 * 2D array of strings with data from the clipboard. The first dimension represents the rows, and the
-					 * second dimension represents the cells of the tabular data.
-					 */
-					data : {type : "string[][]"}
-				}
-			},
-			/**
-			 * Fired when the table pop-in has changed.
-			 * @since 1.77
-			 */
-			popinChanged: {
-				parameters: {
-					/**
-					 * Returns true if there are visible columns in the pop-in area
-					 */
-					hasPopin: {type: "boolean"},
-					/**
-					 * Returns array of all visible columns in the pop-in area.
-					 */
-					visibleInPopin: {type: "sap.m.Column[]"},
-					/**
-					 * Returns array of columns that are hidden in the pop-in based on their importance.
-					 * See {@link sap.m.Column#getImportance}
-					 */
-					hiddenInPopin: {type: "sap.m.Column[]"}
-				}
-			}
+			designtime: "sap/m/designtime/Table.designtime"
 		},
-		designtime: "sap/m/designtime/Table.designtime"
-	}});
+
+		renderer: TableRenderer
+	});
 
 	// class name for the navigation items
 	Table.prototype.sNavItemClass = "sapMListTblRow";
@@ -342,6 +349,33 @@ sap.ui.define([
 		}
 	};
 
+	Table.prototype.setNoData = function (vNoData) {
+		ListBase.prototype.setNoData.apply(this, arguments);
+
+		if (vNoData && typeof vNoData !== "string" && vNoData.isA("sap.m.IllustratedMessage")) {
+			var oNoColumns = this.getAggregation("_noColumnsMessage");
+			if (!oNoColumns) {
+				oNoColumns = Util.getNoColumnsIllustratedMessage();
+				this.setAggregation("_noColumnsMessage", oNoColumns);
+			}
+		} else if (vNoData && (typeof vNoData === "string" || !vNoData.isA("sap.m.IllustratedMessage"))) {
+			// If the given vNoData is not an IllustratedMessage remove the according column message
+			this.removeAllAggregation("_noColumnsMessage");
+		}
+
+		if (!this.shouldRenderItems()) {
+			if (this.getAggregation("_noColumnsMessage")) {
+				// Invalidate table, if there is an illustrated message present, to prevent possible replacement with plain text
+				this.invalidate();
+			} else {
+				// Only set the no columns string, if there is no illustrated message present
+				this.$("nodata-text").text(Core.getLibraryResourceBundle("sap.m").getText("TABLE_NO_COLUMNS"));
+			}
+		}
+
+		return this;
+	};
+
 	Table.prototype._onResize = function(mParams) {
 		this._applyContextualWidth(mParams.size.width);
 	};
@@ -411,7 +445,7 @@ sap.ui.define([
 	Table.prototype.onAfterRendering = function() {
 		ListBase.prototype.onAfterRendering.call(this);
 		this.updateSelectAllCheckbox();
-		this._renderOverlay();
+		this._adaptBlockLayer();
 
 		if (this._bFirePopinChanged) {
 			this._firePopinChangedEvent();
@@ -453,15 +487,26 @@ sap.ui.define([
 		return this;
 	};
 
-	Table.prototype._renderOverlay = function() {
-		var $this = this.$(),
-			$overlay = $this.find(".sapMTableOverlay"),
-			bShowOverlay = this.getShowOverlay();
-		if (bShowOverlay && $overlay.length === 0) {
-			$overlay = jQuery("<div>").addClass("sapUiOverlay sapMTableOverlay").css("z-index", "1");
-			$this.append($overlay);
-		} else if (!bShowOverlay) {
-			$overlay.remove();
+	Table.prototype._adaptBlockLayer = function(bLastTry) {
+		if (!this.getShowOverlay()) {
+			return;
+		}
+
+		var oBlockLayer = this.getDomRef("blockedLayer");
+		if (oBlockLayer) {
+			var aValidAttributes = ["id", "class", "tabindex"];
+			oBlockLayer.getAttributeNames().forEach(function(sAttribute) {
+				if (!aValidAttributes.includes(sAttribute)) {
+					oBlockLayer.removeAttribute(sAttribute);
+				}
+			});
+			oBlockLayer.setAttribute("role", "region");
+			oBlockLayer.setAttribute("aria-labelledby", [
+				TableRenderer.getAriaLabelledBy(this),
+				TableRenderer.getAriaAnnouncement("TABLE_INVALID")
+			].join(" ").trimLeft());
+		} else if (!bLastTry) {
+			setTimeout(this._adaptBlockLayer.bind(this, true));
 		}
 	};
 
@@ -488,7 +533,8 @@ sap.ui.define([
 
 	Table.prototype.setShowOverlay = function(bShow) {
 		this.setProperty("showOverlay", bShow, true);
-		this._renderOverlay();
+		this.setBlocked(this.getShowOverlay());
+		this._adaptBlockLayer();
 		return this;
 	};
 
@@ -501,6 +547,12 @@ sap.ui.define([
 		if (this._clearAllButton) {
 			this._clearAllButton.destroy();
 			this._clearAllButton = null;
+		}
+		if (this._aPopinHeaders) {
+			this._aPopinHeaders.forEach(function(oPopinHeader) {
+				oPopinHeader.destroy();
+			});
+			this._aPopinHeaders = null;
 		}
 	};
 
@@ -523,6 +575,7 @@ sap.ui.define([
 	Table.prototype.selectAll = function () {
 		ListBase.prototype.selectAll.apply(this, arguments);
 		this.updateSelectAllCheckbox();
+
 		return this;
 	};
 
@@ -562,7 +615,7 @@ sap.ui.define([
 
 	/*
 	 * This hook method is called if growing feature is enabled and after new page loaded
-	 * @overwrite
+	 * @override
 	 */
 	Table.prototype.onBeforePageLoaded = function() {
 		if (this.getAlternateRowColors()) {
@@ -574,7 +627,7 @@ sap.ui.define([
 
 	/*
 	 * This hook method is called if growing feature is enabled and after new page loaded
-	 * @overwrite
+	 * @override
 	 */
 	Table.prototype.onAfterPageLoaded = function() {
 		this.updateSelectAllCheckbox();
@@ -588,7 +641,7 @@ sap.ui.define([
 
 	/*
 	 * This hook method is called from renderer to determine whether items should render or not
-	 * @overwrite
+	 * @override
 	 */
 	Table.prototype.shouldRenderItems = function() {
 		return this.getColumns().some(function(oColumn) {
@@ -599,7 +652,7 @@ sap.ui.define([
 	/*
 	 * This hook method is called from GrowingEnablement to determine whether
 	 * growing should suppress Table invalidation
-	 * @overwrite
+	 * @override
 	 */
 	Table.prototype.shouldGrowingSuppressInvalidation = function() {
 		if (this.getAutoPopinMode()) {
@@ -639,7 +692,7 @@ sap.ui.define([
 
 	/*
 	 * Returns items container DOM reference
-	 * @overwrite
+	 * @override
 	 */
 	Table.prototype.getItemsContainerDomRef = function() {
 		return this.getDomRef("tblBody");
@@ -647,12 +700,12 @@ sap.ui.define([
 
 	/*
 	 * Sets DOM References for keyboard navigation
-	 * @overwrite
+	 * @override
 	 */
 	Table.prototype.setNavigationItems = function(oItemNavigation) {
-		var $Header = this.$("tblHeader");
-		var $Footer = this.$("tblFooter");
+		var $Header = this.$("tblHeader").not(".sapMListTblHeaderNone");
 		var $Rows = this.$("tblBody").children(".sapMLIB");
+		var $Footer = this.$("tblFooter");
 
 		var aItemDomRefs = $Header.add($Rows).add($Footer).get();
 		oItemNavigation.setItemDomRefs(aItemDomRefs);
@@ -689,11 +742,13 @@ sap.ui.define([
 	};
 
 	Table.prototype.onColumnPress = function(oColumn) {
-		var oMenu = oColumn.getColumnHeaderMenu();
+		var oMenu = oColumn._getHeaderMenuInstance();
 		oMenu && oMenu.openBy(oColumn);
-		(this.bActiveHeaders || oMenu) && this.fireEvent("columnPress", {
-			column: oColumn
-		});
+		if (this.bActiveHeaders && !oMenu) {
+			this.fireEvent("columnPress", {
+				column: oColumn
+			});
+		}
 	};
 
 	/*
@@ -754,7 +809,7 @@ sap.ui.define([
 		// find first visible column
 		var $headRow = this.$("tblHeader"),
 			bHeaderVisible = !$headRow.hasClass("sapMListTblHeaderNone"),
-			aVisibleColumns = $headRow.find(".sapMListTblCell:visible"),
+			aVisibleColumns = $headRow.find(".sapMListTblCell:not([aria-hidden=true]"),
 			$firstVisibleCol = aVisibleColumns.eq(0);
 
 		// check if only one column is visible
@@ -765,6 +820,7 @@ sap.ui.define([
 				$firstVisibleCol.width("");	// cover the space
 			}
 		} else {
+			$firstVisibleCol.removeClass("sapMTableLastColumn");
 			// set original width of columns
 			aVisibleColumns.each(function() {
 				this.style.width = this.getAttribute("data-sap-width") || "";
@@ -773,7 +829,7 @@ sap.ui.define([
 
 		// update the visible column count and colspan
 		// highlight, navigation and navigated indicator columns are getting rendered always
-		this._colCount = aVisibleColumns.length + 3 + !!ListBaseRenderer.ModeOrder[this.getMode()];
+		this._colCount = aVisibleColumns.length + 3 + !!ListBaseRenderer.ModeOrder[this.getMode()] + $headRow.find(".sapMListTblDummyCell").length;
 		this.$("tblBody").find(".sapMGHLICell").attr("colspan", this.getColSpan());
 		this.$("nodata-text").attr("colspan", this.getColCount());
 
@@ -796,6 +852,39 @@ sap.ui.define([
 		jQuery(this.getTableDomRef()).toggleClass("sapMListTblHasNav", bVisible);
 	};
 
+	Table.prototype.onkeydown = function(oEvent) {
+
+
+		if (oEvent.which === KeyCodes.F2 || oEvent.which === KeyCodes.F7) {
+			// handles the F2 and F7 key on the table header row and column header,
+			// switch focus between the table header row and column header and if F2 is pressed the also switching the keyboardMode
+			var bFocusToggled = false,
+				$TblHeader = this.$("tblHeader"),
+				$Tabbables = $TblHeader.find(":sapTabbable");
+
+			if (oEvent.target.classList.contains("sapMColumnHeader")) {
+				this._iLastFocusPosOfItem = $Tabbables.length && $Tabbables.index(oEvent.target);
+				$TblHeader.trigger("focus");
+				bFocusToggled = true;
+			} else if (oEvent.target === $TblHeader[0]) {
+				var iFocusPos = this._iLastFocusPosOfItem || 0;
+				iFocusPos = $Tabbables[iFocusPos] ? iFocusPos : -1;
+				$Tabbables.eq(iFocusPos).trigger("focus");
+				bFocusToggled = true;
+			}
+
+			if (bFocusToggled) {
+				oEvent.preventDefault();
+				oEvent.setMarked();
+				if (oEvent.which === KeyCodes.F2) {
+					this.setKeyboardMode(this.getKeyboardMode() === "Edit" ? "Navigation" : "Edit");
+				}
+			}
+		}
+
+		ListBase.prototype.onkeydown.apply(this, arguments);
+	};
+
 	// notify all columns with given action and param
 	Table.prototype._notifyColumns = function(sAction, vParam1, vParam2) {
 		this.getColumns().forEach(function(oColumn) {
@@ -815,6 +904,7 @@ sap.ui.define([
 			this._clearAllButton = new Icon({
 				id: this.getId() + "-clearSelection",
 				src: "sap-icon://clear-all",
+				tooltip: Core.getLibraryResourceBundle("sap.m").getText("TABLE_CLEARBUTTON_TOOLTIP"),
 				decorative: false,
 				press: this.removeSelections.bind(this, false, true, false)
 			}).setParent(this, null, true).addEventDelegate({
@@ -869,7 +959,10 @@ sap.ui.define([
 		if (this.getMode() !== "MultiSelect") {
 			return;
 		}
-		if (this._selectAllCheckBox && this.getMultiSelectMode() == "Default") {
+
+		Util.hideSelectionLimitPopover();
+
+		if (this._selectAllCheckBox && this.getMultiSelectMode() != "ClearAll") {
 			var aItems = this.getItems(),
 				iSelectedItemCount = this.getSelectedItems().length,
 				iSelectableItemCount = aItems.filter(function(oItem) {
@@ -895,11 +988,9 @@ sap.ui.define([
 	 */
 	Table.prototype.enhanceAccessibilityState = function(oElement, mAriaProps) {
 		if (oElement == this._clearAllButton) {
-			var oBundle = Core.getLibraryResourceBundle("sap.m");
-			mAriaProps.label = oBundle.getText("TABLE_ICON_DESELECT_ALL");
+			mAriaProps.label = Core.getLibraryResourceBundle("sap.m").getText("TABLE_ICON_DESELECT_ALL");
 		} else if (oElement == this._selectAllCheckBox) {
-			var oBundle = Core.getLibraryResourceBundle("sap.m");
-			mAriaProps.label = oBundle.getText("TABLE_CHECKBOX_SELECT_ALL");
+			mAriaProps.label = Core.getLibraryResourceBundle("sap.m").getText("TABLE_CHECKBOX_SELECT_ALL");
 		}
 	};
 
@@ -977,7 +1068,7 @@ sap.ui.define([
 
 			var oHeader = oColumn.getHeader();
 			if (oHeader && oHeader.getVisible()) {
-				sAnnouncement += ListItemBase.getAccessibilityText(oHeader) + " . ";
+				sAnnouncement += ListItemBase.getAccessibilityText(oHeader, false /* bDetectEmpty */, true /* bHeaderAnnouncement */) + " . ";
 			}
 		});
 
@@ -1007,6 +1098,16 @@ sap.ui.define([
 		this.updateInvisibleText(sAnnouncement);
 	};
 
+	Table.prototype._setNoColumnsMessageAnnouncement = function (oTarget) {
+		if (!this.shouldRenderItems()) {
+			var oNoData = this.getNoData();
+			if (oNoData && typeof oNoData !== "string" && oNoData.isA("sap.m.IllustratedMessage")) {
+				var sDescription = ListItemBase.getAccessibilityText(this.getAggregation("_noColumnsMessage"));
+				this.updateInvisibleText(sDescription, oTarget);
+			}
+		}
+	};
+
 	// keyboard handling
 	Table.prototype.onsapspace = function(oEvent) {
 		if (oEvent.isMarked()) {
@@ -1019,7 +1120,7 @@ sap.ui.define([
 			var sMultiSelectMode = this.getMultiSelectMode();
 
 			// toggle select all header checkbox and fire its event
-			if (this._selectAllCheckBox && sMultiSelectMode == "Default") {
+			if (this._selectAllCheckBox && sMultiSelectMode != "ClearAll") {
 				this._selectAllCheckBox.setSelected(!this._selectAllCheckBox.getSelected()).fireSelect();
 				oEvent.setMarked();
 			} else if (this._clearAllButton && sMultiSelectMode == "ClearAll" && !this._clearAllButton.hasStyleClass("sapMTableDisableClearAll")) {
@@ -1122,6 +1223,7 @@ sap.ui.define([
 		}
 
 		ListBase.prototype.onfocusin.call(this, oEvent);
+		this._setNoColumnsMessageAnnouncement(oTarget);
 	};
 
 	// event listener for theme changed
@@ -1257,8 +1359,8 @@ sap.ui.define([
 			return sType === "Detail" || sType === "DetailAndActive" || sType === "Navigation";
 		}) ? iThemeDensityWidth : 0;
 
-		// Inset + HighlightCol + NavigatedIndicatorCol + borders = ~0.65rem
-		return iInset + iSelectionWidth + iActionWidth + 0.65;
+		// borders = ~0.25rem
+		return iInset + iSelectionWidth + iActionWidth + 0.25;
 	};
 
 	/**
@@ -1279,7 +1381,7 @@ sap.ui.define([
 			// check for column width unit
 			if (sUnit === "px") {
 				// column has a fixed width -> convert column width from px into float rem value
-				fAccumulatedWidth += parseFloat((parseFloat(sWidth).toFixed(2) / sBaseFontSize).toFixed(2));
+				fAccumulatedWidth += parseFloat(sWidth) / sBaseFontSize;
 			} else if (sUnit === "em" || sUnit === "rem") {
 				// column has a fixed width -> convert to float in any case to get only the column width value
 				fAccumulatedWidth += parseFloat(sWidth);
@@ -1289,7 +1391,7 @@ sap.ui.define([
 			}
 
 			oColumn.setDemandPopin(oColumn !== oMostImportantColumn);
-			oColumn.setMinScreenWidth(oColumn !== oMostImportantColumn ? fAccumulatedWidth + "rem" : "");
+			oColumn.setMinScreenWidth(oColumn !== oMostImportantColumn ? parseFloat(fAccumulatedWidth).toFixed(2) + "rem" : "");
 		});
 
 		return fAccumulatedWidth;
@@ -1364,6 +1466,13 @@ sap.ui.define([
 		jQuery(oFirst).addClass("sapMTblFirstVisibleCell");
 		jQuery(oLast).addClass("sapMTblLastVisibleCell");
 	};
+
+	Table.prototype.getAriaRole = function() {
+		return "";
+	};
+
+	// items and groupHeader mapping is not required for the table control
+	Table.prototype.setLastGroupHeader = function() {};
 
 	return Table;
 

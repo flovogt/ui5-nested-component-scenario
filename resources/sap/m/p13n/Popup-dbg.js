@@ -1,8 +1,8 @@
-/*
-* ! OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
-*/
+ */
 sap.ui.define([
 	"sap/ui/core/Control",
 	"sap/m/Button",
@@ -30,19 +30,18 @@ sap.ui.define([
 	 * @class
 	 * This control can be used to show personalization-related content in different popup controls.
 	 *
-	 * @class
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @public
-	 * @experimental Since 1.97.
 	 * @since 1.97
 	 * @alias sap.m.p13n.Popup
 	 */
 	var Popup = Control.extend("sap.m.p13n.Popup", {
 		metadata: {
+			library: "sap.m",
 			properties: {
 				/**
 				 * Text describing the personalization popup.
@@ -149,6 +148,22 @@ sap.ui.define([
 	};
 
 	/**
+	 * Set the reset functionality callback
+	 * <b>Note:</b> The Reset button will only be shown in case this callback is provided.
+	 *
+	 * @param {function} fnReset callback that will be executed once a reset has been triggered.
+	 * @returns {sap.m.p13n.Popup} The <code>Popup</code> instance
+	 */
+	Popup.prototype.setReset = function(fnReset) {
+		if (this._oPopup) {
+			this._oPopup.setCustomHeader(this._createTitle());
+			this._oPopup.invalidate();
+		}
+		this.setProperty("reset", fnReset);
+		return this;
+	};
+
+	/**
 	 * Opens the <code>Popup</code> control.
 	 *
 	 * @public
@@ -159,7 +174,7 @@ sap.ui.define([
 	 */
 	Popup.prototype.open = function(oSource, mSettings) {
 
-		if (!oSource) {
+		if (!oSource && this.getMode() === "Popover") {
 			throw new Error("Please provide a source control!");
 		}
 
@@ -183,12 +198,19 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {sap.m.p13n.IContent} oPanel The panel instance
+	 * @param {string} [sKey] Optional key to be used for the panel registration instead of using the id
 	 * @returns {sap.m.p13n.Popup} The popup instance
 	 */
-	Popup.prototype.addPanel = function(oPanel) {
+	Popup.prototype.addPanel = function(oPanel, sKey) {
+		var oPanelTitleBindingInfo = oPanel.getBindingInfo("title"), oBindingInfo;
+		if (oPanelTitleBindingInfo && oPanelTitleBindingInfo.parts) {
+			oBindingInfo = {
+				parts: oPanelTitleBindingInfo.parts
+			};
+		}
 		this._getContainer().addView(new AbstractContainerItem({
-			key: oPanel.getId(),
-			text: oPanel.getTitle(),
+			key: sKey || oPanel.getId(),
+			text: oBindingInfo || (oPanel.getTitle instanceof Function ? oPanel.getTitle() : undefined), //oBindinfInfo is undefined in case no binding is provided
 			content: oPanel
 		}));
 		this._aPanels.push(oPanel);
@@ -204,12 +226,21 @@ sap.ui.define([
 	 */
 	Popup.prototype.removePanel = function(oPanel) {
 		this._aPanels.splice(this._aPanels.indexOf(oPanel), 1);
-		this._getContainer().removeView(this._getContainer().getView(oPanel.getId()));
+		this._getContainer().removeView(this._getContainer().getView(oPanel));
 		return this;
 	};
 
 	/**
-	 * Removes the current panels in the <code>panels</code> aggregation.
+	 * Removes all panels from the <code>panels</code> aggregation
+	 */
+	Popup.prototype.removeAllPanels = function() {
+		this.getPanels().forEach(function(oPanel){
+			this.removePanel(oPanel);
+		}.bind(this));
+	};
+
+	/**
+	 * Returns the current panels in the <code>panels</code> aggregation.
 	 * @public
 	 * @returns {sap.m.p13n.IContent[]} An array of panel instances
 	 */
@@ -219,20 +250,29 @@ sap.ui.define([
 
 	Popup.prototype._createContainer = function(mDialogSettings) {
 		mDialogSettings = mDialogSettings ? mDialogSettings : {};
-		return this["_create" + this.getMode()].call(this, mDialogSettings);
+		var oPopup = this["_create" + this.getMode()].call(this, mDialogSettings);
+		oPopup.addStyleClass("sapMP13nPopup");
+		oPopup.isPopupAdaptationAllowed = function () {
+			return false;
+		};
+		return oPopup;
 	};
 
 	Popup.prototype._createResponsivePopover = function(mDialogSettings) {
-
+		var aPanels = this.getPanels();
+		var bUseContainer = aPanels.length > 1;
 		var oPopover = new ResponsivePopover(this.getId() + "-responsivePopover", {
 			title: this.getTitle(),
 			horizontalScrolling: mDialogSettings.hasOwnProperty("horizontalScrolling") ? mDialogSettings.horizontalScrolling : false,
-			verticalScrolling: false,
+			verticalScrolling: !bUseContainer,
 			contentWidth: mDialogSettings.contentWidth ? mDialogSettings.contentWidth : "30rem",
 			resizable: mDialogSettings.hasOwnProperty("resizable") ? mDialogSettings.resizable : true,
 			contentHeight: mDialogSettings.contentHeight ? mDialogSettings.contentHeight : "35rem",
 			placement: mDialogSettings.placement ? mDialogSettings.placement : "Bottom",
-			content: this._getContainer()
+			content: bUseContainer ? this._getContainer() : aPanels[0],
+			afterClose: function() {
+				this._onClose(oPopover, "AutoClose");
+			}.bind(this)
 		});
 
 		oPopover.setCustomHeader(this._createTitle());
@@ -242,18 +282,34 @@ sap.ui.define([
 	};
 
 	Popup.prototype._createDialog = function(mDialogSettings) {
-
+		var aPanels = this.getPanels();
+		var bUseContainer = aPanels.length > 1;
 		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+
+		var oInitialFocusedControl;
+		if (aPanels.length > 0) {
+			var oContent = aPanels[0];
+			oInitialFocusedControl = oContent.getInitialFocusedControl && oContent.getInitialFocusedControl();
+			if (!oInitialFocusedControl && bUseContainer) {
+				// focus at least the iconTabBar first item
+				oInitialFocusedControl = this._getContainer()._getTabBar().getItems()[0];
+			}
+		}
+
 		var oContainer = new Dialog(this.getId() + "-dialog", {
+			initialFocus: oInitialFocusedControl,
 			title: this.getTitle(),
 			horizontalScrolling: mDialogSettings.hasOwnProperty("horizontalScrolling") ? mDialogSettings.horizontalScrolling : false,
-			verticalScrolling: false,
+			verticalScrolling: !bUseContainer,
 			contentWidth: mDialogSettings.contentWidth ? mDialogSettings.contentWidth : "40rem",
 			contentHeight: mDialogSettings.contentHeight ? mDialogSettings.contentHeight : "55rem",
 			draggable: true,
 			resizable: true,
 			stretch: Device.system.phone,
-			content: this._getContainer(),
+			content: bUseContainer ? this._getContainer() : aPanels[0],
+			escapeHandler: function() {
+				this._onClose(oContainer, "Escape");
+			}.bind(this),
 			buttons: [
 				new Button(this.getId() + "-confirmBtn", {
 					text:  mDialogSettings.confirm && mDialogSettings.confirm.text ?  mDialogSettings.confirm.text : oResourceBundle.getText("p13n.POPUP_OK"),
@@ -288,7 +344,7 @@ sap.ui.define([
 
 		var oBar;
 
-		if (fnReset) {
+		if (fnReset instanceof Function) {
 
 			oBar = new Bar({
 				contentLeft: [

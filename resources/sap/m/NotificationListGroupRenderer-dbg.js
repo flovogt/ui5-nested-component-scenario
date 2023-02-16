@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/Device"], function(coreLibrary, InvisibleRenderer, Device) {
+sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer"], function(coreLibrary, InvisibleRenderer) {
 	'use strict';
 
 	/**
@@ -22,7 +22,7 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
 	 * @param {sap.ui.core.RenderManager} rm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.ui.core.Control} control An object representation of the control that should be rendered
+	 * @param {sap.m.NotificationListGroup} control An object representation of the control that should be rendered
 	 */
 	NotificationListGroupRenderer.render = function (rm, control) {
 
@@ -49,6 +49,7 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 			sAriaLablledByIds = sGroupTitleId + ' ' + sInvisibleTitleText;
 
 		rm.openStart('li', control)
+			.attr('tabindex', '-1')
 			.class('sapMLIB')
 			.class('sapMNLIB')
 			.class('sapMNLGroup');
@@ -61,11 +62,8 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 			rm.class('sapMNLGroupUnread');
 		}
 
-		rm.attr('tabindex', '0');
-
 		rm.accessibilityState(control, {
 			role: "listitem",
-			expanded: !control.getCollapsed(),
 			labelledby: {
 				value: sAriaLablledByIds
 			}
@@ -105,30 +103,18 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 			.openEnd();
 
 		rm.text(control.getTitle());
-		rm.close('div');
-
 		if (bShowItemsCounter) {
-			rm.openStart('div')
-				.class('sapMNLGroupCount')
-				.openEnd();
-
-			rm.text('(' + visibleItemsCount + ')');
-			rm.close('div');
+			rm.text(' (' + visibleItemsCount + ')');
 		}
-
-		// group header spacer
-		rm.openStart('div')
-			.class('sapMNLGroupHeaderSpacer')
-			.openEnd()
-			.close('div');
+		rm.close('div');
 
 		// actions
 		rm.openStart('div')
 			.class('sapMNLIItem')
 			.class('sapMNLIActions');
 
-		if (!control._shouldRenderOverflowToolbar() || (isCollapsed && !Device.system.phone)) {
-			rm.style('display', 'none');
+		if (!control._shouldRenderOverflowToolbar() || (isCollapsed && !control._isSmallSize())) {
+			rm.class("sapMNLIActionsHidden");
 		}
 
 		rm.openEnd();
@@ -153,7 +139,7 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/InvisibleRenderer", "sap/ui/D
 		// end group header
 		rm.close('div');
 
-		rm.openStart('ul')
+		rm.openStart('ul', sControlId + "-childrenList")
 			.class('sapMNLGroupChildren')
 			.attr('role', 'list')
 			.openEnd();

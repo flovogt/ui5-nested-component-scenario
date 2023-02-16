@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,6 +20,7 @@ sap.ui.define([
 	'sap/base/Log',
 	'sap/base/security/encodeXML',
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Configuration",
 	// jQuery Plugin "addAriaDescribedBy"
 	'sap/ui/dom/jquery/Aria'
 ], function(
@@ -34,7 +35,8 @@ sap.ui.define([
 	KeyCodes,
 	Log,
 	encodeXML,
-	jQuery
+	jQuery,
+	Configuration
 ) {
 
 
@@ -63,12 +65,11 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.unified.IProcessableBlobs
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.ui.unified.FileUploader
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var FileUploader = Control.extend("sap.ui.unified.FileUploader", /** @lends sap.ui.unified.FileUploader.prototype */ { metadata : {
 
@@ -272,7 +273,16 @@ sap.ui.define([
 			 * If set to true, the button is displayed without any text.
 			 * @since 1.26.0
 			 */
-			iconOnly : {type : "boolean", group : "Appearance", defaultValue : false}
+			iconOnly : {type : "boolean", group : "Appearance", defaultValue : false},
+
+			/**
+			 * Allows users to upload all files from a given directory and its corresponding subdirectories.
+			 * @since 1.105.0
+			 *
+			 * <b>Note:</b> This feature is supported on all WebKit-based browsers as well as Microsoft Edge and Firefox after version 50.
+			 * <b>Note:</b> Multiple directory selection is not supported.
+			 */
+			directory : {type : "boolean", group : "Behavior", defaultValue : false}
 		},
 		aggregations : {
 
@@ -567,9 +577,20 @@ sap.ui.define([
 					 */
 					requestHeaders : {type : "object[]"}
 				}
-			}
+			},
+			/**
+			 * Fired before select file dialog opens.
+			 * @since 1.102.0
+			 */
+			beforeDialogOpen : {},
+
+			 /**
+			 * Fired after select file dialog closes.
+			 * @since 1.102.0
+			 */
+			afterDialogClose : {}
 		}
-	}});
+	}, renderer: FileUploaderRenderer});
 
 
 	/**
@@ -596,7 +617,7 @@ sap.ui.define([
 		// check if sap.m library is used
 		this.bMobileLib = this.oBrowse.getMetadata().getName() == "sap.m.Button";
 
-		if (sap.ui.getCore().getConfiguration().getAccessibility()) {
+		if (Configuration.getAccessibility()) {
 			if (!FileUploader.prototype._sAccText) {
 				var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
 				FileUploader.prototype._sAccText = rb.getText("FILEUPLOAD_ACC");
@@ -651,7 +672,7 @@ sap.ui.define([
 	 * Ensures that FileUploader's internal button will have a reference back to the labels, by which
 	 * the FileUploader is labelled
 	 *
-	 * @returns {this} For chaining
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @private
 	 */
 	FileUploader.prototype._ensureBackwardsReference = function () {
@@ -692,6 +713,12 @@ sap.ui.define([
 		return this;
 	};
 
+	FileUploader.prototype.setDirectory = function(bDirectory) {
+		this.setProperty("directory", bDirectory, false);
+		this._rerenderInputField();
+		return this;
+	};
+
 	FileUploader.prototype._rerenderInputField = function() {
 		if (this.oFileUpload) {
 			var aFiles = this.oFileUpload.files;
@@ -703,6 +730,7 @@ sap.ui.define([
 			// Reattach files to the input field if already selected
 			/*eslint strict: [2, "never"]*/
 			this.oFileUpload.files = aFiles;
+			this._cacheDOMEls();
 		}
 	};
 
@@ -717,7 +745,7 @@ sap.ui.define([
 			if (sTooltip) {
 				this.oFileUpload.setAttribute("title", sTooltip);
 			} else {
-				this.oFileUpload.removeAttribute("title");
+				this.oFileUpload.setAttribute("title", this.getValue() ? this.getValue() : this._getNoFileChosenText());
 			}
 		}
 		return this;
@@ -966,7 +994,7 @@ sap.ui.define([
 	 * @returns {Element} The DOM element that should be focused
 	 */
 	FileUploader.prototype.getFocusDomRef = function() {
-		return this.$("fu").get(0);
+		return this.oBrowse.getDomRef();
 	};
 
 	FileUploader.prototype._resizeDomElements = function() {
@@ -1018,17 +1046,22 @@ sap.ui.define([
 	FileUploader.prototype.setEnabled = function(bEnabled){
 		var $oFileUpload = jQuery(this.oFileUpload);
 
-		this.setProperty("enabled", bEnabled);
+		this.setProperty("enabled", bEnabled, false);
 		this.oFilePath.setEnabled(bEnabled);
 		this.oBrowse.setEnabled(bEnabled);
-		bEnabled ? $oFileUpload.removeAttr('disabled') : $oFileUpload.attr('disabled', 'disabled');
+
+		if (this.getEnabled()) {
+			$oFileUpload.removeAttr('disabled');
+		} else {
+			$oFileUpload.attr('disabled', 'disabled');
+		}
 
 		return this;
 	};
 
 	FileUploader.prototype.setValueState = function(sValueState) {
 
-		this.setProperty("valueState", sValueState, true);
+		this.setProperty("valueState", sValueState, false);
 		//as of 1.23.1 oFilePath can be an sap.ui.commons.TextField or an sap.m.Input, which both have a valueState
 		if (this.oFilePath.setValueState) {
 			this.oFilePath.setValueState(sValueState);
@@ -1065,7 +1098,7 @@ sap.ui.define([
 			Log.warning("Setting the valueStateText property with the combination of libraries used is not supported.", this);
 		}
 
-		return this.setProperty("valueStateText", sValueStateText, true);
+		return this.setProperty("valueStateText", sValueStateText, false);
 	};
 
 	FileUploader.prototype.setStyle = function(sStyle) {
@@ -1100,6 +1133,9 @@ sap.ui.define([
 			// when we do not upload we re-render (cause some browsers don't like
 			// to change the value of file uploader INPUT elements)
 			this.setProperty("value", sValue, bUpload);
+			if (this.oFileUpload && !this.getTooltip_AsString()) {
+				this.oFileUpload.setAttribute("title", sValue ? sValue : this._getNoFileChosenText());
+			}
 			if (this.oFilePath) {
 				this.oFilePath.setValue(sValue);
 				//refocus the Button, except bSupressFocus is set
@@ -1147,8 +1183,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @since 1.25.0
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
-	 * @returns {this} The <code>sap.ui.unified.FileUploader</code> instance
+	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	FileUploader.prototype.clear = function () {
 		var uploadForm = this.getDomRef("fu_form");
@@ -1299,7 +1334,6 @@ sap.ui.define([
 	 *
 	 * @type void
 	 * @public
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	FileUploader.prototype.upload = function(bPreProcessFiles) {
 		var uploadForm,
@@ -1361,7 +1395,6 @@ sap.ui.define([
 	 *                 The parameter is taken into account if the sHeaderParameterName parameter is provided too.
 	 * @public
 	 * @since 1.24.0
-	 * @ui5-metamodel This method also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	FileUploader.prototype.abort = function(sHeaderParameterName, sHeaderParameterValue) {
 		if (!this.getUseMultipart()) {
@@ -1412,6 +1445,15 @@ sap.ui.define([
 		//refocus the Button, except bSupressFocus is set
 		if (this.oBrowse.getDomRef() && (Device.browser.safari || containsOrEquals(this.getDomRef(), document.activeElement))) {
 			this.oBrowse.focus();
+		}
+
+		if (oEvent.target.getAttribute("type") === "file") {
+			this.fireBeforeDialogOpen();
+
+			document.body.onfocus = function () {
+				this.fireAfterDialogClose();
+				document.body.onfocus = null;
+			}.bind(this);
 		}
 	};
 
@@ -1557,7 +1599,7 @@ sap.ui.define([
 				sValue = sValue.substring(iIndex + 1);
 			}
 
-			if (this.getMultiple()) {
+			if (this.getMultiple() || this.getDirectory()) {
 				sValue = sFileString;
 			}
 
@@ -1689,10 +1731,10 @@ sap.ui.define([
 		}
 	};
 
-	/*
+	/**
 	* Processes the passed files and sends them afterwards via XHR request.
-	* @param {array} [aFiles] list of files from type window.File
-	* @returns this
+	* @param {window.File[]} [aFiles] list of files from type window.File
+	* @returns {this} Reference to <code>this</code> for method chaining
 	* @private
 	*/
 	FileUploader.prototype._sendProcessedFilesWithXHR = function (aFiles) {
@@ -1788,13 +1830,13 @@ sap.ui.define([
 		return true;
 	};
 
-	/*
-	* Validate provided files from drag and drop event and send them trough XHR
-	* Be aware that this method is private and is created only for drag and drop enablement inside sap.m.UploadCollection
-	* @param {array} [aFiles] list of files from type window.File, this array is returned from input type="file" or from Drag and Drop
-	* @returns {this}
-	* @private
-	*/
+	/**
+	 * Validate provided files from drag and drop event and send them trough XHR
+	 * Be aware that this method is private and is created only for drag and drop enablement inside sap.m.UploadCollection
+	 * @param {window.File[]} [aFiles] list of files from type window.File, this array is returned from input type="file" or from Drag and Drop
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @private
+	 */
 	FileUploader.prototype._sendFilesFromDragAndDrop = function (aFiles) {
 		if (this._areFilesAllowed(aFiles)) {
 			this._sendFilesWithXHR(aFiles);
@@ -1802,12 +1844,12 @@ sap.ui.define([
 		return this;
 	};
 
-	/*
-	* The value in the FileUplader input is generated from this method.
-	* It contains the names of the files in quotes divided by space.
-	* @param {array} [aFiles] list with files from type window.File, this array is returned from input type="file" or from Drag and Drop
-	* returns {string} The value of the input
-	*/
+	/**
+	 * The value in the FileUplader input is generated from this method.
+	 * It contains the names of the files in quotes divided by space.
+	 * @param {window.File[]} [aFiles] list with files from type window.File, this array is returned from input type="file" or from Drag and Drop
+	 * @returns {string} The value of the input
+	 */
 	FileUploader.prototype._generateInputValue = function (aFiles) {
 		var sFileString = "";
 
@@ -1822,7 +1864,7 @@ sap.ui.define([
 	 * Helper to retrieve the I18N texts for a button
 	 * @private
 	 */
-	FileUploader.prototype.getBrowseText = function() {
+	 FileUploader.prototype.getBrowseText = function() {
 
 		// as the text is the same for all FileUploaders, get it only once
 		if (!FileUploader.prototype._sBrowseText) {
@@ -1831,6 +1873,22 @@ sap.ui.define([
 		}
 
 		return FileUploader.prototype._sBrowseText ? FileUploader.prototype._sBrowseText : "Browse...";
+
+	};
+
+	/**
+	 * Helper to retrieve the I18N text for the tooltip when there is no file chosen
+	 * @private
+	 */
+	 FileUploader.prototype._getNoFileChosenText = function() {
+
+		// as the text is the same for all FileUploaders, get it only once
+		if (!FileUploader.prototype._sNoFileChosenText) {
+			var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
+			FileUploader.prototype._sNoFileChosenText = rb.getText("FILEUPLOAD_NO_FILE_CHOSEN");
+		}
+
+		return FileUploader.prototype._sNoFileChosenText ? FileUploader.prototype._sNoFileChosenText : "No file chosen";
 
 	};
 
@@ -1890,13 +1948,13 @@ sap.ui.define([
 			aFileUpload.push('type="file" ');
 			aFileUpload.push('aria-hidden="true" ');
 			if (this.getName()) {
-				if (this.getMultiple()) {
+				if (this.getMultiple() || this.getDirectory()) {
 					aFileUpload.push('name="' + encodeXML(this.getName()) + '[]" ');
 				} else {
 					aFileUpload.push('name="' + encodeXML(this.getName()) + '" ');
 				}
 			} else {
-				if (this.getMultiple()) {
+				if (this.getMultiple() || this.getDirectory()) {
 					aFileUpload.push('name="' + this.getId() + '[]" ');
 				} else {
 					aFileUpload.push('name="' + this.getId() + '" ');
@@ -1913,13 +1971,17 @@ sap.ui.define([
 				aFileUpload.push('title="' + encodeXML(this.getTooltip_AsString()) + '" ');
 			//} else if (this.getTooltip() ) {
 				// object tooltip, do nothing - tooltip will be displayed
-			} else if (this.getValue() !== "") {
-				// only if there is no tooltip, then set value as fallback
-				aFileUpload.push('title="' + encodeXML(this.getValue()) + '" ');
+			} else {
+				// only if there is no tooltip, then set value or default tooltip as fallback
+				aFileUpload.push('title="' + encodeXML(this.getValue() ? this.getValue() : this._getNoFileChosenText()) + '" ');
 			}
 
 			if (!this.getEnabled()) {
 				aFileUpload.push('disabled="disabled" ');
+			}
+
+			if (this.getDirectory()) {
+				aFileUpload.push('webkitdirectory ');
 			}
 
 			if (this.getMultiple()) {
@@ -1982,8 +2044,9 @@ sap.ui.define([
 		if (this.oBrowse &&  this.oBrowse.$().length) {
 			$browse = this.oBrowse.$();
 			$browse.attr("type', 'button"); // The default type of button is submit that's why on click of label there are submit of the form. This way we are avoiding the submit of form.
-			$browse.off("click").on("click", function(e) {
-				e.preventDefault();
+			$browse.off("click").on("click", function(oEvent) {
+				oEvent.preventDefault();
+				oEvent.stopPropagation();
 				this.FUEl.click(); // The default behaviour on click on label is to open "open file" dialog. The only way to attach click event that is transferred from the label to the button is this way. AttachPress and attachTap don't work in this case.
 			}.bind(this));
 		}
@@ -2002,7 +2065,7 @@ sap.ui.define([
 	 * @public
 	 * @since 1.52
 	 * @param {Blob[]} aBlobs The initial Blobs which can be used to determine/calculate a new array of Blobs for further processing.
-	 * @return {Promise} A Promise that resolves with an array of Blobs which is used for the final uploading.
+	 * @returns {Promise<Blob[]>} A Promise that resolves with an array of Blobs which is used for the final uploading.
 	 */
 	FileUploader.prototype.getProcessedBlobsFromArray = function (aBlobs){
 		return new Promise(function(resolve){
@@ -2019,9 +2082,8 @@ sap.ui.define([
 	/**
 	 * Checks if the chosen file is readable.
 	 *
-	 * @returns {Promise} A promise that resolves successfully if the
-	 * chosen file can be read and fails with an error message
-	 * if it cannot
+	 * @returns {Promise} A promise that resolves successfully
+	 * if the chosen file can be read and fails with an error message if it cannot
 	 * @public
 	 */
 	FileUploader.prototype.checkFileReadable = function() {

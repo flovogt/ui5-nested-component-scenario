@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,7 +44,7 @@ function(
 		// shortcut for sap.m.StepInputValidationMode
 		var StepInputValidationMode = library.StepInputValidationMode;
 
-		// shortcut fro sap.m.StepModes
+		// shortcut for sap.m.StepModes
 		var StepModeType = library.StepInputStepModeType;
 
 		/**
@@ -119,14 +119,13 @@ function(
 		 * @implements sap.ui.core.IFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.98.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.40
 		 * @alias sap.m.StepInput
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/step-input/ Step Input}
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var StepInput = Control.extend("sap.m.StepInput", /** @lends sap.m.StepInput.prototype */ {
 			metadata: {
@@ -294,7 +293,9 @@ function(
 				if (mSettings && mSettings.value === undefined){
 					this.setValue(this._getDefaultValue(undefined, mSettings.max, mSettings.min));
 				}
-			}
+			},
+
+			renderer: StepInputRenderer
 		});
 
 		// get resource translation bundle;
@@ -346,7 +347,6 @@ function(
 
 			this._getInput().setValue(this._getFormattedValue(vValue));
 			this._getInput().setValueState(this.getValueState());
-			this._getInput().setTooltip(this.getTooltip());
 			this._getOrCreateDecrementButton().setVisible(bEditable);
 			this._getOrCreateIncrementButton().setVisible(bEditable);
 
@@ -510,7 +510,8 @@ function(
 					noTabStop: true,
 					decorative: false,
 					press: this._handleButtonPress.bind(this, 1),
-					tooltip: StepInput.STEP_INPUT_INCREASE_BTN_TOOLTIP
+					useIconTooltip: false,
+					alt: StepInput.STEP_INPUT_INCREASE_BTN_TOOLTIP
 				});
 
 			oIcon.getEnabled = function () {
@@ -543,7 +544,8 @@ function(
 					noTabStop: true,
 					decorative: false,
 					press: this._handleButtonPress.bind(this, -1),
-					tooltip: StepInput.STEP_INPUT_DECREASE_BTN_TOOLTIP
+					useIconTooltip: false,
+					alt: StepInput.STEP_INPUT_DECREASE_BTN_TOOLTIP
 				});
 
 			oIcon.getEnabled = function () {
@@ -639,8 +641,15 @@ function(
 		 * @private
 		 */
 		StepInput.prototype._changeValueWithStep = function (fMultiplier) {
-			var fNewValue,
+			var iMultiplier,
+				fNewValue,
 				fDelta;
+
+			// calculate precision multiplier
+			if (isNaN(this._iValuePrecision)) {
+				this._iValuePrecision = this._getNumberPrecision(this.getValue());
+			}
+			iMultiplier = Math.pow(10, Math.max(this.getDisplayValuePrecision(), this._iValuePrecision));
 
 			if (isNaN(this._fTempValue) || this._fTempValue === undefined) {
 				this._fTempValue = this.getValue();
@@ -652,6 +661,11 @@ function(
 
 			// calculate new value
 			fNewValue = fMultiplier !== 0 ? this._calculateNewValue(fMultiplier) : this._fTempValue;
+
+			// fix value precision
+			if (fMultiplier === 0) {
+				fNewValue = Math.round(fNewValue * iMultiplier) / iMultiplier;
+			}
 
 			// save new temp value
 			if (fMultiplier !== 0 || fDelta !== 0 || this._bDelayedEventFire) {
@@ -775,6 +789,18 @@ function(
 
 		};
 
+		/**
+		 * Returns the precision of a number.
+		 * @param {float} fNumber The number whose precision is to be obtained
+		 * @returns {int} the precision of the number passed as parameter
+		 *
+		 */
+		 StepInput.prototype._getNumberPrecision = function(fNumber) {
+			var aNumberParts = !isNaN(fNumber) && fNumber !== null ? fNumber.toString().split('.') : [];
+
+			return aNumberParts.length > 1 ? aNumberParts[1].length : 0;
+		};
+
 		StepInput.prototype.setValueState = function(sValueState) {
 			this._bValueStatePreset = true;
 			this.setProperty("valueState", sValueState);
@@ -791,6 +817,8 @@ function(
 		 */
 		StepInput.prototype.setValue = function (oValue) {
 			var oResult;
+
+			this._iValuePrecision = this._getNumberPrecision(oValue);
 
 			if (isNaN(oValue) || oValue === null) {
 				oValue = this._getDefaultValue(undefined, this._getMax(), this._getMin());
@@ -1165,7 +1193,7 @@ function(
 		 *
 		 * @param {float} fStepMultiplier Holds the step multiplier
 		 * @param {boolean} bIsIncreasing Holds the operation(or direction) whether addition(increasing) or subtraction(decreasing)
-		 * @returns {{value, displayValue}} The result of the calculation where:
+		 * @returns {{value: number, displayValue: number}} The result of the calculation where:
 		 * <ul>
 		 * <li>value is the result of the computation where the real stepInput <value> is used</li>
 		 * <li>displayValue is the result of the computation where the DOM value (also sap.m.Input.getValue()) is used</li>
@@ -1546,7 +1574,7 @@ function(
 				oBindingType = oBinding && oBinding.getType && oBinding.getType(),
 				sBindingConstraintMin = oBindingType && oBindingType.oConstraints && oBindingType.oConstraints.minimum;
 
-			return sBindingConstraintMin ? parseFloat(sBindingConstraintMin) : this.getMin();
+			return sBindingConstraintMin !== undefined ? parseFloat(sBindingConstraintMin) : this.getMin();
 		};
 
 		StepInput.prototype._getMax = function() {
@@ -1554,7 +1582,7 @@ function(
 				oBindingType = oBinding && oBinding.getType && oBinding.getType(),
 				sBindingConstraintMax = oBindingType && oBindingType.oConstraints && oBindingType.oConstraints.maximum;
 
-			return sBindingConstraintMax ? parseFloat(sBindingConstraintMax) : this.getMax();
+			return sBindingConstraintMax !== undefined ? parseFloat(sBindingConstraintMax) : this.getMax();
 		};
 
 		/**

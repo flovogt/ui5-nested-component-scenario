@@ -1,21 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.layout.form.FormLayout.
 sap.ui.define([
 	'sap/ui/core/Control',
+	'sap/ui/core/Element',
 	'sap/ui/layout/library',
 	'./FormLayoutRenderer',
 	'sap/ui/core/theming/Parameters',
 	'sap/ui/thirdparty/jquery',
+	"sap/ui/core/Configuration",
 	// jQuery custom selectors ":sapFocusable"
-	'sap/ui/dom/jquery/Selectors',
-	// jQuery Plugin "control"
-	'sap/ui/dom/jquery/control'
-], function(Control, library, FormLayoutRenderer, Parameters, jQuery) {
+	'sap/ui/dom/jquery/Selectors'
+], function(Control, Element, library, FormLayoutRenderer, Parameters, jQuery, Configuration) {
 	"use strict";
 
 	// shortcut for sap.ui.layout.BackgroundDesign
@@ -36,28 +36,31 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.16.0
 	 * @alias sap.ui.layout.form.FormLayout
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
-	var FormLayout = Control.extend("sap.ui.layout.form.FormLayout", /** @lends sap.ui.layout.form.FormLayout.prototype */ { metadata : {
+	var FormLayout = Control.extend("sap.ui.layout.form.FormLayout", /** @lends sap.ui.layout.form.FormLayout.prototype */ {
+		metadata : {
 
-		library : "sap.ui.layout",
-		properties : {
-			/**
-			 * Specifies the background color of the <code>Form</code> content.
-			 *
-			 * <b>Note:</b> The visualization of the different options depends on the theme used.
-			 *
-			 * @since 1.36.0
-			 */
-			backgroundDesign : {type : "sap.ui.layout.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Translucent}
-		}
-	}});
+			library : "sap.ui.layout",
+			properties : {
+				/**
+				 * Specifies the background color of the <code>Form</code> content.
+				 *
+				 * <b>Note:</b> The visualization of the different options depends on the theme used.
+				 *
+				 * @since 1.36.0
+				 */
+				backgroundDesign : {type : "sap.ui.layout.BackgroundDesign", group : "Appearance", defaultValue : BackgroundDesign.Translucent}
+			}
+		},
+
+		renderer: FormLayoutRenderer
+	});
 
 	/* eslint-disable no-lonely-if */
 
@@ -143,7 +146,7 @@ sap.ui.define([
 	FormLayout.prototype.onsapright = function(oEvent){
 
 		if (library.form.FormHelper.bArrowKeySupport) {
-			var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+			var bRtl = Configuration.getRTL();
 
 			if (!bRtl) {
 				this.navigateForward(oEvent);
@@ -157,7 +160,7 @@ sap.ui.define([
 	FormLayout.prototype.onsapleft = function(oEvent){
 
 		if (library.form.FormHelper.bArrowKeySupport) {
-			var bRtl = sap.ui.getCore().getConfiguration().getRTL();
+			var bRtl = Configuration.getRTL();
 
 			if (!bRtl) {
 				this.navigateBack(oEvent);
@@ -422,7 +425,7 @@ sap.ui.define([
 
 	FormLayout.prototype.onBeforeFastNavigationFocus = function(oEvent){
 		if (jQuery.contains(this.getDomRef(), oEvent.source)) {
-			oEvent.srcControl = jQuery(oEvent.source).control(0);
+			oEvent.srcControl = Element.closestTo(oEvent.source);
 			if (oEvent.forward) {
 				this.onsapskipforward(oEvent);
 			} else {
@@ -895,7 +898,7 @@ sap.ui.define([
 	 * As Elements must not have a DOM reference it is not sure if one exists
 	 * In this basic <code>FormLayout</code> each <code>FormContainer</code> has its own DOM.
 	 * @param {sap.ui.layout.form.FormContainer} oContainer <code>FormContainer</code>
-	 * @return {Element} The Element's DOM representation or null
+	 * @return {Element|null} The Element's DOM representation or null
 	 * @private
 	 */
 	FormLayout.prototype.getContainerRenderedDomRef = function(oContainer) {

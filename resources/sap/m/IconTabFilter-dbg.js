@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -94,12 +94,11 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @constructor
 	 * @public
 	 * @alias sap.m.IconTabFilter
-	 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 	 */
 	var IconTabFilter = Item.extend("sap.m.IconTabFilter", /** @lends sap.m.IconTabFilter.prototype */ { metadata : {
 
@@ -305,14 +304,14 @@ sap.ui.define([
 
 		oIconTabBar = oIconTabHeader.getParent();
 
-		if (!(oIconTabBar instanceof sap.m.IconTabBar)) {
+		if (!(oIconTabBar && oIconTabBar.isA("sap.m.IconTabBar"))) {
 			oIconTabHeader.invalidate();
 			return;
 		}
 
 		oObjectHeader = oIconTabBar.getParent();
 
-		if (oObjectHeader instanceof sap.m.ObjectHeader) {
+		if (oObjectHeader && oObjectHeader.isA("sap.m.ObjectHeader")) {
 			// invalidate the object header to re-render IconTabBar content and header
 			oObjectHeader.invalidate();
 		} else {
@@ -338,7 +337,7 @@ sap.ui.define([
 				Item.prototype.setProperty.call(this, sPropertyName, oValue, true);
 				if (!bSuppressInvalidate) {
 					var oIconTabHeader = this.getParent();
-					if (oIconTabHeader instanceof sap.m.IconTabHeader) {
+					if (oIconTabHeader && oIconTabHeader.isA("sap.m.IconTabHeader")) {
 						oIconTabHeader.invalidate();
 					}
 				}

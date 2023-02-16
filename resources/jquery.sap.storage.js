@@ -1,6 +1,7 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["jquery.sap.global","sap/base/assert","sap/ui/util/Storage"],function(e,t,s){"use strict";var a={};e.sap.storage=function(e,r){if(!e){e=s.Type.session}if(typeof e==="string"&&s.Type[e]){var i=e;if(r&&r!="state.key_"){i=e+"_"+r}if(!a[i]){a[i]=new s(e,r)}return a[i]}t(e instanceof Object&&e.clear&&e.setItem&&e.getItem&&e.removeItem,"storage: duck typing the storage");return new s(e,r)};e.sap.storage.Storage=s;e.sap.storage.Type=s.Type;Object.assign(e.sap.storage,s);return e});
+sap.ui.define(["jquery.sap.global","sap/base/assert","sap/ui/util/Storage"],function(jQuery,e,t){"use strict";var s={};jQuery.sap.storage=function(a,r){if(!a){a=t.Type.session}if(typeof a==="string"&&t.Type[a]){var i=a;if(r&&r!="state.key_"){i=a+"_"+r}if(!s[i]){s[i]=new t(a,r)}return s[i]}e(a instanceof Object&&a.clear&&a.setItem&&a.getItem&&a.removeItem,"storage: duck typing the storage");return new t(a,r)};jQuery.sap.storage.Storage=t;jQuery.sap.storage.Type=t.Type;Object.assign(jQuery.sap.storage,t);return jQuery});
+//# sourceMappingURL=jquery.sap.storage.js.map

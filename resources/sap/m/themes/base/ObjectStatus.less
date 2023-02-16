@@ -30,9 +30,19 @@
 		height: inherit;
 		vertical-align: top;
 	}
+
+	&.sapMObjectStatusLongText{
+		.sapMObjStatusText {
+			word-break: break-all;
+		}
+	}
+
 	.sapMObjStatusTitle::after {
 		content: attr(data-colon);
 		white-space: pre;
+	}
+	.sapMEmptyIndicator{
+		line-height: normal;
 	}
 }
 
@@ -79,7 +89,8 @@
 }
 
 .sapMObjStatusText {
-	word-break: break-word;
+	word-break: normal;
+	overflow-wrap: break-word;
 }
 
 .sapMObjStatus > .sapMObjStatusTitle {
@@ -661,6 +672,11 @@ html.sap-desktop .sapMObjStatusActive:focus {
 
 }
 
+html.sap-desktop .sapMOHStatus .sapMObjStatusActive:focus .sapMObjStatusLink::after {
+	left: 1px;
+	right: 1px;
+}
+
 .sapMObjStatus .sapUiPseudoInvisibleText {
 	font-size: 0px;
 }
@@ -683,5 +699,16 @@ html.sap-desktop .sapMListTblHasPopin .sapMObjStatusActive:focus {
 		bottom: 1px;
 		right: 1px;
 		outline: 1px dotted @sapUiContentFocusColor;
+	}
+}
+
+.sapMListTblCell {
+	.sapMObjStatus.sapMObjStatusInverted {
+		display: inline-table;
+
+		.sapMObjStatusText {
+			line-height: 1rem;
+			vertical-align: middle;
+		}
 	}
 }

@@ -1,6 +1,941 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/support/library","sap/ui/layout/library"],function(e,t){"use strict";var a=e.Categories;var o=e.Severity;var r=e.Audiences;var i=t.form.SimpleFormLayout;function n(e){if(e&&e.isA("sap.ui.layout.form.SimpleForm")){return true}return false}function s(e){if(e&&(e.isA("sap.ui.comp.smartform.SmartForm")||e.isA("sap.m.Panel")&&e.getParent().isA("sap.ui.comp.smartform.SmartForm"))){return true}return false}var l={id:"formResponsiveLayout",audiences:[r.Control],categories:[a.Functionality],enabled:true,minversion:"1.48",title:"Form: Use of ResponsiveLayout",description:"ResponsiveLayout should not be used any longer because of UX requirements",resolution:"Use the ResponsiveGridLayout or ColumnLayout instead",resolutionurls:[{text:"API Reference: Form",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form"},{text:"API Reference: SimpleForm",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm"},{text:"API Reference: ResponsiveGridLayout",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ResponsiveGridLayout"},{text:"API Reference: ColumnLayout",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ColumnLayout"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.Form").forEach(function(t){var a=t.getLayout();if(a&&a.isA("sap.ui.layout.form.ResponsiveLayout")){var r=t.getParent();var i;var l="Form";if(n(r)){i=r.getId();l="SimpleForm"}else if(s(r)){return}else{i=t.getId()}e.addIssue({severity:o.Medium,details:l+" "+i+" uses ResponsiveLayout.",context:{id:i}})}})}};function m(e,t,a){var r=e.getTitle();var i=e.getToolbar();if(r&&i){var n=e.getId();a.addIssue({severity:o.Medium,details:t+" "+n+" has Title and Toolbar assigned.",context:{id:n}})}}var u={id:"formTitleAndToolbar",audiences:[r.Application],categories:[a.Functionality],enabled:true,minversion:"1.48",title:"Form: Title and Toolbar at same time",description:"A Form or FormContainer can only have a Title or a Toolbar assigned, not both",resolution:"Use either Title or a Toolbar",resolutionurls:[{text:"API Reference: Form",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form"},{text:"API Reference: SimpleForm",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm"},{text:"API Reference: FormContainer",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormContainer"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.Form").forEach(function(t){var a=t.getParent();if(n(a)){return}m(t,"Form",e)});a.getElementsByClassName("sap.ui.layout.form.FormContainer").forEach(function(t){m(t,"FormContainer",e)});a.getElementsByClassName("sap.ui.layout.form.SimpleForm").forEach(function(t){m(t,"SimpleForm",e)})}};var d={id:"formTitleOrAriaLabel",audiences:[r.Application],categories:[a.Accessibility],enabled:true,minversion:"1.48",title:"Form: Container must have a Title",description:"A FormContainer must have some Title information."+"\n This can be a Title on the FormContainer or some Title assigned via AriaLabelledBy."+"\n If no Title is assigned to the FormContainer there must be at least a Title set"+" on the Form or assigned via AriaLabelledBy on the Form.",resolution:"Set a Title on Form or FormContainer or assign it via AriaLabelledBy",resolutionurls:[{text:"API Reference: Form",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form"},{text:"API Reference: SimpleForm",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm"},{text:"API Reference: FormContainer",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormContainer"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.FormContainer").forEach(function(t){var a=t.getParent();if(!a){return}var r=a.getParent();var i;var l="Form";if(n(r)){i=r.getId();l="SimpleForm"}else if(s(r)){return}else{i=a.getId()}if(!t.getTitle()&&t.getAriaLabelledBy().length==0&&!a.getTitle()&&a.getAriaLabelledBy().length==0){e.addIssue({severity:o.High,details:"In "+l+" "+i+", FormContainer"+t.getId()+" has no Title assigned.",context:{id:t.getId()}})}})}};function p(e,t,a){var r=e.getId();if(!e.isA("sap.ui.core.IFormContent")){a.addIssue({severity:o.High,details:e.getMetadata().getName()+" "+r+" is not allowed as "+t+" content.",context:{id:r}})}}var f={id:"formAllowedContent",audiences:[r.Application],categories:[a.Usability],enabled:true,minversion:"1.48",title:"Form: Content not allowed",description:"It is not allowed to use any layout as content of a Form or nest Forms"+" This leads to issues with screen reader support, keyboard support and field alignment."+"\nIt is also not supported to use other unsupported controls as content of the Form"+" as it is not sure this controls will meet the alingment and intartaction requirements of the Form.",resolution:"Use only labels and controls implementing interface sap.ui.core.IFormContent as content of a Form",resolutionurls:[{text:"API Reference: Form",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form"},{text:"API Reference: SimpleForm",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm"},{text:"API Reference: FormElement",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormElement"},{text:"API Reference: IFormContent",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.core.IFormContent"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.Form").forEach(function(t){var a=t.getParent();if(n(a)||s(a)){return}else{var o=t.getFormContainers();for(var r=0;r<o.length;r++){var i=o[r];var l=i.getFormElements();for(var m=0;m<l.length;m++){var u=l[m];var d=u.getFields();for(var f=0;f<d.length;f++){var c=d[f];p(c,"Form",e)}}}}});a.getElementsByClassName("sap.ui.layout.form.SimpleForm").forEach(function(t){var a=t.getContent();for(var o=0;o<a.length;o++){var r=a[o];if(!r.isA(["sap.ui.core.Title","sap.ui.core.Toolbar","sap.ui.core.Label"])){p(r,"SimpleForm",e)}}});a.getElementsByClassName("sap.ui.comp.smartform.SmartForm").forEach(function(t){var a=t.getGroups();for(var o=0;o<a.length;o++){var r=a[o];var i=r.getGroupElements();for(var n=0;n<i.length;n++){var s=i[n];var l=s.getElements();for(var m=0;m<l.length;m++){var u=l[m];p(u,"SmartForm",e)}}}})}};function c(e,t,a){var r=e.getToolbar();if(r){var i=e.getId();var n=e.getAriaLabelledBy();var s;if(r.getContent){s=r.getContent()}else if(r.getItems){s=r.getItems()}for(var l=0;l<s.length;l++){var m=s[l];if(m.isA(["sap.ui.core.Title","sap.m.Title"])){var u=false;for(var d=0;d<n.length;d++){var p=n[d];if(m.getId()==p){u=true;break}}if(!u){a.addIssue({severity:o.Medium,details:"in"+t+" "+i+" AriaLabelledBy for Title in Toolbar is missing.",context:{id:i}})}}}}}var h={id:"formTitleInToolbarAria",audiences:[r.Application],categories:[a.Accessibility],enabled:true,minversion:"1.48",title:"Form: Title in Toolbar needs to be set to AriaLabelledBy",description:"If a Toolbar is used in a Form or FormContainer and the Toolbar has a Title inside"+" it must be set to AriaLabelledBy to enable screen reader support",resolution:"Set the Title used inside the Toolbar to AriaLabelledBy of the Form or FormContainer.",resolutionurls:[{text:"API Reference: Form",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form"},{text:"API Reference: SimpleForm",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm"},{text:"API Reference: FormContainer",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormContainer"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.Form").forEach(function(t){var a=t.getParent();if(n(a)){return}c(t,"Form",e)});a.getElementsByClassName("sap.ui.layout.form.FormContainer").forEach(function(t){var a=t.getParent().getParent();if(n(a)){return}c(t,"FormContainer",e)});a.getElementsByClassName("sap.ui.layout.form.SimpleForm").forEach(function(t){c(t,"SimpleForm",e)})}};var y={id:"formPropertiesOfOtherLayout",audiences:[r.Application],categories:[a.Consistency],enabled:true,minversion:"1.48",title:"SimpleForm: Properties not valid for layout",description:"Some properties of SimpleForm are only valid for a special layout."+" If they are used with a different layout they have no effect.",resolution:"Use only properties that are valid for the layout used",resolutionurls:[{text:"API Reference: SimpleForm",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.SimpleForm").forEach(function(t){var a=t.getId();var r=t.getLayout();var n=[];var s=function(e){if(!t.isPropertyInitial(e)){n.push(e)}};if(r!=i.ResponsiveGridLayout&&r!=i.ColumnLayout){s("labelSpanL");s("emptySpanL");s("columnsXL");s("columnsL");s("columnsM")}if(r!=i.ResponsiveGridLayout){s("labelSpanXL");s("labelSpanM");s("labelSpanS");s("adjustLabelSpan");s("emptySpanXL");s("emptySpanM");s("emptySpanS");s("singleContainerFullSize");s("breakpointXL");s("breakpointL");s("breakpointM")}if(r!=i.ResponsiveLayout){s("minWidth");s("labelMinWidth")}if(r==i.ResponsiveGridLayout){s("maxContainerCols")}for(var l=0;l<n.length;l++){e.addIssue({severity:o.Low,details:"SimpleForm "+a+" with Layout "+r+" doesn't support use of property "+n[l]+".",context:{id:a}})}})}};var g={id:"formEditableContent",audiences:[r.Application],categories:[a.Usability],enabled:true,minversion:"1.48",title:"Form: Editable content must match editable property",description:"The editable property of the Form is used to align the Labels and add screen reader information. If editable controls are used in Form, the property must be set, otherwise it should not be set.",resolution:"Set the editable property according to the content of the Form.",resolutionurls:[{text:"API Reference: Form",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form"},{text:"API Reference: SimpleForm",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm"},{text:"API Reference: FormElement",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormElement"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.Form").forEach(function(t){var a=t.getEditable();var r=t.getParent();var i=r?r.getMetadata():undefined;var l;var m="Form";if(n(r)){l=r.getId();m="SimpleForm"}else if(s(r)){return}else{l=t.getId()}var u=false;var d=false;var p=t.getFormContainers();for(var f=0;f<p.length;f++){var c=p[f];var h=c.getFormElements();for(var y=0;y<h.length;y++){var g=h[y];var v=g.getFields();for(var F=0;F<v.length;F++){var b=v[F];i=b.getMetadata();if(a){if(b.isA("sap.ui.core.Icon")||i.hasProperty("displayOnly")&&b.getDisplayOnly()){u=true;break}}if(b.isA("sap.m.InputBase")||b.isA("sap.m.Select")||b.isA("sap.m.CheckBox")||b.isA("sap.m.RadioButton")||b.isA("sap.m.RadioButtonGroup")||b.isA("sap.m.Button")&&g.getLabel()||b.isA("sap.m.Slider")||b.isA("sap.m.Switch")||i.hasProperty("displayOnly")&&!b.getDisplayOnly()){d=true;if(!a){u=true;break}}}if(u){break}}if(!u&&a&&!d){u=true}}if(u){if(a){e.addIssue({severity:o.High,details:m+" "+l+" is set to editable but has only non-editable content.",context:{id:l}})}else{e.addIssue({severity:o.High,details:m+" "+l+" is set to non-editable but has editable content.",context:{id:l}})}}})}};function v(e,t,a,r,i,n){var s=r.getMetadata().getName();var l=i.getMetadata().getName();var m=e.getMetadata().getName();var u=e.getId();var d=false;var p=false;switch(s){case"sap.ui.layout.form.ResponsiveGridLayout":if(l!="sap.ui.layout.GridData"){d=true}else if(m=="sap.ui.layout.form.FormElement"){p=true}break;case"sap.ui.layout.form.ResponsiveLayout":if(l!="sap.ui.layout.ResponsiveFlowLayoutData"){d=true}break;case"sap.ui.layout.form.GridLayout":if(l!="sap.ui.layout.form.GridElementData"){if(!(m=="sap.ui.layout.form.FormContainer"&&l=="sap.ui.layout.form.GridContainerData")){d=true}}else if(m=="sap.ui.layout.form.FormElement"){p=true}break;case"sap.ui.layout.form.ColumnLayout":if(l!="sap.ui.layout.form.ColumnElementData"){if(!(m=="sap.ui.layout.form.FormContainer"&&l=="sap.ui.layout.form.ColumnContainerData")){d=true}}else if(m=="sap.ui.layout.form.FormElement"||m=="sap.ui.layout.form.FormContainer"){p=true}break;default:break}if(d){n.addIssue({severity:o.Low,details:t+" "+a+" uses "+s+", therefore "+l+" is not supported on "+m+" "+u+".",context:{id:u}})}if(p){n.addIssue({severity:o.Low,details:t+" "+a+" uses "+s+", but "+l+" is not supported on "+m+" "+u+".",context:{id:u}})}}function F(e,t,a,o,r){var i=e.getLayoutData();if(i){if(i.isA("sap.ui.core.VariantLayoutData")){var n=i.getMultipleLayoutData();for(var s=0;s<n.length;s++){i=n[s];v(e,t,a,o,i,r)}}else{v(e,t,a,o,i,r)}}}var b={id:"formWrongLayoutData",audiences:[r.Application],categories:[a.Consistency],enabled:true,minversion:"1.48",title:"Form: LayoutData assigned to Form content not valid for layout",description:"Layout data on Form content can be used to influence the appearance of Form. Depending on the layout used, different LayoutData can be used.",resolution:"Use only valid LayoutData that are suitable for the layout used",resolutionurls:[{text:"API Reference: ResponsiveGridLayout",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ResponsiveGridLayout"},{text:"API Reference: ResponsiveLayout",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ResponsiveLayout"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.Form").forEach(function(t){var a=t.getLayout();var o=t.getParent();var r;var i="Form";if(n(o)){r=o.getId();i="SimpleForm"}else if(s(o)){r=o.getId();i="SmartForm"}else{r=t.getId()}var l=t.getFormContainers();for(var m=0;m<l.length;m++){var u=l[m];var d=u.getFormElements();F(u,i,r,a,e);for(var p=0;p<d.length;p++){var f=d[p];var c=f.getFields();F(f,i,r,a,e);for(var h=0;h<c.length;h++){var y=c[h];F(y,i,r,a,e)}}}})}};var L={id:"formMissingLabel",audiences:[r.Application],categories:[a.Accessibility],enabled:true,minversion:"1.48",title:"Form: Label for Form content missing",description:"For accessibility reasons, each field must have a label."+" \n If Label is assigned to FormElement, it will be automatically assigned to the corresponding fields."+" \n But if no Label is assigned to FormElement, the application must use the ariaLabelledBy property of the field to assign a label.",resolution:"Assign a label to the field",resolutionurls:[{text:"API Reference: Form",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form"},{text:"API Reference: SimpleForm",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm"},{text:"API Reference: FormElement",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormElement"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.Form").forEach(function(t){var a=t.getParent();var r=a?a.getMetadata():undefined;var i;var l="Form";if(n(a)){i=a.getId();l="SimpleForm"}else if(s(a)){return}else{i=t.getId()}var m=t.getFormContainers();for(var u=0;u<m.length;u++){var d=m[u];if(d.getVisible()&&d.getExpanded()){var p=d.getFormElements();for(var f=0;f<p.length;f++){var c=p[f];var h=c.getLabel();if(!h&&c.getVisible()){var y=c.getFields();for(var g=0;g<y.length;g++){var v=y[g];var F=v.getId();r=v.getMetadata();if(r.getAssociation("ariaLabelledBy")&&(!v.getAriaLabelledBy()||v.getAriaLabelledBy().length==0)&&!v.isA("sap.m.Button")&&!(v.isA("sap.m.CheckBox")&&v.getText())&&!(v.isA("sap.m.RadioButton")&&v.getText())){e.addIssue({severity:o.High,details:"In "+l+" "+i+", no label has been assigned to field "+r.getName()+" "+F+".",context:{id:F}})}}}}}}})}};var I={id:"formLabelAsField",audiences:[r.Application],categories:[a.Usability],enabled:true,minversion:"1.48",title:"Form: Label is used as field",description:"FormElements can have Labels and Fields."+" \n Depending on the layout used and device and screen sizes, the way labels and fields are shown might differ."+" \n If labels are used as fields, this will lead to misaligned fields and labels in the Form and might have an effect on the screen reader support.",resolution:"Use Labels only in the Label aggregation",resolutionurls:[{text:"API Reference: Form",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form"},{text:"API Reference: FormElement",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.FormElement"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.Form").forEach(function(t){var a=t.getParent();var r=a?a.getMetadata():undefined;var i;var l="Form";if(n(a)){return}else if(s(a)){i=a.getId();l="SmartForm"}else{i=t.getId()}var m=t.getFormContainers();for(var u=0;u<m.length;u++){var d=m[u];var p=d.getFormElements();for(var f=0;f<p.length;f++){var c=p[f];var h=c.getFields();for(var y=0;y<h.length;y++){var g=h[y];var v=g.getId();r=g.getMetadata();if(r.isInstanceOf("sap.ui.core.Label")){e.addIssue({severity:o.High,details:l+" "+i+": "+r.getName()+" "+v+" is used as field.",context:{id:v}})}}}}})}};var A={id:"formGridLayout",audiences:[r.Control],categories:[a.Functionality],enabled:true,minversion:"1.65",title:"Form: Use of GridLayout",description:"GridLayout should not be used any longer because of UX requirements",resolution:"Use the ResponsiveGridLayout or ColumnLayout instead",resolutionurls:[{text:"API Reference: Form",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.Form"},{text:"API Reference: SimpleForm",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.SimpleForm"},{text:"API Reference: ResponsiveGridLayout",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ResponsiveGridLayout"},{text:"API Reference: ColumnLayout",href:"https://sapui5.hana.ondemand.com/#/api/sap.ui.layout.form.ColumnLayout"}],check:function(e,t,a){a.getElementsByClassName("sap.ui.layout.form.Form").forEach(function(t){var a=t.getLayout();var r=sap.ui.getCore().getLoadedLibraries();if(a&&a.isA("sap.ui.layout.form.ColumnLayout")&&!r.hasOwnProperty("sap.ui.commons")){var i=t.getParent();var l;var m="Form";if(n(i)){l=i.getId();m="SimpleForm"}else if(s(i)){return}else{l=t.getId()}e.addIssue({severity:o.Medium,details:m+" "+l+" uses GridLayout.",context:{id:l}})}})}};return[l,u,d,f,h,y,g,b,L,I,A]},true);
+/**
+ * Defines support rules of the Form controls of sap.ui.layout library.
+ */
+sap.ui.define(["sap/ui/support/library", "sap/ui/layout/library"],
+	function(SupportLib, layoutLibrary) {
+	"use strict";
+
+	// shortcuts
+	var Categories = SupportLib.Categories; // Accessibility, Performance, Memory, ...
+	var Severity = SupportLib.Severity; // Hint, Warning, Error
+	var Audiences = SupportLib.Audiences; // Control, Internal, Application
+	var SimpleFormLayout = layoutLibrary.form.SimpleFormLayout;
+
+	//**********************************************************
+	// Rule Definitions
+	//**********************************************************
+
+	/* eslint-disable no-lonely-if */
+
+	function isSimpleForm(oControl){
+		if (oControl && oControl.isA("sap.ui.layout.form.SimpleForm")) {
+			return true;
+		}
+
+		return false;
+	}
+
+	function isSmartForm(oControl){
+		if (oControl && (oControl.isA("sap.ui.comp.smartform.SmartForm") ||
+				(oControl.isA("sap.m.Panel") && oControl.getParent().isA("sap.ui.comp.smartform.SmartForm")))) {
+			return true;
+		}
+
+		return false;
+	}
+
+	var oFormResponsiveLayoutRule = {
+		id: "formResponsiveLayout",
+		audiences: [Audiences.Control],
+		categories: [Categories.Functionality],
+		enabled: true,
+		minversion: "1.48",
+		title: "Form: Use of ResponsiveLayout",
+		description: "ResponsiveLayout should not be used any longer because of UX requirements",
+		resolution: "Use the ResponsiveGridLayout or ColumnLayout instead",
+		resolutionurls: [{
+				text: "API Reference: Form",
+				href: "https://sdk.openui5.org/api/sap.ui.layout.form.Form"
+			},
+			{
+				text: "API Reference: SimpleForm",
+				href: "https://sdk.openui5.org/api/sap.ui.layout.form.SimpleForm"
+			},
+			{
+				text: "API Reference: ResponsiveGridLayout",
+				href: "https://sdk.openui5.org/api/sap.ui.layout.form.ResponsiveGridLayout"
+			},
+			{
+				text: "API Reference: ColumnLayout",
+				href: "https://sdk.openui5.org/api/sap.ui.layout.form.ColumnLayout"
+			}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.Form")
+				.forEach(function (oForm) {
+					var oLayout = oForm.getLayout();
+					if (oLayout && oLayout.isA("sap.ui.layout.form.ResponsiveLayout")) {
+						var oParent = oForm.getParent();
+						var sId;
+						var sName = "Form";
+
+						if (isSimpleForm(oParent)) {
+							sId = oParent.getId();
+							sName = "SimpleForm";
+						} else if (isSmartForm(oParent)) {
+							// for SmartForm don't check on Form level
+							return;
+						} else {
+							sId = oForm.getId();
+						}
+
+						oIssueManager.addIssue({
+							severity: Severity.Medium,
+							details: sName + " " + sId + " uses ResponsiveLayout.",
+							context: {
+								id: sId
+							}
+						});
+					}
+				});
+		}
+	};
+
+	function checkTitleAndToolbar(oElement, sName, oIssueManager) {
+		var oTitle = oElement.getTitle();
+		var oToolbar = oElement.getToolbar();
+		if (oTitle && oToolbar) {
+			var sId = oElement.getId();
+
+			oIssueManager.addIssue({
+				severity: Severity.Medium,
+				details: sName + " " + sId + " has Title and Toolbar assigned.",
+				context: {
+					id: sId
+				}
+			});
+		}
+	}
+
+	var oFormTitleAndToolbarRule = {
+		id: "formTitleAndToolbar",
+		audiences: [Audiences.Application],
+		categories: [Categories.Functionality],
+		enabled: true,
+		minversion: "1.48",
+		title: "Form: Title and Toolbar at same time",
+		description: "A Form or FormContainer can only have a Title or a Toolbar assigned, not both",
+		resolution: "Use either Title or a Toolbar",
+		resolutionurls: [{
+				text: "API Reference: Form",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.Form"
+			},
+			{
+				text: "API Reference: SimpleForm",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.SimpleForm"
+			},
+			{
+				text: "API Reference: FormContainer",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.FormContainer"
+			}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.Form")
+			.forEach(function(oForm) {
+				var oParent = oForm.getParent();
+				if (isSimpleForm(oParent)){
+					// check on SimpleForm
+					return;
+				}
+				checkTitleAndToolbar(oForm, "Form", oIssueManager);
+			});
+			oScope.getElementsByClassName("sap.ui.layout.form.FormContainer")
+			.forEach(function(oFormContainer) {
+				checkTitleAndToolbar(oFormContainer, "FormContainer", oIssueManager);
+			});
+			oScope.getElementsByClassName("sap.ui.layout.form.SimpleForm")
+			.forEach(function(oSimpleForm) {
+				checkTitleAndToolbar(oSimpleForm, "SimpleForm", oIssueManager);
+			});
+		}
+	};
+
+	var oFormTitleOrAriaLabelRule = {
+		id: "formTitleOrAriaLabel",
+		audiences: [Audiences.Application],
+		categories: [Categories.Accessibility],
+		enabled: true,
+		minversion: "1.48",
+		title: "Form: Container must have a Title",
+		description: "A FormContainer must have some Title information." +
+		             "\n This can be a Title on the FormContainer or some Title assigned via AriaLabelledBy." +
+		             "\n If no Title is assigned to the FormContainer there must be at least a Title set" +
+		             " on the Form or assigned via AriaLabelledBy on the Form.",
+		resolution: "Set a Title on Form or FormContainer or assign it via AriaLabelledBy",
+		resolutionurls: [{
+				text: "API Reference: Form",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.Form"
+			},
+			{
+				text: "API Reference: SimpleForm",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.SimpleForm"
+			},
+			{
+				text: "API Reference: FormContainer",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.FormContainer"
+			}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.FormContainer")
+			.forEach(function(oFormContainer) {
+				var oForm = oFormContainer.getParent();
+				if (!oForm) {
+					return;
+				}
+
+				var oParent = oForm.getParent();
+				var sId;
+				var sName = "Form";
+
+				if (isSimpleForm(oParent)) {
+					sId = oParent.getId();
+					sName = "SimpleForm";
+				} else if (isSmartForm(oParent)) {
+					// for SmartForm handle there
+					return;
+				} else {
+					sId = oForm.getId();
+				}
+
+				if (!oFormContainer.getTitle() && oFormContainer.getAriaLabelledBy().length == 0 &&
+						!oForm.getTitle() && oForm.getAriaLabelledBy().length == 0) {
+					oIssueManager.addIssue({
+						severity: Severity.High,
+						details: "In " + sName + " " + sId + ", FormContainer" + oFormContainer.getId() + " has no Title assigned.",
+						context: {
+							id: oFormContainer.getId()
+						}
+					});
+				}
+			});
+		}
+	};
+
+	function checkAllowedContent(oField, sName, oIssueManager) {
+		var sId = oField.getId();
+		if (!oField.isA("sap.ui.core.IFormContent")) {
+			oIssueManager.addIssue({
+				severity: Severity.High,
+				details: oField.getMetadata().getName() + " " + sId + " is not allowed as " + sName + " content.",
+				context: {
+					id: sId
+				}
+			});
+		}
+	}
+
+	var oFormAllowedContentRule = {
+		id: "formAllowedContent",
+		audiences: [Audiences.Application],
+		categories: [Categories.Usability],
+		enabled: true,
+		minversion: "1.48",
+		title: "Form: Content not allowed",
+		description: "It is not allowed to use any layout as content of a Form or nest Forms" +
+		             " This leads to issues with screen reader support, keyboard support and field alignment." +
+		             "\nIt is also not supported to use other unsupported controls as content of the Form" +
+		             " as it is not sure this controls will meet the alingment and intartaction requirements of the Form.",
+		resolution: "Use only labels and controls implementing interface sap.ui.core.IFormContent as content of a Form",
+		resolutionurls: [{
+				text: "API Reference: Form",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.Form"
+			},
+			{
+				text: "API Reference: SimpleForm",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.SimpleForm"
+			},
+			{
+				text: "API Reference: FormElement",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.FormElement"
+			},
+			{
+				text: "API Reference: IFormContent",
+				href:"https://sdk.openui5.org/api/sap.ui.core.IFormContent"
+			}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.Form")
+			.forEach(function(oForm) {
+				var oParent = oForm.getParent();
+				if (isSimpleForm(oParent) || isSmartForm(oParent)) {
+					// for SimpleForm and SmartForm don't check on Form level
+					return;
+				} else {
+					var aFormContainers = oForm.getFormContainers();
+					for (var i = 0; i < aFormContainers.length; i++) {
+						var oFormContainer = aFormContainers[i];
+						var aFormElements = oFormContainer.getFormElements();
+						for (var j = 0; j < aFormElements.length; j++) {
+							var oFormElement = aFormElements[j];
+							var aFields = oFormElement.getFields();
+							for (var k = 0; k < aFields.length; k++) {
+								var oField = aFields[k];
+								checkAllowedContent(oField, "Form", oIssueManager);
+							}
+						}
+					}
+				}
+			});
+			oScope.getElementsByClassName("sap.ui.layout.form.SimpleForm")
+			.forEach(function(oSimpleForm) {
+				var aContent = oSimpleForm.getContent();
+				for (var i = 0; i < aContent.length; i++) {
+					var oField = aContent[i];
+					if (!(oField.isA(["sap.ui.core.Title", "sap.ui.core.Toolbar", "sap.ui.core.Label"]))) {
+						checkAllowedContent(oField, "SimpleForm", oIssueManager);
+					}
+				}
+			});
+			oScope.getElementsByClassName("sap.ui.comp.smartform.SmartForm")
+			.forEach(function(oSmartForm) {
+				var aGroups = oSmartForm.getGroups();
+				for (var i = 0; i < aGroups.length; i++) {
+					var oGroup = aGroups[i];
+					var aGroupElements = oGroup.getGroupElements();
+					for (var j = 0; j < aGroupElements.length; j++) {
+						var oGroupElement = aGroupElements[j];
+						var aElements = oGroupElement.getElements();
+						for (var k = 0; k < aElements.length; k++) {
+							var oElement = aElements[k];
+							checkAllowedContent(oElement, "SmartForm", oIssueManager);
+						}
+					}
+				}
+			});
+		}
+	};
+
+	function checkTitleInToolbarAria(oElement, sName, oIssueManager) {
+		var oToolbar = oElement.getToolbar();
+
+		if (oToolbar) {
+			var sId = oElement.getId();
+			var aAriaLabel = oElement.getAriaLabelledBy();
+			var aContent;
+			if (oToolbar.getContent) {
+				//sap.m.Toolbar
+				aContent = oToolbar.getContent();
+			} else if (oToolbar.getItems) {
+				//sap.ui.commons.Toolbar
+				aContent = oToolbar.getItems();
+			}
+
+			for (var i = 0; i < aContent.length; i++) {
+				var oControl = aContent[i];
+				if (oControl.isA(["sap.ui.core.Title", "sap.m.Title"])) {
+					var bFound = false;
+					for (var j = 0; j < aAriaLabel.length; j++) {
+						var sAriaLabel = aAriaLabel[j];
+						if (oControl.getId() == sAriaLabel) {
+							bFound = true;
+							break;
+						}
+					}
+
+					if (!bFound) {
+						oIssueManager.addIssue({
+							severity: Severity.Medium,
+							details: "in" + sName + " " + sId + " AriaLabelledBy for Title in Toolbar is missing.",
+							context: {
+								id: sId
+							}
+						});
+					}
+				}
+			}
+
+		}
+	}
+
+	var oFormTitleInToolbarAriaRule = {
+		id: "formTitleInToolbarAria",
+		audiences: [Audiences.Application],
+		categories: [Categories.Accessibility],
+		enabled: true,
+		minversion: "1.48",
+		title: "Form: Title in Toolbar needs to be set to AriaLabelledBy",
+		description: "If a Toolbar is used in a Form or FormContainer and the Toolbar has a Title inside" +
+		             " it must be set to AriaLabelledBy to enable screen reader support",
+		resolution: "Set the Title used inside the Toolbar to AriaLabelledBy of the Form or FormContainer.",
+		resolutionurls: [{
+				text: "API Reference: Form",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.Form"
+			},
+			{
+				text: "API Reference: SimpleForm",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.SimpleForm"
+			},
+			{
+				text: "API Reference: FormContainer",
+				href:"https://sdk.openui5.org/api/sap.ui.layout.form.FormContainer"
+			}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.Form")
+			.forEach(function(oForm) {
+				var oParent = oForm.getParent();
+				if (isSimpleForm(oParent)){
+					// check on SimpleForm
+					return;
+				}
+				checkTitleInToolbarAria(oForm, "Form", oIssueManager);
+			});
+			oScope.getElementsByClassName("sap.ui.layout.form.FormContainer")
+			.forEach(function(oFormContainer) {
+				var oParent = oFormContainer.getParent().getParent();
+				if (isSimpleForm(oParent)){
+					// can not happen in SimpleForm
+					return;
+				}
+				checkTitleInToolbarAria(oFormContainer, "FormContainer", oIssueManager);
+			});
+			oScope.getElementsByClassName("sap.ui.layout.form.SimpleForm")
+			.forEach(function(oSimpleForm) {
+				checkTitleInToolbarAria(oSimpleForm, "SimpleForm", oIssueManager);
+			});
+		}
+	};
+
+	var oFormPropertiesOfOtherLayoutRule = {
+		id: "formPropertiesOfOtherLayout",
+		audiences: [Audiences.Application],
+		categories: [Categories.Consistency],
+		enabled: true,
+		minversion: "1.48",
+		title: "SimpleForm: Properties not valid for layout",
+		description: "Some properties of SimpleForm are only valid for a special layout." +
+		             " If they are used with a different layout they have no effect.",
+		resolution: "Use only properties that are valid for the layout used",
+		resolutionurls: [{
+			text: "API Reference: SimpleForm",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.SimpleForm"
+		}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.SimpleForm")
+			.forEach(function(oSimpleForm) {
+				var sId = oSimpleForm.getId();
+				var sLayout = oSimpleForm.getLayout();
+				var aFields = [];
+				var checkProperty = function(sProperty) {
+					if (!oSimpleForm.isPropertyInitial(sProperty)) {
+						aFields.push(sProperty);
+					}
+				};
+
+				if (sLayout != SimpleFormLayout.ResponsiveGridLayout &&
+						sLayout != SimpleFormLayout.ColumnLayout) {
+					checkProperty("labelSpanL");
+					checkProperty("emptySpanL");
+					checkProperty("columnsXL");
+					checkProperty("columnsL");
+					checkProperty("columnsM");
+				}
+
+				if (sLayout != SimpleFormLayout.ResponsiveGridLayout) {
+					checkProperty("labelSpanXL");
+					checkProperty("labelSpanM");
+					checkProperty("labelSpanS");
+					checkProperty("adjustLabelSpan");
+					checkProperty("emptySpanXL");
+					checkProperty("emptySpanM");
+					checkProperty("emptySpanS");
+					checkProperty("singleContainerFullSize");
+					checkProperty("breakpointXL");
+					checkProperty("breakpointL");
+					checkProperty("breakpointM");
+				}
+
+				if (sLayout != SimpleFormLayout.ResponsiveLayout) {
+					checkProperty("minWidth");
+					checkProperty("labelMinWidth");
+				}
+
+				if (sLayout == SimpleFormLayout.ResponsiveGridLayout) {
+					checkProperty("maxContainerCols");
+				}
+
+				for (var i = 0; i < aFields.length; i++) {
+					oIssueManager.addIssue({
+						severity: Severity.Low,
+						details: "SimpleForm " + sId + " with Layout " + sLayout + " doesn't support use of property " + aFields[i] + ".",
+						context: {id: sId}
+					});
+				}
+
+			});
+		}
+	};
+
+	var oFormEditableContentRule = {
+		id: "formEditableContent",
+		audiences: [Audiences.Application],
+		categories: [Categories.Usability],
+		enabled: true,
+		minversion: "1.48",
+		title: "Form: Editable content must match editable property",
+		description: "The editable property of the Form is used to align the Labels and add screen reader information. If editable controls are used in Form, the property must be set, otherwise it should not be set.",
+		resolution: "Set the editable property according to the content of the Form.",
+		resolutionurls: [{
+			text: "API Reference: Form",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.Form"
+		},
+		{
+			text: "API Reference: SimpleForm",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.SimpleForm"
+		},
+		{
+			text: "API Reference: FormElement",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.FormElement"
+		}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.Form")
+			.forEach(function(oForm) {
+				var bEditable = oForm.getEditable();
+				var oParent = oForm.getParent();
+				var oMetadata = oParent ? oParent.getMetadata() : undefined;
+				var sId;
+				var sName = "Form";
+
+				if (isSimpleForm(oParent)) {
+					sId = oParent.getId();
+					sName = "SimpleForm";
+				} else if (isSmartForm(oParent)) {
+					// for SmartForm SmartControls handle edit mode
+					return;
+				} else {
+					sId = oForm.getId();
+				}
+
+				var bError = false;
+				var bEditableField = false;
+				var aFormContainers = oForm.getFormContainers();
+				for (var i = 0; i < aFormContainers.length; i++) {
+					var oFormContainer = aFormContainers[i];
+					var aFormElements = oFormContainer.getFormElements();
+					for (var j = 0; j < aFormElements.length; j++) {
+						var oFormElement = aFormElements[j];
+						var aFields = oFormElement.getFields();
+						for (var k = 0; k < aFields.length; k++) {
+							var oField = aFields[k];
+							oMetadata = oField.getMetadata();
+
+							if (bEditable) {
+								// check if no non editable fields are used (can only check for known fields)
+								if (/*oField.isA("sap.m.Text") ||
+										oField.isA("sap.m.Link") ||*/
+										oField.isA("sap.ui.core.Icon") ||
+										/*oField.isA("sap.m.Image") ||
+										oField.isA("sap.m.ObjectNumber") ||
+										oField.isA("sap.m.ObjectStatus") ||*/
+										(oMetadata.hasProperty("displayOnly") && oField.getDisplayOnly())){
+									bError = true;
+									break;
+								}
+							}
+							// check if editable fields are used (can only check for known fields)
+							if (oField.isA("sap.m.InputBase") ||
+									oField.isA("sap.m.Select") ||
+									oField.isA("sap.m.CheckBox") ||
+									oField.isA("sap.m.RadioButton") ||
+									oField.isA("sap.m.RadioButtonGroup") ||
+									(oField.isA("sap.m.Button") && oFormElement.getLabel()) || //allow buttons only without label
+									oField.isA("sap.m.Slider") ||
+									oField.isA("sap.m.Switch") ||
+									(oMetadata.hasProperty("displayOnly") && !oField.getDisplayOnly())) {
+								bEditableField = true;
+								if (!bEditable) {
+									// in display mode no editable fields are allowed
+									bError = true;
+									break;
+								}
+							}
+						}
+						if (bError) {
+							break;
+						}
+					}
+					if (!bError && bEditable && !bEditableField) {
+						// if editable, at least one editable field must exist
+						bError = true;
+					}
+				}
+
+				if (bError) {
+					if (bEditable) {
+						oIssueManager.addIssue({
+							severity: Severity.High,
+							details: sName + " " + sId + " is set to editable but has only non-editable content.",
+							context: {
+								id: sId
+							}
+						});
+					} else {
+						oIssueManager.addIssue({
+							severity: Severity.High,
+							details: sName + " " + sId + " is set to non-editable but has editable content.",
+							context: {
+								id: sId
+							}
+						});
+					}
+				}
+			});
+		}
+	};
+
+	function checkLayoutData(oElement, sName, sFormId, oLayout, oLayoutData, oIssueManager) {
+
+		var sLayout = oLayout.getMetadata().getName();
+		var sLayoutData = oLayoutData.getMetadata().getName();
+		var sElement = oElement.getMetadata().getName();
+		var sId = oElement.getId();
+		var bWrong = false;
+		var bUnsupported = false;
+
+		switch (sLayout) {
+		case "sap.ui.layout.form.ResponsiveGridLayout":
+			if (sLayoutData != "sap.ui.layout.GridData") {
+				bWrong = true;
+			} else if (sElement == "sap.ui.layout.form.FormElement") {
+				bUnsupported = true;
+			}
+			break;
+
+		case "sap.ui.layout.form.ResponsiveLayout":
+			if (sLayoutData != "sap.ui.layout.ResponsiveFlowLayoutData") {
+				bWrong = true;
+			}
+			break;
+
+		case "sap.ui.layout.form.GridLayout":
+			if (sLayoutData != "sap.ui.layout.form.GridElementData") {
+				if (!(sElement == "sap.ui.layout.form.FormContainer" && sLayoutData == "sap.ui.layout.form.GridContainerData")) {
+					bWrong = true;
+				}
+			} else if (sElement == "sap.ui.layout.form.FormElement") {
+				bUnsupported = true;
+			}
+			break;
+
+		case "sap.ui.layout.form.ColumnLayout":
+			if (sLayoutData != "sap.ui.layout.form.ColumnElementData") {
+				if (!(sElement == "sap.ui.layout.form.FormContainer" && sLayoutData == "sap.ui.layout.form.ColumnContainerData")) {
+					bWrong = true;
+				}
+			} else if (sElement == "sap.ui.layout.form.FormElement" || sElement == "sap.ui.layout.form.FormContainer") {
+				bUnsupported = true;
+			}
+			break;
+
+		default:
+			break;
+		}
+
+		if (bWrong) {
+			oIssueManager.addIssue({
+				severity: Severity.Low,
+				details: sName + " " + sFormId + " uses " + sLayout + ", therefore " + sLayoutData + " is not supported on " + sElement + " " + sId + ".",
+				context: {
+					id: sId
+				}
+			});
+		}
+
+		if (bUnsupported) {
+			oIssueManager.addIssue({
+				severity: Severity.Low,
+				details: sName + " " + sFormId + " uses " + sLayout + ", but " + sLayoutData + " is not supported on " + sElement + " " + sId + ".",
+				context: {
+					id: sId
+				}
+			});
+		}
+	}
+
+	function checkLayoutDataOfElement(oElement, sName, sFormId, oLayout, oIssueManager) {
+
+		var oLayoutData = oElement.getLayoutData();
+		if (oLayoutData) {
+			if (oLayoutData.isA("sap.ui.core.VariantLayoutData")) {
+				var aLayoutData = oLayoutData.getMultipleLayoutData();
+				for ( var l = 0; l < aLayoutData.length; l++) {
+					oLayoutData = aLayoutData[l];
+					checkLayoutData(oElement, sName, sFormId, oLayout, oLayoutData, oIssueManager);
+				}
+			} else {
+				checkLayoutData(oElement, sName, sFormId, oLayout, oLayoutData, oIssueManager);
+			}
+		}
+	}
+
+	var oFormWrongLayoutDataRule = {
+		id: "formWrongLayoutData",
+		audiences: [Audiences.Application],
+		categories: [Categories.Consistency],
+		enabled: true,
+		minversion: "1.48",
+		title: "Form: LayoutData assigned to Form content not valid for layout",
+		description: "Layout data on Form content can be used to influence the appearance of Form. Depending on the layout used, different LayoutData can be used.",
+		resolution: "Use only valid LayoutData that are suitable for the layout used",
+		resolutionurls: [{
+			text: "API Reference: ResponsiveGridLayout",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.ResponsiveGridLayout"
+		},
+		{
+			text: "API Reference: ResponsiveLayout",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.ResponsiveLayout"
+		}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.Form")
+			.forEach(function(oForm) {
+				var oLayout = oForm.getLayout();
+				var oParent = oForm.getParent();
+				var sId;
+				var sName = "Form";
+
+				if (isSimpleForm(oParent)) {
+					sId = oParent.getId();
+					sName = "SimpleForm";
+				} else if (isSmartForm(oParent)) {
+					sId = oParent.getId();
+					sName = "SmartForm";
+				} else {
+					sId = oForm.getId();
+				}
+
+				var aFormContainers = oForm.getFormContainers();
+				for (var i = 0; i < aFormContainers.length; i++) {
+					var oFormContainer = aFormContainers[i];
+					var aFormElements = oFormContainer.getFormElements();
+
+					checkLayoutDataOfElement(oFormContainer, sName, sId, oLayout, oIssueManager);
+
+					for (var j = 0; j < aFormElements.length; j++) {
+						var oFormElement = aFormElements[j];
+						var aFields = oFormElement.getFields();
+
+						checkLayoutDataOfElement(oFormElement, sName, sId, oLayout, oIssueManager);
+
+						for (var k = 0; k < aFields.length; k++) {
+							var oField = aFields[k];
+							checkLayoutDataOfElement(oField, sName, sId, oLayout, oIssueManager);
+						}
+					}
+				}
+
+			});
+		}
+	};
+
+	var oFormMissingLabelRule = {
+		id: "formMissingLabel",
+		audiences: [Audiences.Application],
+		categories: [Categories.Accessibility],
+		enabled: true,
+		minversion: "1.48",
+		title: "Form: Label for Form content missing",
+		description: "For accessibility reasons, each field must have a label." +
+		             " \n If Label is assigned to FormElement, it will be automatically assigned to the corresponding fields." +
+		             " \n But if no Label is assigned to FormElement, the application must use the ariaLabelledBy property of the field to assign a label.",
+		resolution: "Assign a label to the field",
+		resolutionurls: [{
+			text: "API Reference: Form",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.Form"
+		},
+		{
+			text: "API Reference: SimpleForm",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.SimpleForm"
+		},
+		{
+			text: "API Reference: FormElement",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.FormElement"
+		}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.Form")
+			.forEach(function(oForm) {
+				var oParent = oForm.getParent();
+				var oMetadata = oParent ? oParent.getMetadata() : undefined;
+				var sId;
+				var sName = "Form";
+
+				if (isSimpleForm(oParent)) {
+					sId = oParent.getId();
+					sName = "SimpleForm";
+				} else if (isSmartForm(oParent)) {
+					return; // as in SmartForm Labels are created for SmartFields there must no explicit Label set
+				} else {
+					sId = oForm.getId();
+				}
+
+				var aFormContainers = oForm.getFormContainers();
+				for (var i = 0; i < aFormContainers.length; i++) {
+					var oFormContainer = aFormContainers[i];
+					if (oFormContainer.getVisible() && oFormContainer.getExpanded()) {
+						var aFormElements = oFormContainer.getFormElements();
+						for (var j = 0; j < aFormElements.length; j++) {
+							var oFormElement = aFormElements[j];
+							var oLabel = oFormElement.getLabel();
+							if (!oLabel && oFormElement.getVisible()) {
+								var aFields = oFormElement.getFields();
+								for (var k = 0; k < aFields.length; k++) {
+									var oField = aFields[k];
+									var sFieldId = oField.getId();
+									oMetadata = oField.getMetadata();
+									if (oMetadata.getAssociation("ariaLabelledBy") &&
+											(!oField.getAriaLabelledBy() || oField.getAriaLabelledBy().length == 0) &&
+											!oField.isA("sap.m.Button") &&
+											!(oField.isA("sap.m.CheckBox") && oField.getText()) &&
+											!(oField.isA("sap.m.RadioButton") && oField.getText())) {
+										oIssueManager.addIssue({
+											severity: Severity.High,
+											details: "In " + sName + " " + sId + ", no label has been assigned to field " + oMetadata.getName() + " " + sFieldId + ".",
+											context: {
+												id: sFieldId
+											}
+										});
+									}
+								}
+							}
+						}
+					}
+				}
+			});
+		}
+	};
+
+	var oFormLabelAsFieldRule = {
+		id: "formLabelAsField",
+		audiences: [Audiences.Application],
+		categories: [Categories.Usability],
+		enabled: true,
+		minversion: "1.48",
+		title: "Form: Label is used as field",
+		description: "FormElements can have Labels and Fields." +
+		             " \n Depending on the layout used and device and screen sizes, the way labels and fields are shown might differ." +
+		             " \n If labels are used as fields, this will lead to misaligned fields and labels in the Form and might have an effect on the screen reader support.",
+		resolution: "Use Labels only in the Label aggregation",
+		resolutionurls: [{
+			text: "API Reference: Form",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.Form"
+		},
+		{
+			text: "API Reference: FormElement",
+			href:"https://sdk.openui5.org/api/sap.ui.layout.form.FormElement"
+		}],
+		check: function (oIssueManager, oCoreFacade, oScope) {
+			oScope.getElementsByClassName("sap.ui.layout.form.Form")
+			.forEach(function(oForm) {
+				var oParent = oForm.getParent();
+				var oMetadata = oParent ? oParent.getMetadata() : undefined;
+				var sId;
+				var sName = "Form";
+
+				if (isSimpleForm(oParent)) {
+					// could not happen in SimleForm
+					return;
+				} else if (isSmartForm(oParent)) {
+					sId = oParent.getId();
+					sName = "SmartForm";
+				} else {
+					sId = oForm.getId();
+				}
+
+				var aFormContainers = oForm.getFormContainers();
+				for (var i = 0; i < aFormContainers.length; i++) {
+					var oFormContainer = aFormContainers[i];
+					var aFormElements = oFormContainer.getFormElements();
+					for (var j = 0; j < aFormElements.length; j++) {
+						var oFormElement = aFormElements[j];
+						var aFields = oFormElement.getFields();
+						for (var k = 0; k < aFields.length; k++) {
+							var oField = aFields[k];
+							var sFieldId = oField.getId();
+							oMetadata = oField.getMetadata();
+							if (oMetadata.isInstanceOf("sap.ui.core.Label")){
+								oIssueManager.addIssue({
+									severity: Severity.High,
+									details: sName + " " + sId + ": " + oMetadata.getName() + " " + sFieldId + " is used as field.",
+									context: {
+										id: sFieldId
+									}
+								});
+							}
+						}
+					}
+				}
+			});
+		}
+	};
+
+	var oFormGridLayoutRule = {
+			id: "formGridLayout",
+			audiences: [Audiences.Control],
+			categories: [Categories.Functionality],
+			enabled: true,
+			minversion: "1.65",
+			title: "Form: Use of GridLayout",
+			description: "GridLayout should not be used any longer because of UX requirements",
+			resolution: "Use the ResponsiveGridLayout or ColumnLayout instead",
+			resolutionurls: [{
+					text: "API Reference: Form",
+					href: "https://sdk.openui5.org/api/sap.ui.layout.form.Form"
+				},
+				{
+					text: "API Reference: SimpleForm",
+					href: "https://sdk.openui5.org/api/sap.ui.layout.form.SimpleForm"
+				},
+				{
+					text: "API Reference: ResponsiveGridLayout",
+					href: "https://sdk.openui5.org/api/sap.ui.layout.form.ResponsiveGridLayout"
+				},
+				{
+					text: "API Reference: ColumnLayout",
+					href: "https://sdk.openui5.org/api/sap.ui.layout.form.ColumnLayout"
+				}],
+			check: function (oIssueManager, oCoreFacade, oScope) {
+				oScope.getElementsByClassName("sap.ui.layout.form.Form")
+					.forEach(function (oForm) {
+						var oLayout = oForm.getLayout();
+						var oLoadedLibraries = sap.ui.getCore().getLoadedLibraries();
+						if (oLayout && oLayout.isA("sap.ui.layout.form.ColumnLayout") && !oLoadedLibraries.hasOwnProperty("sap.ui.commons")) {
+							var oParent = oForm.getParent();
+							var sId;
+							var sName = "Form";
+
+							if (isSimpleForm(oParent)) {
+								sId = oParent.getId();
+								sName = "SimpleForm";
+							} else if (isSmartForm(oParent)) {
+								// for SmartForm don't check on Form level
+								return;
+							} else {
+								sId = oForm.getId();
+							}
+
+							oIssueManager.addIssue({
+								severity: Severity.Medium,
+								details: sName + " " + sId + " uses GridLayout.",
+								context: {
+									id: sId
+								}
+							});
+						}
+					});
+			}
+		};
+
+	return [
+		oFormResponsiveLayoutRule,
+		oFormTitleAndToolbarRule,
+		oFormTitleOrAriaLabelRule,
+		oFormAllowedContentRule,
+		oFormTitleInToolbarAriaRule,
+		oFormPropertiesOfOtherLayoutRule,
+		oFormEditableContentRule,
+		oFormWrongLayoutDataRule,
+		oFormMissingLabelRule,
+		oFormLabelAsFieldRule,
+		oFormGridLayoutRule
+	];
+
+}, true);

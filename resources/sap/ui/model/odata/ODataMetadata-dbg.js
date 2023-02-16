@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -16,11 +16,12 @@ sap.ui.define([
 	"sap/base/util/isEmptyObject",
 	"sap/base/util/uid",
 	"sap/ui/base/EventProvider",
+	"sap/ui/core/Configuration",
 	"sap/ui/core/cache/CacheManager",
 	"sap/ui/thirdparty/datajs"
 ],
-	function(Utils, assert, Log, each, extend, isEmptyObject, uid, EventProvider, CacheManager,
-		OData) {
+	function(Utils, assert, Log, each, extend, isEmptyObject, uid, EventProvider, Configuration,
+		CacheManager, OData) {
 	"use strict";
 	/*eslint max-nested-callbacks: 0*/
 
@@ -44,7 +45,7 @@ sap.ui.define([
 	 * Implementation to access OData metadata
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.ODataMetadata
@@ -1275,7 +1276,7 @@ sap.ui.define([
 				"sap-cancel-on-close": true
 			},
 			oLangHeader = {
-				"Accept-Language": sap.ui.getCore().getConfiguration().getLanguageTag()
+				"Accept-Language": Configuration.getLanguageTag()
 			};
 
 		extend(oDefaultHeaders, this.mHeaders, oLangHeader);
@@ -1530,14 +1531,14 @@ sap.ui.define([
 		}
 		return this.bMessageScopeSupported;
 	};
+
 	/**
 	 * Check whether the given path points to a entity collection or not (single entity or not known).
 	 *
-	 * @param {sPath} Entity path
+	 * @param {string} sPath Entity path
 	 * @returns {boolean} Whether the path points to a collection.
 	 * @private
 	 */
-
 	ODataMetadata.prototype._isCollection = function(sPath){
 		var bCollection = false;
 		var iIndex = sPath.lastIndexOf("/");
@@ -1709,17 +1710,20 @@ sap.ui.define([
 				// names of the entity keys are the same. Otherwise it is not guaranteed that the
 				// function parameter name is equal to the corresponding key property of the
 				// resulting entity type.
+				// Parameter values need to be encoded, property names contain only the characters
+				// _A-Za-z0-9 which don't need to be encoded.
 				if (aPropertyReferences.length === 1) {
 					sParameterName = aPropertyReferences[0].name;
 					if (mFunctionParameters[sParameterName]) {
-						sId = mFunctionParameters[sParameterName];
+						sId = encodeURIComponent(mFunctionParameters[sParameterName]);
 					}
 				} else {
 					aKeys = [];
 					for (i = 0; i < aPropertyReferences.length; i += 1) {
 						sParameterName = aPropertyReferences[i].name;
 						if (mFunctionParameters[sParameterName]) {
-							aKeys.push(sParameterName + "=" + mFunctionParameters[sParameterName]);
+							aKeys.push(sParameterName + "="
+								+ encodeURIComponent(mFunctionParameters[sParameterName]));
 						}
 					}
 					sId = aKeys.join(",");

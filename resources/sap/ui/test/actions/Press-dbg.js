@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,7 +25,7 @@ sap.ui.define([
 	 * or by defining a control adapter.
 	 *
 	 * There are some basic controls for which OPA5 has defined <code>Press</code> control
-	 * adapters. For more information, see {@link sap.ui.test.actions.Press.controlAdapters}.
+	 * adapters. For more information, see <code>controlAdapters</code> at {@link sap.ui.test.actions.Press}.
 	 *
 	 * @param {string}
 	 *            [sId] Optional ID for the new instance; generated automatically if
@@ -35,7 +35,7 @@ sap.ui.define([
 	 *            [mSettings] Optional object with initial settings for the new instance
 	 * @extends sap.ui.test.actions.Action
 	 * @public
-	 * @name sap.ui.test.actions.Press
+	 * @alias sap.ui.test.actions.Press
 	 * @author SAP SE
 	 * @since 1.34
 	 */
@@ -159,6 +159,9 @@ sap.ui.define([
 	 * A map of ID suffixes for controls that require a special DOM reference for
 	 * <code>Press</code> interaction.
 	 *
+	 * You can specify an ID suffix for specific controls in this map.
+	 * The press action will be triggered on the DOM element with the specified suffix.
+	 *
 	 * Here is a sublist of supported controls and their <code>Press</code> control adapter:
 	 * <ul>
 	 *  <li>sap.m.ComboBox - Arrow button</li>
@@ -215,10 +218,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @static
-	 * @name sap.ui.test.actions.Press.controlAdapters
-	 * You can specify an Id suffix for specific controls in this map.
-	 * The press action will be triggered on the DOM element with the specified suffix
-	 * @type map
+	 * @type Object<string,(string|function(sap.ui.core.Control):string)>
 	 */
 	Press.controlAdapters = {};
 	Press.controlAdapters["sap.m.Input"] = "vhi"; // focusDomRef: <input>
@@ -231,6 +231,13 @@ sap.ui.define([
 	Press.controlAdapters["sap.ui.comp.smartfilterbar.SmartFilterBar"] = "btnGo"; // always available?
 
 	Press.controlAdapters["sap.m.ObjectAttribute"] = "text"; // suffix is the same in active state. focusDomRef: <div> -- root
+	Press.controlAdapters["sap.m.ObjectStatus"] = function (oControl) {
+		if (oControl.getActive()) {
+			return "link";
+		} else {
+			return null; // focusDomRef: <div> -- root
+		}
+	};
 
 	Press.controlAdapters["sap.m.ObjectIdentifier"] = function (oControl) {
 		if (oControl.getTitleActive()) {

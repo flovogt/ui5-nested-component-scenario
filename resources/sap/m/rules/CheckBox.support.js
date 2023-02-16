@@ -1,6 +1,61 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/support/library"],function(e){"use strict";var t=e.Categories,i=e.Severity,a=e.Audiences;var s={id:"checkBoxDisabledAndEditable",audiences:[a.Control],categories:[t.Functionality],enabled:true,minversion:"-",title:"CheckBox: the control is editable, while the control is disabled",description:"Disabled control can`t be edited",resolution:"Either set enabled to true ot set editable to false",resolutionurls:[{text:"API Reference: sap.m.CheckBox",href:"https://sapui5.hana.ondemand.com/#/api/sap.m.CheckBox"}],check:function(e,t,a){a.getElementsByClassName("sap.m.CheckBox").forEach(function(t){var a,s;if(t.getEditable()&&!t.getEnabled()){a=t.getId();s=t.getMetadata().getElementName();e.addIssue({severity:i.Low,details:"CheckBox '"+s+"' ("+a+") is editable, but disabled",context:{id:a}})}})}};return[s]},true);
+/**
+ * Defines support rules of the CheckBox control of sap.m library.
+ */
+sap.ui.define(["sap/ui/support/library"],
+	function(SupportLib) {
+		"use strict";
+
+		var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
+			Severity = SupportLib.Severity, // Low, Medium, High
+			Audiences = SupportLib.Audiences; // Control, Internal, Application
+
+		//**********************************************************
+		// Rule Definitions
+		//**********************************************************
+
+		/**
+		* Checks if the control is <code>enabled</code>, when the <code>editable</code> property is true.
+		*/
+		var oCheckBoxRule = {
+			id : "checkBoxDisabledAndEditable",
+			audiences: [Audiences.Control],
+			categories: [Categories.Functionality],
+			enabled: true,
+			minversion: "-",
+			title: "CheckBox: the control is editable, while the control is disabled",
+			description: "Disabled control can`t be edited",
+			resolution: "Either set enabled to true ot set editable to false",
+			resolutionurls: [{
+				text: "API Reference: sap.m.CheckBox",
+				href: "https://sdk.openui5.org/api/sap.m.CheckBox"
+			}],
+			check: function (oIssueManager, oCoreFacade, oScope) {
+				oScope.getElementsByClassName("sap.m.CheckBox")
+					.forEach(function(oElement) {
+						var sElementId,
+							sElementName;
+
+						if (oElement.getEditable() && !oElement.getEnabled()) {
+								sElementId = oElement.getId();
+								sElementName = oElement.getMetadata().getElementName();
+
+								oIssueManager.addIssue({
+									severity: Severity.Low,
+									details: "CheckBox '" + sElementName + "' (" + sElementId + ") is editable, but disabled",
+									context: {
+										id: sElementId
+									}
+								});
+							}
+						});
+			}
+		};
+
+		return [oCheckBoxRule];
+
+	}, true);

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/Device'], function(Device) {
@@ -33,7 +33,7 @@ sap.ui.define(['sap/ui/Device'], function(Device) {
 		var oParseError;
 		var DomHelper = new DOMParser();
 
-		oXMLDocument = DomHelper.parseFromString(sXMLText, "text/xml");
+		oXMLDocument = DomHelper.parseFromString(sXMLText, "application/xml");
 
 		oParseError = Helper.getParseError(oXMLDocument);
 		if (oParseError) {

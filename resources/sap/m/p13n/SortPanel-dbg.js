@@ -1,6 +1,6 @@
-/*
- * ! OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+/*!
+ * OpenUI5
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -21,15 +21,27 @@ sap.ui.define([
 	 * @extends sap.m.p13n.QueryPanel
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @public
-	 * @experimental Since 1.96.
 	 * @since 1.96
 	 * @alias sap.m.p13n.SortPanel
 	 */
 
 	var SortPanel = QueryPanel.extend("sap.m.p13n.SortPanel", {
+		metadata: {
+			properties: {
+				/**
+				 * A short text describing the panel.
+				 * <b>Note:</b> This text will only be displayed if the panel is being used in a <code>sap.m.p13n.Popup</code>.
+				 */
+				 title: {
+					type: "string",
+					defaultValue: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("p13n.DEFAULT_TITLE_SORT")
+				}
+			},
+			library: "sap.m"
+		},
 		renderer: {
 			apiVersion: 2
 		}
@@ -41,14 +53,13 @@ sap.ui.define([
 	/**
 	 * P13n <code>SortItem</code> object type.
 	 *
-	 * @type {sap.m.p13n.SortItem}
 	 * @static
 	 * @constant
-	 * @typedef {Object} sap.m.p13n.SortItem
-	 * @property {String} name The unique key of the item
-	 * @property {String} label The label describing the personalization item
-	 * @property {Boolean} sorted Defines the sorting state of the personalization item
-	 * @property {Boolean} descending Defines the descending state of the personalization item
+	 * @typedef {object} sap.m.p13n.SortItem
+	 * @property {string} name The unique key of the item
+	 * @property {string} label The label describing the personalization item
+	 * @property {boolean} sorted Defines the sorting state of the personalization item
+	 * @property {boolean} descending Defines the descending state of the personalization item
 	 *
 	 * @public
 	 */
@@ -76,7 +87,7 @@ sap.ui.define([
 		var oSortOrderSwitch = new SegmentedButton({
 			enabled: sKey ? true : false,
 			layoutData: new GridData({
-				span: "XL2 L2 M2 S4" //on "S" the Asc/Desc text is invisible, we need to increase the size then
+				span: "XL2 L2 M2 S3" //on "S" the Asc/Desc text is invisible, we need to increase the size then
 			}),
 			items: [
 				new SegmentedButtonItem({
@@ -103,7 +114,7 @@ sap.ui.define([
 		return oSortOrderSwitch;
 	};
 
-	SortPanel.prototype._createSortOrderText = function (bDesc) {
+	SortPanel.prototype._createSortOrderText = function (sKey, bDesc) {
 		return new Text({
 			layoutData: new GridData({
 				span: "XL3 L3 M3 S3",
@@ -117,11 +128,11 @@ sap.ui.define([
 		//Enhance row with sort specific controls (Segmented Button + sort order text)
 		var oSelect = this._createKeySelect(oItem.name);
 		var oSortOrderSwitch = this._createOrderSwitch(oItem.name, oItem.descending);
-		var oSortOrderText = this._createSortOrderText(oItem.descending);
+		var oSortOrderText = this._createSortOrderText(oItem.name, oItem.descending);
 
 		return new Grid({
 			containerQuery: true,
-			defaultSpan: "XL4 L4 M4 S4",
+			defaultSpan: "XL4 L4 M4 S5",
 			content: [
 				oSelect,
 				oSortOrderSwitch,
@@ -130,16 +141,25 @@ sap.ui.define([
 		}).addStyleClass("sapUiTinyMargin");
 	};
 
-	SortPanel.prototype._selectKey = function(oEvt) {
+	SortPanel.prototype._getPlaceholderText = function () {
+		return this._getResourceText("p13n.SORT_PLACEHOLDER");
+	};
+
+	SortPanel.prototype._getRemoveButtonTooltipText = function () {
+		return this._getResourceText("p13n.SORT_REMOVEICONTOOLTIP");
+	};
+
+	SortPanel.prototype._selectKey = function(oComboBox) {
 		QueryPanel.prototype._selectKey.apply(this, arguments);
 
 		//Enable SegmentedButton
-		var oListItem = oEvt.getSource().getParent().getParent();
-		var sNewKey = oEvt.getParameter("selectedItem").getKey();
-		oListItem.getContent()[0].getContent()[1].setEnabled(sNewKey !== this.NONE_KEY);
+		var oListItem = oComboBox.getParent().getParent();
+		var sNewKey = oComboBox.getSelectedKey();
+		var aContent = oListItem.getContent()[0].getContent();
+		aContent[1].setEnabled(!!sNewKey);
 
 		//keep existing 'sortorder' selection
-		var bDescending = oListItem.getContent()[0].getContent()[1].getSelectedKey() === "desc";
+		var bDescending = aContent[1].getSelectedKey() === "desc";
 		this._changeOrder(sNewKey, bDescending);
 	};
 
@@ -152,12 +172,14 @@ sap.ui.define([
 			return oItem.name === sKey;
 		});
 
-		aItems[0].descending = bDesc;
+		if (aItems.length > 0) {
+			aItems[0].descending = bDesc;
 
-		this.fireChange({
-			reason: this.CHANGE_REASON_SORTORDER,
-			item: aItems[0]
-		});
+			this.fireChange({
+				reason: this.CHANGE_REASON_SORTORDER,
+				item: aItems[0]
+			});
+		}
 	};
 
 	return SortPanel;

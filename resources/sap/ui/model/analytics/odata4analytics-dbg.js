@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -285,14 +285,14 @@ sap.ui.define([
 			} else if (mParameter && mParameter.modelVersion === AnalyticalVersionInfo.V2) {
 				// Check if the user wants a V2 model
 				ODataModelClass = sap.ui.require("sap/ui/model/odata/v2/ODataModel") ||
-					sap.ui.requireSync("sap/ui/model/odata/v2/ODataModel");
+					sap.ui.requireSync("sap/ui/model/odata/v2/ODataModel"); // legacy-relevant: fallback for missing dependency
 				this._oModel = new ODataModelClass(oModelReference.sServiceURI);
 				this._iVersion = AnalyticalVersionInfo.V2;
 				checkForMetadata();
 			} else {
 				//default is V1 Model
 				ODataModelClass = sap.ui.require("sap/ui/model/odata/ODataModel") ||
-					sap.ui.requireSync("sap/ui/model/odata/ODataModel");
+					sap.ui.requireSync("sap/ui/model/odata/ODataModel"); // legacy-relevant: fallback for missing dependency
 				this._oModel = new ODataModelClass(oModelReference.sServiceURI);
 				this._iVersion = AnalyticalVersionInfo.V1;
 				checkForMetadata();
@@ -3687,6 +3687,8 @@ sap.ui.define([
 		 *            sPropertyName The name of the property bound in the condition
 		 * @param {sap.ui.model.analytics.odata4analytics.SortOrder}
 		 *            sSortOrder sorting order used for the condition
+		 * @param {boolean} bIgnoreIfAlreadySorted
+		 *   If there is already a sorter for that property, ignore this call.
 		 * @throws Exception
 		 *             if the property is unknown, not sortable or already added as
 		 *             sorter
@@ -3696,14 +3698,16 @@ sap.ui.define([
 		 * @function
 		 * @name sap.ui.model.analytics.odata4analytics.SortExpression#addSorter
 		 */
-		addSorter : function(sPropertyName, sSortOrder) {
+		addSorter : function(sPropertyName, sSortOrder, bIgnoreIfAlreadySorted) {
 			var oProperty = this._oEntityType.findPropertyByName(sPropertyName);
 			if (oProperty == null) {
 				throw "Cannot add sort condition for unknown property name " + sPropertyName; // TODO
 			}
 			var oExistingSorterEntry = this._containsSorter(sPropertyName);
 			if (oExistingSorterEntry != null) {
-				oExistingSorterEntry.sorter.order = sSortOrder;
+				if (!bIgnoreIfAlreadySorted) {
+					oExistingSorterEntry.sorter.order = sSortOrder;
+				}
 				return this;
 			}
 			var aSortablePropertyNames = this._oEntityType.getSortablePropertyNames();

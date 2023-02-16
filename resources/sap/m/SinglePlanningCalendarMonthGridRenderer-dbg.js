@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,23 +8,28 @@ sap.ui.define([
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/unified/calendar/Month',
-	'sap/ui/core/date/UniversalDate',
 	'sap/ui/core/IconPool',
 	'./PlanningCalendarLegend',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/Core',
-	'sap/ui/unified/library'
+	'sap/ui/unified/library',
+	"sap/ui/core/date/CalendarUtils",
+	'sap/ui/core/Locale',
+	"sap/ui/core/Configuration"
 	],
 	function(
 		CalendarDate,
 		CalendarUtils,
 		Month,
-		UniversalDate,
 		IconPool,
 		PlanningCalendarLegend,
 		InvisibleText,
 		Core,
-		unifiedLibrary) {
+		unifiedLibrary,
+		CalendarDateUtils,
+		Locale,
+		Configuration
+		) {
 		"use strict";
 
 		// shortcut for sap.ui.unified.CalendarDayType
@@ -42,7 +47,7 @@ sap.ui.define([
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 		 *
 		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-		 * @param {sap.ui.core.Control} oControl An object representation of the control that should be rendered
+		 * @param {sap.m.SinglePlanningCalendarMonthGrid} oControl An object representation of the control that should be rendered
 		 */
 		SinglePlanningCalendarMonthGridRenderer.render = function(oRm, oControl) {
 			var oLocaleData = oControl._getCoreLocaleData();
@@ -381,7 +386,7 @@ sap.ui.define([
 
 		SinglePlanningCalendarMonthGridRenderer.renderDayNames = function(oRm, oControl, oLocaleData) {
 			var iAPIFirstDayOfWeek = oControl.getFirstDayOfWeek(),
-				iFirstDayOfWeek = iAPIFirstDayOfWeek > 0 ? iAPIFirstDayOfWeek : oLocaleData.getFirstDayOfWeek(),
+				iFirstDayOfWeek,
 				sId = oControl.getId(),
 				sDayId,
 				sCalendarType = Core.getConfiguration().getCalendarType(),
@@ -390,6 +395,19 @@ sap.ui.define([
 				oStartDate = new Date(oControl.getStartDate()),
 				oFirstRenderedDate,
 				iDayIndex;
+
+
+				if (iAPIFirstDayOfWeek < 0 || iAPIFirstDayOfWeek > 6) {
+					var oWeekConfigurationValues = CalendarDateUtils.getWeekConfigurationValues(oControl.getCalendarWeekNumbering(), new Locale(Configuration.getFormatSettings().getFormatLocale().toString()));
+
+					if (oWeekConfigurationValues) {
+						iFirstDayOfWeek = oWeekConfigurationValues.firstDayOfWeek;
+					} else {
+						iFirstDayOfWeek = oControl._getCoreLocaleData().getFirstDayOfWeek();
+					}
+				} else {
+					iFirstDayOfWeek = iAPIFirstDayOfWeek;
+				}
 
 			oStartDate.setDate(oStartDate.getDate() - oStartDate.getDay() + iFirstDayOfWeek);
 			oFirstRenderedDate = CalendarDate.fromLocalJSDate(oStartDate);

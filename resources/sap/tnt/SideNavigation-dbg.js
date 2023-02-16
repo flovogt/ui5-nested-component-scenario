@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,6 +9,7 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
 	'sap/ui/core/ResizeHandler',
+	"sap/ui/core/theming/Parameters",
 	'sap/ui/core/Icon',
 	'sap/ui/core/delegate/ScrollEnablement',
 	"./SideNavigationRenderer"
@@ -17,6 +18,7 @@ sap.ui.define([
 		library,
 		Control,
 		ResizeHandler,
+		Parameters,
 		Icon,
 		ScrollEnablement,
 		SideNavigationRenderer
@@ -40,14 +42,13 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.98.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.34
 		 * @alias sap.tnt.SideNavigation
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/side-navigation/ Side Navigation}
-		 * @ui5-metamodel This control/element also will be described in the UI5 (legacy) designtime metamodel
 		 */
 		var SideNavigation = Control.extend('sap.tnt.SideNavigation', /** @lends sap.t.SideNavigation.prototype */ {
 			metadata: {
@@ -113,11 +114,12 @@ sap.ui.define([
 						}
 					}
 				}
-			}
+			},
+
+			renderer: SideNavigationRenderer
 		});
 
 		SideNavigation.prototype.init = function () {
-
 			this._scroller = new ScrollEnablement(this, this.getId() + "-Flexible-Content", {
 				horizontal: false,
 				vertical: true
@@ -125,6 +127,12 @@ sap.ui.define([
 
 			// Define group for F6 handling
 			this.data('sap-ui-fastnavgroup', 'true', true);
+		};
+
+		// event listener for theme changed
+		SideNavigation.prototype.onThemeChanged = function() {
+			this._mThemeParams = null;
+			this._initThemeParams();
 		};
 
 		SideNavigation.prototype.setAggregation = function (aggregationName, object) {
@@ -152,6 +160,9 @@ sap.ui.define([
 				$this = this.$(),
 				itemAggregation = that.getAggregation('item'),
 				fixedItemAggregation = that.getAggregation('fixedItem'),
+				themeParams,
+				expandedWidth,
+				collapsedWidth,
 				width;
 
 			if (!this.getDomRef()) {
@@ -176,7 +187,7 @@ sap.ui.define([
 			}
 
 			if (isExpanded) {
-				$this.toggleClass('sapTntSideNavigationNotExpanded', !isExpanded);
+				this.getDomRef().classList.toggle('sapTntSideNavigationNotExpanded', !isExpanded);
 
 				if (itemAggregation) {
 					itemAggregation.setExpanded(isExpanded);
@@ -191,7 +202,11 @@ sap.ui.define([
 			}
 
 			that._hasActiveAnimation = true;
-			width = isExpanded ? '15rem' : '3rem';
+
+			themeParams = this._mThemeParams || {};
+			expandedWidth = themeParams['_sap_tnt_SideNavigation_Width'] || "15rem";
+			collapsedWidth = themeParams['_sap_tnt_SideNavigation_CollapsedWidth'] || "3rem";
+			width = isExpanded ? expandedWidth : collapsedWidth;
 
 			$this.animate({
 					width: width
@@ -215,10 +230,10 @@ sap.ui.define([
 				return;
 			}
 
-			this.$().toggleClass('sapTntSideNavigationNotExpandedWidth', !isExpanded);
+			this.getDomRef().classList.toggle('sapTntSideNavigationNotExpandedWidth', !isExpanded);
 
 			if (!isExpanded) {
-				this.$().toggleClass('sapTntSideNavigationNotExpanded', !isExpanded);
+				this.getDomRef().classList.toggle('sapTntSideNavigationNotExpanded', !isExpanded);
 
 				if (this.getAggregation('item')) {
 					this.getAggregation('item').setExpanded(isExpanded);
@@ -239,6 +254,15 @@ sap.ui.define([
 			setTimeout(this._toggleArrows.bind(this), 0);
 		};
 
+		SideNavigation.prototype._initThemeParams = function() {
+			this._mThemeParams = Parameters.get({
+				name: ["_sap_tnt_SideNavigation_Width", "_sap_tnt_SideNavigation_CollapsedWidth"],
+				callback: function (mParams) {
+					this._mThemeParams = mParams;
+				}.bind(this)
+			});
+		};
+
 		/**
 		 * @private
 		 */
@@ -253,6 +277,10 @@ sap.ui.define([
 			}
 
 			this._deregisterControl();
+
+			if (!this._mThemeParams) {
+				this._initThemeParams();
+			}
 		};
 
 		/**
@@ -346,12 +374,12 @@ sap.ui.define([
 		 * @private
 		 */
 		SideNavigation.prototype.exit = function () {
-
 			if (this._scroller) {
 				this._scroller.destroy();
 				this._scroller = null;
 			}
 
+			this._mThemeParams = null;
 			this._deregisterControl();
 		};
 

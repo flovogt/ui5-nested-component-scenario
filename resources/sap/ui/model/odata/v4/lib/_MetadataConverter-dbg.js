@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -526,10 +526,10 @@ sap.ui.define([
 	 *   The configuration: a map from attribute name to a function to convert it
 	 */
 	_MetadataConverter.prototype.processAttributes = function (oElement, oTarget, oConfig) {
-		var sProperty;
+		var sProperty, sValue;
 
 		for (sProperty in oConfig) {
-			var sValue = oConfig[sProperty](oElement.getAttribute(sProperty));
+			sValue = oConfig[sProperty](oElement.getAttribute(sProperty));
 
 			if (sValue !== undefined && sValue !== null) {
 				oTarget["$" + sProperty] = sValue;

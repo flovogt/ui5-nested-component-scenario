@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -19,6 +19,7 @@ sap.ui.define(['sap/ui/model/TreeBinding', './v2/ODataTreeBinding', 'sap/ui/mode
 	 * @alias sap.ui.model.odata.ODataTreeBindingAdapter
 	 * @function
 	 * @experimental This module is only for experimental and internal use!
+	 *
 	 * @public
 	 */
 	var ODataTreeBindingAdapter = function() {
@@ -74,6 +75,7 @@ sap.ui.define(['sap/ui/model/TreeBinding', './v2/ODataTreeBinding', 'sap/ui/mode
 	 * @returns {boolean} Whether the node has children
 	 *
 	 * @private
+	 * @ui5-restricted sap.ui.table.AnalyticalTable, sap.ui.table.TreeTable
 	 */
 	ODataTreeBindingAdapter.prototype.nodeHasChildren = function(oNode) {
 		assert(oNode, "ODataTreeBindingAdapter.nodeHasChildren: No node given!");
@@ -180,6 +182,9 @@ sap.ui.define(['sap/ui/model/TreeBinding', './v2/ODataTreeBinding', 'sap/ui/mode
 	 * @param {int} iLevel the level to which the data should be expanded
 	 * @param {boolean} bSuppressChange if set to true, no change event will be fired
 	 * @return {Promise} A promise resolving once the expansion process has been completed
+	 *
+	 * @public
+	 * @see sap.ui.model.odata.v2.ODataTreeBinding#expandNodeToLevel
 	 */
 	ODataTreeBindingAdapter.prototype.expandNodeToLevel = function (iIndex, iLevel, bSuppressChange) {
 		var that = this;
@@ -294,6 +299,7 @@ sap.ui.define(['sap/ui/model/TreeBinding', './v2/ODataTreeBinding', 'sap/ui/mode
 	 *
 	 * @name sap.ui.model.odata.ODataTreeBindingAdapter#getCurrentTreeState
 	 * @function
+	 *
 	 * @public
 	 */
 

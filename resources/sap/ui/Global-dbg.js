@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,7 @@
  * sap.ui.lazyRequire("sap.ui.core.Control");
  * sap.ui.lazyRequire("sap.m.Button");
  *
- * @version 1.98.0
+ * @version 1.110.0
  * @author  SAP SE
  * @public
  */
@@ -27,11 +27,12 @@
 
 sap.ui.define([
 	'sap/ui/VersionInfo',
+	'sap/ui/core/Configuration',
 	'sap/base/Log',
 	'sap/base/assert',
 	'sap/base/util/ObjectPath'
 ],
-	function(VersionInfo, Log, assert, ObjectPath) {
+	function(VersionInfo, Configuration, Log, assert, ObjectPath) {
 	"use strict";
 
 	// Register to the OpenAjax Hub if it exists
@@ -48,7 +49,7 @@ sap.ui.define([
 	 * The <code>sap</code> namespace is automatically registered with the
 	 * OpenAjax hub if it exists.
 	 *
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 * @namespace
 	 * @public
 	 * @name sap
@@ -61,7 +62,7 @@ sap.ui.define([
 	 * The <code>sap.ui</code> namespace is the central OpenAjax compliant entry
 	 * point for UI related JavaScript functionality provided by SAP.
 	 *
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 * @namespace
 	 * @name sap.ui
 	 * @public
@@ -75,20 +76,12 @@ sap.ui.define([
 		 * The version of the SAP UI Library
 		 * @type string
 		 */
-		version: "1.98.0",
+		version: "1.110.0",
 		// buildinfo.lastchange is deprecated and is therefore defaulted to empty string
-		buildinfo : { lastchange : "", buildtime : "20230213-1829" }
+		buildinfo : { lastchange : "", buildtime : "20230216-1822" }
 	});
 
-	var oCfgData = window["sap-ui-config"] || {};
-
-	var syncCallBehavior = 0; // ignore
-	if ( oCfgData['xx-nosync'] === 'warn' || /(?:\?|&)sap-ui-xx-nosync=(?:warn)/.exec(window.location.search) ) {
-		syncCallBehavior = 1;
-	}
-	if ( oCfgData['xx-nosync'] === true || oCfgData['xx-nosync'] === 'true' || /(?:\?|&)sap-ui-xx-nosync=(?:x|X|true)/.exec(window.location.search) ) {
-		syncCallBehavior = 2;
-	}
+	var syncCallBehavior = Configuration.getSyncCallBehavior();
 
 	/**
 	 * Loads the version info file (resources/sap-ui-version.json) and returns

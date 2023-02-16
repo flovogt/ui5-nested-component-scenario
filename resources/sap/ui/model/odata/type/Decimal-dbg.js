@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -201,12 +201,12 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 *
 	 * @alias sap.ui.model.odata.type.Decimal
 	 * @param {object} [oFormatOptions]
-	 *   format options as defined in {@link sap.ui.core.format.NumberFormat}. In contrast to
-	 *   NumberFormat <code>groupingEnabled</code> defaults to <code>true</code>.
+	 *   Format options as defined in {@link sap.ui.core.format.NumberFormat.getFloatInstance}.
+	 *   In contrast to NumberFormat <code>groupingEnabled</code> defaults to <code>true</code>.
 	 *   Note that <code>maxFractionDigits</code> and <code>minFractionDigits</code> are set to
 	 *   the value of the constraint <code>scale</code> unless it is "variable". They can however
 	 *   be overwritten.

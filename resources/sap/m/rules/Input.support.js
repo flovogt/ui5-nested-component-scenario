@@ -1,6 +1,70 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/support/library"],function(e){"use strict";var i=e.Categories,t=e.Severity,n=e.Audiences;var s={id:"inputNeedsLabel",audiences:[n.Control],categories:[i.Accessibility],enabled:true,minversion:"1.28",title:"Input field: Missing label",description:"An input field needs a label",resolution:"Define a sap.m.Label for the input field in the xml view and set the labelFor property to this input field Id.",resolutionurls:[{text:"SAP Fiori Design Guidelines: Input field",href:"https://experience.sap.com/fiori-design-web/input-field/#guidelines"}],check:function(e,i,n){var s=n.getElementsByClassName("sap.m.Input").map(function(e){return e.getId()});n.getElementsByClassName("sap.m.Label").forEach(function(e){var i=e.getLabelFor();if(s.indexOf(i)>-1){var t=s.indexOf(i);s.splice(t,1)}});if(s.length>0){s.forEach(function(i){e.addIssue({severity:t.Medium,details:"Input field"+" ("+i+") is missing a label.",context:{id:i}})})}}};return[s]},true);
+/**
+ * Defines support rules of the List, Table and Tree controls of sap.m library.
+ */
+sap.ui.define(["sap/ui/support/library"],
+	function(SupportLib) {
+	"use strict";
+
+	// shortcuts
+	var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
+		Severity = SupportLib.Severity,	// Hint, Warning, Error
+		Audiences = SupportLib.Audiences; // Control, Internal, Application
+
+	//**********************************************************
+	// Rule Definitions
+	//**********************************************************
+
+	/**
+	 * Input field needs to have a label association
+	 */
+	var oInputNeedsLabelRule = {
+		id: "inputNeedsLabel",
+		audiences: [Audiences.Control],
+		categories: [Categories.Accessibility],
+		enabled: true,
+		minversion: "1.28",
+		title: "Input field: Missing label",
+		description:"An input field needs a label",
+		resolution: "Define a sap.m.Label for the input field in the xml view and set the labelFor property to this input field Id.",
+		resolutionurls: [{
+			text: "SAP Fiori Design Guidelines: Input field",
+			href:"https://experience.sap.com/fiori-design-web/input-field/#guidelines"
+		}],
+		check: function (issueManager, oCoreFacade, oScope) {
+
+			var aInputIds = oScope.getElementsByClassName("sap.m.Input")
+				.map(function(oInput) {
+					return oInput.getId();
+				});
+
+			oScope.getElementsByClassName("sap.m.Label")
+				.forEach(function (oLabel){
+					var sLabelFor = oLabel.getLabelFor();
+					if (aInputIds.indexOf(sLabelFor) > -1) {
+						var iIndex = aInputIds.indexOf(sLabelFor);
+						aInputIds.splice(iIndex, 1);
+					}
+				});
+
+			if (aInputIds.length > 0) {
+				aInputIds.forEach(function(sInputId) {
+					issueManager.addIssue({
+						severity: Severity.Medium,
+						details: "Input field" + " (" + sInputId + ") is missing a label.",
+						context: {
+							id: sInputId
+						}
+					});
+				});
+			}
+		}
+	};
+
+	return [oInputNeedsLabelRule];
+
+}, true);

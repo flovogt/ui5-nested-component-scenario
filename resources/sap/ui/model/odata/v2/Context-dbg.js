@@ -1,15 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides class sap.ui.model.odata.v2.Context
 sap.ui.define([
 	"sap/ui/base/SyncPromise",
-	"sap/ui/model/Context"
-], function (SyncPromise, BaseContext) {
+	"sap/ui/model/Context",
+	"sap/ui/model/_Helper"
+], function (SyncPromise, BaseContext, _Helper) {
 	"use strict";
+
+	var aDeleteParametersAllowList = ["changeSetId", "groupId", "refreshAfterChange"];
 
 	/**
 	 * Do <strong>NOT</strong> call this private constructor.
@@ -23,7 +26,8 @@ sap.ui.define([
 	 * @param {sap.ui.base.SyncPromise} [oCreatePromise]
 	 *   A sync promise that is given when this context has been created by
 	 *   {@link sap.ui.model.odata.v2.ODataModel#createEntry} or
-	 *   {@link sap.ui.model.odata.v2.ODataListBinding#create}.
+	 *   {@link sap.ui.model.odata.v2.ODataListBinding#create}; ignored if the parameter
+	 *   <code>oTransientParent</code> is given.
 	 *
 	 *   When the entity represented by this context has been successfully persisted in the back
 	 *   end, the given promise resolves.
@@ -35,6 +39,9 @@ sap.ui.define([
 	 *   <code>oError.aborted === true</code>.
 	 * @param {boolean} [bInactive]
 	 *   Whether the created context is inactive
+	 * @param {boolean} [oTransientParent]
+	 *   The transient parent context of this created context for the case of deep-create; if given,
+	 *   the created promise of the parent context is also used for this context.
 	 * @alias sap.ui.model.odata.v2.Context
 	 * @author SAP SE
 	 * @class Implementation of an OData V2 model's context.
@@ -57,10 +64,11 @@ sap.ui.define([
 	 * @hideconstructor
 	 * @public
 	 * @since 1.93.0
-	 * @version 1.98.0
+	 * @version 1.110.0
 	 */
 	var Context = BaseContext.extend("sap.ui.model.odata.v2.Context", {
-			constructor : function (oModel, sPath, sDeepPath, oCreatePromise, bInactive) {
+			constructor : function (oModel, sPath, sDeepPath, oCreatePromise, bInactive,
+					oTransientParent) {
 				var that = this;
 
 				BaseContext.call(this, oModel, sPath);
@@ -79,7 +87,9 @@ sap.ui.define([
 				// SyncPromise for a context created via
 				// sap.ui.model.odata.v2.ODataModel#createEntry; used internally to detect
 				// synchronously whether the promise is already fulfilled
-				this.oSyncCreatePromise = oCreatePromise;
+				this.oSyncCreatePromise = oTransientParent
+					? oTransientParent.oSyncCreatePromise
+					: oCreatePromise;
 				// whether the context is updated, e.g. path changed from a preliminary path to the
 				// canonical one
 				this.bUpdated = false;
@@ -91,6 +101,10 @@ sap.ui.define([
 				this.oActivatedPromise = bInactive
 					? new SyncPromise(function (resolve) { that.fnActivate = resolve; })
 					: SyncPromise.resolve();
+				// for a transient context, maps navigation property name to (array of)
+				// sub-context(s) for deep create
+				this.mSubContexts = undefined;
+				this.oTransientParent = oTransientParent;
 			}
 		});
 
@@ -103,6 +117,26 @@ sap.ui.define([
 		this.bInactive = false;
 		if (this.fnActivate) {
 			this.fnActivate();
+		}
+	};
+
+	/**
+	 * Adds the given transient context as sub-context to this transient context under the given
+	 * navigation property.
+	 *
+	 * @param {string} sNavProperty The name of the navigation property
+	 * @param {sap.ui.model.odata.v2.Context} oSubContext The sub-context to be added
+	 * @param {boolean} bIsCollection Whether the navigation property is a collection
+	 *
+	 * @private
+	 */
+	Context.prototype.addSubContext = function (sNavProperty, oSubContext, bIsCollection) {
+		this.mSubContexts = this.mSubContexts || {};
+		if (bIsCollection) {
+			this.mSubContexts[sNavProperty] = this.mSubContexts[sNavProperty] || [];
+			this.mSubContexts[sNavProperty].push(oSubContext);
+		} else {
+			this.mSubContexts[sNavProperty] = oSubContext;
 		}
 	};
 
@@ -126,7 +160,7 @@ sap.ui.define([
 	 * the entity for this context has been stored in the back end, {@link #created} returns
 	 * <code>undefined</code>.
 	 *
-	 * @returns {Promise}
+	 * @returns {Promise<any|undefined>|undefined}
 	 *   A promise for a context which has been created via
 	 *   {@link sap.ui.model.odata.v2.ODataModel#createEntry} or
 	 *   {@link sap.ui.model.odata.v2.ODataListBinding#create}, otherwise <code>undefined</code>.
@@ -153,6 +187,72 @@ sap.ui.define([
 	};
 
 	/**
+	 * Deletes the OData entity this context points to.
+	 * <b>Note:</b> The context must not be used anymore after successful deletion.
+	 *
+	 * @param {object} [mParameters]
+	 *   For a persistent context, a map of parameters as specified for
+	 *   {@link sap.ui.model.odata.v2.ODataModel#remove}, except that the <code>groupId</code> and
+	 *   <code>changeSetId</code> parameters default to the values set via
+	 *   {@link sap.ui.model.odata.v2.ODataModel#setChangeGroups} for the type of the entity to be
+	 *   deleted.
+	 * @param {string} [mParameters.groupId]
+	 *   ID of a request group; requests belonging to the same group will be bundled in one batch
+	 *   request. If not provided, the <code>groupId</code> defined for the type of the entity to be
+	 *   deleted is used.
+	 * @param {string} [mParameters.changeSetId]
+	 *   ID of the <code>ChangeSet</code> that this request should belong to. If not provided, the
+	 *   <code>changeSetId</code> defined for the type of the entity to be deleted is used.
+	 * @param {boolean} [mParameters.refreshAfterChange]
+	 *   Defines whether to update all bindings after submitting this change operation,
+	 *   see {@link #setRefreshAfterChange}. If given, this overrules the model-wide
+	 *   <code>refreshAfterChange</code> flag for this operation only.
+	 * @returns {Promise<undefined>} A promise resolving with <code>undefined</code> in case of
+	 *   successful deletion or rejecting with an error in case the deletion failed
+	 * @throws {Error}
+	 *   If the given parameter map contains any other parameter than those documented above in case
+	 *   of a persistent context
+	 *
+	 * @public
+	 * @since 1.101
+	 */
+	Context.prototype.delete = function (mParameters) {
+		var sParameterKey,
+			oModel = this.getModel(),
+			that = this;
+
+		mParameters = mParameters || {};
+		for (sParameterKey in mParameters) {
+			if (!aDeleteParametersAllowList.includes(sParameterKey)) {
+				throw new Error("Parameter '" + sParameterKey + "' is not supported");
+			}
+		}
+
+		if (this.isInactive()) {
+			oModel._discardEntityChanges(oModel._getKey(this), true);
+			oModel.checkUpdate();
+
+			return Promise.resolve();
+		} else if (this.isTransient()) {
+			return oModel.resetChanges([this.getPath()], /*bAll=abort deferred requests*/false,
+				/*bDeleteCreatedEntities*/true);
+		}
+
+		return new Promise(function (resolve, reject) {
+			var oGroupInfo = oModel._resolveGroup(that.getPath());
+
+			oModel.remove("",
+				_Helper.merge({
+					changeSetId : oGroupInfo.changeSetId,
+					context : that,
+					error : reject,
+					groupId : oGroupInfo.groupId,
+					success : function () {resolve();}
+				}, mParameters));
+		});
+	};
+
+	/**
 	 * Returns the promise which resolves with <code>undefined</code> on activation of this context
 	 * or if this context is already active; the promise never rejects.
 	 *
@@ -176,6 +276,77 @@ sap.ui.define([
 	};
 
 	/**
+	 * Gets the map of sub-contexts for a deep create.
+	 *
+	 * @returns {Object<string,sap.ui.model.odata.v2.Context|sap.ui.model.odata.v2.Context[]>}
+	 *   The map of sub-contexts
+	 *
+	 * @private
+	 */
+	Context.prototype.getSubContexts = function () {
+		return this.mSubContexts;
+	};
+
+	/**
+	 * Gets a flat array of the sub-contexts map for a deep create.
+	 *
+	 * @param {boolean} [bRecursive] Whether to recursively collect all deep sub-contexts
+	 * @returns {sap.ui.model.odata.v2.Context[]} The array of sub-contexts
+	 *
+	 * @private
+	 */
+	Context.prototype.getSubContextsArray = function (bRecursive) {
+		var sNavProperty, vSubContexts,
+			aSubContexts = [];
+
+		function collectContexts(oSubContext) {
+			aSubContexts.push(oSubContext);
+			if (bRecursive) {
+				aSubContexts = aSubContexts.concat(oSubContext.getSubContextsArray(bRecursive));
+			}
+		}
+
+		for (sNavProperty in this.mSubContexts) {
+			vSubContexts = this.mSubContexts[sNavProperty];
+			if (Array.isArray(vSubContexts)) {
+				vSubContexts.forEach(collectContexts);
+			} else {
+				collectContexts(vSubContexts);
+			}
+		}
+
+		return aSubContexts;
+	};
+
+	/**
+	 * Gets an array of keys to the sub-contexts for a deep create.
+	 *
+	 * @param {boolean} [bRecursive] Whether to recursively collect all deep sub-context keys
+	 * @returns {string[]} The array of sub-context keys
+	 *
+	 * @private
+	 */
+	Context.prototype.getSubContextsAsKey = function (bRecursive) {
+		return this.getSubContextsArray(bRecursive).map(function (oContext) {
+			return oContext.getPath().slice(1);
+		});
+	};
+
+	/**
+	 * Gets an array of paths to the sub-contexts for a deep create.
+	 *
+	 * @param {boolean} [bRecursive] Whether to recursively collect all deep sub-context paths
+	 * @returns {string[]} The array of sub-context paths
+	 *
+	 * @private
+	 */
+	Context.prototype.getSubContextsAsPath = function (bRecursive) {
+		return this.getSubContextsArray(bRecursive).map(function (oContext) {
+			return oContext.getPath();
+		});
+	};
+
+	/**
 	 * Whether this context has changed, which means it has been updated or a refresh of dependent
 	 * bindings needs to be enforced.
 	 *
@@ -189,9 +360,33 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns whether this context has at least one sub-context.
+	 *
+	 * @return {boolean} Whether this context has at least one sub-context
+	 *
+	 * @private
+	 */
+	Context.prototype.hasSubContexts = function () {
+		return !!this.mSubContexts;
+	};
+
+	/**
+	 * Returns whether this context has a transient parent context.
+	 *
+	 * @return {boolean} Whether this context has a transient parent context
+	 *
+	 * @private
+	 */
+	Context.prototype.hasTransientParent = function () {
+		return !!this.oTransientParent;
+	};
+
+	/**
 	 * Returns whether this context is inactive. An inactive context will only be sent to the
 	 * server after the first property update. From then on it behaves like any other created
-	 * context.
+	 * context. The result of this function can also be accessed via the
+	 * "@$ui5.context.isInactive" instance annotation at the entity, see
+	 * {@link sap.ui.model.odata.v2.ODataModel#getProperty} for details.
 	 *
 	 * @return {boolean} Whether this context is inactive
 	 *
@@ -233,9 +428,11 @@ sap.ui.define([
 	 * {@link sap.ui.model.odata.v2.ODataListBinding#create}, the method returns <code>true</code>
 	 * if the context is transient or <code>false</code> if the context is not transient. A
 	 * transient context represents an entity created on the client which has not been persisted in
-	 * the back end.
+	 * the back end. The result of this function can also be accessed via the
+	 * "@$ui5.context.isTransient" instance annotation at the entity, see
+	 * {@link sap.ui.model.odata.v2.ODataModel#getProperty} for details.
 	 *
-	 * @returns {boolean}
+	 * @returns {boolean|undefined}
 	 *   <ul>
 	 *   <li><code>true</code>: if the context has been created via
 	 *     {@link sap.ui.model.odata.v2.ODataModel#createEntry} or
@@ -264,6 +461,47 @@ sap.ui.define([
 	 */
 	Context.prototype.isUpdated = function () {
 		return this.bUpdated;
+	};
+
+	/**
+	 * Removes this context from its transient parent.
+	 *
+	 * @private
+	 */
+	Context.prototype.removeFromTransientParent = function () {
+		if (this.oTransientParent) {
+			this.oTransientParent.removeSubContext(this);
+			delete this.oTransientParent;
+		}
+	};
+
+	/**
+	 * Removes the given sub-context from this context.
+	 *
+	 * @param {sap.ui.model.odata.v2.Context} oSubContext The context to remove
+	 *
+	 * @private
+	 */
+	Context.prototype.removeSubContext = function (oSubContext) {
+		var iIndex, sNavProperty, vSubContexts;
+
+		for (sNavProperty in this.mSubContexts) {
+			vSubContexts = this.mSubContexts[sNavProperty];
+			if (Array.isArray(vSubContexts)) {
+				iIndex = vSubContexts.indexOf(oSubContext);
+				if (iIndex > -1) {
+					vSubContexts.splice(iIndex, 1);
+				}
+				if (!vSubContexts.length) {
+					delete this.mSubContexts[sNavProperty];
+				}
+			} else if (vSubContexts === oSubContext) {
+				delete this.mSubContexts[sNavProperty];
+			}
+		}
+		if (this.mSubContexts && !Object.keys(this.mSubContexts).length) {
+			this.mSubContexts = undefined;
+		}
 	};
 
 	/**

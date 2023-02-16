@@ -1,22 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides helper class ValueStateSupport
-sap.ui.define(['./Element', './library', "sap/base/assert"],
-	function(Element, library, assert) {
+sap.ui.define(['./Element', './library', './Lib', "sap/base/assert"],
+	function(Element, coreLib, Library, assert) {
 	"use strict";
 
 	// shortcut for enum(s)
-	var ValueState = library.ValueState;
+	var ValueState = coreLib.ValueState;
 
 		/**
 		 * Helper functionality for value state support.
 		 *
 		 * @author SAP SE
-		 * @version 1.98.0
+		 * @version 1.110.0
 		 * @public
 		 * @namespace sap.ui.core.ValueStateSupport
 		 */
@@ -27,7 +27,7 @@ sap.ui.define(['./Element', './library', "sap/base/assert"],
 		var ensureTexts = function() {
 			if (!mTexts) { // initialize texts if required
 				mTexts = {};
-				var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core");
+				var rb = Library.get("sap.ui.core").getResourceBundle();
 				mTexts[ValueState.Error] = rb.getText("VALUE_STATE_ERROR");
 				mTexts[ValueState.Warning] = rb.getText("VALUE_STATE_WARNING");
 				mTexts[ValueState.Success] = rb.getText("VALUE_STATE_SUCCESS");
@@ -70,7 +70,7 @@ sap.ui.define(['./Element', './library', "sap/base/assert"],
 		 * represents one of these states.
 		 *
 		 * @param {sap.ui.core.Element|sap.ui.core.ValueState} vValue the Element of which the valueState needs to be checked, or the ValueState explicitly
-		 * @returns {string} the success/warning/error text, if appropriate; otherwise null
+		 * @returns {string|null} the success/warning/error text, if appropriate; otherwise null
 		 *
 		 * @public
 		 * @name sap.ui.core.ValueStateSupport.getAdditionalText

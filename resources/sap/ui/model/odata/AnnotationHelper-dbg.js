@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -364,7 +364,7 @@ sap.ui.define([
 			 *   <code>Edm.NavigationPropertyPath</code>, <code>Edm.Path</code>, or
 			 *   <code>Edm.PropertyPath</code> embedded within an entity set or entity type;
 			 *   the context's model must be an {@link sap.ui.model.odata.ODataMetaModel}
-			 * @returns {string}
+			 * @returns {string|undefined}
 			 *   the path to the entity set, or <code>undefined</code> if no such set is found. In
 			 *   this case, a warning is logged to the console.
 			 * @public
@@ -412,7 +412,7 @@ sap.ui.define([
 			 * @param {sap.ui.model.Context} oContext
 			 *   a context which must point to the qualified name of an entity type;
 			 *   the context's model must be an {@link sap.ui.model.odata.ODataMetaModel}
-			 * @returns {string}
+			 * @returns {string|undefined}
 			 *   the path to the entity type with the given qualified name,
 			 *   or <code>undefined</code> if no such type is found. In this case, a warning is
 			 *   logged to the console.
@@ -449,7 +449,7 @@ sap.ui.define([
 			 *   a context which must point to an object with a <code>String</code> property, which
 			 *   holds the qualified name of the function import;
 			 *   the context's model must be an {@link sap.ui.model.odata.ODataMetaModel}
-			 * @returns {string}
+			 * @returns {string|undefined}
 			 *   the path to the function import with the given qualified name,
 			 *   or <code>undefined</code> if no function import is found. In this case, a warning
 			 *   is logged to the console.
@@ -550,7 +550,7 @@ sap.ui.define([
 			 *   <code>Edm.Path</code> or <code>Edm.PropertyPath</code>, embedded within an entity
 			 *   set or entity type;
 			 *   the context's model must be an {@link sap.ui.model.odata.ODataMetaModel}
-			 * @returns {string}
+			 * @returns {string|undefined}
 			 *   the path to the target, or <code>undefined</code> in case the path cannot be
 			 *   resolved. In this case, a warning is logged to the console.
 			 * @public

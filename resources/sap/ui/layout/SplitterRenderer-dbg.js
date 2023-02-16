@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	"sap/ui/core/library",
-	"sap/ui/core/Core"
-], function(coreLibrary, Core) {
+	"sap/ui/core/Core",
+	"sap/ui/core/Configuration"
+], function(coreLibrary, Core, Configuration) {
 	"use strict";
 
 	// shortcut for sap.ui.core.Orientation
@@ -33,7 +34,8 @@ sap.ui.define([
 	SplitterRenderer.render = function(oRm, oSplitter) {
 		var bHorizontal = oSplitter.getOrientation() === Orientation.Horizontal,
 			sOrientationClass = bHorizontal ? "sapUiLoSplitterH" : "sapUiLoSplitterV",
-			bAnimate = Core.getConfiguration().getAnimation();
+			sAnimationMode = Configuration.getAnimationMode(),
+			bHasAnimations = sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal;
 
 		// Make sure we have the main element available before rendering the children so we can use
 		// the element width to calculate before rendering the children.
@@ -42,7 +44,7 @@ sap.ui.define([
 			.class(sOrientationClass);
 
 		// Do not animate via CSS when liveResize is enabled
-		if (bAnimate && !oSplitter._liveResize) {
+		if (bHasAnimations && !oSplitter._liveResize) {
 			oRm.class("sapUiLoSplitterAnimated");
 		}
 

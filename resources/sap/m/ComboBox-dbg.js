@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2022 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,8 +23,7 @@ sap.ui.define([
 	"sap/m/inputUtils/calculateSelectionStart",
 	"sap/ui/events/KeyCodes",
 	"sap/ui/core/Core",
-	"sap/base/Log",
-	"sap/ui/dom/jquery/control" // jQuery Plugin "control"
+	"sap/base/Log"
 ],
 	function(
 		ComboBoxTextField,
@@ -45,8 +44,7 @@ sap.ui.define([
 		calculateSelectionStart,
 		KeyCodes,
 		core,
-		Log,
-		jQuery
+		Log
 	) {
 		"use strict";
 
@@ -108,7 +106,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.98.0
+		 * @version 1.110.0
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -116,10 +114,12 @@ sap.ui.define([
 		 * @since 1.22
 		 * @alias sap.m.ComboBox
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/combo-box/ Combo Box}
-		 * @ui5-metamodel This control will also be described in the UI5 (legacy) design time meta model.
 		 */
 		var ComboBox = ComboBoxBase.extend("sap.m.ComboBox", /** @lends sap.m.ComboBox.prototype */ {
 			metadata: {
+				interfaces : [
+					"sap.m.IToolbarInteractiveControl"
+				],
 				library: "sap.m",
 				designtime: "sap/m/designtime/ComboBox.designtime",
 				properties: {
@@ -153,6 +153,16 @@ sap.ui.define([
 						type: "boolean",
 						group: "Misc",
 						defaultValue: false
+					},
+
+					/**
+					 * Indicates whether the picker is opened.
+					 * @private
+					 */
+					 _open: {
+						type: "boolean",
+						defaultValue: false,
+						visibility: "hidden"
 					}
 				},
 				associations: {
@@ -214,7 +224,9 @@ sap.ui.define([
 					}
 				},
 				dnd: { draggable: false, droppable: true }
-			}
+			},
+
+			renderer: ComboBoxRenderer
 		});
 
 		/* =========================================================== */
@@ -484,6 +496,12 @@ sap.ui.define([
 				this.clearSelection();
 				this.setValue(sValue);
 			}
+
+			if (this.getShowClearIcon()) {
+				this._getClearIcon().setVisible(this.shouldShowClearIcon());
+			} else if (this._oClearIcon) {
+				this._getClearIcon().setVisible(false);
+			}
 		};
 
 		/**
@@ -495,6 +513,7 @@ sap.ui.define([
 			ComboBoxBase.prototype.exit.apply(this, arguments);
 
 			this._oSelectedItemBeforeOpen = null;
+			this._bInputFired = null;
 			this.setLastFocusedListItem(null);
 
 		};
@@ -566,7 +585,7 @@ sap.ui.define([
 			var oSelectedItem = this.getSelectedItem(),
 				oSelectedListItem = ListHelpers.getListItem(oSelectedItem);
 
-			if (this.bProcessingLoadItemsEvent && (this.getItems().length === 0)) {
+			if (this.bProcessingLoadItemsEvent && !this.bItemsUpdated && (this.getItems().length === 0)) {
 				return;
 			}
 
@@ -648,6 +667,8 @@ sap.ui.define([
 				return;
 			}
 
+			this._bInputFired = true;
+
 			this.loadItems(function() {
 				this.handleInputValidation(oEvent);
 			}, {
@@ -659,7 +680,12 @@ sap.ui.define([
 			// if the loadItems event is being processed,
 			// we need to open the dropdown list to show the busy indicator
 			if (this.bProcessingLoadItemsEvent && (this.getPickerType() === "Dropdown")) {
-				this.open();
+
+				if (this.isOpen() && !this.getValue()) {
+					this.close();
+				} else {
+					this.open();
+				}
 			}
 
 			if (this.getLastFocusedListItem()) {
@@ -850,23 +876,15 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.onBeforeOpen = function() {
 			ComboBoxBase.prototype.onBeforeOpen.apply(this, arguments);
-			var fnPickerTypeBeforeOpen = this["onBeforeOpen" + this.getPickerType()],
-				oDomRef = this.getFocusDomRef();
+			var fnPickerTypeBeforeOpen = this["onBeforeOpen" + this.getPickerType()];
 
-				this.setProperty("open", true);
+				this.setProperty("_open", true);
 
 			// the dropdown list can be opened by calling the .open() method (without
 			// any end user interaction), in this case if items are not already loaded
 			// and there is an {@link #loadItems} event listener attached, the items should be loaded
 			if (this.hasLoadItemsEventListeners() && !this.bProcessingLoadItemsEvent) {
 				this.loadItems();
-			}
-
-			if (oDomRef) {
-
-				// expose a parent/child contextual relationship to assistive technologies,
-				// notice that the "aria-controls" attribute is set when the popover opened.
-				oDomRef.setAttribute("aria-controls", this.getPicker().getId());
 			}
 
 			// call the hook to add additional content to the list
@@ -924,12 +942,7 @@ sap.ui.define([
 			ComboBoxBase.prototype.onBeforeClose.apply(this, arguments);
 			var oDomRef = this.getFocusDomRef();
 
-			this.setProperty("open", false);
-
-			if (oDomRef) {
-				// notice that the "aria-controls" attribute is removed when the popover is closed.
-				oDomRef.removeAttribute("aria-controls");
-			}
+			this.setProperty("_open", false);
 
 			if (document.activeElement === oDomRef) {
 				this.updateFocusOnClose();
@@ -1453,6 +1466,9 @@ sap.ui.define([
 				return;
 			}
 
+			// apply aria role="listbox" to List control
+			oList.applyAriaRole("listbox");
+
 			// configure the list
 			oList.setMode(ListMode.SingleSelectMaster)
 				.addStyleClass(oRenderer.CSS_CLASS_COMBOBOXBASE + "List")
@@ -1549,7 +1565,13 @@ sap.ui.define([
 			this.syncPickerContent();
 			ComboBoxBase.prototype.open.call(this);
 
-			this._getSuggestionsPopover() && this._getSuggestionsPopover().updateFocus(this, ListHelpers.getListItem(this.getSelectedItem()));
+			var oSelectedItem = ListHelpers.getListItem(this.getSelectedItem());
+
+			if (!this._bInputFired) {
+				this._getSuggestionsPopover() && this._getSuggestionsPopover().updateFocus(this, oSelectedItem);
+			}
+
+			this._bInputFired = false;
 
 			return this;
 		};
@@ -1886,21 +1908,46 @@ sap.ui.define([
 		/**
 		 * Handles the clear icon press.
 		 *
-		 * @param {jquery.Event} oEvent The event object
+		 * @param {sap.ui.base.Event} oEvent The press event object
 		 * @returns {void}
 		 *
 		 * @override
 		 * @private
 		 */
 		ComboBox.prototype.handleClearIconPress = function (oEvent) {
+			var oPreviouslySelectedItem = this.getSelectedItem(),
+				mParam = this.getChangeEventParams();
+
 			if (!(this.getEnabled() && this.getEditable())) {
 				return;
 			}
 
 			if (this.getValue() !== "") {
 				this.clearSelection();
+				this.bOpenedByKeyboardOrButton ? this.clearFilter() : this.close();
 				this.setProperty("effectiveShowClearIcon", false);
 			}
+
+			if (oPreviouslySelectedItem) {
+				this.fireSelectionChange({
+					selectedItem: null
+				});
+
+				this.fireChangeEvent(null, mParam);
+			}
+		};
+
+		/**
+		 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
+		 * Determines if the Control is interactive.
+		 *
+		 * @returns {boolean} If it is an interactive Control
+		 *
+		 * @private
+		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 */
+		ComboBox.prototype._getToolbarInteractive = function () {
+			return true;
 		};
 
 		return ComboBox;

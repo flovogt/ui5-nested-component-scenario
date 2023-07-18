@@ -2,7 +2,7 @@
     "_version": "2.0.0",
     "sap.app": {
         "id": "my.lib.sample.base",
-        "type": "library",
+        "type": "component",
         "embeds": [],
         "applicationVersion": {
             "version": "${version}"

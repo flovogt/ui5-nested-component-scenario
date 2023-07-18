@@ -22,12 +22,12 @@
   ],
   "devDependencies": {
     "eslint": "^9.25.0",
-    "@ui5/cli": "^4.0.14",
+    "@ui5/cli": "^5.0.0-alpha.1",
     "local-web-server": "^5.4.0",
     "rimraf": "^6.0.1"
   },
   "engines": {
-    "node": "^16.18.0 || >=18.12.0",
+    "node": "^22.20.0 || >=24.0.0",
     "npm": ">= 8"
   },
   "author": "Jiawei Cao, Florian Vogt",

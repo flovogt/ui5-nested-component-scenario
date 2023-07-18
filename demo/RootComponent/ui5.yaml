@@ -1,6 +1,6 @@
-specVersion: "2.6"
+specVersion: "5.0"
 metadata:
-  name: RootComponent
+  name: root.component
 type: application
 framework:
   name: OpenUI5

@@ -1,7 +1,7 @@
-specVersion: "2.6"
+specVersion: "5.0"
 metadata:
   name: my.lib.sample.categories
-type: library
+type: component
 framework:
   name: OpenUI5
   version: 1.136.9
@@ -9,7 +9,3 @@ framework:
     - name: sap.ui.core
     - name: sap.m
     - name: themelib_sap_horizon
-builder:
-  componentPreload:
-    namespaces:
-      - "my/lib/sample/categories"

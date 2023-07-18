@@ -6,7 +6,6 @@ sap.ui.define([
 	"use strict";
 
 
-	// eslint-disable-next-line init-declarations
 	let oMockServer;
 
 	const sAppPath = "my/lib/sample/categories/",

@@ -78,7 +78,7 @@ sap.ui.define([
 		 */
 		version: "1.110.0",
 		// buildinfo.lastchange is deprecated and is therefore defaulted to empty string
-		buildinfo : { lastchange : "", buildtime : "20230524-0745" }
+		buildinfo : { lastchange : "", buildtime : "20230720-0719" }
 	});
 
 	var syncCallBehavior = Configuration.getSyncCallBehavior();

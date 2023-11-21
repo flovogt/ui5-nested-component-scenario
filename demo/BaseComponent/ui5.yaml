@@ -1,13 +1,9 @@
-specVersion: "2.6"
+specVersion: "3.1"
 metadata:
   name: my.lib.sample.base
-type: library
+type: component
 framework:
   name: OpenUI5
   version: 1.110.0
   libraries:
     - name: sap.ui.core
-builder:
-  componentPreload:
-    namespaces:
-      - "my/lib/sample/base"

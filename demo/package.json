@@ -1,8 +1,8 @@
 {
-  "name": "ui5con20-ui5-routing-demo",
+  "name": "ui5-nested-component-scenario-demo",
   "private": true,
   "version": "1.0.0",
-  "description": "ui5con20-ui5-routing demo",
+  "description": "ui5-nested-component-scenario demo",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

@@ -1,14 +1,14 @@
-![Deploy](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Deploy/badge.svg?branch=main)
-![Test](https://github.com/flovogt/ui5con20-ui5-routing/workflows/Test/badge.svg?branch=main)
-[![Coverage Status](https://coveralls.io/repos/github/flovogt/ui5con20-ui5-routing/badge.svg?branch=main)](https://coveralls.io/github/flovogt/ui5con20-ui5-routing?branch=main)
+![Deploy](https://github.com/flovogt/ui5-nested-component-scenario/workflows/Deploy/badge.svg?branch=main)
+![Test](https://github.com/flovogt/ui5-nested-component-scenario/workflows/Test/badge.svg?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/flovogt/ui5-nested-component-scenario/badge.svg?branch=main)](https://coveralls.io/github/flovogt/ui5-nested-component-scenario?branch=main)
 
 
-# ui5con20-ui5-routing - Demo
-This is the mono-repository setup of [UI5con 2020 UI5 Routing with Reusable Components](https://github.com/flovogt/ui5con20-ui5-routing/).
+# ui5-nested-component-scenario - Demo
+This is the mono-repository setup of [UI5con 2020 UI5 Routing with Reusable Components](https://github.com/flovogt/ui5-nested-component-scenario/).
 If you wanna use a multi-repository setup, follow the instructions of [UI5 Root Component](https://github.com/flovogt/ui5-root-component).
 
 # Live Demo
-Just visit the [live demo](https://flovogt.github.io/ui5con20-ui5-routing/test/mockServer.html) to play with the application.
+Just visit the [live demo](https://flovogt.github.io/ui5-nested-component-scenario/test/mockServer.html) to play with the application.
 
 # Local Deployment
 You wanna run the demo application on your machine? Here we go. The following steps will guide you through your local deployment.

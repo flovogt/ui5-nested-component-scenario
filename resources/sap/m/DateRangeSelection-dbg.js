@@ -11,7 +11,6 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/LocaleData',
 	'sap/ui/core/format/DateFormat',
-	'sap/ui/core/format/TimezoneUtil',
 	'sap/ui/core/date/UniversalDate',
 	'./DateRangeSelectionRenderer',
 	"sap/ui/unified/calendar/CustomMonthPicker",
@@ -20,7 +19,10 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/base/assert",
 	"sap/ui/core/Configuration",
-	"sap/ui/dom/jquery/cursorPos" // jQuery Plugin "cursorPos"
+	"sap/ui/core/date/UI5Date",
+	"sap/ui/core/Core",
+	// jQuery Plugin "cursorPos"
+	"sap/ui/dom/jquery/cursorPos"
 ],
 	function(
 		Device,
@@ -28,7 +30,6 @@ sap.ui.define([
 		library,
 		LocaleData,
 		DateFormat,
-		TimezoneUtil,
 		UniversalDate,
 		DateRangeSelectionRenderer,
 		CustomMonthPicker,
@@ -36,7 +37,9 @@ sap.ui.define([
 		deepEqual,
 		Log,
 		assert,
-		Configuration
+		Configuration,
+		UI5Date,
+		Core
 	) {
 	"use strict";
 
@@ -87,19 +90,51 @@ sap.ui.define([
 	 *
 	 * The user can enter a date by:
 	 * <ul><li>Using the calendar that opens in a popup</li>
-	 * <li>Typing it in directly in the input field</li></ul>
+	 * <li>Typing it directly in the input field</li></ul>
 	 *
 	 * On app level, there are two options to provide a date for the
 	 * <code>DateRangeSelection</code> - date range as a string to the
-	 * <code>value</code> property or JavaScript Date objects to the
+	 * <code>value</code> property or UI5Date/JavaScript Date objects to the
 	 * <code>dateValue</code> and <code>secondDateValue</code> properties (only one of
 	 * these options should be used at a time):
 	 *
 	 * <ul><li>Use the <code>value</code> property if the date range is already provided as
 	 * a formatted string</li>
+	 * @example <caption> binding the <code>value</code> property by using types </caption>
+	 * new sap.ui.model.json.JSONModel({start:'2022-11-10', end:'2022-11-15'});
+	 *
+	 * new sap.m.DateRangeSelection({
+	 *     value: {
+	 *         type: "sap.ui.model.type.DateInterval",
+	 *         parts: [{
+	 *             type: "sap.ui.model.type.Date",
+	 *             path: "/start",
+	 *             formatOptions: {
+	 *                 source: {
+	 *                     pattern: "yyyy-MM-dd"
+	 *                 }
+	 *             }
+	 *         },
+	 *         {
+	 *             type: "sap.ui.model.type.Date",
+	 *             path:"/end",
+	 *             formatOptions: {
+	 *             source: {
+	 *                 pattern: "yyyy-MM-dd"
+	 *             }
+	 *         }}]
+	 *     }
+	 * });
+	 *
+	 * <b>Note:</b> There are multiple binding type choices, such as:
+	 * sap.ui.model.type.Date
+	 * sap.ui.model.odata.type.DateTime
+	 * sap.ui.model.odata.type.DateTimeOffset
+	 * See {@link sap.ui.model.type.Date}, {@link sap.ui.model.odata.type.DateTime} or {@link sap.ui.model.odata.type.DateTimeOffset}
+	 *
 	 * <li>Use the <code>dateValue</code> and <code>secondDateValue</code> properties
-	 * if the date range is already provided as JavaScript Date objects or you want to
-	 * work with JavaScript Date objects</li></ul>
+	 * if the date range is already provided as UI5Date or JavaScript Date objects or you want to
+	 * work with UI5Date or JavaScript Date objects</li></ul>
 	 *
 	 * <h3>Formatting</h3>
 	 *
@@ -130,8 +165,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.110.0
-	 * @version 1.110.0
+	 * @version 1.120.1
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -151,7 +186,7 @@ sap.ui.define([
 				delimiter : {type : "string", group : "Misc", defaultValue : '-'},
 
 				/**
-				 * The end date of the range as JavaScript Date object. This is independent from any formatter.
+				 * The end date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
 				 *
 				 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 				 */
@@ -236,7 +271,8 @@ sap.ui.define([
 			oBinding,
 			oBindingType,
 			oLocale,
-			oLocaleData;
+			oLocaleData,
+			oFormatOptions;
 
 		if (!sPlaceholder) {
 			oBinding = this.getBinding("value");
@@ -249,7 +285,8 @@ sap.ui.define([
 				if (oBindingType.oFormatOptions && oBindingType.oFormatOptions.format) {
 					sPlaceholder = oLocaleData.getCustomDateTimePattern(oBindingType.oFormatOptions.format);
 				} else {
-					sPlaceholder = oLocaleData.getDatePattern("medium");
+					oFormatOptions = Object.assign({ interval: true, singleIntervalValue: true }, oBindingType.oFormatOptions);
+					return this._getDateFormatPlaceholderText(oFormatOptions);
 				}
 			} else {
 				sPlaceholder = this.getDisplayFormat();
@@ -259,7 +296,8 @@ sap.ui.define([
 				}
 
 				if (this._checkStyle(sPlaceholder)) {
-					sPlaceholder = oLocaleData.getDatePattern(sPlaceholder);
+					oFormatOptions = Object.assign({ interval: true, singleIntervalValue: true, intervalDelimiter: _getDelimiter.call(this) }, _getFormatter.call(this).oFormatOptions);
+					return  this._getDateFormatPlaceholderText(oFormatOptions);
 				}
 			}
 
@@ -270,6 +308,10 @@ sap.ui.define([
 		}
 
 		return sPlaceholder;
+	};
+
+	DateRangeSelection.prototype._getDateFormatPlaceholderText = function (oFormatOptions) {
+		return  DateFormat.getDateInstance(oFormatOptions).getPlaceholderText();
 	};
 
 	// Overwrite DatePicker's setValue to support two date range processing
@@ -302,6 +344,8 @@ sap.ui.define([
 	 * @public
 	 */
 	DateRangeSelection.prototype.setValue = function(sValue) {
+		var aDates;
+
 		sValue = this.validateProperty("value", sValue);
 
 		if (sValue !== this.getValue()) {
@@ -310,9 +354,9 @@ sap.ui.define([
 			return this;
 		}
 
-		var aDates = this._parseAndValidateValue(sValue);
-		this.setProperty("dateValue", _normalizeDateValue(aDates[0]), this._bPreferUserInteraction);
-		this.setProperty("secondDateValue", _normalizeDateValue(aDates[1]), this._bPreferUserInteraction);
+		aDates = this._parseAndValidateValue(sValue);
+		this.setProperty("dateValue", this._normalizeDateValue(aDates[0]), this._bPreferUserInteraction);
+		this.setProperty("secondDateValue", this._normalizeDateValue(aDates[1]), this._bPreferUserInteraction);
 
 		this._formatValueAndUpdateOutput(aDates);
 		this.setProperty("value", sValue, this._bPreferUserInteraction);
@@ -359,24 +403,31 @@ sap.ui.define([
 	};
 
 	/**
-	 * Converts the parameter to a Javascript Date, if it is a timestamp integer.
-	 * @param {Date|int} vBindingDate A timestamp or a Javascript Date
-	 * @returns {Date} A Javascript Date object
+	 * Converts the parameter to a UI5Date or JavaScript Date, if it is a timestamp integer.
+	 * @param {Date|module:sap/ui/core/date/UI5Date|int} vBindingDate A timestamp or a date instance
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} A date instance
 	 * @private
 	 */
-	function _normalizeDateValue(vBindingDate) {
-		return (typeof vBindingDate === 'number') ? new Date(vBindingDate) : vBindingDate;
-	}
+	DateRangeSelection.prototype._normalizeDateValue = function(vBindingDate) {
+		switch (typeof vBindingDate) {
+			case "number":
+				return UI5Date.getInstance(vBindingDate);
+			case "string":
+				return _getFormatter.call(this).parse(vBindingDate);
+			default:
+				return vBindingDate;
+		}
+	};
 
 	/**
-	 * Converts the parameter to a timestamp integer, if it is a Javascript Date.
-	 * @param {Date|int} vBindingDate A timestamp or a Javascript Date
+	 * Converts the parameter to a timestamp integer, if it is a UI5Date or JavaScript Date.
+	 * @param {Date|module:sap/ui/core/date/UI5Date|int} vBindingDate A timestamp or a date instance
 	 * @returns {int} A timestamp integer
 	 * @private
 	 */
-	function _denormalizeDateValue(vBindingDate) {
+	DateRangeSelection.prototype._denormalizeDateValue = function(vBindingDate) {
 		return (vBindingDate && vBindingDate.getTime) ? vBindingDate.getTime() : vBindingDate;
-	}
+	};
 
 	/**
 	 * Getter for property <code>valueFormat</code>.
@@ -410,6 +461,13 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Sets the displayFormat of the DatePicker.
+	 *
+	 * @param {string} sDisplayFormat  new value for <code>displayFormat</code>
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
 	DateRangeSelection.prototype.setDisplayFormat = function(sDisplayFormat) {
 
 		// if displayFormat changes the value must be formatted again
@@ -432,20 +490,47 @@ sap.ui.define([
 
 	//Following setters/getters are due to backward compatibility with original primary version of composite sap.m.DateRangeSelection,
 	//that consisted of original primary sap.m.DateRangeSelection
+
+	/**
+	 * Set the start date of the range.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oFrom A date instance
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 * @deprecated since version 1.22.0, replaced by <code>dateValue</code> property of the {@link sap.m.DateTimeField}
+	 */
 	DateRangeSelection.prototype.setFrom = function(oFrom) {
 		this.setDateValue(oFrom);
 		return this;
 	};
 
+	/**
+	 * Get the start date of the range.
+	 * @returns {Date} the start date of the date range
+	 * @public
+	 * @deprecated since version 1.22.0, replaced by <code>dateValue</code> property of the {@link sap.m.DateTimeField}
+	 */
 	DateRangeSelection.prototype.getFrom = function() {
 		return this.getDateValue();
 	};
 
+	/**
+	 * Set the end date of the range.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oTo A date instance
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 * @deprecated since version 1.22.0, replaced by <code>secondDateValue</code> property
+	 */
 	DateRangeSelection.prototype.setTo = function(oTo) {
 		this.setSecondDateValue(oTo);
 		return this;
 	};
 
+	/**
+	 * Get the end date of the range.
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} the end date of the date range
+	 * @public
+	 * @deprecated since version 1.22.0, replaced by <code>secondDateValue</code> property
+	 */
 	DateRangeSelection.prototype.getTo = function() {
 		return this.getSecondDateValue();
 	};
@@ -455,11 +540,11 @@ sap.ui.define([
 	/**
 	 * Getter for property <code>dateValue</code>.
 	 *
-	 * The start date of the range as JavaScript Date object. This is independent from any formatter.
+	 * The start date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {Date} the value of property <code>dateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>dateValue</code>
 	 * @public
 	 * @name sap.m.DateRangeSelection#getDateValue
 	 * @function
@@ -468,18 +553,18 @@ sap.ui.define([
 	/**
 	 * Setter for property <code>dateValue</code>.
 	 *
-	 * The start date of the range as JavaScript Date object. This is independent from any formatter.
+	 * The start date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @param {Date} oDateValue New value for property <code>dateValue</code>
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDateValue New value for property <code>dateValue</code>
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DateRangeSelection.prototype.setDateValue = function(oDateValue) {
 
 		if (!this._isValidDate(oDateValue)) {
-			throw new Error("Date must be a JavaScript date object; " + this);
+			throw new Error("Date must be a JavaScript or UI5Date date object; " + this);
 		}
 
 		if (deepEqual(this.getDateValue(), oDateValue)) {
@@ -494,20 +579,33 @@ sap.ui.define([
 	};
 
 	/**
-	 * Setter for property <code>secondDateValue</code>.
+	 * Getter for property <code>secondDateValue</code>.
 	 *
-	 * The start date of the range as JavaScript Date object. This is independent from any formatter.
+	 * The end date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @param {Date} oSecondDateValue New value for property <code>dateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>secondDateValue</code>
+	 * @public
+	 * @name sap.m.DateRangeSelection#getSecondDateValue
+	 * @function
+	 */
+
+	/**
+	 * Setter for property <code>secondDateValue</code>.
+	 *
+	 * The start date of the range as UI5Date or JavaScript Date object. This is independent from any formatter.
+	 *
+	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oSecondDateValue New value for property <code>dateValue</code>
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DateRangeSelection.prototype.setSecondDateValue = function(oSecondDateValue) {
 
 		if (!this._isValidDate(oSecondDateValue)) {
-			throw new Error("Date must be a JavaScript date object; " + this);
+			throw new Error("Date must be a JavaScript or UI5Date date object; " + this);
 		}
 
 		if (deepEqual(this.getSecondDateValue(), oSecondDateValue)) {
@@ -527,6 +625,12 @@ sap.ui.define([
 		return this;
 	};
 
+	/**
+	 * Set minimum date that can be shown and selected in the <code>DatePicker</code>. This must be a UI5Date or JavaScript Date object.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
 	DateRangeSelection.prototype.setMinDate = function(oDate) {
 
 		DatePicker.prototype.setMinDate.apply(this, arguments);
@@ -542,6 +646,12 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Set maximum date that can be shown and selected in the <code>DatePicker</code>. This must be a UI5Date or JavaScript Date object.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
+	 */
 	DateRangeSelection.prototype.setMaxDate = function(oDate) {
 
 		DatePicker.prototype.setMaxDate.apply(this, arguments);
@@ -599,7 +709,7 @@ sap.ui.define([
 			 **/
 			if (oBinding.getType().oFormatOptions && oBinding.getType().oFormatOptions.UTC) {
 				aDates = aDates.map(function (oUTCDate) {
-					return new Date(oUTCDate.getUTCFullYear(), oUTCDate.getUTCMonth(), oUTCDate.getUTCDate(),
+					return UI5Date.getInstance(oUTCDate.getUTCFullYear(), oUTCDate.getUTCMonth(), oUTCDate.getUTCDate(),
 						oUTCDate.getUTCHours(), oUTCDate.getUTCMinutes(), oUTCDate.getUTCSeconds());
 				});
 			}
@@ -685,8 +795,9 @@ sap.ui.define([
 
 		var sValue = "",
 			sDelimiter = _getDelimiter.call(this),
-			oFormat,
+			oFormat = _getFormatter.call(this),
 			oBinding,
+			oBindingType,
 			oDate1, oDate2;
 
 		oDate1 = oDateValue;
@@ -697,24 +808,30 @@ sap.ui.define([
 
 			if (oBinding && oBinding.getType() && oBinding.getType().isA("sap.ui.model.type.DateInterval")) {
 				if (oBinding.getType().oFormatOptions && oBinding.getType().oFormatOptions.source && oBinding.getType().oFormatOptions.source.pattern === "timestamp") {
-					sValue = oBinding.getType().formatValue([_denormalizeDateValue(oDateValue), _denormalizeDateValue(oSecondDateValue)], "string");
+					sValue = oBinding.getType().formatValue([this._denormalizeDateValue(oDateValue), this._denormalizeDateValue(oSecondDateValue)], "string");
 				} else {
 					/** DateRangeSelection control uses local dates for its properties, so make sure they are converted
 					 * to UTC dates if the binding type formatter expects them in UTC
 					 **/
-					if (oBinding.getType().oFormatOptions && oBinding.getType().oFormatOptions.UTC) {
-						oDate1 = new Date(Date.UTC(oDateValue.getFullYear(), oDateValue.getMonth(), oDateValue.getDate(),
+					oBindingType = oBinding.getType();
+					if (oBindingType.oFormatOptions && oBinding.getType().oFormatOptions.UTC) {
+						oDate1 = UI5Date.getInstance(Date.UTC(oDateValue.getFullYear(), oDateValue.getMonth(), oDateValue.getDate(),
 							oDateValue.getHours(), oDateValue.getMinutes(), oDateValue.getSeconds()));
 						if (oSecondDateValue) {
-							oDate2 = new Date(Date.UTC(oSecondDateValue.getFullYear(), oSecondDateValue.getMonth(), oSecondDateValue.getDate(),
+							oDate2 = UI5Date.getInstance(Date.UTC(oSecondDateValue.getFullYear(), oSecondDateValue.getMonth(), oSecondDateValue.getDate(),
 								oSecondDateValue.getHours(), oSecondDateValue.getMinutes(), oSecondDateValue.getSeconds()));
 						}
+					}
+
+					if (oBindingType.oInputFormat && typeof oDate1 === "object") {
+						oDate1 = oFormat.format(oDate1);
+					}
+					if (oBindingType.oInputFormat && typeof oDate2 === "object") {
+						oDate2 = oFormat.format(oDate2);
 					}
 					sValue = oBinding.getType().formatValue([oDate1, oDate2], "string");
 				}
 			} else {
-				oFormat = _getFormatter.call(this);
-
 				if (sDelimiter && sDelimiter !== "" && oDate2) {
 					sValue = oFormat.format(oDate1) + " " + sDelimiter + " " + oFormat.format(oDate2);
 				} else {
@@ -734,7 +851,8 @@ sap.ui.define([
 			return;
 		}
 
-		var sValue = this._$input.val();
+		var sInputValue = this._$input.val();
+		var sValue = sInputValue;
 		var aDates = [undefined, undefined];
 
 		if (this.getShowFooter() && this._oPopup && !sValue) {
@@ -744,11 +862,14 @@ sap.ui.define([
 		this._bValid = true;
 		if (sValue != "") {
 			aDates = this._parseValue(sValue);
+			// normalize dates in order to always have UI5Date objects
+			aDates[0] = this._normalizeDateValue(aDates[0]);
+			aDates[1] = this._normalizeDateValue(aDates[1]);
 			// the selected range includes all of the hours from the second date
 			aDates[1] && aDates[1].setHours(23, 59, 59, 999);
-			aDates = _dateRangeValidityCheck.call(this, aDates[0], aDates[1]);//aDates can be undefined if don't fit to the min/max range
+			aDates = _dateRangeValidityCheck.call(this, aDates[0], aDates[1]); // aDates can be undefined if don't fit to the min/max range
 			if (aDates[0]) {
-				sValue = this._formatValue( aDates[0], aDates[1] ); // to have the right output format if entered different
+				sValue = this._formatValue(aDates[0], aDates[1]); // to have the right output format if entered different
 			} else {
 				this._bValid = false;
 			}
@@ -762,8 +883,8 @@ sap.ui.define([
 			this.setLastValue(sValue);
 			this.setProperty("value", sValue, true);
 			if (this._bValid) {
-				this.setProperty("dateValue", _normalizeDateValue(aDates[0]), true);
-				this.setProperty("secondDateValue", _normalizeDateValue(aDates[1]), true);
+				this.setProperty("dateValue", this._normalizeDateValue(aDates[0]), true);
+				this.setProperty("secondDateValue", this._normalizeDateValue(aDates[1]), true);
 			}
 
 			if (this._oPopup && this._oPopup.isOpen()) {
@@ -771,7 +892,7 @@ sap.ui.define([
 				var oStartDate = this.getDateValue();
 				if (oStartDate) {
 					if (!this._oDateRange.getStartDate() || this._oDateRange.getStartDate().getTime() !== oStartDate.getTime()) {
-						this._oDateRange.setStartDate(new Date(oStartDate.getTime()));
+						this._oDateRange.setStartDate(UI5Date.getInstance(oStartDate.getTime()));
 						this._getCalendar().focusDate(oStartDate);
 					}
 				} else {
@@ -783,7 +904,7 @@ sap.ui.define([
 				var oEndDate = this.getSecondDateValue();
 				if (oEndDate) {
 					if (!this._oDateRange.getEndDate() || this._oDateRange.getEndDate().getTime() !== oEndDate.getTime()) {
-						this._oDateRange.setEndDate(new Date(oEndDate.getTime()));
+						this._oDateRange.setEndDate(UI5Date.getInstance(oEndDate.getTime()));
 						this._getCalendar().focusDate(oEndDate);
 					}
 				} else {
@@ -795,6 +916,11 @@ sap.ui.define([
 
 			_fireChange.call(this, this._bValid);
 
+		} else if (sInputValue !== this.getLastValue() && sValue === this.getLastValue()) {
+			if (this.getDomRef() && (this._$input.val() !== sValue)) {
+				this._$input.val(sValue);
+				this._curpos = this._$input.cursorPos();
+			}
 		}
 
 	};
@@ -827,25 +953,41 @@ sap.ui.define([
 		return this;
 	};
 
+	/**
+	 * Handle when escape is pressed. Escaping unsaved input will restore
+	 * the last valid value. If the value cannot be parsed into a date
+	 * range, the input will be cleared.
+	 *
+	 * @param {jQuery.Event} oEvent The event object.
+	 * @private
+	 */
+	DateRangeSelection.prototype.onsapescape = function(oEvent) {
+		var sLastValue = this.getLastValue(),
+			aDates = this._parseValue(this._getInputValue(), true),
+			sValueFormatInputDate = this._formatValue(aDates[0], aDates[1], true);
+
+		if (sValueFormatInputDate !== sLastValue) {
+			oEvent.setMarked();
+			oEvent.preventDefault();
+
+			this.updateDomValue(sLastValue);
+			this.onValueRevertedByEscape(sLastValue, sValueFormatInputDate);
+		}
+	};
+
 	//Support of two date range version of Calendar added into original DatePicker's version
 	DateRangeSelection.prototype._fillDateRange = function(){
 
 		DatePicker.prototype._fillDateRange.apply(this, arguments);
 
 		var oEndDate = this.getSecondDateValue();
-		var sFormattedEndDate;
 
 		if (oEndDate &&
 			oEndDate.getTime() >= this._oMinDate.getTime() &&
 			oEndDate.getTime() <= this._oMaxDate.getTime()) {
 			if (!this._oDateRange.getEndDate() || this._oDateRange.getEndDate().getTime() !== oEndDate.getTime()) {
-				sFormattedEndDate = this._getPickerParser().format(
-					oEndDate,
-					Configuration.getTimezone()
-				);
-				oEndDate = this._getPickerParser().parse(sFormattedEndDate, TimezoneUtil.getLocalTimezone())[0];
 
-				this._oDateRange.setEndDate(new Date(oEndDate.getTime()));
+				this._oDateRange.setEndDate(UI5Date.getInstance(oEndDate.getTime()));
 			}
 		} else {
 			if (this._oDateRange.getEndDate()) {
@@ -857,8 +999,6 @@ sap.ui.define([
 
 	DateRangeSelection.prototype._selectDate = function () {
 		var aSelectedDates = this._getCalendar().getSelectedDates();
-		var sFormattedDate, oParts;
-		var sTimezone = Configuration.getTimezone();
 
 		if (aSelectedDates.length > 0) {
 			var oDate1 = aSelectedDates[0].getStartDate();
@@ -870,17 +1010,6 @@ sap.ui.define([
 
 				// the selected range includes all of the hours from the second date
 				oDate2.setHours(23, 59, 59, 999);
-
-				sFormattedDate = this._getPickerParser().format(oDate1, TimezoneUtil.getLocalTimezone());
-				oParts = this._getPickerParser().parse(sFormattedDate, sTimezone);
-				oDate1 = oParts && oParts[0];
-
-				sFormattedDate = this._getPickerParser().format(oDate2, TimezoneUtil.getLocalTimezone());
-				oParts = this._getPickerParser().parse(sFormattedDate, sTimezone);
-				oDate2 = oParts && oParts[0];
-
-				//the parser does not include milliseconds, so restore them
-				oDate2.setMilliseconds(999);
 
 				var sValue;
 				if (!deepEqual(oDate1, oDate1Old) || !deepEqual(oDate2, oDate2Old)) {
@@ -934,15 +1063,12 @@ sap.ui.define([
 
 	DateRangeSelection.prototype._handleWeekSelect = function(oEvent){
 		var oSelectedDates = oEvent.getParameter("weekDays"),
-			oSelectedStartDate,
-			oSelectedEndDate;
+			oSelectedStartDate = oSelectedDates.getStartDate(),
+			oSelectedEndDate = oSelectedDates.getEndDate();
 
 		if (!oSelectedDates) {
 			return;
 		}
-
-		oSelectedStartDate = oSelectedDates.getStartDate();
-		oSelectedEndDate = oSelectedDates.getEndDate();
 
 		if (this.getShowFooter()) {
 			this._oPopup.getBeginButton().setEnabled(!!(oSelectedStartDate && oSelectedEndDate));
@@ -966,14 +1092,16 @@ sap.ui.define([
 		var oRenderer = this.getRenderer();
 		var oInfo = DatePicker.prototype.getAccessibilityInfo.apply(this, arguments);
 		var sValue = this.getValue() || "";
+		var sRequired = this.getRequired() ? Core.getLibraryResourceBundle("sap.m").getText("ELEMENT_REQUIRED") : '';
+
 		if (this._bValid) {
 			var oDate = this.getDateValue();
 			if (oDate) {
 				sValue = this._formatValue(oDate, this.getSecondDateValue());
 			}
 		}
-		oInfo.type = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_DATERANGEINPUT");
-		oInfo.description = [sValue, oRenderer.getLabelledByAnnouncement(this), oRenderer.getDescribedByAnnouncement(this)].join(" ").trim();
+		oInfo.type = Core.getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_DATERANGEINPUT");
+		oInfo.description = [sValue || this._getPlaceholder(), oRenderer.getLabelledByAnnouncement(this), oRenderer.getDescribedByAnnouncement(this), sRequired].join(" ").trim();
 		return oInfo;
 	};
 
@@ -1053,10 +1181,8 @@ sap.ui.define([
 	DateRangeSelection.prototype._increaseDate = function (iNumber, sUnit) {
 		var sValue = this._$input.val(),
 			aDates = this._parseValue(sValue),
-			oFirstOldDate = aDates[0],
-			oSecondOldDate = aDates[1],
-			oFormat = _getFormatter.call(this),
-			sDelimiter = _getDelimiter.call(this),
+			oFirstOldDate = aDates[0] || null,
+			oSecondOldDate = aDates[1] || null,
 			iCurPos,
 			iFirstDateValueLen,
 			iSecondDateValueLen,
@@ -1077,12 +1203,18 @@ sap.ui.define([
 			return;
 		}
 
-		// Clear all spaces and delimiter characters at the beggining and at the end of the value string
-		// as they don't make the input to be considered invalid, but make the cursor position calculations wrong
-		sValue = _trim(sValue, [sDelimiter, " "]);
+		var oFormatOptions = { interval: true, singleIntervalValue: true, intervalDelimiter: _getDelimiter.call(this) };
+		oFormatOptions = this.getBinding("value")
+			? Object.assign(oFormatOptions, this.getBinding("value").getType().oFormatOptions)
+			: Object.assign(oFormatOptions, _getFormatter.call(this).oFormatOptions);
+
+		var oFormat = DateFormat.getDateInstance(oFormatOptions);
+
+		sValue = oFormat.format([oFirstOldDate, oSecondOldDate]);
 		iCurPos = this._$input.cursorPos();
-		iFirstDateValueLen = oFirstOldDate ? oFormat.format(oFirstOldDate).length : 0;
-		iSecondDateValueLen = oSecondOldDate ? oFormat.format(oSecondOldDate).length : 0;
+
+		iFirstDateValueLen = oFirstOldDate ? oFormat.format([oFirstOldDate, null]).length : 0;
+		iSecondDateValueLen = oSecondOldDate ? oFormat.format([oSecondOldDate, null]).length : 0;
 
 		iValueLen = sValue.length;
 		bFirstDate = iCurPos <= iFirstDateValueLen + 1;
@@ -1092,7 +1224,7 @@ sap.ui.define([
 			oDate = _getIncrementedDate.call(this, oFirstOldDate, iNumber, sUnit);
 
 			if (!deepEqual(this.getDateValue(), oDate.getJSDate())) {
-				this.setDateValue(new Date(oDate.getTime()));
+				this.setDateValue(UI5Date.getInstance(oDate.getTime()));
 				this._curpos = iCurPos;
 				this._$input.cursorPos(this._curpos);
 
@@ -1102,21 +1234,13 @@ sap.ui.define([
 			oDate = _getIncrementedDate.call(this, oSecondOldDate, iNumber, sUnit);
 
 			if (!deepEqual(this.getSecondDateValue(), oDate.getJSDate())) {
-				this.setSecondDateValue(new Date(oDate.getTime()));
+				this.setSecondDateValue(UI5Date.getInstance(oDate.getTime()));
 				this._curpos = iCurPos;
 				this._$input.cursorPos(this._curpos);
 
 				this.fireChangeEvent(this.getValue(), {valid: this._bValid});
 			}
 		}
-	};
-
-	DateRangeSelection.prototype._getPickerParser = function() {
-		if (!this._calendarParser) {
-			this._calendarParser = DateFormat.getDateTimeWithTimezoneInstance({ showTimezone: false });
-		}
-
-		return this._calendarParser;
 	};
 
 	function _getIncrementedDate(oOldDate, iNumber, sUnit) {
@@ -1137,7 +1261,7 @@ sap.ui.define([
 			sCalendarType = this.getDisplayFormatType();
 		}
 
-		oUTCDate = UniversalDate.getInstance(new Date(oOldDate.getTime()), sCalendarType);
+		oUTCDate = UniversalDate.getInstance(UI5Date.getInstance(oOldDate.getTime()), sCalendarType);
 		iOldDateMonth = oUTCDate.getMonth();
 
 		switch (sUnit) {

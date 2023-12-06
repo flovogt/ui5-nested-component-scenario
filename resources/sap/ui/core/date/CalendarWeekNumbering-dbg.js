@@ -5,7 +5,13 @@
  */
 
 // Provides type sap.ui.core.date.CalendarWeekNumbering.
-sap.ui.define([], function() {
+sap.ui.define([
+	"sap/ui/base/DataType",
+	"sap/base/i18n/date/CalendarWeekNumbering"
+], function(
+	DataType,
+	CalendarWeekNumbering
+) {
 	"use strict";
 
 	/**
@@ -19,55 +25,16 @@ sap.ui.define([], function() {
 	 * @enum {string}
 	 * @public
 	 * @since 1.108.0
-	 * @alias sap.ui.core.date.CalendarWeekNumbering
+	 * @deprecated As of Version 1.120. Please use {@link module:sap/base/18n/date/CalendarWeekNumbering} instead.
+	 * @name sap.ui.core.date.CalendarWeekNumbering
+	 * @borrows module:sap/base/i18n/date/CalendarWeekNumbering.Default as Default
+	 * @borrows module:sap/base/i18n/date/CalendarWeekNumbering.ISO_8601 as ISO_8601
+	 * @borrows module:sap/base/i18n/date/CalendarWeekNumbering.MiddleEastern as MiddleEastern
+	 * @borrows module:sap/base/i18n/date/CalendarWeekNumbering.WesternTraditional as WesternTraditional
+	 * @borrows module:sap/base/i18n/date/CalendarWeekNumbering.getWeekConfigurationValues as getWeekConfigurationValues
 	 */
-	var CalendarWeekNumbering = {
 
-		/**
-		 * The default calendar week numbering:
-		 *
-		 * The framework determines the week numbering scheme; currently it is derived from the
-		 * active format locale. Future versions of UI5 might select a different week numbering
-		 * scheme.
-		 *
-		 * @public
-		 */
-		Default : "Default",
-
-		/**
-		 * Official calendar week numbering in most of Europe (ISO 8601 standard):
-		 * <ul>
-		 * <li>Monday is first day of the week,
-		 * <li>the week containing January 4th is first week of the year.
-		 * </ul>
-		 *
-		 * @public
-		 */
-		ISO_8601 : "ISO_8601",
-
-		/**
-		 * Official calendar week numbering in much of the Middle East (Middle Eastern calendar):
-		 * <ul>
-		 * <li>Saturday is first day of the week,
-		 * <li>the week containing January 1st is first week of the year.
-		 * </ul>
-		 *
-		 * @public
-		 */
-		MiddleEastern : "MiddleEastern",
-
-		/**
-		 * Official calendar week numbering in the United States, Canada, Brazil, Israel, Japan, and
-		 * other countries (Western traditional calendar):
-		 * <ul>
-		 * <li>Sunday is first day of the week,
-		 * <li>the week containing January 1st is first week of the year.
-		 * </ul>
-		 *
-		 * @public
-		 */
-		WesternTraditional : "WesternTraditional"
-	};
+	DataType.registerEnum("sap.ui.core.date.CalendarWeekNumbering", CalendarWeekNumbering);
 
 	return CalendarWeekNumbering;
 }, /* bExport= */ true);

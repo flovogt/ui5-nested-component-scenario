@@ -5,23 +5,27 @@
  */
 
 sap.ui.define([
-	'sap/ui/core/library',
-	'sap/ui/Global',
-	'sap/ui/core/Core',
-	'sap/ui/core/Configuration',
-	'sap/ui/core/ElementMetadata',
+	"sap/ui/Global",
+	"sap/ui/core/AnimationMode",
+	"sap/ui/core/Configuration",
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Element",
+	"sap/ui/core/ElementMetadata",
+	"sap/ui/core/Supportability",
+	"sap/ui/core/Theming",
 	"sap/base/util/LoaderExtensions",
-	"sap/base/util/UriParameters",
-	"jquery.sap.global"
+	"sap/ui/thirdparty/jquery"
 ],
 	function(
-		library,
 		Global,
-		Core,
+		AnimationMode,
 		Configuration,
+		ControlBehavior,
+		Element,
 		ElementMetadata,
+		Supportability,
+		Theming,
 		LoaderExtensions,
-		UriParameters,
 		jQuery
 	) {
 		'use strict';
@@ -69,7 +73,7 @@ sap.ui.define([
 		 * @returns {Object<string,string[]>} Map of parameter value arrays keyed by parameter names
 		 */
 		function getURLParameters() {
-			var oParams = UriParameters.fromQuery(window.location.search);
+			var oParams = new URLSearchParams(window.location.search);
 			return Array.from(oParams.keys()).reduce(function(oResult, sKey) {
 				oResult[sKey] = oParams.getAll(sKey);
 				return oResult;
@@ -92,32 +96,26 @@ sap.ui.define([
 					applicationHREF: window.location.href,
 					documentTitle: document.title,
 					documentMode: document.documentMode || '',
-					debugMode: jQuery.sap.debug(),
-					statistics: jQuery.sap.statistics()
+					debugMode: Supportability.isDebugModeEnabled(),
+					statistics: Supportability.isStatisticsEnabled()
 				},
-
 				configurationBootstrap: window['sap-ui-config'] || Object.create(null),
-
 				configurationComputed: {
-					theme: Configuration.getTheme(),
+					theme: Theming.getTheme(),
 					language: Configuration.getLanguage(),
 					formatLocale: Configuration.getFormatLocale(),
-					accessibility: Configuration.getAccessibility(),
-					animation: (Configuration.getAnimationMode() !== Configuration.AnimationMode.minimal &&
-								Configuration.getAnimationMode() !== Configuration.AnimationMode.none),
+					accessibility: ControlBehavior.isAccessibilityEnabled(),
+					animation: (ControlBehavior.getAnimationMode() !== AnimationMode.minimal &&
+								ControlBehavior.getAnimationMode() !== AnimationMode.none),
 					rtl: Configuration.getRTL(),
-					debug: Configuration.getDebug(),
-					inspect: Configuration.getInspect(),
-					originInfo: Configuration.getOriginInfo(),
+					debug: Supportability.isDebugModeEnabled(),
+					inspect: Supportability.isControlInspectorEnabled(),
+					originInfo: Supportability.collectOriginInfo(),
 					noDuplicateIds: Configuration.getNoDuplicateIds()
 				},
-
 				libraries: _getLibraries(),
-
 				loadedLibraries: _getLoadedLibraries(),
-
 				loadedModules: LoaderExtensions.getAllRequiredModules().sort(),
-
 				URLParameters: getURLParameters()
 			};
 		}
@@ -141,7 +139,7 @@ sap.ui.define([
 				var childNode = node.firstElementChild;
 				var results = resultArray;
 				var subResult = results;
-				var control = sap.ui.getCore().byId(node.id);
+				var control = Element.getElementById(node.id);
 
 				if (node.getAttribute('data-sap-ui') && control) {
 					results.push({
@@ -254,7 +252,7 @@ sap.ui.define([
 			 * @private
 			 */
 			_getProperties: function (controlId) {
-				var control = sap.ui.getCore().byId(controlId);
+				var control = Element.getElementById(controlId);
 				var properties = Object.create(null);
 
 				if (control) {
@@ -387,7 +385,7 @@ sap.ui.define([
 			 */
 			getControlBindings: function (controlId) {
 				var result = Object.create(null);
-				var control = sap.ui.getCore().byId(controlId);
+				var control = Element.getElementById(controlId);
 				var bindingContext;
 
 				if (!control) {

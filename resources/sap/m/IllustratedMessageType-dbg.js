@@ -96,6 +96,12 @@ sap.ui.define([], function () {
 		NoDimensionsSet: "sapIllus-NoDimensionsSet",
 
 		/**
+		 * "No Columns Set" illustration type.
+		 * @public
+		 */
+		NoColumnsSet: "sapIllus-NoColumnsSet",
+
+		/**
 		 * "Unable To Load" illustration type.
 		 * @public
 		 */
@@ -340,6 +346,12 @@ sap.ui.define([], function () {
 		 * @public
 		 */
 		SuccessScreen: "sapIllus-SuccessScreen",
+
+		/**
+		 * "Survey" illustration type.
+		 * @public
+		 */
+		Survey: "sapIllus-Survey",
 
 		/**
 		 * "Tent" illustration type.

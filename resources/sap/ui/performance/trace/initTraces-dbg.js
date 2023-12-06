@@ -10,8 +10,8 @@
 sap.ui.define([
 	"sap/ui/performance/trace/FESR",
 	"sap/base/Log",
-	"sap/base/util/UriParameters"
-], function(FESR, Log, UriParameters) {
+	"sap/base/config"
+], function(FESR, Log, BaseConfig) {
 
 	"use strict";
 
@@ -25,16 +25,18 @@ sap.ui.define([
 	 * @ui5-restricted sap.ui.core
 	 */
 	return function() {
-		var oFESRMeta = document.querySelector("meta[name=sap-ui-fesr]"),
-			sFESRMetaContent = oFESRMeta ? oFESRMeta.getAttribute("content") : undefined,
-			bActive =  !!sFESRMetaContent && sFESRMetaContent !== "false",
-			sUriParam = UriParameters.fromQuery(window.location.search).get("sap-ui-fesr"),
-			sUrl = sFESRMetaContent && sFESRMetaContent !== "true" ? sFESRMetaContent : undefined;
+		var sUrl,
+			bActive = false,
+			sFesr = BaseConfig.get({
+				name: "sapUiFesr",
+				type: BaseConfig.Type.String,
+				external: true,
+				freeze: true
+			});
 
-		if (sUriParam) {
-			bActive = sUriParam != "false";
-			// FESR Definition via URL wins over meta
-			sUrl = ["true", "false", "x", "X", undefined].indexOf(sUriParam) === -1 ? sUriParam : sUrl;
+		if (sFesr) {
+			bActive = sFesr != "false";
+			sUrl = ["true", "false", "x", "X", undefined].indexOf(sFesr) === -1 ? sFesr : undefined;
 		}
 
 		if (typeof window.performance.getEntriesByType === "function") {
@@ -43,9 +45,13 @@ sap.ui.define([
 			Log.debug("FESR is not supported in clients without support of window.Performance extensions.");
 		}
 
-		// TODO this should be part of a Configuration
 		// *********** Include E2E-Trace Scripts *************
-		if (/sap-ui-xx-e2e-trace=(true|x|X)/.test(location.search)) {
+		if (BaseConfig.get({
+			name: "sapUiXxE2eTrace",
+			type: BaseConfig.Type.Boolean,
+			external: true,
+			freeze: true
+		})) {
 			sap.ui.require(["sap/ui/core/support/trace/E2eTraceLib"]);
 		}
 	};

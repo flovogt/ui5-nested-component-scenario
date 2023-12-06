@@ -4,8 +4,8 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	'../json/JSONModel', '../json/JSONPropertyBinding', '../json/JSONListBinding', 'sap/ui/base/ManagedObject', 'sap/ui/base/ManagedObjectObserver', '../Context', '../ChangeReason', "sap/base/util/uid", "sap/base/Log", "sap/base/util/isPlainObject", "sap/base/util/deepClone"
-], function (JSONModel, JSONPropertyBinding, JSONListBinding, ManagedObject, ManagedObjectObserver, Context, ChangeReason, uid, Log, isPlainObject, deepClone) {
+	'../json/JSONModel', '../json/JSONPropertyBinding', '../json/JSONListBinding', 'sap/ui/base/ManagedObject', 'sap/ui/base/ManagedObjectObserver', '../Context', '../ChangeReason', "sap/base/util/uid", "sap/base/Log", "sap/base/util/isPlainObject", "sap/base/util/deepClone", "sap/base/util/deepEqual"
+], function (JSONModel, JSONPropertyBinding, JSONListBinding, ManagedObject, ManagedObjectObserver, Context, ChangeReason, uid, Log, isPlainObject, deepClone, deepEqual) {
 	"use strict";
 
 	var CUSTOMDATAKEY = "@custom",
@@ -179,7 +179,7 @@ sap.ui.define([
 				return oObject.getId();
 			}
 
-			return JSONListBinding.prototype.getEntryKey.apply(this, arguments);
+			return JSONListBinding.prototype.getEntryData.apply(this, arguments); // as ListBinding.prototype.getContextData falls back to getEntryData if getEntryKey is not defined
 		},
 		getEntryData: function(oContext) {
 			// use the id of the ManagedObject instance as the identifier
@@ -423,7 +423,7 @@ sap.ui.define([
 			if (oObject instanceof ManagedObject) {
 				var oProperty = oObject.getMetadata().getManagedProperty(sProperty);
 				if (oProperty) {
-					if (oProperty.get(oObject) !== oValue) {
+					if (!deepEqual(oProperty.get(oObject), oValue)) {
 						oProperty.set(oObject, oValue);
 						//update only property and sub properties
 						var fnFilter = function (oBinding) {
@@ -984,7 +984,15 @@ sap.ui.define([
 			});
 		}
 
-		this.checkUpdate();
+		var fnFilter;
+		if (oChange.object === this._oObject) { // if root object, only bindings starting with the changed property/aggregation are from interest
+			fnFilter = function (oBinding) { // update only bindings that might be affected
+				var sPath = this.resolve(oBinding.sPath, oBinding.oContext);
+				return sPath ? sPath.startsWith("/" + oChange.name) : true;
+			}.bind(this);
+		}
+
+		this.checkUpdate(false, false, fnFilter);
 	};
 
 	/**
@@ -1008,12 +1016,13 @@ sap.ui.define([
 			return;
 		}
 		bForceUpdate = this.bForceUpdate || bForceUpdate;
-		fnFilter = !this.fnFilter || this.fnFilter === fnFilter ? fnFilter : undefined; // if different filter set use no filter
 
 		if (this.sUpdateTimer) {
 			clearTimeout(this.sUpdateTimer);
 			this.sUpdateTimer = null;
 			this.bForceUpdate = undefined;
+
+			fnFilter = this.fnFilter === fnFilter ? fnFilter : undefined; // if different filter or no filter set -> use no filter
 			this.fnFilter = undefined;
 		}
 		var aBindings = this.aBindings.slice(0);

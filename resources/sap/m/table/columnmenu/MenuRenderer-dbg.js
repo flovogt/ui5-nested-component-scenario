@@ -17,6 +17,7 @@ sap.ui.define([], function () {
 		this.renderHiddenTexts(oRm, oMenu);
 		this.renderQuickActions(oRm, oMenu);
 		this.renderItems(oRm, oMenu);
+
 		oRm.close("div");
 	};
 
@@ -60,10 +61,9 @@ sap.ui.define([], function () {
 			oRm.class("sapMTCMenuQAList");
 		}
 		oRm.attr("role", "region");
-		oRm.attr("aria-labelledby", oMenu.getId() + "-actionContainerDescription");
 		oRm.openEnd();
 
-		oRm.renderControl(oMenu._oForm);
+		oRm.renderControl(oMenu._oQuickActionContainer);
 
 		oRm.close("div");
 	};
@@ -75,7 +75,6 @@ sap.ui.define([], function () {
 
 		oRm.openStart("div");
 		oRm.class("sapMTCMenuContainerWrapper");
-		oRm.attr("aria-labelledby", oMenu.getId() + "-itemContainerDescription");
 		oRm.openEnd();
 		oRm.renderControl(oMenu._oItemsContainer);
 		oRm.close("div");

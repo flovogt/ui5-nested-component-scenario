@@ -43,8 +43,7 @@ sap.ui.define([
 		 * <li>use {@link sap.ui.core.mvc.Controller.create Controller.create} to create an instance</li>
 		 * </ul>
 		 *
-		 * @param {string|object[]} sName The name of the controller to instantiate. If a controller is defined as real sub-class,
-		 *                                    the "arguments" of the sub-class constructor should be given instead.
+		 * @param {string} sName The name of the controller to instantiate.
 		 *
 		 * @public
 		 * @alias sap.ui.core.mvc.Controller
@@ -103,7 +102,7 @@ sap.ui.define([
 			getInterface: function() {
 				var mMethods = {};
 				var oMetadata = this.getMetadata();
-				var aPublicMethods = oMetadata.getAllPublicMethods();
+				var aPublicMethods = oMetadata._aAllPublicMethods;
 
 				aPublicMethods.forEach(function(sMethod) {
 					var fnFunction = this[sMethod];
@@ -283,27 +282,33 @@ sap.ui.define([
 				} else if (mRegistry[sName]) {
 					return Controller;
 				} else {
-					//legacy controller
+					/** @deprecated since 1.120 */
 					return ObjectPath.get(sName);
 				}
 			}
 
-			if (bAsync) {
-				return new Promise(function(resolve, reject) {
-					if (!ControllerClass) {
-						sap.ui.require([sControllerName], function (ControllerClass) {
-							resolve(resolveClass(ControllerClass));
-						}, reject);
-					} else {
-						resolve(ControllerClass);
-					}
-				});
-			} else if (!ControllerClass) {
-				ControllerClass = sap.ui.requireSync(sControllerName); // legacy-relevant: Sync path
-				return resolveClass(ControllerClass);
-			} else {
-				return ControllerClass;
+			/**
+			 * Sync class resolution
+			 * @deprecated since 1.120
+			 */
+			if (!bAsync) {
+				if (!ControllerClass) {
+					ControllerClass = sap.ui.requireSync(sControllerName); // legacy-relevant: Sync path
+					return resolveClass(ControllerClass);
+				} else {
+					return ControllerClass;
+				}
 			}
+
+			return new Promise(function(resolve, reject) {
+				if (!ControllerClass) {
+					sap.ui.require([sControllerName], function (ControllerClass) {
+						resolve(resolveClass(ControllerClass));
+					}, reject);
+				} else {
+					resolve(ControllerClass);
+				}
+			});
 		}
 
 		/*
@@ -472,7 +477,7 @@ sap.ui.define([
 		 * @param {object} mOptions  A map containing the controller configuration options.
 		 * @param {string} mOptions.name The controller name that corresponds to a JS module that can be loaded
 	 	 * via the module system (mOptions.name + suffix ".controller.js")
-		 * @return {Promise} the Promise resolves with a new instance of the controller
+		 * @return {Promise<sap.ui.core.mvc.Controller>} the Promise resolves with a new instance of the controller
 		 * @public
 		 * @static
 		 * @since 1.56.0

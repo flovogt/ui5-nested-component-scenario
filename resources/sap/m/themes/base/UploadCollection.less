@@ -104,7 +104,6 @@
 .sapMUCFileName.sapMLnk {
 	font-family:		@sapUiFontFamily;
 	font-weight:		normal;
-	white-space:		nowrap;
 	padding-top:		0.25rem; /* Padding top instead of padding bottom due to in-line placement with Objectmarker */
 	overflow:			hidden;
 	text-overflow:		ellipsis;
@@ -156,6 +155,7 @@
 	text-align: center;
 	background: @sapUiGroupContentBackground;
 	display: block;
+	min-height: 500px;
 
 	.sapUiIcon {
 		color: fade(@sapUiContentNonInteractiveIconColor, 50);

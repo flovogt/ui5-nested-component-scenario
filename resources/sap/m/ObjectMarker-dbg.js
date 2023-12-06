@@ -62,7 +62,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -296,7 +296,7 @@ sap.ui.define([
 		this._cleanup();
 
 		// Inner control can be determined here as all property values are known
-		this._adjustControl(true);
+		this._adjustControl(false);
 	};
 
 	/**
@@ -646,7 +646,7 @@ sap.ui.define([
 		var oIcon = this.getAggregation("_iconControl");
 
 		if (!oIcon) {
-			oIcon = new Icon();
+			oIcon = new Icon(this.getId() + "-icon", {});
 			this.setAggregation("_iconControl", oIcon, true);
 		}
 

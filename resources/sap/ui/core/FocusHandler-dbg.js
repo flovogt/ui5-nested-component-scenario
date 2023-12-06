@@ -18,6 +18,7 @@ sap.ui.define([
 		// Element, UIArea module references, lazily probed when needed
 		var Element;
 		var UIArea;
+		var StaticArea;
 
 		var oFocusInfoEventProvider = new EventProvider();
 		var FOCUS_INFO_EVENT = "focusInfo";
@@ -61,39 +62,18 @@ sap.ui.define([
 		});
 
 		/**
-		 * Returns the Id of the control/element currently in focus.
-		 * @return {string} the Id of the control/element currently in focus.
-		 * @public
-		 */
-		FocusHandler.prototype.getCurrentFocusedControlId = function(){
-			var oControl;
-			try {
-				var $Act = jQuery(document.activeElement);
-				if ($Act.is(":focus")) {
-					if (!Element) {
-						Element = sap.ui.require("sap/ui/core/Element");
-					}
-					oControl = Element && Element.closestTo($Act[0]);
-				}
-			} catch (err) {
-				//escape eslint check for empty block
-			}
-			return oControl ? oControl.getId() : null;
-		};
-
-		/**
 		 * Returns the focus info of the current focused control or the control with the given id, if exists.
 		 *
 		 * @see sap.ui.core.FocusHandler#restoreFocus
-		 * @see sap.ui.core.FocusHandler#getCurrentFocusedControlId
 		 * @param {string} [sControlId] the id of the control. If not given the id of the current focused control (if exists) is used
 		 * @return {object} the focus info of the current focused control or the control with the given id, if exists.
 		 * @private
 		 */
 		FocusHandler.prototype.getControlFocusInfo = function(sControlId){
 			var oControl;
+			Element ??= sap.ui.require("sap/ui/core/Element");
 
-			sControlId = sControlId || this.getCurrentFocusedControlId();
+			sControlId = sControlId || Element?.getActiveElement()?.getId();
 
 			if (!sControlId) {
 				return null;
@@ -419,9 +399,12 @@ sap.ui.define([
 					if (oControlUIArea) {
 						oUIArea = UIArea.registry.get(oControlUIArea.getId());
 					} else {
-						var oPopupUIAreaDomRef = UIArea.getStaticAreaRef();
-						if (oPopupUIAreaDomRef.contains(oEvent.target)) {
-							oUIArea = UIArea.registry.get(oPopupUIAreaDomRef.id);
+						StaticArea = StaticArea || sap.ui.require("sap/ui/core/StaticArea");
+						if (StaticArea) {
+							var oPopupUIAreaDomRef = StaticArea.getDomRef();
+							if (oPopupUIAreaDomRef.contains(oEvent.target)) {
+								oUIArea = StaticArea.getUIArea();
+							}
 						}
 					}
 					if (oUIArea) {
@@ -437,7 +420,7 @@ sap.ui.define([
 				Element = sap.ui.require("sap/ui/core/Element");
 			}
 			if (Element) {
-				oControl = Element.registry.get(sControlId);
+				oControl = Element.getElementById(sControlId);
 			}
 			return oControl || null;
 		}

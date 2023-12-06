@@ -39,7 +39,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		 * its start date to the first date of the same week as the date the user chose.
 		 *
 		 * @extends sap.ui.unified.CalendarDateInterval
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @private
@@ -119,7 +119,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 
 		/**
 		 *
-		 * @param {Date} oDateTime a JavaScript Date (datetime). As CalendarWeekInterval works with dates (no time info),
+		 * @param {Date|module:sap/ui/core/date/UI5Date} oDateTime a date instance (datetime). As CalendarWeekInterval works with dates (no time info),
 		 * the time part of the oDateTime is not considered during comparison.
 		 * @return {boolean} true if the given parameter matches the range between startDate (inclusive) and a date
 		 * that is CalendarWeekInterval.getDays() later(exclusive)

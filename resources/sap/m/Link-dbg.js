@@ -86,7 +86,7 @@ function(
 	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent, sap.ui.core.ITitleContent, sap.ui.core.IAccessKeySupport
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -305,6 +305,34 @@ function(
 		setRefLabelsHighlightAccKeysRef.call(this, false);
 	};
 
+	Link.prototype.onAfterRendering = function() {
+		if (Device.system.phone || Device.system.tablet) {
+			var oAnchorElement = this.getDomRef();
+			// TODO: Adjust sap.m.internal.ObjectMarkerCustomLink rendering part of the sap.m.ObjectMarker implementation
+			if (!oAnchorElement) {
+				return;
+			}
+			oAnchorElement.removeEventListener("click", this._onClick);
+			if (oAnchorElement.getAttribute("href") == "#") {
+				oAnchorElement.addEventListener("click", this._onClick);
+			}
+		}
+	};
+
+	Link.prototype.exit = function() {
+		if (Device.system.phone || Device.system.tablet) {
+			var oAnchorElement = this.getDomRef();
+			if (!oAnchorElement) {
+				return;
+			}
+			oAnchorElement.removeEventListener("click", this._onClick);
+		}
+	};
+
+	Link.prototype._onClick = function(oEvent) {
+		oEvent.preventDefault();
+	};
+
 	/**
 	 * Handle the key down event for SPACE
 	 * SHIFT or ESCAPE on pressed SPACE cancels the action
@@ -371,12 +399,15 @@ function(
 	 * @private
 	 */
 	Link.prototype._handlePress = function(oEvent) {
+		var oTarget = oEvent.target,
+			bEmptyHref;
 
 		if (this.getEnabled()) {
 			// mark the event for components that needs to know if the event was handled by the link
 			oEvent.setMarked();
 
-			if (!this.firePress({ctrlKey: !!oEvent.ctrlKey, metaKey: !!oEvent.metaKey}) || !this.getHref()) { // fire event and check return value whether default action should be prevented
+			bEmptyHref = oTarget.classList.contains("sapMLnk") && oTarget.getAttribute("href") == "#";
+			if (!this.firePress({ctrlKey: !!oEvent.ctrlKey, metaKey: !!oEvent.metaKey}) || bEmptyHref) { // fire event and check return value whether default action should be prevented
 				oEvent.preventDefault();
 			}
 		} else { // disabled
@@ -391,12 +422,7 @@ function(
 	 * @private
 	 */
 	Link.prototype.onsapenter = Link.prototype._handlePress;
-
-	if (Device.support.touch) {
-		Link.prototype.ontap = Link.prototype._handlePress;
-	} else {
-		Link.prototype.onclick = Link.prototype._handlePress;
-	}
+	Link.prototype.onclick = Link.prototype._handlePress;
 
 	/**
 	 * Handles the touch event on mobile devices.
@@ -459,16 +485,21 @@ function(
 			sSubtleInfo = this.getSubtle() ? oResourceBundle.getText("LINK_SUBTLE") : "",
 			sText = this.getText(),
 			sDescription = sText,
-			sAccessibleRole = this.getAccessibleRole();
+			sAccessibleRole = this.getAccessibleRole(),
+			sType;
 
 		if (sText) {
+			sType = sAccessibleRole === LinkAccessibleRole.Default
+				? oResourceBundle.getText("ACC_CTR_TYPE_LINK")
+				: oResourceBundle.getText("ACC_CTR_TYPE_BUTTON");
+
 			sEmphasizedInfo && (sDescription += " " + sEmphasizedInfo);
 			sSubtleInfo && (sDescription += " " + sSubtleInfo);
 		}
 
 		return {
 			role: sAccessibleRole === LinkAccessibleRole.Default ? "link" : sAccessibleRole,
-			type: sText ? oResourceBundle.getText("ACC_CTR_TYPE_LINK") : undefined,
+			type: sType,
 			description: sDescription,
 			focusable: this.getEnabled(),
 			enabled: this.getEnabled()

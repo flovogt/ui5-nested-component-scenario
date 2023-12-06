@@ -112,10 +112,13 @@ sap.ui.define([
 	 *   The XML DOM document
 	 * @param {string} sUrl
 	 *   The URL by which this document has been loaded (for error messages)
+	 * @param {boolean} [bIgnoreAnnotations]
+	 *   Whether to ignore all annotations
 	 * @returns {object}
 	 *   The metadata JSON
 	 */
-	_MetadataConverter.prototype.convertXMLMetadata = function (oDocument, sUrl) {
+	_MetadataConverter.prototype.convertXMLMetadata = function (oDocument, sUrl,
+			bIgnoreAnnotations) {
 		var oElement;
 
 		Measurement.average("convertXMLMetadata", "",
@@ -128,6 +131,7 @@ sap.ui.define([
 
 		this.result = {};
 		this.url = sUrl; // the document URL (for error messages)
+		this.bIgnoreAnnotations = bIgnoreAnnotations;
 
 		// pass 1: find aliases
 		this.traverse(oElement, this.oAliasConfig);
@@ -270,8 +274,10 @@ sap.ui.define([
 		// this.oAnnotatable is the Annotation itself currently.
 		var oAnnotatable = this.oAnnotatable.parent;
 
-		oAnnotatable.target[oAnnotatable.qualifiedName]
-			= aResult.length ? aResult[0] : this.getInlineAnnotationValue(oElement);
+		if (!this.bIgnoreAnnotations) {
+			oAnnotatable.target[oAnnotatable.qualifiedName]
+				= aResult.length ? aResult[0] : this.getInlineAnnotationValue(oElement);
+		}
 	};
 
 	/**
@@ -494,12 +500,14 @@ sap.ui.define([
 
 		if (typeof oAnnotatable.target === "string") {
 			oAnnotations = this.getOrCreateObject(this.schema, "$Annotations");
+			if (this.bIgnoreAnnotations) {
+				return; // $Annotations should exist, but remain empty
+			}
 			oAnnotatable.target = oAnnotations[oAnnotatable.target] = {};
 		}
 
 		oAnnotatable.qualifiedName = sQualifiedName;
 		// do not calculate a value yet, this is done in postProcessAnnotation
-		oAnnotatable.target[sQualifiedName] = true;
 		this.annotatable(oAnnotatable.target, sQualifiedName);
 	};
 

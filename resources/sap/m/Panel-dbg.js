@@ -67,7 +67,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -132,7 +132,16 @@ sap.ui.define([
 				 * Depending on the usage you can change the role from the default <code>Form</code> to <code>Region</code> or <code>Complementary</code>.
 				 * @since 1.46
 				 */
-				accessibleRole: {type: "sap.m.PanelAccessibleRole", group: "Accessibility", defaultValue: PanelAccessibleRole.Form}
+				accessibleRole: {type: "sap.m.PanelAccessibleRole", group: "Accessibility", defaultValue: PanelAccessibleRole.Form},
+
+				/**
+				 * Indicates whether the Panel header is sticky or not.
+				 * If stickyHeader is set to true, then whenever you scroll the content or
+				 * the application, the header of the panel will be always visible and
+				 * a solid color will be used for its design.
+				 * @since 1.117
+				 */
+				 stickyHeader: {type: "boolean", group: "Appearance", defaultValue: false}
 
 			},
 			defaultAggregation: "content",
@@ -217,12 +226,16 @@ sap.ui.define([
 
 		this.setProperty("expanded", bExpanded, true);
 
+		// toggle class to apply styles during animation
+		this.addStyleClass("sapMPanelAnimating");
+
 		if (!this.getExpandable()) {
 			return this;
 		}
 
 		this._toggleExpandCollapse(function () {
 			// invalidate once the animation is over so rerendering could be smoоth
+			that.removeStyleClass("sapMPanelAnimating");
 			that.invalidate();
 		});
 

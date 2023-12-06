@@ -61,7 +61,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IContextMenu
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -163,7 +163,7 @@ sap.ui.define([
 		this._bOpenedAsContextMenu = false; // defines whether the menu is opened as a context menu
 		this.fAnyEventHandlerProxy = jQuery.proxy(function(oEvent){
 			var oRoot = this.getRootMenu();
-			if (oRoot != this || !this.bOpen || !this.getDomRef() || (oEvent.type != "mousedown" && oEvent.type != "touchstart")) {
+			if (oRoot != this || !this.isOpen() || !this.getDomRef() || (oEvent.type != "mousedown" && oEvent.type != "touchstart")) {
 				return;
 			}
 			oRoot.handleOuterEvent(this.getId(), oEvent); //TBD: standard popup autoclose
@@ -238,7 +238,7 @@ sap.ui.define([
 	Menu.prototype.invalidate = function(oOrigin){
 		if (oOrigin instanceof MenuItemBase && this.getDomRef()) {
 			this._delayedRerenderItems();
-		} else {
+		} else if (this.oPopup && this.oPopup.isOpen()) {
 			Control.prototype.invalidate.apply(this, arguments);
 		}
 	};
@@ -288,7 +288,7 @@ sap.ui.define([
 			return;
 		}
 		var oItem = this.getItemByDomRef(oEvent.target);
-		if (!this.bOpen || !oItem) {
+		if (!this.isOpen() || !oItem) {
 			return;
 		}
 
@@ -414,7 +414,9 @@ sap.ui.define([
 	Menu.prototype.open = function(bWithKeyboard, oOpenerRef, my, at, of, offset, collision){
 		var oNextSelectableItem;
 
-		if (this.bOpen) {
+		this._bLeavingMenu = false;
+
+		if (this.isOpen()) {
 			return;
 		}
 
@@ -436,7 +438,8 @@ sap.ui.define([
 				this.getPopup()._applyPosition(oPopupPosition.lastPosition);
 			}
 		}.bind(this));
-		this.bOpen = true;
+
+		this.bOpen = this.getPopup().isOpen();
 
 		Device.resize.attachHandler(this._handleResizeChange, this);
 		// mark that the resize handler is attach so we know to detach it later on
@@ -549,7 +552,7 @@ sap.ui.define([
 	 * @public
 	 */
 	Menu.prototype.close = function(bWithKeyboard) {
-		if (!this.bOpen || Menu._dbg /*Avoid closing for debugging purposes*/) {
+		if (!this.isOpen() || Menu._dbg /*Avoid closing for debugging purposes*/) {
 			return;
 		}
 
@@ -566,7 +569,6 @@ sap.ui.define([
 			this._bOrientationChangeBound = false;
 		}
 
-		this.bOpen = false;
 		// Close all sub menus if there are any
 		this.closeSubmenu();
 
@@ -579,6 +581,8 @@ sap.ui.define([
 		// Close the sap.ui.core.Popup
 		this.getPopup().close(0);
 
+		this.bOpen = this.getPopup().isOpen();
+
 		this._detachResizeHandler();
 
 		//Remove the Menus DOM after it is closed
@@ -589,6 +593,15 @@ sap.ui.define([
 		if (this.isSubMenu()) {
 			this.getParent().getParent().oOpenedSubMenu = null;
 		}
+	};
+
+	/**
+	 * Returns whether the <code>Menu</code> is currently open.
+	 * @returns {boolean} true if menu is open
+	 * @public
+	 */
+	Menu.prototype.isOpen = function() {
+		return this.getPopup().isOpen();
 	};
 
 	/**
@@ -628,8 +641,8 @@ sap.ui.define([
 		//right or down (RTL: left or down)
 		if (oEvent.keyCode !== KeyCodes.ARROW_DOWN && !oEvent.metaKey && !oEvent.altKey) {
 			//Go to sub menu if available
-			if (oSubMenu && this.checkEnabled(this.oHoveredItem)) {
-				if (oSubMenu.bOpen) {
+			if (oSubMenu) {
+				if (oSubMenu.isOpen()) {
 					oNextSelectableItem = oSubMenu.getNextSelectableItem(-1);
 					oSubMenu.setHoveredItem(oNextSelectableItem);
 					oNextSelectableItem && oNextSelectableItem.focus(this);
@@ -640,7 +653,7 @@ sap.ui.define([
 			return;
 		}
 
-		if (oSubMenu && oSubMenu.bOpen) {
+		if (oSubMenu && oSubMenu.isOpen()) {
 			this.closeSubmenu(false, true);
 		}
 
@@ -674,7 +687,7 @@ sap.ui.define([
 			return;
 		}
 
-		if (oSubMenu && oSubMenu.bOpen) {
+		if (oSubMenu && oSubMenu.isOpen()) {
 			this.closeSubmenu(false, true);
 		}
 
@@ -795,6 +808,7 @@ sap.ui.define([
 	Menu.prototype.onsapbackspacemodifiers = Menu.prototype.onsapbackspace;
 
 	Menu.prototype.onsapescape = function(oEvent){
+		this._bLeavingMenu = true;
 		this.close(true);
 		oEvent.preventDefault();
 		oEvent.stopPropagation();
@@ -804,6 +818,7 @@ sap.ui.define([
 		if (this.isSubMenu()){
 			oEvent.preventDefault();
 		}
+		this._bLeavingMenu = true;
 		this.close(true);
 		oEvent.stopPropagation();
 	};
@@ -816,13 +831,12 @@ sap.ui.define([
 		}
 		this._discardOpenSubMenuDelayed();
 		this._delayedSubMenuTimer = setTimeout(function(){
-			this.checkEnabled(oItem) && this.closeSubmenu(false, true);
-			if (this.checkEnabled(oItem) && oItem.getSubmenu()) {
+			if (oItem.getSubmenu()) {
 				this.setHoveredItem(oItem);
 				oItem && oItem.focus(this);
 				this.openSubmenu(oItem, false, true);
 			}
-		}.bind(this), oItem.getSubmenu() && this.checkEnabled(oItem) ? Menu._DELAY_SUBMENU_TIMER : Menu._DELAY_SUBMENU_TIMER_EXT);
+		}.bind(this), oItem.getSubmenu() ? Menu._DELAY_SUBMENU_TIMER : Menu._DELAY_SUBMENU_TIMER_EXT);
 	};
 
 	Menu.prototype._discardOpenSubMenuDelayed = function(oItem){
@@ -854,7 +868,7 @@ sap.ui.define([
 	 */
 	Menu.prototype.onsapfocusleave = function(oEvent){
 		// Only the deepest opened sub menu should handle the event or ignore the event from an item
-		if (this.oOpenedSubMenu || !this.bOpen) {
+		if (this.oOpenedSubMenu || !this.isOpen()) {
 			return;
 		}
 		this.getRootMenu().handleOuterEvent(this.getId(), oEvent); //TBD: standard popup autoclose
@@ -1013,6 +1027,10 @@ sap.ui.define([
 			return;
 		}
 
+		if (!this.checkEnabled(oItem)) {
+			return;
+		}
+
 		if (this.oOpenedSubMenu && this.oOpenedSubMenu !== oSubMenu) {
 			// Another sub menu is open and has not been fixed. Close it at first.
 			this.closeSubmenu();
@@ -1105,12 +1123,12 @@ sap.ui.define([
 
 		// At first, start with the next index
 		for (var i = iIdx + 1; i < aItems.length; i++) {
-			if (aItems[i].getVisible() && this.checkEnabled(aItems[i])) {
+			if (aItems[i].getVisible()) {
 				return aItems[i];
 			}
 		}
 
-		return oItem && oItem.getVisible() && this.checkEnabled(oItem) ? oItem : null;
+		return oItem && oItem.getVisible() ? oItem : null;
 	};
 
 	Menu.prototype.getPreviousSelectableItem = function(iIdx){
@@ -1119,12 +1137,12 @@ sap.ui.define([
 
 		// At first, start with the previous index
 		for (var i = iIdx - 1; i >= 0; i--) {
-			if (aItems[i].getVisible() && this.checkEnabled(aItems[i])) {
+			if (aItems[i].getVisible()) {
 				return aItems[i];
 			}
 		}
 
-		return oItem && oItem.getVisible() && this.checkEnabled(oItem) ? oItem : null;
+		return oItem && oItem.getVisible() ? oItem : null;
 	};
 
 	Menu.prototype.setRootMenuTopStyle = function(bUseTopStyle){
@@ -1147,7 +1165,7 @@ sap.ui.define([
 	};
 
 	Menu.prototype.focus = function(){
-		if (this.bOpen) {
+		if (this.isOpen()) {
 			Control.prototype.focus.apply(this, arguments);
 		}
 	};

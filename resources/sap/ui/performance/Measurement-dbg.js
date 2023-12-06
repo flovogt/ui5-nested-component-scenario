@@ -178,7 +178,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		 * @param {string} sId ID of the measurement
 		 * @param {string} sInfo Info for the measurement
 		 * @param {string | string[]} [aCategories="javascript"] An optional list of categories for the measure
-		 * @return {object} current measurement containing id, info and start-timestamp (false if error)
+		 * @return {module:sap/ui/performance/Measurement.Entry|boolean|undefined} current measurement containing id, info and start-timestamp (false if error)
 		 * @public
 		 * @name module:sap/ui/performance/Measurement.start
 		 * @function
@@ -216,7 +216,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		 * Pauses a performance measure.
 		 *
 		 * @param {string} sId ID of the measurement
-		 * @return {object} current measurement containing id, info and start-timestamp, pause-timestamp (false if error)
+		 * @return {module:sap/ui/performance/Measurement.Entry|boolean|undefined} current measurement containing id, info and start-timestamp, pause-timestamp (false if error)
 		 * @public
 		 * @name module:sap/ui/performance/Measurement.pause
 		 * @function
@@ -256,7 +256,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		 * Resumes a performance measure.
 		 *
 		 * @param {string} sId ID of the measurement
-		 * @return {object} current measurement containing id, info and start-timestamp, resume-timestamp (false if error)
+		 * @return {module:sap/ui/performance/Measurement.Entry|boolean|undefined} current measurement containing id, info and start-timestamp, resume-timestamp (false if error)
 		 * @public
 		 * @name module:sap/ui/performance/Measurement.resume
 		 * @function
@@ -287,7 +287,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		 * Ends a performance measure.
 		 *
 		 * @param {string} sId ID of the measurement
-		 * @return {object} current measurement containing id, info and start-timestamp, end-timestamp, time, duration (false if error)
+		 * @return {module:sap/ui/performance/Measurement.Entry|boolean|undefined} current measurement containing id, info and start-timestamp, end-timestamp, time, duration (false if error)
 		 * @public
 		 * @name module:sap/ui/performance/Measurement.end
 		 * @function
@@ -372,7 +372,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		 * @param {int} iTime time in milliseconds
 		 * @param {int} iDuration effective time in milliseconds
 		 * @param {string | string[]} [aCategories="javascript"] An optional list of categories for the measure
-		 * @return {object} [] current measurement containing id, info and start-timestamp, end-timestamp, time, duration, categories (false if error)
+		 * @return {module:sap/ui/performance/Measurement.Entry|boolean|undefined} current measurement containing id, info and start-timestamp, end-timestamp, time, duration, categories (false if error)
 		 * @public
 		 * @name module:sap/ui/performance/Measurement.add
 		 * @function
@@ -406,7 +406,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		 * @param {string} sId ID of the measurement
 		 * @param {string} sInfo Info for the measurement
 		 * @param {string | string[]} [aCategories="javascript"] An optional list of categories for the measure
-		 * @return {object} current measurement containing id, info and start-timestamp (false if error)
+		 * @return {module:sap/ui/performance/Measurement.Entry|boolean|undefined} current measurement containing id, info and start-timestamp (false if error)
 		 * @public
 		 * @name module:sap/ui/performance/Measurement.average
 		 * @function
@@ -441,7 +441,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		 * Gets a performance measure.
 		 *
 		 * @param {string} sId ID of the measurement
-		 * @return {module:sap/ui/performance/Measurement.Entry} current measurement containing id, info and start-timestamp, end-timestamp, time, duration (false if error)
+		 * @return {module:sap/ui/performance/Measurement.Entry|boolean} current measurement containing id, info and start-timestamp, end-timestamp, time, duration (false if error)
 		 * @public
 		 * @name module:sap/ui/performance/Measurement.getMeasurement
 		 * @function
@@ -466,7 +466,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		 * Gets all performance measurements.
 		 *
 		 * @param {boolean} [bCompleted] Whether only completed measurements should be returned, if explicitly set to false only incomplete measurements are returned
-		 * @return {module:sap/ui/performance/Measurement.Entry} current array with measurements containing id, info and start-timestamp, end-timestamp, time, duration, categories
+		 * @return {module:sap/ui/performance/Measurement.Entry[]} current array with measurements containing id, info and start-timestamp, end-timestamp, time, duration, categories
 		 * @public
 		 * @name module:sap/ui/performance/Measurement.getAllMeasurements
 		 * @function
@@ -487,7 +487,7 @@ sap.ui.define(['sap/base/Log', 'sap/ui/thirdparty/URI', 'sap/base/util/now'
 		 *     return oMeasurement.duration > 50;
 		 * }</code>
 		 *
-		 * @param {function} [fnFilter] a filter function that returns true if the passed measurement should be added to the result
+		 * @param {function(module:sap/ui/performance/Measurement.Entry)} [fnFilter] a filter function that returns true if the passed measurement should be added to the result
 		 * @param {boolean} [bCompleted] Optional parameter to determine if either completed or incomplete measurements should be returned (both if not set or undefined)
 		 * @param {string[]} [aCategories] The function returns only measurements which match these specified categories
 		 *

@@ -27,7 +27,8 @@ sap.ui.define([
 	'sap/ui/core/IconPool',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/library',
-	'./PlanningCalendarHeaderRenderer'
+	'./PlanningCalendarHeaderRenderer',
+	'sap/ui/core/date/UI5Date'
 ],
 function(
 	Element,
@@ -51,7 +52,8 @@ function(
 	IconPool,
 	InvisibleText,
 	coreLibrary,
-	PlanningCalendarHeaderRenderer
+	PlanningCalendarHeaderRenderer,
+	UI5Date
 ) {
 	"use strict";
 
@@ -96,7 +98,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @private
@@ -117,7 +119,7 @@ function(
 				title: { type: "string", group: "Appearance", defaultValue: "" },
 
 				/**
-				 * Determines the start date used in the calendar picker, as a JavaScript date object. It is considered as a local date.
+				 * Determines the start date used in the calendar picker, as a UI5Date or JavaScript Date object. It is considered as a local date.
 				 * The time part will be ignored. The current date is used as default.
 				 */
 				startDate: { type : "object", group : "Data" },
@@ -365,7 +367,7 @@ function(
 			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_SELECT_RANGE"),
 			press: function () {
 				if (this.fireEvent("_pickerButtonPress", {}, true)) {
-					var oDate = this.getStartDate() || new Date(),
+					var oDate = this.getStartDate() || UI5Date.getInstance(),
 						sCurrentPickerId = this.getAssociation("currentPicker");
 					oPicker = Element.registry.get(sCurrentPickerId);
 					if (oPicker.displayDate) {
@@ -423,7 +425,7 @@ function(
 	PlanningCalendarHeader.prototype.onBeforeRendering = function () {
 		var bVisible = !!this.getActions().length || !!this.getTitle() || this._getOrCreateViewSwitch().getItems().length > 1;
 		var sSecondaryCalendarType = this.getProperty("_secondaryCalendarType");
-		this._getActionsToolbar().setProperty("visible", bVisible, true);
+		this._getActionsToolbar().setVisible(bVisible);
 
 		this.setPrimaryCalendarTypeToPickers(this.getProperty("_primaryCalendarType"));
 		if (sSecondaryCalendarType){
@@ -620,7 +622,7 @@ function(
 
 	PlanningCalendarHeader.prototype._handleIndexPickerSelect = function (oEvent) {
 		var iSelectedIndex = this._oIndexPicker.getSelectedIndex();
-		var oSelectedDate = new Date(this._oCalendar.getMinDate());
+		var oSelectedDate = UI5Date.getInstance(this._oCalendar.getMinDate());
 		var oRelativeInfo = this._getRelativeInfo();
 
 		oSelectedDate.setDate(oSelectedDate.getDate() + iSelectedIndex * oRelativeInfo.iIntervalSize);

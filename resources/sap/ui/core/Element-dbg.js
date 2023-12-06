@@ -18,7 +18,10 @@ sap.ui.define([
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/events/F6Navigation",
 	"./RenderManager",
-	"sap/ui/core/Configuration"
+	"./Configuration",
+	"./EnabledPropagator",
+	"./Theming",
+	"sap/ui/core/util/_LocalizationHelper"
 ],
 	function(
 		DataType,
@@ -33,7 +36,10 @@ sap.ui.define([
 		jQuery,
 		F6Navigation,
 		RenderManager,
-		Configuration
+		Configuration,
+		EnabledPropagator,
+		Theming,
+		_LocalizationHelper
 	) {
 	"use strict";
 
@@ -128,7 +134,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @public
 	 * @alias sap.ui.core.Element
 	 */
@@ -199,6 +205,7 @@ sap.ui.define([
 
 		constructor : function(sId, mSettings) {
 			ManagedObject.apply(this, arguments);
+			this._iRenderingDelegateCount = 0;
 		},
 
 		renderer : null // Element has no renderer
@@ -213,13 +220,16 @@ sap.ui.define([
 				oldElement.destroy();
 			} else {
 				var sMsg = "adding element with duplicate id '" + sId + "'";
-				// duplicate ID detected => fail or at least log a warning
-				if (Configuration.getNoDuplicateIds()) {
-					Log.error(sMsg);
-					throw new Error("Error: " + sMsg);
-				} else {
+				/**
+				 * duplicate ID detected => fail or at least log a warning
+				 * @deprecated As of Version 1.120.
+				 */
+				if (!Configuration.getNoDuplicateIds()) {
 					Log.warning(sMsg);
+					return;
 				}
+				Log.error(sMsg);
+				throw new Error("Error: " + sMsg);
 			}
 		}
 	});
@@ -509,6 +519,29 @@ sap.ui.define([
 		}
 	};
 
+	/*
+	 * Intercept any changes for properties named "enabled".
+	 *
+	 * If such a change is detected, inform all descendants that use the `EnabledPropagator`
+	 * so that they can recalculate their own, derived enabled state.
+	 * This is required in the context of rendering V4 to make the state of controls/elements
+	 * self-contained again when they're using the `EnabledPropagator` mixin.
+	 */
+	Element.prototype.setProperty = function(sPropertyName, vValue, bSuppressInvalidate) {
+		if (sPropertyName != "enabled" || bSuppressInvalidate) {
+			return ManagedObject.prototype.setProperty.apply(this, arguments);
+		}
+
+		var bOldEnabled = this.mProperties.enabled;
+		ManagedObject.prototype.setProperty.apply(this, arguments);
+		if (bOldEnabled != this.mProperties.enabled) {
+			// the EnabledPropagator knows better which descendants to update
+			EnabledPropagator.updateDescendants(this);
+		}
+
+		return this;
+	};
+
 	Element.prototype.insertDependent = function(oElement, iIndex) {
 		this.insertAggregation("dependents", oElement, iIndex, true);
 		return this; // explicitly return 'this' to fix controls that override insertAggregation wrongly
@@ -655,6 +688,39 @@ sap.ui.define([
 	Element._interceptEvent = undefined;
 
 	/**
+	 * Updates the count of rendering-related delegates and if the given threshold is reached,
+	 * informs the RenderManager` to enable/disable rendering V4 for the element.
+	 *
+	 * @param {sap.ui.core.Element} oElement The element instance
+	 * @param {object} oDelegate The delegate instance
+	 * @param {iThresholdCount} iThresholdCount Whether the delegate has been added=1 or removed=0.
+	 *    At the same time serves as threshold when to inform the `RenderManager`.
+	 * @private
+	 */
+	function updateRenderingDelegate(oElement, oDelegate, iThresholdCount) {
+		if (oDelegate.canSkipRendering || !(oDelegate.onAfterRendering || oDelegate.onBeforeRendering)) {
+			return;
+		}
+
+		oElement._iRenderingDelegateCount += (iThresholdCount || -1);
+
+		if (oElement.bOutput === true && oElement._iRenderingDelegateCount == iThresholdCount) {
+			RenderManager.canSkipRendering(oElement, 1 /* update skip-the-rendering DOM marker, only if the apiVersion is 4 */);
+		}
+	}
+
+	/**
+	 * Returns whether the element has rendering-related delegates that might prevent skipping the rendering.
+	 *
+	 * @returns {boolean}
+	 * @private
+	 * @ui5-restricted sap.ui.core.RenderManager
+	 */
+	Element.prototype.hasRenderingDelegate = function() {
+		return Boolean(this._iRenderingDelegateCount);
+	};
+
+	/**
 	 * Adds a delegate that listens to the events of this element.
 	 *
 	 * Note that the default behavior (delegate attachments are not cloned when a control is cloned) is usually the desired behavior in control development
@@ -692,6 +758,8 @@ sap.ui.define([
 		}
 
 		(bCallBefore ? this.aBeforeDelegates : this.aDelegates).push({oDelegate:oDelegate, bClone: !!bClone, vThis: ((oThis === this) ? true : oThis)}); // special case: if this element is the given context, set a flag, so this also works after cloning (it should be the cloned element then, not the given one)
+		updateRenderingDelegate(this, oDelegate, 1);
+
 		return this;
 	};
 
@@ -710,12 +778,14 @@ sap.ui.define([
 		for (i = 0; i < this.aDelegates.length; i++) {
 			if (this.aDelegates[i].oDelegate == oDelegate) {
 				this.aDelegates.splice(i, 1);
+				updateRenderingDelegate(this, oDelegate, 0);
 				i--; // One element removed means the next element now has the index of the current one
 			}
 		}
 		for (i = 0; i < this.aBeforeDelegates.length; i++) {
 			if (this.aBeforeDelegates[i].oDelegate == oDelegate) {
 				this.aBeforeDelegates.splice(i, 1);
+				updateRenderingDelegate(this, oDelegate, 0);
 				i--; // One element removed means the next element now has the index of the current one
 			}
 		}
@@ -752,6 +822,11 @@ sap.ui.define([
 	 * See {@link topic:bdf3e9818cd84d37a18ee5680e97e1c1 Event Handler Methods} for a general explanation of
 	 * event handling in controls.
 	 *
+	 * <b>Note:</b> Setting the special <code>canSkipRendering</code> property to <code>true</code> for the event delegate
+	 * object itself lets the framework know that the <code>onBeforeRendering</code> and <code>onAfterRendering</code>
+	 * event handlers of the delegate are compatible with the contract of {@link sap.ui.core.RenderManager Renderer.apiVersion 4}.
+	 * See example "Adding a rendering delegate...".
+	 *
 	 * @example <caption>Adding a delegate for the keydown and afterRendering event</caption>
 	 * <pre>
 	 * var oDelegate = {
@@ -760,6 +835,22 @@ sap.ui.define([
 	 *   },
 	 *   onAfterRendering: function(){
 	 *     // Act when the afterRendering event is fired on the element
+	 *   }
+	 * };
+	 * oElement.addEventDelegate(oDelegate);
+	 * </pre>
+	 *
+	 * @example <caption>Adding a rendering delegate that is compatible with the rendering optimization</caption>
+	 * <pre>
+	 * var oDelegate = {
+	 *   canSkipRendering: true,
+	 *   onBeforeRendering: function() {
+	 *     // Act when the beforeRendering event is fired on the element
+	 *     // The code here only accesses HTML elements inside the root node of the control
+	 *   },
+	 *   onAfterRendering: function(){
+	 *     // Act when the afterRendering event is fired on the element
+	 *     // The code here only accesses HTML elements inside the root node of the control
 	 *   }
 	 * };
 	 * oElement.addEventDelegate(oDelegate);
@@ -986,11 +1077,11 @@ sap.ui.define([
 	Element.prototype._refreshTooltipBaseDelegate = function (oTooltip) {
 		var oOldTooltip = this.getTooltip();
 		// if the old tooltip was a Tooltip object, remove it as a delegate
-		if (BaseObject.isA(oOldTooltip, "sap.ui.core.TooltipBase")) {
+		if (BaseObject.isObjectA(oOldTooltip, "sap.ui.core.TooltipBase")) {
 			this.removeDelegate(oOldTooltip);
 		}
 		// if the new tooltip is a Tooltip object, add it as a delegate
-		if (BaseObject.isA(oTooltip, "sap.ui.core.TooltipBase")) {
+		if (BaseObject.isObjectA(oTooltip, "sap.ui.core.TooltipBase")) {
 			oTooltip._currentControl = this;
 			this.addDelegate(oTooltip);
 		}
@@ -1376,6 +1467,13 @@ sap.ui.define([
 	 */
 	Element._CustomData = CustomData;
 
+	/**
+	 * Define CustomData class as the default for the built-in "customData" aggregation.
+	 * We need to do this here via the aggregation itself, since the CustomData class is
+	 * an Element subclass and thus cannot be directly referenced in Element's metadata definition.
+	 */
+	Element.getMetadata().getAggregation("customData").defaultClass = CustomData;
+
 	/*
 	 * Alternative implementation of <code>Element#data</code> which is applied after an element has been
 	 * destroyed. It prevents the creation of new CustomData instances.
@@ -1480,6 +1578,17 @@ sap.ui.define([
 	 * {@link sap.ui.core.RenderManager#accessibilityState accessibilityState} and
 	 * {@link sap.ui.core.RenderManager#writeAccessibilityState writeAccessibilityState} methods
 	 * for the parent of the currently rendered control - if the parent implements it.
+	 *
+	 * <b>Note:</b> Setting the special <code>canSkipRendering</code> property of the <code>mAriaProps</code> parameter to <code>true</code> lets the <code>RenderManager</code> know
+	 * that the accessibility enhancement is static and does not interfere with the child control's {@link sap.ui.core.RenderManager Renderer.apiVersion 4} rendering optimization.
+	 *
+	 * @example <caption>Setting an accessibility state that is compatible with the rendering optimization</caption>
+	 * <pre>
+	 * MyControl.prototype.enhanceAccessibilityState = function(oElement, mAriaProps) {
+	 *     mAriaProps.label = "An appropriate label from the parent";
+	 *     mAriaProps.canSkipRendering = true;
+	 * };
+	 * </pre>
 	 *
 	 * @function
 	 * @name sap.ui.core.Element.prototype.enhanceAccessibilityState
@@ -1763,7 +1872,7 @@ sap.ui.define([
 	 *  UI5 Element by traversing up the DOM tree
 	 * @param {boolean} [bIncludeRelated=false] Whether the <code>data-sap-ui-related</code> attribute is also accepted
 	 *  as a selector for a UI5 Element, in addition to <code>data-sap-ui</code>
-	 * @returns {sap.ui.core.Element} The UI5 Element that wraps the given DOM element. <code>undefined</code> is
+	 * @returns {sap.ui.core.Element|undefined} The UI5 Element that wraps the given DOM element. <code>undefined</code> is
 	 *  returned when no UI5 Element can be found.
 	 * @public
 	 * @since 1.106
@@ -1805,7 +1914,43 @@ sap.ui.define([
 			sId = sId || oDomRef.getAttribute("id");
 		}
 
-		return Element.registry.get(sId);
+		return Element.getElementById(sId);
+	};
+
+	/**
+	 * Returns the registered element with the given ID, if any.
+	 *
+	 * The ID must be the globally unique ID of an element, the same as returned by <code>oElement.getId()</code>.
+	 *
+	 * When the element has been created from a declarative source (e.g. XMLView), that source might have used
+	 * a shorter, non-unique local ID. A search for such a local ID cannot be executed with this method.
+	 * It can only be executed on the corresponding scope (e.g. on an XMLView instance), by using the
+	 * {@link sap.ui.core.mvc.View#byId View#byId} method of that scope.
+	 *
+	 * @param {sap.ui.core.ID|null|undefined} sId ID of the element to search for
+	 * @returns {sap.ui.core.Element|undefined} Element with the given ID or <code>undefined</code>
+	 * @public
+	 * @function
+	 * @since 1.119
+	 */
+	Element.getElementById = Element.registry.get;
+
+	/**
+	 * Returns the element currently in focus.
+	 *
+	 * @returns {sap.ui.core.Element|undefined} The currently focused element
+	 * @public
+	 * @since 1.119
+	 */
+	Element.getActiveElement = () => {
+		try {
+			var $Act = jQuery(document.activeElement);
+			if ($Act.is(":focus")) {
+				return Element.closestTo($Act[0]);
+			}
+		} catch (err) {
+			//escape eslint check for empty block
+		}
 	};
 
 	/**
@@ -1851,7 +1996,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.core.ID} id ID of the element to retrieve
 	 * @returns {sap.ui.core.Element|undefined} Element with the given ID or <code>undefined</code>
-	 * @name sap.ui.core.Element.registry.get
+	 * @name sap.ui.core.Element.getElementById
 	 * @function
 	 * @public
 	 */
@@ -1925,6 +2070,17 @@ sap.ui.define([
 	 * @function
 	 * @public
 	 */
+
+	Theming.attachApplied(function(oEvent) {
+		// notify all elements/controls via a pseudo browser event
+		var oJQueryEvent = jQuery.Event("ThemeChanged");
+		oJQueryEvent.theme = oEvent.theme;
+		Element.registry.forEach(function(oElement) {
+			oElement._handleEvent(oJQueryEvent);
+		});
+	});
+
+	_LocalizationHelper.registerForUpdate("Elements", Element.registry.all);
 
 	return Element;
 

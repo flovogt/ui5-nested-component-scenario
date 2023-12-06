@@ -5,11 +5,23 @@
  */
 
 //Provides the locale object sap.ui.core.LocaleData
-sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', './Locale', 'sap/base/assert', 'sap/base/util/LoaderExtensions', "sap/ui/core/Configuration"],
-	function(extend, BaseObject, CalendarType, Locale, assert, LoaderExtensions, Configuration) {
+sap.ui.define([
+	"./CalendarType",
+	"./Locale",
+	"sap/base/assert",
+	"sap/base/i18n/LanguageTag",
+	"sap/base/i18n/Localization",
+	"sap/base/util/extend",
+	"sap/base/util/LoaderExtensions",
+	"sap/ui/base/Object",
+	"sap/ui/core/Configuration",
+	"sap/ui/core/date/CalendarWeekNumbering"
+], function(CalendarType, Locale, assert, LanguageTag, Localization, extend, LoaderExtensions, BaseObject,
+		Configuration, CalendarWeekNumbering) {
 	"use strict";
 
-	var rEIgnoreCase = /e/i,
+	var rCIgnoreCase = /c/i,
+		rEIgnoreCase = /e/i,
 		/*
 		* With the upgrade of the CLDR to version 41 some unit keys have changed.
 		* For compatibility reasons this map is used for formatting units.
@@ -20,6 +32,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			"concentr-milligram-per-deciliter": "concentr-milligram-ofglucose-per-deciliter",
 			"concentr-part-per-million": "concentr-permillion",
 			"consumption-liter-per-100kilometers": "consumption-liter-per-100-kilometer",
+			"mass-metric-ton": "mass-tonne",
 			"pressure-millimeter-of-mercury": "pressure-millimeter-ofhg",
 			"pressure-pound-per-square-inch": "pressure-pound-force-per-square-inch",
 			"pressure-inch-hg": "pressure-inch-ofhg",
@@ -27,6 +40,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 		rNumberInScientificNotation = /^([+-]?)((\d+)(?:\.(\d+))?)[eE]([+-]?\d+)$/,
 		rTrailingZeroes = /0+$/;
+	const rFallbackPatternTextParts = /(.*)?\{[0|1]}(.*)?\{[0|1]}(.*)?/;
 
 	/**
 	 * Creates an instance of LocaleData for the given locale.
@@ -37,16 +51,16 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @public
 	 * @alias sap.ui.core.LocaleData
 	 */
 	var LocaleData = BaseObject.extend("sap.ui.core.LocaleData", /** @lends sap.ui.core.LocaleData.prototype */ {
 
 		constructor: function(oLocale) {
-			this.oLocale = oLocale;
 			BaseObject.apply(this);
-			var oDataLoaded = getData(oLocale);
+			this.oLocale = Locale._getCoreLocale(oLocale);
+			var oDataLoaded = getData(this.oLocale);
 			this.mData = oDataLoaded.mData;
 			this.sCLDRLocaleId = oDataLoaded.sCLDRLocaleId;
 		},
@@ -104,48 +118,100 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * @private
 		 * @ui5-restricted sap.ushell
 		 */
-		getCurrentLanguageName: function() {
-			var oLanguages = this.getLanguages();
-			var sCurrentLanguage;
-			var sLanguage = this.oLocale.getModernLanguage();
-			var sScript = this.oLocale.getScript();
+		getCurrentLanguageName: function () {
+			return this.getLanguageName(this.oLocale.toString());
+		},
+
+		/**
+		 * Gets the locale-specific language name for the given language tag.
+		 *
+		 * The languages returned by {@link #getLanguages} from the CLDR raw data do not contain the
+		 * language names if they can be derived from the language and the script or the territory.
+		 * If the map of languages contains no entry for the given language tag, derive the language
+		 * name from the used script or region.
+		 *
+		 * @param {string} sLanguageTag
+		 *   The language tag, for example "en", "en-US", "en_US", "zh-Hant", or "zh_Hant"
+		 * @returns {string|undefined}
+		 *   The language name, or <code>undefined</code> if the name cannot be determined
+		 * @throws {TypeError} When the given language tag isn't valid
+		 *
+		 * @public
+		 */
+		getLanguageName: function (sLanguageTag) {
+			const oLanguageTag = new LanguageTag(sLanguageTag);
+			let sLanguage = Localization.getModernLanguage(oLanguageTag.language);
+			let sScript = oLanguageTag.script;
 			// special case for "sr_Latn" language: "sh" should then be used
-			// the key used in the languages object for serbian latin is "sh"
 			if (sLanguage === "sr" && sScript === "Latn") {
 				sLanguage = "sh";
 				sScript = null;
 			}
-			if (this.oLocale.getRegion()) {
-				// fall back to language and region, e.g. "en_GB"
-				sCurrentLanguage = oLanguages[sLanguage + "_" + this.oLocale.getRegion()];
+			const sRegion = oLanguageTag.region;
+			const oLanguages = this._get("languages");
+			const sLanguageText = oLanguages[sLanguage];
+			if (!sScript && !sRegion || !sLanguageText) {
+				return sLanguageText;
 			}
 
-			if (!sCurrentLanguage && sScript) {
-				// fall back to language and script, e.g. "zh_Hant"
-				sCurrentLanguage = oLanguages[sLanguage + "_" + sScript];
+			const sResult = oLanguages[sLanguage + "_" + sRegion] || oLanguages[sLanguage + "_" + sScript];
+			if (sResult) {
+				return sResult;
 			}
 
-			if (!sCurrentLanguage) {
-				// fall back to language only, e.g. "en"
-				sCurrentLanguage = oLanguages[sLanguage];
+			if (sScript) {
+				const sScriptText = this._get("scripts")[sScript];
+				if (sScriptText) {
+					return sLanguageText + " (" + sScriptText + ")";
+				}
 			}
-			return sCurrentLanguage;
+			if (sRegion) {
+				const sRegionText = this._get("territories")[sRegion];
+				if (sRegionText) {
+					return sLanguageText + " (" + sRegionText + ")";
+				}
+			}
+
+			return sLanguageText;
 		},
 
 		/**
-		 * Get locale specific language names.
+		 * Gets locale-specific language names, as available in the CLDR raw data.
 		 *
-		 * @returns {Object<string, string>} map of locale specific language names
+		 * To avoid redundancies, with CLDR version 43 only language names are contained which cannot be derived from
+		 * the language and the script or the territory. If a language tag is not contained in the map, use
+		 * {@link #getLanguageName} to get the derived locale-specific language name for that language tag.
+		 *
+		 * @returns {Object<string, string>} Maps a language tag to the locale-specific language name
+		 *
 		 * @public
 		 */
 		getLanguages: function() {
-			return this._get("languages");
+			const oLanguages = this._get("languages");
+			/** @deprecated As of version 1.120.0 */
+			[
+				"ar_001", "de_AT", "de_CH", "en_AU", "en_CA", "en_GB", "en_US", "es_419", "es_ES", "es_MX", "fa_AF",
+				"fr_CA", "fr_CH", "nds_NL", "nl_BE", "pt_BR", "pt_PT", "ro_MD", "sw_CD", "zh_Hans", "zh_Hant"
+			].forEach((sLanguageTag) => {
+				// for compatibility reasons, ensure that for these language tags the corresponding language names are
+				// available
+				if (!oLanguages[sLanguageTag]) {
+					oLanguages[sLanguageTag] = this.getLanguageName(sLanguageTag);
+				}
+			});
+
+			return oLanguages;
 		},
 
 		/**
-		 * Get locale specific script names.
+		 * Gets locale-specific script names, as available in the CLDR raw data.
 		 *
-		 * @returns {Object.<string, string>} map of locale specific script names
+		 * To avoid redundancies, with CLDR version 43 only scripts are contained for which the language-specific name
+		 * is different from the script key. If a script key is not contained in the map, use the script key as script
+		 * name.
+		 *
+		 * @returns {Object<string, string>} Maps a script key to the locale-specific script name
+		 *
 		 * @public
 		 */
 		getScripts: function() {
@@ -153,9 +219,13 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		},
 
 		/**
-		 * Get locale specific territory names.
+		 * Gets locale-specific territory names, as available in the CLDR raw data.
 		 *
-		 * @returns {Object.<string, string>} map of locale specific territory names
+		 * To avoid redundancies, with CLDR version 43 only territories are contained for which the language-specific
+		 * name is different from the territory key.
+		 *
+		 * @returns {Object<string, string>} Maps a territory key to the locale-specific territory name
+		 *
 		 * @public
 		 */
 		getTerritories: function() {
@@ -513,15 +583,22 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * }
 		 * </pre>
 		 *
-		 * @return {Object<string, string>} the mapping, with 'key' being the IANA timezone ID, and 'value' being the translation.
-		 * @ui5-restricted sap.ui.core.format.DateFormat, sap.ui.export
+		 * @return {Object<string, string>} the mapping, with 'key' being the IANA timezone ID, and
+		 * 'value' being the translation.
+		 * @ui5-restricted sap.ui.core.format.DateFormat, sap.ui.export, sap.ushell
 		 * @private
 		 */
 		getTimezoneTranslations: function() {
-			this.mTimezoneTranslations = this.mTimezoneTranslations || _resolveTimezoneTranslationStructure(this._get("timezoneNames"));
+			var sLocale = this.oLocale.toString();
+			var mTranslations = LocaleData._mTimezoneTranslations[sLocale];
+
+			if (!mTranslations) {
+				LocaleData._mTimezoneTranslations[sLocale] = mTranslations =
+					_resolveTimezoneTranslationStructure(this._get("timezoneNames"));
+			}
 
 			// retrieve a copy such that the original object won't be modified.
-			return Object.assign({}, this.mTimezoneTranslations);
+			return Object.assign({}, mTranslations);
 		},
 
 		/**
@@ -587,10 +664,15 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * @since 1.46
 		 * @public
 		 */
-		getCombinedIntervalPattern : function(sPattern, sCalendarType) {
-			var oIntervalFormats = this._get(getCLDRCalendarName(sCalendarType), "dateTimeFormats", "intervalFormats"),
-				sFallbackPattern = oIntervalFormats.intervalFormatFallback;
-			return sFallbackPattern.replace(/\{(0|1)\}/g, sPattern);
+		getCombinedIntervalPattern: function (sPattern, sCalendarType) {
+			const oIntervalFormats = this._get(getCLDRCalendarName(sCalendarType), "dateTimeFormats",
+				"intervalFormats");
+			const [/*sAll*/, sTextBefore, sTextBetween, sTextAfter] =
+				rFallbackPatternTextParts.exec(oIntervalFormats.intervalFormatFallback);
+
+			// text part of intervalFormatFallback is not escaped
+			return LocaleData._escapeIfNeeded(sTextBefore) + sPattern + LocaleData._escapeIfNeeded(sTextBetween)
+				+ sPattern + LocaleData._escapeIfNeeded(sTextAfter);
 		},
 
 		/**
@@ -1312,7 +1394,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		 * Returns the currency symbols available for this locale.
 		 * Currency symbols get accumulated by custom currency symbols.
 		 *
-		 * @returns {Object.<string, string>} the map of all currency symbols available in this locale, e.g.
+		 * @returns {Object<string, string>} the map of all currency symbols available in this locale, e.g.
 		 * {
 		 *     "AUD": "A$",
 		 *     "BRL": "R$",
@@ -1815,7 +1897,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			var oMessageBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core", this.oLocale.toString()),
 				sKey = "date.week.calendarweek." + sStyle;
 
-			return oMessageBundle.getText(sKey, iWeekNumber);
+			return oMessageBundle.getText(sKey, iWeekNumber ? [iWeekNumber] : undefined);
 		},
 
 		/**
@@ -1881,20 +1963,29 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 
 		/**
 		 * Returns the plural category (zero, one, two, few, many or other) for the given number value.
-		 * The number should be passed as a string with dot as decimal separator and the number of decimal/fraction digits
-		 * as used in the final output. This is needed in order to preserve trailing zeros which are relevant to
-		 * determine the right plural category.
+		 * The number must be passed as an unformatted number string with dot as decimal
+		 * separator (for example "12345.67"). To determine the correct plural category, it
+		 * is also necessary to keep the same number of decimal digits as given in the formatted
+		 * output string. For example "1" and "1.0" could be in different plural categories as
+		 * the number of decimal digits is different.
 		 *
-		 * @param {string|number} sNumber The number to find the plural category for
+		 * Compact numbers (for example in "short" format) must be provided in the
+		 * locale-independent CLDR compact notation. This notation uses the plural rule operand "c"
+		 * for the compact decimal exponent, for example "1.2c3" for "1.2K" (1200) or "4c6" for
+		 * "4M" (4000000).
+		 *
+		 * Note that the operand "e" is deprecated, but is a synonym corresponding to the CLDR
+		 * specification for "c" and may be redefined in the future.
+		 *
+		 * @param {string|number} vNumber The number to find the plural category for
 		 * @returns {string} The plural category
 		 * @public
 		 * @since 1.50
 		 */
-		getPluralCategory: function(sNumber) {
-			var oPlurals = this._get("plurals");
-			if (typeof sNumber === "number") {
-				sNumber = sNumber.toString();
-			}
+		getPluralCategory: function(vNumber) {
+			var sNumber = (typeof vNumber === "number") ? vNumber.toString() : vNumber,
+				oPlurals = this._get("plurals");
+
 			if (!this._pluralTest) {
 				this._pluralTest = {};
 			}
@@ -2081,8 +2172,11 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 				throw new Error("Not completely parsed");
 			}
 			return function(sValue) {
-				var iDotPos, iExponent, sFraction, sFractionNoZeros, sInteger, o,
-					iExponentPos = sValue.search(rEIgnoreCase);
+				var iDotPos, iExponent, iExponentPos, sFraction, sFractionNoZeros, sInteger, o;
+
+				// replace compact operand "c" to scientific "e" to be convertible in LocaleData.convertToDecimal
+				sValue = sValue.replace(rCIgnoreCase, "e");
+				iExponentPos = sValue.search(rEIgnoreCase);
 
 				iExponent = iExponentPos < 0 ? 0 : parseInt(sValue.slice(iExponentPos + 1));
 				sValue = LocaleData.convertToDecimal(sValue);
@@ -2095,7 +2189,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 				} else {
 					sInteger = sValue.slice(0, iDotPos);
 					sFraction = sValue.slice(iDotPos + 1);
-					sFractionNoZeros = sFraction.replace(rTrailingZeroes, '');
+					sFractionNoZeros = sFraction.replace(rTrailingZeroes, "");
 				}
 
 				o = {
@@ -2211,10 +2305,34 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		"A": { group: "Other", numericCeiling: 100}
 	};
 
-	var M_ISO639_OLD_TO_NEW = {
-			"iw" : "he",
-			"ji" : "yi"
-	};
+	/**
+	 * Helper to analyze and parse designtime (aka buildtime) variables
+	 *
+	 * At buildtime, the build can detect a pattern like $some-variable-name:some-value$
+	 * and replace 'some-value' with a value determined at buildtime (here: the actual list of locales).
+	 *
+	 * At runtime, this method removes the surrounding pattern ('$some-variable-name:' and '$') and leaves only the 'some-value'.
+	 * Additionally, this value is parsed as a comma-separated list (because this is the only use case here).
+	 *
+	 * The mimic of the comments is borrowed from the CVS (Concurrent Versions System),
+	 * see http://web.mit.edu/gnu/doc/html/cvs_17.html.
+	 *
+	 * If no valid <code>sValue</code> is given, <code>null</code> is returned
+	 *
+	 * @param {string} sValue The raw designtime property e.g. $cldr-rtl-locales:ar,fa,he$
+	 * @returns {string[]|null} The designtime property e.g. ['ar', 'fa', 'he']
+	 * @private
+	 */
+	 function getDesigntimePropertyAsArray(sValue) {
+		var m = /\$([-a-z0-9A-Z._]+)(?::([^$]*))?\$/.exec(sValue);
+		return (m && m[2]) ? m[2].split(/,/) : null;
+	}
+
+	/**
+	 * A list of locales for which CLDR data is bundled with the UI5 runtime.
+	 * @private
+	 */
+	var _cldrLocales = getDesigntimePropertyAsArray("$cldr-locales:ar,ar_EG,ar_SA,bg,ca,cy,cs,da,de,de_AT,de_CH,el,el_CY,en,en_AU,en_GB,en_HK,en_IE,en_IN,en_NZ,en_PG,en_SG,en_ZA,es,es_AR,es_BO,es_CL,es_CO,es_MX,es_PE,es_UY,es_VE,et,fa,fi,fr,fr_BE,fr_CA,fr_CH,fr_LU,he,hi,hr,hu,id,it,it_CH,ja,kk,ko,lt,lv,ms,nb,nl,nl_BE,pl,pt,pt_PT,ro,ru,ru_UA,sk,sl,sr,sr_Latn,sv,th,tr,uk,vi,zh_CN,zh_HK,zh_SG,zh_TW$");
 
 	/**
 	 * A set of locales for which the UI5 runtime contains a CLDR JSON file.
@@ -2224,7 +2342,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 	 * @private
 	 */
 	var M_SUPPORTED_LOCALES = (function() {
-		var LOCALES = Locale._cldrLocales,
+		var LOCALES = _cldrLocales,
 			result = {},
 			i;
 
@@ -2382,7 +2500,7 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 		}
 
 		// normalize language and handle special cases
-		sLanguage = (sLanguage && M_ISO639_OLD_TO_NEW[sLanguage]) || sLanguage;
+		sLanguage = (sLanguage && Localization.getModernLanguage(sLanguage)) || sLanguage;
 		// Special case 1: in an SAP context, the inclusive language code "no" always means Norwegian Bokmal ("nb")
 		if ( sLanguage === "no" ) {
 			sLanguage = "nb";
@@ -2492,6 +2610,51 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 			var mCustomData = this._getDeep(this.mCustomData, arguments);
 
 			return extend({}, mData, mCustomData);
+		},
+
+		/**
+		 * Returns the first day of the week defined by the calendar week numbering algorithm
+		 * set in the configuration, see {@link sap.ui.core.Configuration#setCalendarWeekNumbering}.
+		 * If no specific calendar week numbering algorithm is configured the value set by
+		 * {@link sap.ui.core.Configuration#setFirstDayOfWeek} is returned. Otherwise the first day
+		 * of the week is determined by the current locale, see {@link sap.ui.core.LocaleData#getFirstDayOfWeek}.
+		 *
+		 * Days are encoded as integer where Sunday=0, Monday=1 etc.
+		 *
+		 * @returns {int} The first day of week
+		 * @override sap.ui.core.LocalData#getFirstDayOfWeek
+		 * @since 1.113.0
+		 */
+		getFirstDayOfWeek: function() {
+			var sCalendarWeekNumbering = Configuration.getCalendarWeekNumbering();
+
+			if (sCalendarWeekNumbering === CalendarWeekNumbering.Default) {
+				return LocaleData.prototype.getFirstDayOfWeek.call(this);
+			}
+
+			return CalendarWeekNumbering.getWeekConfigurationValues(sCalendarWeekNumbering).firstDayOfWeek;
+		},
+
+		/**
+		 * Returns the required minimal number of days for the first week of a year defined by the
+		 * calendar week numbering algorithm set in the configuration,
+		 * see {@link sap.ui.core.Configuration#setCalendarWeekNumbering}.
+		 * If no specific calendar week numbering algorithm is configured the required minimal number
+		 * of days for the first week of a year is determined by the current locale,
+		 * see {@link sap.ui.core.LocaleData#getMinimalDaysInFirstWeek}.
+		 *
+		 * @returns {int} The required minimal number of days for the first week of a year
+		 * @override sap.ui.core.LocalData#getMinimalDaysInFirstWeek
+		 * @since 1.113.0
+		 */
+		getMinimalDaysInFirstWeek: function() {
+			var sCalendarWeekNumbering = Configuration.getCalendarWeekNumbering();
+
+			if (sCalendarWeekNumbering === CalendarWeekNumbering.Default) {
+				return LocaleData.prototype.getMinimalDaysInFirstWeek.call(this);
+			}
+
+			return CalendarWeekNumbering.getWeekConfigurationValues(sCalendarWeekNumbering).minimalDaysInFirstWeek;
 		}
 	});
 
@@ -2499,9 +2662,36 @@ sap.ui.define(['sap/base/util/extend', 'sap/ui/base/Object', './CalendarType', '
 	 *
 	 */
 	LocaleData.getInstance = function(oLocale) {
+		oLocale = Locale._getCoreLocale(oLocale);
 		return oLocale.hasPrivateUseSubtag("sapufmt") ? new CustomLocaleData(oLocale) : new LocaleData(oLocale);
 	};
 
-	return LocaleData;
+	LocaleData._cldrLocales = _cldrLocales;
+	// maps a locale to a map of time zone translations, which maps an IANA time zone ID to the translated time zone
+	// name
+	LocaleData._mTimezoneTranslations = {};
 
+	const rContainsSymbol = new RegExp("[" + Object.keys(mCLDRSymbols).join("") + "]");
+	const rTextWithOptionalSpacesAtStartAndEnd = /^(\s)?(.*?)(\s)?$/;
+
+	/**
+	 * Returns the escaped value if the given value contains CLDR symbols.
+	 *
+	 * @param {string} [sValue=""]
+	 *   The value to be checked and escaped if needed; the value must not contain '
+	 * @returns {string}
+	 *   The escaped value; only the string between one optional space at the beginning and at the
+	 *   end is escaped
+	 */
+	LocaleData._escapeIfNeeded = function (sValue) {
+		if (sValue === undefined) {
+			return "";
+		}
+		if (rContainsSymbol.test(sValue)) {
+			return sValue.replace(rTextWithOptionalSpacesAtStartAndEnd, "$1'$2'$3");
+		}
+		return sValue;
+	};
+
+	return LocaleData;
 });

@@ -19,7 +19,8 @@ sap.ui.define([
 	'sap/ui/core/library',
 	'sap/ui/Device',
 	"./DateTimeInputRenderer",
-	"sap/ui/core/Configuration"
+	"sap/ui/core/Configuration",
+	"sap/ui/core/date/UI5Date"
 ],
 function(
 	jQuery,
@@ -35,7 +36,8 @@ function(
 	coreLibrary,
 	Device,
 	DateTimeInputRenderer,
-	Configuration
+	Configuration,
+	UI5Date
 ) {
 	"use strict";
 
@@ -64,7 +66,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -361,7 +363,7 @@ function(
 
 		sValue = this.validateProperty("value", sValue);
 		if (sValue.toLowerCase() == "now") {
-			return this.setDateValue(new Date());
+			return this.setDateValue(UI5Date.getInstance());
 		}
 
 		if (sValue === this.getValue()) {

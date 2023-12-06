@@ -14,6 +14,7 @@ sap.ui.define([
 	function(BaseObject, EventProvider, assert, Log) {
 	"use strict";
 
+	let oEventBus;
 
 	/**
 	 * Creates an instance of EventBus.
@@ -30,7 +31,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @public
 	 * @since 1.8.0
 	 * @alias sap.ui.core.EventBus
@@ -55,7 +56,7 @@ sap.ui.define([
 	 *                         events on this channel but is not allowed to publish its own events there.
 	 * @param {string}
 	 *            sEventId The identifier of the event to listen for
-	 * @param {function}
+	 * @param {function(string, string, Object)}
 	 *            fnFunction The handler function to call when the event occurs. This function will be called in the context of the
 	 *                       <code>oListener</code> instance (if present) or on the event bus instance. The channel is provided as first argument of the handler, and
 	 *                       the event identifier is provided as the second argument. The parameter map carried by the event is provided as the third argument (if present).
@@ -95,7 +96,7 @@ sap.ui.define([
 	 *                         events on this channel but is not allowed to publish its own events there.
 	 * @param {string}
 	 *            sEventId The identifier of the event to listen for
-	 * @param {function}
+	 * @param {function(string, string, Object)}
 	 *            fnFunction The handler function to call when the event occurs. This function will be called in the context of the
 	 *                       <code>oListener</code> instance (if present) or on the event bus instance. The channel is provided as first argument of the handler, and
 	 *                       the event identifier is provided as the second argument. The parameter map carried by the event is provided as the third argument (if present).
@@ -131,7 +132,7 @@ sap.ui.define([
 	 *            [sChannelId] The channel of the event to unsubscribe from. If not given, the default channel is used.
 	 * @param {string}
 	 *            sEventId The identifier of the event to unsubscribe from
-	 * @param {function}
+	 * @param {function(string, string, Object)}
 	 *            fnFunction The handler function to unsubscribe from the event
 	 * @param {object}
 	 *            [oListener] The object that wanted to be notified when the event occurred
@@ -298,7 +299,23 @@ sap.ui.define([
 		}
 		return oChannel;
 	}
+	/**
+	 * Returns the singleton instance of the EventBus for global usage.
+	 *
+	 * @return {sap.ui.core.EventBus} the event bus
+	 * @since 1.119.0
+	 * @public
+	 */
+	EventBus.getInstance = () => {
+		if (!oEventBus) {
+			oEventBus = new EventBus();
+			// protect against destruction
+			oEventBus.destroy = () => {
+				Log.error("Global EventBus cannot be destroyed!");
+			};
+		}
+		return oEventBus;
+	};
 
 	return EventBus;
-
 });

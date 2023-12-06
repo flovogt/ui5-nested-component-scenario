@@ -14,6 +14,8 @@ sap.ui.define([
 ], function(BaseObject, Utils, includeStylesheet, Element, require) {
 	"use strict";
 
+	var globalSetOfUndestroyableIDs = new Set();
+
 	/**
 	 * Handles test setup and execution.
 	 * Single controls/elements are to be tested via the specific sub-classes by
@@ -24,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @since 1.100
 	 */
 	return BaseObject.extend("sap.ui.test.generic.TestBase", {
@@ -34,7 +36,7 @@ sap.ui.define([
 		 *
 		 * @private
 		 * @param {sap.ui.test.generic.ClassInfo} oClassInfo Info object containing the <code>sap.ui.test.generic.ClassInfo</code> object
-		 * @param {QUnit.assert} assert QUnit Assert class of which instances are passed as the argument to QUnit.test() callbacks
+		 * @param {QUnit.Assert} assert QUnit Assert class of which instances are passed as the argument to QUnit.test() callbacks
 		 * @return {boolean} Returns 'true' if control should not be tested
 		 *
 		 */
@@ -47,7 +49,7 @@ sap.ui.define([
 		 * Must be implemented by sub-classes.
 		 *
 		 * @param {sap.ui.test.generic.ClassInfo} oClassInfo Info object containing the <code>sap.ui.test.generic.ClassInfo</code> object
-		 * @param {QUnit.assert} assert QUnit Assert class of which instances are passed as the argument to QUnit.test() callbacks
+		 * @param {QUnit.Assert} assert QUnit Assert class of which instances are passed as the argument to QUnit.test() callbacks
 		 * @private
 		 * @abstract
 		 */
@@ -129,9 +131,17 @@ sap.ui.define([
 				includeElements: mParams && mParams.includeElements
 			}).then(function(aClassInfo) {
 				QUnit.module(this.getMetadata().getName() + " Tests - " + this._sLibName, {
-					afterEach: function() {
+					afterEach: function(assert) {
 						Element.registry.forEach(function(oElement, sId) {
-							oElement.destroy();
+							try {
+								oElement.destroy();
+							} catch (error) {
+								// destroy failed for some reason
+								if (!globalSetOfUndestroyableIDs.has(sId)) {
+									globalSetOfUndestroyableIDs.add(sId);
+									assert.notOk(sId, "Destruction of element with id '" + sId + "' failed.");
+								}
+							}
 						});
 					}
 				});

@@ -5,10 +5,9 @@
  */
 sap.ui.define([
 	"./TargetCache",
-	"sap/base/util/UriParameters",
 	"sap/base/Log"
 ],
-	function(TargetCache, UriParameters, Log) {
+	function(TargetCache, Log) {
 		"use strict";
 
 		/**
@@ -39,7 +38,7 @@ sap.ui.define([
 
 				// temporarily: for checking the url param
 				function checkUrl() {
-					if (UriParameters.fromQuery(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
+					if (new URLSearchParams(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
 						Log.warning("Activation of async view loading in routing via url parameter is only temporarily supported and may be removed soon", "TargetCache");
 						return true;
 					}
@@ -64,7 +63,7 @@ sap.ui.define([
 			 * So you can retrieve the view later by calling the {@link sap.ui.core.UIComponent#byId} function of the UIComponent.
 			 *
 			 * @param {string} oOptions.viewName If you do not use setView please see {@link sap.ui.view} for the documentation. This is used as a key in the cache of the Views instance. If you want to retrieve a view that has been given an alternative name in {@link #setView} you need to provide the same name here and you can skip all the other viewOptions.
-			 * @return {Promise} A promise that is resolved when the view is loaded {@link sap.ui.core.mvc.View#loaded}. The view instance will be passed to the promise.
+			 * @return {Promise<sap.ui.core.mvc.View>} A promise that is resolved when the view is loaded {@link sap.ui.core.mvc.View#loaded}. The view instance will be passed to the promise.
 			 * @public
 			 */
 			getView: function(oOptions) {

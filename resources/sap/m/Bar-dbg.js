@@ -57,7 +57,7 @@ sap.ui.define([
 	 * @implements sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -170,6 +170,9 @@ sap.ui.define([
 	Bar.prototype.exit = function() {
 		this._removeAllListeners();
 
+		/**
+		 * @deprecated As of version 1.16
+		 */
 		if (this._oflexBox) {
 
 			this._oflexBox.destroy();
@@ -225,8 +228,15 @@ sap.ui.define([
 		this._removeAllListeners();
 
 		var bContentLeft = !!this.getContentLeft().length,
-			bContentMiddle = !!this.getContentMiddle().length || (this._oflexBox && !!this._oflexBox.getItems().length),
+			bContentMiddle = !!this.getContentMiddle().length,
 			bContentRight = !!this.getContentRight().length;
+
+		/**
+		 * @deprecated As of version 1.16
+		 */
+		 if (!bContentMiddle){
+			bContentMiddle = (this._oflexBox && !!this._oflexBox.getItems().length);
+		}
 
 		//Invisible bars also do not need resize listeners
 		if (!this.getVisible()) {
@@ -242,10 +252,14 @@ sap.ui.define([
 		this._$RightBar = this.$("BarRight");
 		this._$MidBarPlaceHolder = this.$("BarPH");
 
-		this._updatePosition(bContentLeft, bContentMiddle, bContentRight);
 
 		this._sResizeListenerId = ResizeHandler.register(this.getDomRef(), jQuery.proxy(this._handleResize, this));
-		if (this.getEnableFlexBox()) {
+
+		/**
+		 * @deprecated As of version 1.16
+		 */
+		if (this.getEnableFlexBox()){
+			this._updatePosition(bContentLeft, bContentMiddle, bContentRight);
 			return;
 		}
 
@@ -265,6 +279,9 @@ sap.ui.define([
 		} else {
 			this._$RightBar.addClass("sapMBarEmpty");
 		}
+
+		this._updatePosition(bContentLeft, bContentMiddle, bContentRight);
+
 	};
 
 	/**
@@ -346,10 +363,13 @@ sap.ui.define([
 	Bar.prototype._getMidBarCss = function(iRightBarWidth, iBarWidth, iLeftBarWidth) {
 		var iMidBarPlaceholderWidth = this._$MidBarPlaceHolder.outerWidth(true),
 			bRtl = Configuration.getRTL(),
-			sLeftOrRight = bRtl ? "right" : "left",
 			oMidBarCss = { visibility : "" };
 
+		/**
+		 * @deprecated As of version 1.16
+		 */
 		if (this.getEnableFlexBox()) {
+			var sLeftOrRight = bRtl ? "right" : "left";
 
 			iMidBarPlaceholderWidth = iBarWidth - iLeftBarWidth - iRightBarWidth - parseInt(this._$MidBarPlaceHolder.css('margin-left')) - parseInt(this._$MidBarPlaceHolder.css('margin-right'));
 

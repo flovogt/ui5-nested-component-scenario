@@ -7,9 +7,10 @@
 // Provides control sap.m.ViewSettingsDialog.
 sap.ui.define([
 	'./library',
-	'sap/ui/core/Core',
 	'sap/ui/core/Control',
+	'sap/ui/core/Element',
 	'sap/ui/core/IconPool',
+	'sap/ui/core/Lib',
 	'./Toolbar',
 	'./CheckBox',
 	'./SearchField',
@@ -31,6 +32,8 @@ sap.ui.define([
 	'sap/ui/core/InvisibleText',
 	'./ViewSettingsDialogRenderer',
 	"sap/m/GroupHeaderListItem",
+	"sap/ui/base/Object",
+	"sap/ui/core/StaticArea",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "firstFocusableDomRef"
@@ -38,9 +41,10 @@ sap.ui.define([
 ],
 function(
 	library,
-	Core,
 	Control,
+	Element,
 	IconPool,
+	Library,
 	Toolbar,
 	CheckBox,
 	SearchField,
@@ -62,6 +66,8 @@ function(
 	InvisibleText,
 	ViewSettingsDialogRenderer,
 	GroupHeaderListItem,
+	BaseObject,
+	StaticArea,
 	Log,
 	jQuery
 ) {
@@ -144,7 +150,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -342,7 +348,7 @@ function(
 	ViewSettingsDialog.prototype.init = function() {
 		var sId = this.getId();
 
-		this._rb                            = Core.getLibraryResourceBundle("sap.m");
+		this._rb                            = Library.getResourceBundleFor("sap.m");
 		this._sDialogWidth                  = "350px";
 		this._sDialogHeight                 = "434px";
 
@@ -419,8 +425,7 @@ function(
 		// sap.ui.core.Popup removes its content on close()/destroy() automatically from the static UIArea,
 		// but only if it added it there itself. As we did that, we have to remove it also on our own
 		if ( this._bAppendedToUIArea && this._dialog ) {
-			var oStatic = Core.getStaticAreaRef();
-			oStatic = Core.getUIArea(oStatic);
+			var oStatic = StaticArea.getUIArea();
 			oStatic.removeContent(this._dialog, true);
 		}
 
@@ -615,7 +620,7 @@ function(
 	};
 
 	ViewSettingsDialog.prototype._createListItemPropertyValue = function(sType, sPropertyName, oVSItem) {
-		var vVal = oVSItem.getMetadata().getAllProperties()[sPropertyName].get(oVSItem),
+		var vVal = ManagedObject.escapeSettingsValue(oVSItem.getMetadata().getAllProperties()[sPropertyName].get(oVSItem)),
 			fn = this.mToList[sType].itemPropertyMap[sPropertyName].fn;
 		return fn ? fn(vVal) : vVal;
 	};
@@ -1206,7 +1211,7 @@ function(
 			);
 
 		if (!oItem && (typeof vItemOrKey === "string")) {
-			oItem = Core.byId(vItemOrKey);
+			oItem = Element.getElementById(vItemOrKey);
 		}
 
 		//change selected item only if it is found among the sort items or if there is no selected item
@@ -1251,7 +1256,7 @@ function(
 			);
 
 		if (!oItem && (typeof vItemOrKey === "string")) {
-			oItem = Core.byId(vItemOrKey);
+			oItem = Element.getElementById(vItemOrKey);
 		}
 
 		// if no Item is found and the key is empty set the default "None" item as selected
@@ -1331,8 +1336,7 @@ function(
 		// add to static UI area manually because we don't have a renderer
 
 		if (!this.getParent() && !this._bAppendedToUIArea) {
-			var oStatic = Core.getStaticAreaRef();
-			oStatic = Core.getUIArea(oStatic);
+			var oStatic = StaticArea.getUIArea();
 			// add as content the Dialog to the Static area and not the ViewSettingsDialog
 			// once the Static area is invalidated, the Dialog will be rendered and not the ViewSettingsDialog which has no renderer
 			// and uses the renderer of the Dialog
@@ -1350,11 +1354,14 @@ function(
 
 		// store the current dialog state to be able to reset it on cancel
 		this._oPreviousState = {
-			sortItem : Core.byId(this._getSelectedSortItem()),
+			sortItem : Element.getElementById(this._getSelectedSortItem()),
 			sortDescending : this.getSortDescending(),
-			groupItem : Core.byId(this._getSelectedGroupItem()),
+			groupItem : Element.getElementById(this._getSelectedGroupItem()),
 			groupDescending : this.getGroupDescending(),
-			presetFilterItem : Core.byId(this.getSelectedPresetFilterItem()),
+			presetFilterItem : Element.getElementById(this.getSelectedPresetFilterItem()),
+			/**
+			 * @deprecated as of version 1.42
+			 */
 			filterKeys : this.getSelectedFilterKeys(),
 			filterCompoundKeys: this.getSelectedFilterCompoundKeys(),
 			navPage : this._getNavContainer().getCurrentPage(),
@@ -1415,11 +1422,11 @@ function(
 		var aSelectedFilterItems = [], aFilterItems = this.getFilterItems(), aSubFilterItems, bMultiSelect = true, i = 0, j;
 
 		for (; i < aFilterItems.length; i++) {
-			if (aFilterItems[i] instanceof sap.m.ViewSettingsCustomItem) {
+			if (BaseObject.isObjectA(aFilterItems[i], "sap.m.ViewSettingsCustomItem")) {
 				if (aFilterItems[i].getSelected()) {
 					aSelectedFilterItems.push(aFilterItems[i]);
 				}
-			} else if (aFilterItems[i] instanceof sap.m.ViewSettingsFilterItem) {
+			} else if (BaseObject.isObjectA(aFilterItems[i], "sap.m.ViewSettingsFilterItem")) {
 				aSubFilterItems = aFilterItems[i].getItems();
 				bMultiSelect = aFilterItems[i].getMultiSelect();
 				for (j = 0; j < aSubFilterItems.length; j++) {
@@ -1458,17 +1465,17 @@ function(
 
 		if (oPresetFilterItem) {
 			// preset filter: add "filter name"
-			sFilterString = this._rb.getText("VIEWSETTINGS_FILTERTEXT").concat(" " + Core.byId(oPresetFilterItem).getText());
+			sFilterString = this._rb.getText("VIEWSETTINGS_FILTERTEXT").concat(" " + Element.getElementById(oPresetFilterItem).getText());
 		} else { // standard & custom filters
 			for (; i < aFilterItems.length; i++) {
 				bSelectedFilters = false;
-				if (aFilterItems[i] instanceof sap.m.ViewSettingsCustomItem) {
+				if (BaseObject.isObjectA(aFilterItems[i], "sap.m.ViewSettingsCustomItem")) {
 					// custom filter: add "filter name,"
 					if (aFilterItems[i].getSelected()) {
 						bSelectedFilters = true;
 						sFilterString += aFilterItems[i].getText() + ", ";
 					}
-				} else if (aFilterItems[i] instanceof sap.m.ViewSettingsFilterItem) {
+				} else if (BaseObject.isObjectA(aFilterItems[i], "sap.m.ViewSettingsFilterItem")) {
 					// standard filter: add "filter name (sub filter 1 name, sub
 					// filter 2 name, ...), "
 					aSubFilterItems = aFilterItems[i].getItems();
@@ -1554,7 +1561,7 @@ function(
 
 		for (i = 0; i < aSelectedFilterItems.length; i++) {
 			oFilterItem = aSelectedFilterItems[i];
-			if (oFilterItem instanceof sap.m.ViewSettingsCustomItem) {
+			if (BaseObject.isObjectA(oFilterItem, "sap.m.ViewSettingsCustomItem")) {
 				sKey = oFilterItem.getKey();
 				oSelectedFilterKeys[sKey] = oFilterItem.getSelected();
 			} else {
@@ -1608,13 +1615,13 @@ function(
 			oFilterItem = null;
 			if (oSelectedFilterKeys.hasOwnProperty(sKey)) {
 				for (i = 0; i < aFilterItems.length; i++) {
-					if (aFilterItems[i] instanceof sap.m.ViewSettingsCustomItem) {
+					if (BaseObject.isObjectA(aFilterItems[i], "sap.m.ViewSettingsCustomItem")) {
 						// just compare the key of this control
 						if (aFilterItems[i].getKey() === sKey) {
 							oFilterItem = aFilterItems[i];
 							aFilterItems[i].setProperty('selected', oSelectedFilterKeys[sKey], true);
 						}
-					} else if (aFilterItems[i] instanceof sap.m.ViewSettingsFilterItem) {
+					} else if (BaseObject.isObjectA(aFilterItems[i], "sap.m.ViewSettingsFilterItem")) {
 						// find the sub filter item with the specified key
 						aSubFilterItems = aFilterItems[i].getItems();
 						bMultiSelect = aFilterItems[i].getMultiSelect();
@@ -1693,9 +1700,9 @@ function(
 						break;
 					}
 				}
-				if (oParentItem instanceof sap.m.ViewSettingsCustomItem) {
+				if (BaseObject.isObjectA(oParentItem, "sap.m.ViewSettingsCustomItem")) {
 					oParentItem.setProperty('selected', oSelectedFilterKeys[sParentKey], true);
-				} else if (oParentItem instanceof sap.m.ViewSettingsFilterItem) {
+				} else if (BaseObject.isObjectA(oParentItem, "sap.m.ViewSettingsFilterItem")) {
 					oSelectedSubFilterKeys = oSelectedFilterKeys[sParentKey];
 					aSubFilterItems = oParentItem.getItems();
 					bMultiSelect = oParentItem.getMultiSelect();
@@ -1819,12 +1826,12 @@ function(
 		this.clearFilters();
 
 		// clear sortItem/sortDescending
-		this.setSelectedSortItem(Core.byId(this._oInitialState.sortItem));
+		this.setSelectedSortItem(Element.getElementById(this._oInitialState.sortItem));
 		this.setSortDescending(this._oInitialState.sortDescending);
 		this._updateListSelection(this._sortOrderList, this._oInitialState.sortDescending);
 
 		// clear groupItem/groupDescending
-		this._oInitialState.groupItem !== undefined && this.setSelectedGroupItem(Core.byId(this._oInitialState.groupItem));
+		this._oInitialState.groupItem !== undefined && this.setSelectedGroupItem(Element.getElementById(this._oInitialState.groupItem));
 		this.setGroupDescending(this._oInitialState.groupDescending);
 		this._updateListSelection(this._groupOrderList, this._oInitialState.groupDescending);
 
@@ -2022,19 +2029,19 @@ function(
 
 		if (this._segmentedButton === undefined) {
 			this._segmentedButton = new SegmentedButton({
-				select : function(oEvent) {
-					var selectedId = oEvent.getParameter('id');
-					if (selectedId === that.getId() + "-sortbutton") {
+				selectionChange : function(oEvent) {
+					var selectedButtonId = oEvent.getSource().getSelectedButton();
+					if (selectedButtonId === that.getId() + "-sortbutton") {
 						that._switchToPage(0);
-					} else if (selectedId === that.getId() + "-groupbutton") {
+					} else if (selectedButtonId === that.getId() + "-groupbutton") {
 						that._switchToPage(1);
-					} else if (selectedId === that.getId() + "-filterbutton") {
+					} else if (selectedButtonId === that.getId() + "-filterbutton") {
 						that._switchToPage(2);
 					} else {
 						for (i = 0; i < iCustomTabsLength; i++) {
 							var oCustomTab = aCustomTabs[i],
 								sCustomTabId = that.getId() + that._sCustomTabsButtonsIdPrefix + oCustomTab.getId();
-							if (!that._isEmptyTab(oCustomTab) && selectedId === sCustomTabId) {
+							if (!that._isEmptyTab(oCustomTab) && selectedButtonId === sCustomTabId) {
 								that._switchToPage(oCustomTab.getId());
 								break;
 							}
@@ -2158,7 +2165,7 @@ function(
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._initFilterDetailItems = function(oItem) {
-		if (!(oItem instanceof sap.m.ViewSettingsFilterItem)) {
+		if (!(BaseObject.isObjectA(oItem, "sap.m.ViewSettingsFilterItem"))) {
 			return;
 		}
 
@@ -2570,7 +2577,7 @@ function(
 	 */
 	ViewSettingsDialog.prototype._getTabButton = function (oCustomTab, sButtonIdPrefix) {
 		var sButtonId = sButtonIdPrefix + oCustomTab.getId(),
-			oButton = Core.byId(sButtonId);
+			oButton = Element.getElementById(sButtonId);
 
 		if (oButton) {
 			return oButton;
@@ -2968,8 +2975,8 @@ function(
 				}
 				// update status (something could have been changed on a detail filter
 				// page or by API
-				this._updateListSelection(this._presetFilterList, Core
-					.byId(this.getSelectedPresetFilterItem()));
+				this._updateListSelection(this._presetFilterList,
+					Element.getElementById(this.getSelectedPresetFilterItem()));
 				this._updateFilterCounters();
 				for (; i < this._filterContent.length; i++) {
 					this._getPage1().addContent(this._filterContent[i]);
@@ -2979,11 +2986,11 @@ function(
 				// display filter title
 				this._setFilterDetailTitle(oItem);
 				// fill detail page
-				if (oItem instanceof sap.m.ViewSettingsCustomItem
+				if (BaseObject.isObjectA(oItem, "sap.m.ViewSettingsCustomItem")
 					&& oItem.getCustomControl()) {
 					this._clearPresetFilter();
 					this._getPage2().addContent(oItem.getCustomControl());
-				} else if (oItem instanceof sap.m.ViewSettingsFilterItem
+				} else if (BaseObject.isObjectA(oItem, "sap.m.ViewSettingsFilterItem")
 					&& oItem.getItems()) {
 					this._initFilterDetailItems(oItem);
 				}
@@ -3015,6 +3022,7 @@ function(
 				aCustomTabs.forEach(function (oCustomTab) {
 					if (oCustomTab.getId() === vWhich) {
 						oCustomTab.getContent().forEach(function (oContent) {
+							oContent.addStyleClass("sapMVSDCustomTabContent");
 							this._getPage1().addContent(oContent);
 						}, this);
 					}
@@ -3209,11 +3217,11 @@ function(
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._updateListSelections = function() {
-		this._updateListSelection(this._sortList, Core.byId(this._getSelectedSortItem()));
+		this._updateListSelection(this._sortList, Element.getElementById(this._getSelectedSortItem()));
 		this._updateListSelection(this._sortOrderList, this.getSortDescending());
-		this._updateListSelection(this._groupList, Core.byId(this._getSelectedGroupItem()));
+		this._updateListSelection(this._groupList, Element.getElementById(this._getSelectedGroupItem()));
 		this._updateListSelection(this._groupOrderList, this.getGroupDescending());
-		this._updateListSelection(this._presetFilterList, Core.byId(this.getSelectedPresetFilterItem()));
+		this._updateListSelection(this._presetFilterList, Element.getElementById(this.getSelectedPresetFilterItem()));
 		this._updateFilterCounters();
 	};
 
@@ -3264,10 +3272,10 @@ function(
 			oItem = aListItems[i].data("item");
 			iFilterCount = 0;
 			if (oItem) {
-				if (oItem instanceof sap.m.ViewSettingsCustomItem) {
+				if (BaseObject.isObjectA(oItem, "sap.m.ViewSettingsCustomItem")) {
 					// for custom filter oItems the oItem is directly selected
 					iFilterCount = oItem.getFilterCount();
-				} else if (oItem instanceof sap.m.ViewSettingsFilterItem) {
+				} else if (BaseObject.isObjectA(oItem, "sap.m.ViewSettingsFilterItem")) {
 					// for filter oItems the oItem counter has to be calculated from
 					// the sub oItems
 					iFilterCount = 0;
@@ -3289,7 +3297,7 @@ function(
 
 		// reset all items to selected = false
 		for (; i < items.length; i++) {
-			if (items[i] instanceof sap.m.ViewSettingsFilterItem) {
+			if (BaseObject.isObjectA(items[i], "sap.m.ViewSettingsFilterItem")) {
 				subItems = items[i].getItems();
 				for (j = 0; j < subItems.length; j++) {
 					subItems[j].setProperty('selected', false, true);
@@ -3426,7 +3434,7 @@ function(
 	 * @private
 	 */
 	function validateViewSettingsItem(oItem) {
-		return oItem && oItem instanceof sap.m.ViewSettingsItem;
+		return oItem && BaseObject.isObjectA(oItem, "sap.m.ViewSettingsItem");
 	}
 
 	/* =========================================================== */
@@ -3451,19 +3459,22 @@ function(
 
 				// BCP: 1670245110 "None" should be undefined
 				if (!that._oGroupingNoneItem || sGroupItemId != that._oGroupingNoneItem.getId()) {
-					vGroupItem = Core.byId(sGroupItemId);
+					vGroupItem = Element.getElementById(sGroupItemId);
 				}
 
 				// Reset the title on closing the dialog, since it will be needed for the next opening.
 				that._toggleDialogTitle(that._sTitleLabelId);
 
 				oSettingsState = {
-					sortItem            : Core.byId(that._getSelectedSortItem()),
+					sortItem            : Element.getElementById(that._getSelectedSortItem()),
 					sortDescending      : that.getSortDescending(),
 					groupItem           : vGroupItem,
 					groupDescending     : that.getGroupDescending(),
-					presetFilterItem    : Core.byId(that.getSelectedPresetFilterItem()),
+					presetFilterItem    : Element.getElementById(that.getSelectedPresetFilterItem()),
 					filterItems         : that.getSelectedFilterItems(),
+					/**
+					 * @deprecated as of version 1.42
+					 */
 					filterKeys          : that.getSelectedFilterKeys(),
 					filterCompoundKeys  : that.getSelectedFilterCompoundKeys(),
 					filterString        : that.getSelectedFilterString()
@@ -3548,7 +3559,7 @@ function(
 			this._getSegmentedButton().setSelectedButton(this._getFilterButton());
 		}
 		// update preset list selection
-		this._updateListSelection(this._presetFilterList, Core.byId(
+		this._updateListSelection(this._presetFilterList, Element.getElementById(
 			this.getSelectedPresetFilterItem()));
 
 		return this;
@@ -3597,7 +3608,7 @@ function(
 	ViewSettingsDialog.prototype._getSelectedSortItem = function() {
 		var sSortItem = this.getSelectedSortItem(),
 			oItem = findViewSettingsItemByKey(sSortItem, this.getSortItems())
-				|| Core.byId(sSortItem);
+				|| Element.getElementById(sSortItem);
 
 		if (validateViewSettingsItem(oItem)) {
 			return oItem.getId();
@@ -3613,7 +3624,7 @@ function(
 	ViewSettingsDialog.prototype._getSelectedGroupItem = function() {
 		var sGroupItem = this.getSelectedGroupItem(),
 			oItem = findViewSettingsItemByKey(sGroupItem, this.getGroupItems())
-				|| Core.byId(sGroupItem);
+				|| Element.getElementById(sGroupItem);
 
 		if (validateViewSettingsItem(oItem)) {
 			return oItem.getId();

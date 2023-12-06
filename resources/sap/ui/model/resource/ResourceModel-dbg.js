@@ -14,20 +14,18 @@
 
 // Provides the resource bundle based model implementation
 sap.ui.define([
-	'sap/base/Log',
-	'sap/base/i18n/ResourceBundle',
-	'sap/ui/core/Configuration',
-	'sap/ui/model/BindingMode',
-	'sap/ui/model/Model',
-	'./ResourcePropertyBinding'
-],
-	function (Log, ResourceBundle, Configuration, BindingMode, Model, ResourcePropertyBinding) {
+	"sap/base/Log",
+	"sap/base/i18n/ResourceBundle",
+	"sap/ui/base/SyncPromise",
+	"sap/ui/core/Supportability",
+	"sap/ui/model/BindingMode",
+	"sap/ui/model/Model",
+	"./ResourcePropertyBinding"
+], function (Log, ResourceBundle, SyncPromise, Supportability, BindingMode, Model, ResourcePropertyBinding) {
 	"use strict";
 
-	/**
-	 * matches leading dots or slashes
-	 */
-	var rLeadingDotsOrSlashes = /^(?:\/|\.)*/;
+	var sClassname = "sap.ui.model.resource.ResourceModel",
+		rLeadingDotsOrSlashes = /^(?:\/|\.)*/; // matches leading dots or slashes
 
 	/**
 	 * Constructor for a new ResourceModel.
@@ -229,7 +227,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.model.Model
 	 * @public
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 */
 	var ResourceModel = Model.extend("sap.ui.model.resource.ResourceModel", /** @lends sap.ui.model.resource.ResourceModel.prototype */ {
 
@@ -313,7 +311,7 @@ sap.ui.define([
 				'Leading slashes or dots in resource bundle names are ignored, since such names are'
 				+ ' invalid UI5 module names. Please check whether the resource bundle "'
 				+ sBundleName + '" is actually needed by your application.',
-				"sap.base.i18n.ResourceBundle");
+				sClassname);
 			sBundleName = sBundleName.replace(rLeadingDotsOrSlashes, "");
 		}
 		return sBundleName;
@@ -378,20 +376,15 @@ sap.ui.define([
 	 * @ui5-restricted sap.ui.core.Component
 	 */
 	ResourceModel.loadResourceBundle = function (oData, bAsync) {
-		var oConfiguration = Configuration,
-			sLocale = oData.bundleLocale,
+		var sLocale = oData.bundleLocale,
 			mParams;
-
-		if (!sLocale) {
-			sLocale = oConfiguration.getLanguage();
-		}
 
 		// sanitize bundleName for backward compatibility
 		oData.bundleName = ResourceModel._sanitizeBundleName(oData.bundleName);
 
 		mParams = Object.assign({
 			async: bAsync,
-			includeInfo: oConfiguration.getOriginInfo(),
+			includeInfo: Supportability.collectOriginInfo(),
 			locale: sLocale
 		}, oData);
 
@@ -546,7 +539,37 @@ sap.ui.define([
 	 * @see sap.ui.base.ManagedObject#_handleLocalizationChange
 	 */
 	ResourceModel.prototype._handleLocalizationChange = function () {
-		_load(this);
+		var that = this;
+
+		SyncPromise.resolve(this.getResourceBundle()).then(function (oBundle) {
+			var oEventParameters;
+
+			if (that.bAsync) {
+				oEventParameters = {
+						url: ResourceBundle._getUrl(that.oData.bundleUrl,
+							// sanitize bundleName for backward compatibility
+							ResourceModel._sanitizeBundleName(that.oData.bundleName)),
+						async: true
+					};
+				that.fireRequestSent(oEventParameters);
+			}
+			var oRecreateResult = oBundle._recreate();
+			if (oRecreateResult instanceof Promise) {
+				that._oPromise = oRecreateResult;
+			}
+			return SyncPromise.resolve(oRecreateResult).then(function (oNewResourceBundle) {
+				that._oResourceBundle = oNewResourceBundle;
+				that._reenhance();
+				delete that._oPromise;
+				that.checkUpdate(true);
+			}).finally(function () {
+				if (that.bAsync) {
+					that.fireRequestCompleted(oEventParameters);
+				}
+			});
+		}).catch(function (oError) {
+			Log.error("Failed to reload bundles after localization change", oError, sClassname);
+		});
 	};
 
 	/**

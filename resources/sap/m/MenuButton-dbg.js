@@ -58,7 +58,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
@@ -186,8 +186,8 @@ sap.ui.define([
 					defaultAction: {},
 
 					/**
-					 * Fired before menu opening when the <code>buttonMode</code> is set to <code>Split</code> and the user
-					 * presses the arrow button.
+					 * In <code>Regular</code> button mode – fires when the user presses the button.
+					 * Alternatively, if the <code>buttonMode</code> is set to <code>Split</code> - fires when the user presses the arrow button.
 					 *
 					 * @since 1.94.0
 					 */
@@ -381,7 +381,7 @@ sap.ui.define([
 					minus2_left: "-2 0"
 				};
 
-			this._isSplitButton() && this.fireBeforeMenuOpen();
+			this.fireBeforeMenuOpen();
 
 			if (!oMenu) {
 				return;
@@ -474,11 +474,17 @@ sap.ui.define([
 
 		MenuButton.prototype._menuClosed = function() {
 			var oButtonControl = this._getButtonControl(),
-				bOpeningMenuButton = oButtonControl;
+				bOpeningMenuButton = oButtonControl,
+				oMenu = this.getMenu(),
+				oUnifiedMenu = oMenu && oMenu._getMenu && oMenu._getMenu();
 
 			if (this._isSplitButton()) {
 				oButtonControl.setArrowState(false);
 				bOpeningMenuButton = oButtonControl._getArrowButton();
+			}
+
+			if (oUnifiedMenu && oUnifiedMenu._bLeavingMenu){
+				this._bPopupOpen = false;
 			}
 
 			bOpeningMenuButton.$().removeAttr("aria-controls");
@@ -683,6 +689,18 @@ sap.ui.define([
 
 		MenuButton.prototype.getFocusDomRef = function() {
 			return this._getButtonControl().getDomRef();
+		};
+
+		MenuButton.prototype.onsapescape = function(oEvent) {
+			var oMenu = this.getMenu(),
+				oUnifiedMenu = oMenu && oMenu._getMenu && oMenu._getMenu();
+
+			if (oUnifiedMenu && this._bPopupOpen) {
+				oUnifiedMenu._bLeavingMenu = true;
+				oUnifiedMenu.close();
+				this._menuClosed();
+				oEvent.preventDefault();
+			}
 		};
 
 		MenuButton.prototype.onsapup = function(oEvent) {

@@ -11,9 +11,11 @@ sap.ui.define([
 	'./ToolbarSpacer',
 	'./library',
 	'sap/ui/core/Control',
+	'sap/ui/core/Element',
 	'sap/ui/core/EnabledPropagator',
 	"sap/ui/events/KeyCodes",
 	'./ToolbarRenderer',
+	"sap/m/Button",
 	"sap/ui/core/library"
 ],
 function(
@@ -22,9 +24,11 @@ function(
 	ToolbarSpacer,
 	library,
 	Control,
+	Element,
 	EnabledPropagator,
 	KeyCodes,
 	ToolbarRenderer,
+	Button,
 	coreLibrary
 ) {
 	"use strict";
@@ -74,7 +78,7 @@ function(
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -157,7 +161,13 @@ function(
 				/**
 				 * The content of the toolbar.
 				 */
-				content : {type : "sap.ui.core.Control", multiple : true, singularName : "content"}
+				content : {type : "sap.ui.core.Control", multiple : true, singularName : "content"},
+
+				/**
+				 * Hidden button that provides focus dom reference for active toolbar.
+				 * @private
+				 */
+				 _activeButton : {type : "sap.m.Button", multiple: false,  visibility: "hidden"}
 			},
 			associations : {
 
@@ -218,7 +228,7 @@ function(
 	 * @return {string} width
 	 */
 	Toolbar.getOrigWidth = function(sId) {
-		var oControl = sap.ui.getCore().byId(sId);
+		var oControl = Element.registry.get(sId);
 		if (!oControl || !oControl.getWidth) {
 			return "";
 		}
@@ -289,6 +299,33 @@ function(
 		return this;
 	};
 
+	Toolbar.prototype.enhanceAccessibilityState = function (oElement, mAriaProps) {
+		if (oElement === this.getAggregation("_activeButton")) {
+			return this.assignAccessibilityState(mAriaProps);
+		}
+	};
+
+	Toolbar.prototype.getAccessibilityState = function () {
+		var aAriaLabelledBy = this.getAriaLabelledBy(),
+			bActive = this.getActive();
+
+		return {
+			role: !bActive ? this._getAccessibilityRole() : undefined, // active toolbar is rendered with sap.m.Button as native button
+			haspopup: bActive ? this.getAriaHasPopup() : undefined,
+			labelledby: aAriaLabelledBy.length ? this.getAriaLabelledBy() : this.getTitleId(),
+			roledescription: this._sAriaRoleDescription
+		};
+	};
+
+	Toolbar.prototype.assignAccessibilityState = function (mAriaProps) {
+			if (!this._getAccessibilityRole() && !this.getActive()) {
+				// no role and not active -> no aria properties
+				return {};
+			}
+
+			return Object.assign(mAriaProps, this.getAccessibilityState(mAriaProps));
+	};
+
 	Toolbar.prototype.init = function() {
 		// define group for F6 handling
 		this.data("sap-ui-fastnavgroup", "true", true);
@@ -333,17 +370,18 @@ function(
 
 	// handle tap for active toolbar, do nothing if already handled
 	Toolbar.prototype.ontap = function(oEvent) {
-		if (this.getActive() && !oEvent.isMarked()) {
+		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._getActiveButton()) {
 			oEvent.setMarked();
 			this.firePress({
 				srcControl : oEvent.srcControl
 			});
+			this.focus();
 		}
 	};
 
 	// fire press event when enter is hit on the active toolbar
 	Toolbar.prototype.onsapenter = function(oEvent) {
-		if (this.getActive() && oEvent.srcControl === this && !oEvent.isMarked()) {
+		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._getActiveButton()) {
 			oEvent.setMarked();
 			this.firePress({
 				srcControl : this
@@ -353,7 +391,7 @@ function(
 
 	Toolbar.prototype.onsapspace = function(oEvent) {
 		// Prevent browser scrolling in case of SPACE key
-		if (oEvent.srcControl === this) {
+		if (oEvent.srcControl === this._getActiveButton()) {
 			oEvent.preventDefault();
 		}
 	};
@@ -390,6 +428,31 @@ function(
 		if (oControl) {
 			oControl.detachEvent("_change", this._onContentPropertyChanged, this);
 			oControl.removeEventDelegate(this._oContentDelegate, oControl);
+		}
+	};
+
+	Toolbar.prototype.onfocusin = function(oEvent) {
+		if (this.getActive()) {
+			if (oEvent.target === this.getDomRef()) {
+				this._getActiveButton().focus();
+			}
+		}
+	};
+
+	Toolbar.prototype.getFocusDomRef = function() {
+		return this.getActive() ? this._getActiveButton().getFocusDomRef() : this.getDomRef();
+	};
+
+	Toolbar.prototype.getFocusInfo = function() {
+		return {
+			id: this._getActiveButton().getId()
+		};
+	};
+
+	Toolbar.prototype.applyFocusInfo = function(oFocusInfo) {
+		var oDomRef = this.getFocusDomRef();
+		if (oDomRef) {
+			this.focus();
 		}
 	};
 
@@ -446,6 +509,29 @@ function(
 				&& oControl.isA("sap.m.IToolbarInteractiveControl")
 				&& typeof (oControl._getToolbarInteractive) === "function" && oControl._getToolbarInteractive();
 		}).length;
+	};
+
+	Toolbar.prototype._getActiveButton = function() {
+		if (!this._activeButton) {
+			this._activeButton = new Button({text: "", id:"sapMTBActiveButton" + this.getId()}).addStyleClass("sapMTBActiveButton");
+			this._activeButton.onfocusin = function() {
+				this.addStyleClass("sapMTBFocused");
+				if (typeof Button.prototype.onfocusin === "function") {
+					 Button.prototype.onfocusin.call(this._activeButton, arguments);
+				}
+			}.bind(this);
+
+			this._activeButton.onfocusout = function() {
+				this.removeStyleClass("sapMTBFocused");
+				if (typeof Button.prototype.onfocusout === "function") {
+					Button.prototype.onfocusout.call(this._activeButton, arguments);
+			   }
+			}.bind(this);
+
+			this.setAggregation("_activeButton", this._activeButton);
+		}
+
+		return this._activeButton;
 	};
 
 	Toolbar.prototype.getAccessibilityInfo = function () {

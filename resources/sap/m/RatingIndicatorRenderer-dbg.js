@@ -22,6 +22,9 @@ sap.ui.define(
 			},
 			sIconSizeMeasure = "px";
 
+		// shortcut for library resource bundle
+		var oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+
 		/**
 		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 		 *
@@ -48,7 +51,11 @@ sap.ui.define(
 			oRm.openStart("div", oControl);
 
 			oRm.style("width", this._iWidth + "px");
-			oRm.style("height", this._iHeight + "px");
+			oRm.style("font-size", this._iHeight + "px");
+			oRm.style("height", ++this._iHeight + "px"); 		// We add 1 additional pixel to avoid the icon issue in the Horizon theme
+			oRm.style("line-height", ++this._iHeight + "px");	// which is rendered bigger than its font size ang gets cut off
+
+
 			if (bEnabled && !bDisplayOnly) {
 				// Interactive
 				oRm.attr("tabindex", "0");
@@ -68,6 +75,10 @@ sap.ui.define(
 
 			oRm.class("sapMRI");
 			oRm.class("sapUiRatingIndicator" + oControl._getIconSizeLabel(this._fIconSize));
+
+			if (oControl._isRequired()) {
+				oRm.attr("aria-description", oResourceBundle.getText("ELEMENT_REQUIRED"));
+			}
 
 			this.writeTooltip(oRm, oControl);
 			this.writeAccessibility(oRm, oControl);
@@ -109,13 +120,13 @@ sap.ui.define(
 		};
 
 		RatingIndicatorRenderer.writeAccessibility = function(oRm, oControl) {
-			var oResourceBundle = Core.getLibraryResourceBundle("sap.m");
 			oRm.accessibilityState(oControl, {
 				role: "slider",
 				orientation: "horizontal",
 				valuemin: 0,
 				disabled: !oControl.getEnabled() || oControl.getDisplayOnly(),
-				roledescription: oResourceBundle.getText("RATING_INDICATOR_ARIA_ROLEDESCRIPTION")
+				roledescription: oResourceBundle.getText("RATING_INDICATOR_ARIA_ROLEDESCRIPTION"),
+				required: null
 			});
 		};
 
@@ -255,7 +266,7 @@ sap.ui.define(
 				case "SELECTED":
 					return oControl.getIconSelected() || IconPool.getIconURI("favorite");
 				case "UNSELECTED":
-					if (oControl.getEditable() && !oControl.getDisplayOnly()) {
+					if (oControl.getEditable() && !oControl.getDisplayOnly() && oControl.getEnabled()) {
 						return oControl.getIconUnselected() || IconPool.getIconURI("unfavorite");
 					} else {
 						return oControl.getIconUnselected() || IconPool.getIconURI("favorite");

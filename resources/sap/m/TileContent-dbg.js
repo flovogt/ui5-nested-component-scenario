@@ -4,8 +4,8 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './TileContentRenderer', 'sap/ui/core/Configuration'],
-	function(library, Core, Control, TileContentRenderer, Configuration) {
+sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './TileContentRenderer', 'sap/ui/core/Configuration', 'sap/ui/core/Lib'],
+	function(library, Core, Control, TileContentRenderer, Configuration, CoreLib) {
 	"use strict";
 
 	var Priority = library.Priority;
@@ -24,7 +24,7 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -101,21 +101,21 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 		if (sState && !this._bStateSetManually) {
 			if (this.getParent() && this.getParent().isA("sap.m.GenericTile")) {
 				if (this.getParent().getState() === LoadState.Failed) {
-					this.setProperty("state", LoadState.Loaded, true);
+					this.setState(LoadState.Loaded);
 				} else if (this.getParent().getState() === LoadState.Disabled) {
-					this.setProperty("state", LoadState.Loaded, true);
-					this.setProperty("disabled", this.getState() === LoadState.Disabled, true);
+					this.setState(LoadState.Loaded);
+					this.setDisabled(this.getState() === LoadState.Disabled);
 				}
 			}
 		} else {
 			if (this.getParent() && this.getParent().isA("sap.m.GenericTile")) {
 				if (this.getParent().getState() === LoadState.Failed) {
-					this.setProperty("state", LoadState.Loaded, true);
+					this.setState(LoadState.Loaded);
 				} else if (this.getParent().getState() === LoadState.Disabled) {
-					this.setProperty("state", LoadState.Loaded, true);
-					this.setProperty("disabled", this.getState() === LoadState.Disabled, true);
+					this.setState(LoadState.Loaded);
+					this.setDisabled(this.getState() === LoadState.Disabled);
 				} else {
-					this.setProperty("state", this.getParent().getState(), true);
+					this.setState(this.getParent().getState());
 				}
 			}
 			this._bStateSetManually = true;
@@ -201,7 +201,7 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 	 * @returns {string} The Footer text
 	 */
 	TileContent.prototype._getFooterText = function() {
-		var resourceBundle = sap.ui.getCore().getLibraryResourceBundle('sap.m');
+		var resourceBundle = CoreLib.getResourceBundleFor('sap.m');
 		var sFooter = this.getFooter();
 		var sUnit = this.getUnit();
 		if (sUnit) {
@@ -229,10 +229,9 @@ sap.ui.define(['./library', 'sap/ui/core/library', 'sap/ui/core/Control', './Til
 		var bIsFirst = true;
 		var oContent = this.getContent();
 		var oParent = this.getParent();
-		var sPriority = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("TEXT_CONTENT_PRIORITY");
 		var sPriorityText = this.getPriorityText();
 		if (sPriorityText && this.getPriority() !== Priority.None){
-			sAltText += sPriorityText + " " + sPriority;
+			sAltText += sPriorityText;
 			bIsFirst = false;
 		}
 		if (oContent && oContent.getVisible()) {

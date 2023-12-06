@@ -6,11 +6,12 @@
 sap.ui.define([
 		'sap/base/assert',
 		'sap/base/Log',
+		'sap/base/i18n/Localization',
 		'sap/base/strings/formatMessage',
 		'sap/base/util/Properties',
 		'sap/base/util/merge'
 	],
-	function(assert, Log, formatMessage, Properties, merge) {
+	function(assert, Log, Localization, formatMessage, Properties, merge) {
 	"use strict";
 
 	/* global Promise */
@@ -159,27 +160,11 @@ sap.ui.define([
 	function defaultLocale(sFallbackLocale) {
 		var sLocale;
 		// use the current session locale, if available
-		if (window.sap && window.sap.ui && sap.ui.getCore) {
-			sLocale = sap.ui.getCore().getConfiguration().getLanguage();
-			sLocale = normalize(sLocale);
-		}
+		sLocale = Localization.getLanguage();
+		sLocale = normalize(sLocale);
 		// last fallback is fallbackLocale if no or no valid locale is given
 		return sLocale || sFallbackLocale;
 	}
-
-	/**
-	 * Returns the supported locales from the configuration.
-	 * @returns {string[]} supported locales from the configuration. Otherwise, an empty array is returned.
-	 * @private
-	 */
-	function defaultSupportedLocales() {
-		if (window.sap && window.sap.ui && sap.ui.getCore) {
-			return sap.ui.getCore().getConfiguration().getSupportedLanguages();
-		}
-		return [];
-	}
-
-
 
 	/**
 	 * Helper to normalize the given locale (java.util.Locale format) to the BCP-47 syntax.
@@ -284,6 +269,7 @@ sap.ui.define([
 		this.sLocale = normalize(sLocale) || defaultLocale(sFallbackLocale === undefined ? sDefaultFallbackLocale : sFallbackLocale);
 		this.oUrlInfo = splitUrl(sUrl);
 		this.bIncludeInfo = bIncludeInfo;
+		this.bAsync = bAsync;
 		// list of custom bundles
 		this.aCustomBundles = [];
 		// declare list of property files that are loaded,
@@ -298,7 +284,7 @@ sap.ui.define([
 		this._aFallbackLocales = calculateFallbackChain(
 			this.sLocale,
 			// bundle specific supported locales will be favored over configuration ones
-			aSupportedLocales || defaultSupportedLocales(),
+			aSupportedLocales || Localization.getSupportedLanguages(),
 			sFallbackLocale,
 			" of the bundle '" + this.oUrlInfo.url + "'",
 			bSkipFallbackLocaleAndRaw
@@ -406,6 +392,11 @@ sap.ui.define([
 	 */
 	ResourceBundle.prototype._formatValue = function(sValue, sKey, aArgs){
 		if (typeof sValue === "string") {
+
+			if (aArgs !== undefined && !Array.isArray(aArgs)){
+				Log.error("sap/base/i18n/ResourceBundle: value for parameter 'aArgs' is not of type array");
+			}
+
 			if (aArgs) {
 				sValue = formatMessage(sValue, aArgs);
 			}
@@ -517,6 +508,29 @@ sap.ui.define([
 		return this.aPropertyFiles.length > 0 && typeof this.aPropertyFiles[0].getProperty(sKey) === "string";
 	};
 
+	/**
+	 * Creates and returns a new instance with the exact same parameters this instance has been created with.
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.model.resource.ResourceModel
+	 * @returns {module:sap/base/i18n/ResourceBundle|Promise<module:sap/base/i18n/ResourceBundle>}
+	 *     A new resource bundle or a Promise on that bundle (in asynchronous case)
+	 */
+	ResourceBundle.prototype._recreate = function() {
+		if (!this._mCreateFactoryParams) {
+			// This can only happen when calling the method for instances created by ResourceBundle.create via getEnhanceWithResourceBundles or getTerminologyResourceBundles.
+			// But those instances are only internally assigned to the actual ResourceBundle instance. Therefore it is not required for the model use case to recreate a bundle.
+			var error = new Error("ResourceBundle instance can't be recreated as it has not been created by the ResourceBundle.create factory.");
+			if (this.bAsync) {
+				return Promise.reject(error);
+			} else {
+				throw error;
+			}
+		} else {
+			return ResourceBundle.create(this._mCreateFactoryParams);
+		}
+	};
+
 	/*
 	 * Tries to load properties files asynchronously until one could be loaded
 	 * successfully or until there are no more fallback locales.
@@ -581,7 +595,7 @@ sap.ui.define([
 				// Alternative: add locale as query:
 				// url: oUrl.prefix + oUrl.suffix + '?' + (oUrl.query ? oUrl.query + "&" : "") + "locale=" + sLocale + (oUrl.hash ? "#" + oUrl.hash : ""),
 				mHeaders = {
-					"Accept-Language": convertLocaleToBCP47(sLocale) || ""
+					"Accept-Language": convertLocaleToBCP47(sLocale) || "*"
 				};
 			} else {
 				sUrl = oUrl.prefix + (sLocale ? "_" + sLocale : "") + oUrl.suffix;
@@ -909,6 +923,8 @@ sap.ui.define([
 	 * @SecSink {0|PATH} Parameter is used for future HTTP requests
 	 */
 	ResourceBundle.create = function(mParams) {
+		var mOriginalCreateParams = merge({}, mParams);
+
 		mParams = merge({url: "", includeInfo: false}, mParams);
 
 		// bundleUrl and bundleName parameters get converted into the url parameter if the url parameter is not present
@@ -921,6 +937,16 @@ sap.ui.define([
 
 		// Note: ResourceBundle constructor returns a Promise in async mode!
 		var vResourceBundle = new ResourceBundle(mParams.url, mParams.locale, mParams.includeInfo, !!mParams.async, mParams.supportedLocales, mParams.fallbackLocale);
+
+		// Pass the exact create factory parameters to allow the bundle to create a new instance via ResourceBundle#_recreate
+		if (vResourceBundle instanceof Promise) {
+			vResourceBundle = vResourceBundle.then(function(oResourceBundle) {
+				oResourceBundle._mCreateFactoryParams = mOriginalCreateParams;
+				return oResourceBundle;
+			});
+		} else {
+			vResourceBundle._mCreateFactoryParams = mOriginalCreateParams;
+		}
 
 		// aCustomBundles is a flat list of all "enhancements"
 		var aCustomBundles = [];

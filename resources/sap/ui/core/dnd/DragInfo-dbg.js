@@ -22,7 +22,7 @@ sap.ui.define(["./DragDropBase"],
 	 * @extends sap.ui.core.dnd.DragDropBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @since 1.56
@@ -52,7 +52,7 @@ sap.ui.define(["./DragDropBase"],
 			 * @param {object} oControlEvent.getParameters
 			 * @param {sap.ui.core.Element} oControlEvent.getParameters.target The target element that will be dragged
 			 * @param {sap.ui.core.dnd.DragSession} oControlEvent.getParameters.dragSession The UI5 <code>dragSession</code> object that exists only during drag and drop
-			 * @param {Event} oControlEvent.getParameters.browserEvent The underlying browser event
+			 * @param {DragEvent} oControlEvent.getParameters.browserEvent The underlying browser event
 			 * @public
 			 */
 			dragStart: {
@@ -60,7 +60,7 @@ sap.ui.define(["./DragDropBase"],
 			},
 
 			/**
-			 * This event is fired when a drag operation is being ended.
+			 * This event is fired when a drag operation is ended.
 			 *
 			 * @name sap.ui.core.dnd.DragInfo#dragEnd
 			 * @event
@@ -69,7 +69,7 @@ sap.ui.define(["./DragDropBase"],
 			 * @param {object} oControlEvent.getParameters
 			 * @param {sap.ui.core.Element} oControlEvent.getParameters.target The target element that is being dragged
 			 * @param {sap.ui.core.dnd.DragSession} oControlEvent.getParameters.dragSession The UI5 <code>dragSession</code> object that exists only during drag and drop
-			 * @param {Event} oControlEvent.getParameters.browserEvent The underlying browser event
+			 * @param {DragEvent} oControlEvent.getParameters.browserEvent The underlying browser event
 			 * @public
 			 * @since 1.56
 			 */
@@ -103,14 +103,11 @@ sap.ui.define(["./DragDropBase"],
 				return false;
 			}
 
-			// control itself is the drag source
-			if (oDragSource === oControl && !sSourceAggregation) {
-				return true;
-			}
-
+			// control itself is the drag source or
 			// control is in the aggregation of the drag source
-			if (oControl.getParent() === oDragSource && sSourceAggregation === oControl.sParentAggregationName) {
-				return true;
+			if ((oDragSource === oControl && !sSourceAggregation) ||
+				(oControl.getParent() === oDragSource && sSourceAggregation === oControl.sParentAggregationName)) {
+				return oControl.isDragAllowed && !oControl.isDragAllowed(this) ? false : true;
 			}
 
 			return false;

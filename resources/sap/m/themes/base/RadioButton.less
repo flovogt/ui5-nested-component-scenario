@@ -3,6 +3,8 @@
 /* Base theme                         */
 /* ================================== */
 
+@_sap_m_Radio_Button_Read_Only_fill: @sapUiContentNonInteractiveIconColor;
+
 .sapMRb {
 	height: 3rem;
 	float: left;
@@ -139,7 +141,7 @@
 	}
 
 	&.sapMRbSel .sapMRbBInn {
-		fill: @sapUiContentNonInteractiveIconColor;
+		fill: @_sap_m_Radio_Button_Read_Only_fill;
 		stroke: none;
 	}
 }
@@ -231,7 +233,7 @@ html[dir="rtl"] {
 	.sapUiSizeCompact {
 		.sapMRbB .sapMRbBInn,
 		.sapMRb .sapMRbB .sapMRbBOut {
-			transform: translate(-0.675rem, 0.675rem);
+			transform: translate(-0.5rem, 0.5rem);
 		}
 	}
 }

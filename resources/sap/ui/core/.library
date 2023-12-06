@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.110.0</version>
+  <version>1.120.1</version>
 
   <documentation>The SAPUI5 Core Runtime.
 
@@ -77,7 +77,6 @@
         <raw-module name="sap/ui/thirdparty/jszip.js" />
         <raw-module name="sap/ui/thirdparty/klay.js" />
         <raw-module name="sap/ui/thirdparty/less.js" />
-        <raw-module name="sap/ui/thirdparty/mobify-carousel.js" requiresTopLevelScope="false" />
         <raw-module name="sap/ui/thirdparty/mobiscroll/js/mobiscroll-core.js" depends="sap/ui/thirdparty/jquery.js" />
         <raw-module name="sap/ui/thirdparty/mobiscroll/js/mobiscroll-datetime.js" depends="sap/ui/thirdparty/jquery.js,sap/ui/thirdparty/mobiscroll/js/mobiscroll-core.js,sap/ui/thirdparty/mobiscroll/js/mobiscroll-scroller.js" />
         <raw-module name="sap/ui/thirdparty/mobiscroll/js/mobiscroll-scroller.js" depends="sap/ui/thirdparty/jquery.js,sap/ui/thirdparty/mobiscroll/js/mobiscroll-core.js" />
@@ -180,13 +179,13 @@
             <copyright>2014 jQuery Foundation and other contributors</copyright>
             <pattern partial="true" otherContent="SAP" explanation="zIndex.js is overall written by SAP, but contains an implementation of the function 'fnzIndex' which is taken from jQuery UI Datepicker 1.11.1">sap/ui/dom/jquery/zIndex.js</pattern>
         </lib>
-        <lib name="qunit" displayName="QUnit" npmName="n/a" version="1.18.0" hash="a91331fed4313c15851f69d3d484d087" homepage="https://qunitjs.com" id="73554900106100002636">
+        <lib name="qunit" displayName="QUnit" npmName="n/a" version="1.18.0" hash="2172c9592fe6e9d5ef3bdf665cf88ba9" homepage="https://qunitjs.com" id="73554900106100002636">
             <license url="http://jQuery.org/license" type="MIT" />
             <copyright>jQuery Foundation and other contributors</copyright>
             <pattern>sap/ui/thirdparty/qunit.css</pattern>
             <pattern>sap/ui/thirdparty/qunit.js</pattern>
         </lib>
-        <lib name="qunit-2" displayName="QUnit 2" npmName="n/a" version="2.3.2" hash="5a663d008c04935ce54d7b13987fde53" homepage="https://qunitjs.com" id="73555000106100006951">
+        <lib name="qunit-2" displayName="QUnit 2" npmName="n/a" version="2.3.2" hash="38899a9d9321402ff815cff5682e8e5b" homepage="https://qunitjs.com" id="73555000106100006951">
             <license url="http://jQuery.org/license" type="MIT" />
             <copyright>jQuery Foundation and other contributors</copyright>
             <pattern>sap/ui/thirdparty/qunit-2.css</pattern>
@@ -203,7 +202,7 @@
             <copyright>OpenJS Foundation and other contributors</copyright>
             <pattern>sap/ui/thirdparty/jquery-compat.js</pattern>
         </lib>
-        <lib name="jquery_mobile" displayName="jQuery Mobile" npmName="n/a" version="1.3.1" hash="ce7f0d13341afe624e75cf797f43192f" homepage="http://jquerymobile.com" id="73554900106100002438">
+        <lib name="jquery_mobile" displayName="jQuery Mobile" npmName="n/a" version="1.3.1" hash="353b22bfd4f4c0fabb02c05a36b93efb" homepage="http://jquerymobile.com" id="73554900106100002438">
             <license url="http://jQuery.org/license" type="MIT" />
             <copyright>2010, 2013 jQuery Foundation, Inc. and other contributors</copyright>
             <pattern>sap/ui/thirdparty/jquery-mobile-custom.js</pattern>
@@ -241,11 +240,6 @@
             <copyright>2012 Matteo Spinelli</copyright>
             <pattern>sap/ui/thirdparty/swipe-view.js</pattern>
         </lib>
-        <lib name="mobify" displayName="Mobify.js" npmName="n/a" version="1.1" hash="6cf018dcb734b22f96f3485d6ad2ac13" homepage="http://www.mobify.com/mobifyjs/" id="73554900106100005548">
-            <license url="http://www.mobify.com/mobifyjs/license/" type="MIT" file="../thirdparty/licenses/mobify-MIT-LICENSE.txt" />
-            <copyright>Mobify R&amp;D Inc.</copyright>
-            <pattern>sap/ui/thirdparty/mobify-carousel.js</pattern>
-        </lib>
         <lib name="zynga" displayName="Zynga Scroller" npmName="n/a" version="1.2.1-0-g5d43806" hash="ed56a75783e6f24f8eefc6e625bc496f" homepage="http://zynga.github.com/scroller/" id="73554900106100001940">
             <license url="https://github.com/pbakaus/scroller/blob/master/LICENSE.txt" type="MIT" />
             <copyright>2011 Zynga Inc.</copyright>
@@ -274,12 +268,12 @@
             <copyright>2009-2014 Stuart Knightley, David Duponchel, Franz Buchinger, António Afonso</copyright>
             <pattern>sap/ui/thirdparty/jszip.js</pattern>
         </lib>
-        <lib name="caja" displayName="Google-Caja JS HTML Sanitizer" npmName="n/a" version="Build 4884" hash="b83416d152b043dbf83f88b0e8b16f1a" homepage="http://code.google.com/p/google-caja/wiki/JsHtmlSanitizer" id="73554900106100001928">
+        <lib name="caja" displayName="Google-Caja JS HTML Sanitizer" npmName="n/a" version="Build 4884" hash="f28a26545017d954f897adf511bf9044" homepage="http://code.google.com/p/google-caja/wiki/JsHtmlSanitizer" id="73554900106100001928">
             <license url="http://www.apache.org/licenses/LICENSE-2.0" type="Apache-2.0" />
             <copyright>Google Inc.</copyright>
             <pattern>sap/ui/thirdparty/caja-html-sanitizer.js</pattern>
         </lib>
-        <lib name="cldr" displayName="Unicode Common Locale Data Repository" npmName="cldr-core" version="41" hash="42c6ef1e814f4b110339ad801d570123" homepage="http://cldr.unicode.org/" id="73555000106100020909">
+        <lib name="cldr" displayName="Unicode Common Locale Data Repository" npmName="cldr-core" version="43" hash="b4039679caa1a81810d541dd7875ae03" homepage="http://cldr.unicode.org/" id="73555000106100020909">
             <license url="http://www.unicode.org/copyright.html" type="Unicode-DFS-2015" />
             <copyright>1991-2014 Unicode, Inc.</copyright>
             <pattern>sap/ui/core/cldr/*</pattern>
@@ -412,7 +406,7 @@
             <copyright>Isaac Z. Schlueter and Contributors</copyright>
             <pattern partial="true" otherContent="SAP" explanation="LRUPersistentCache.js is overall written by SAP, but portions ('Least Recently Used' logic) are taken from the node-lru-cache project (see https://github.com/isaacs/node-lru-cache/blob/v2.7.3/README.md) and modified.">sap/ui/core/cache/LRUPersistentCache.js</pattern>
         </lib>
-        <lib name="tzdata" displayName="Time Zone Database" npmName="n/a" version="2022a" homepage="http://www.iana.org/time-zones" id="73554900106100123193">
+        <lib name="tzdata" displayName="Time Zone Database" npmName="n/a" version="2023c" homepage="http://www.iana.org/time-zones" id="73554900106100123193">
             <license url="https://github.com/eggert/tz/blob/main/LICENSE" type="LicenseRef-tzdata-PublicDomain" />
             <copyright>Arthur David Olson, Paul Eggert and other contributors</copyright>
             <pattern partial="true" otherContent="SAP" explanation="_timezones.js is overall written by SAP, but the list of IANA timezone IDs is taken from the Timezone Database">../test/sap/ui/core/qunit/i18n/helper/_timezones.js</pattern>
@@ -463,6 +457,7 @@
                 <module>sap/ui/core/StandardMargins</module>
                 <module>sap/ui/core/ContainerPadding</module>
                 <module>sap/ui/core/InvisibleText</module>
+                <module>sap/ui/core/webc/*</module>
             </modules>
         </component>
 
@@ -498,6 +493,13 @@
             <name>CA-UI5-CTR-ROD</name>
             <modules>
                 <module>sap/ui/core/hyphenation/*</module>
+            </modules>
+        </component>
+
+        <component>
+            <name>CA-UI5-CTR-PIR</name>
+            <modules>
+                <module>sap/ui/core/delegate/ScrollEnablement</module>
             </modules>
         </component>
     </ownership>

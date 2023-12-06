@@ -5,9 +5,9 @@
  */
 
 sap.ui.define([
-	"sap/ui/test/actions/Action",
-	"sap/ui/thirdparty/jquery"
-], function (Action, jQueryDOM) {
+	"sap/base/util/extend",
+	"sap/ui/test/actions/Action"
+], function (extend, Action) {
 	"use strict";
 
 	/**
@@ -86,7 +86,7 @@ sap.ui.define([
 
 		init: function () {
 			Action.prototype.init.apply(this, arguments);
-			this.controlAdapters = jQueryDOM.extend(this.controlAdapters, Press.controlAdapters);
+			this.controlAdapters = extend(this.controlAdapters, Press.controlAdapters);
 		},
 
 		/**

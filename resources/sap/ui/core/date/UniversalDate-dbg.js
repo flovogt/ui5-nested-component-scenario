@@ -8,22 +8,13 @@
 sap.ui.define([
 	'sap/ui/base/Object',
 	'sap/ui/core/Configuration',
-	'sap/ui/core/Locale',
 	'sap/ui/core/LocaleData',
 	'./_Calendars',
 	'./CalendarUtils',
-	'./CalendarWeekNumbering'
-], function(
-	BaseObject,
-	Configuration,
-	Locale,
-	LocaleData,
-	_Calendars,
-	CalendarUtils,
-	CalendarWeekNumbering
-) {
+	'./CalendarWeekNumbering',
+	'./UI5Date'
+], function(BaseObject, Configuration, LocaleData, _Calendars, CalendarUtils, CalendarWeekNumbering, UI5Date) {
 	"use strict";
-
 
 	/**
 	 * Constructor for UniversalDate.
@@ -32,13 +23,16 @@ sap.ui.define([
 	 * The UniversalDate is the base class of calendar date instances. It contains the static methods to create calendar
 	 * specific instances.
 	 *
-	 * The member variable <code>this.oDate</code> contains the JS Date object, which is the source value of the date information.
-	 * The prototype is containing getters and setters of the JS Date and is delegating them to the internal date object.
-	 * Implementations for specific calendars may override methods needed for their specific calendar (e.g. getYear
-	 * and getEra for Japanese emperor calendar);
+	 * The member variable <code>this.oDate</code> contains a date instance
+	 * (either JavaScript Date or <code>module:sap/ui/core/date/UI5Date</code>) which considers the
+	 * configured time zone wherever JavaScript Date uses the local browser time zone; see
+	 * {@link module:sap/ui/core/date/UI5Date#getInstance}. This is the source value of the date
+	 * information. The prototype contains getters and setters of the Date and is delegating them
+	 * to the internal date object. Implementations for specific calendars may override methods
+	 * needed for their specific calendar (e.g. getYear and getEra for Japanese emperor calendar).
 	 *
 	 * @private
-	 * @ui5-restricted
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 * @alias sap.ui.core.date.UniversalDate
 	 */
 	var UniversalDate = BaseObject.extend("sap.ui.core.date.UniversalDate", /** @lends sap.ui.core.date.UniversalDate.prototype */ {
@@ -48,16 +42,54 @@ sap.ui.define([
 		}
 	});
 
+	/**
+	 * Delegates this method to the calender specific implementation.
+	 *
+	 * @returns {int}
+	 *   The number of milliseconds since January 1, 1970, 00:00:00 UTC based on the Gregorian
+	 *   calendar, for the given calendar specific arguments
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.UTC = function() {
 		var clDate = UniversalDate.getClass();
 		return clDate.UTC.apply(clDate, arguments);
 	};
 
+	/**
+	 * Returns a number representing the millisecond since January 1, 1970, 00:00:00 to the current date,
+	 * see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/now Date.now}.
+	 *
+	 * @returns {int} A number representing the millisecond since January 1, 1970, 00:00:00 to the current date
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.now = function() {
 		return Date.now();
 	};
 
+	/**
+	 * Creates an object of the provided date class and with the given arguments.
+	 *
+	 * @param {function} clDate
+	 *   The constructor function for either <code>Date</code> or an implementation of
+	 *   <code>sap.ui.core.date.UniversalDate</code>
+	 * @param {object} aArgs
+	 *   The <code>arguments</code> object which is given to the constructor of the given date class
+	 *   to create the date object
+	 * @returns {sap.ui.core.date.UniversalDate|module:sap/ui/core/date/UI5Date}
+	 *   The created date, either an UI5Date or UniversalDate instance
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.createDate = function(clDate, aArgs) {
+		if (clDate === Date) {
+			return UI5Date.getInstance.apply(null, aArgs);
+		}
+
 		switch (aArgs.length) {
 			case 0: return new clDate();
 			// new Date(new Date()) is officially not supported
@@ -73,25 +105,30 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns an instance of Date, based on the calendar type from the configuration, or as explicitly
-	 * defined by parameter. The object provides all methods also known on the JavaScript Date object.
+	 * Returns an instance of UniversalDate, based on the calendar type from the configuration, or as explicitly
+	 * defined by parameter. The object contains getters and setters of the JavaScript Date and is delegating them
+	 * to an internal date object.
 	 *
-	 * Note: Prefer this method over calling <code>new UniversalDate</code> with an instance of <code>Date</code>
+	 * Note: Prefer this method over calling <code>new UniversalDate</code> with an instance of <code>Date</code>.
 	 *
-	 * @param {Date|sap.ui.core.date.UniversalDate} [oDate] JavaScript date object, defaults to <code>new Date()</code>
-	 * @param {sap.ui.core.CalendarType} [sCalendarType] The calendar type, defaults to <code>sap.ui.getCore().getConfiguration().getCalendarType()</code>
-	 * @returns {sap.ui.core.date.UniversalDate} The date instance
-	 * @public
+	 * @param {Date|module:sap/ui/core/date/UI5Date|sap.ui.core.date.UniversalDate} [oDate]
+	 *   The date object, defaults to <code>UI5Date.getInstance()</code>
+	 * @param {sap.ui.core.CalendarType} [sCalendarType]
+	 *   The calendar type, defaults to <code>sap.ui.getCore().getConfiguration().getCalendarType()</code>
+	 * @returns {sap.ui.core.date.UniversalDate}
+	 *   An instance of <code>UniversalDate</code>
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	UniversalDate.getInstance = function(oDate, sCalendarType) {
 		var clDate, oInstance;
+
 		if (oDate instanceof UniversalDate) {
 			oDate = oDate.getJSDate();
-		} else if (!oDate) {
-			oDate = new Date();
 		}
 
-		if (isNaN(oDate.getTime())) {
+		if (oDate && isNaN(oDate.getTime())) {
 			throw new Error("The given date object is invalid");
 		}
 
@@ -100,17 +137,24 @@ sap.ui.define([
 		}
 		clDate = UniversalDate.getClass(sCalendarType);
 		oInstance = Object.create(clDate.prototype);
-		oInstance.oDate = oDate;
+		oInstance.oDate = oDate ? UI5Date.getInstance(oDate) : UI5Date.getInstance();
 		oInstance.sCalendarType = sCalendarType;
+
 		return oInstance;
 	};
 
 	/**
-	 * Returns a specific Date class, based on the calendar type from the configuration, or as explicitly
-	 * defined by parameter. The object provides all methods also known on the JavaScript Date object.
+	 * Returns the constructor function of a subclass of <code>UniversalDate</code> for the given calendar type.
+	 * If no calendar type is given the globally configured calendar type is used.
 	 *
 	 * @param {sap.ui.core.CalendarType} sCalendarType the type of the used calendar
-	 * @public
+	 *
+	 * @returns {function}
+	 *   The class of the given <code>sCalenderType</code>. If <code>sCalenderType</code> is not
+	 *   provided, the class of the configured calendar type is returned.
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	UniversalDate.getClass = function(sCalendarType) {
 		if (!sCalendarType) {
@@ -119,8 +163,543 @@ sap.ui.define([
 		return _Calendars.get(sCalendarType);
 	};
 
-	/*
-	 * Loop through the Date class and create delegates of all Date API methods
+	/**
+	 * Returns the day of the month of the embedded date instance according to the configured time
+	 * zone and selected calender.
+	 *
+	 * @returns {int}
+	 *   A number representing the day of the month of the embedded date instance according
+	 *   to the configured time zone and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getDate
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the day of the week of the embedded date instance according to the configured time zone and
+	 * selected calender.
+	 *
+	 * @returns {int}
+	 *   A number representing the day of the week of the embedded date instance according to the configured
+	 *   time zone and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getDay
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the year of the embedded date instance according to the configured time zone and selected calender.
+	 *
+	 * @returns {int}
+	 *   The year of the embedded date instance according to the configured time zone and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getFullYear
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the hours of the embedded date instance according to the configured time zone and selected
+	 * calender.
+	 *
+	 * @returns {int}
+	 *   A number representing the hours of the embedded date instance according to the configured time zone
+	 *   and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getHours
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the milliseconds of the embedded date instance according to the configured time zone
+	 * and selected calender.
+	 *
+	 * @returns {int}
+	 *   A number between 0 and 999 representing the milliseconds of the embedded date instance according to
+	 *   the configured time zone and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getMilliseconds
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the minutes of the embedded date instance according to the configured time zone and selected calender.
+	 *
+	 * @returns {int}
+	 *   A number between 0 and 59 representing the minutes of the embedded date instance according to the
+	 *   configured time zone and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getMinutes
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the month index of the embedded date instance according to the configured time zone
+	 * and selected calender.
+	 *
+	 * @returns {int}
+	 *   The month index of the embedded date instance according to the configured time zone and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getMonth
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the seconds of the embedded date instance according to the configured time zone and selected calender.
+	 *
+	 * @returns {int}
+	 *   A number between 0 and 59 representing the seconds of the embedded date instance according to the
+	 *   configured time zone and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getSeconds
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the difference in minutes between the UTC and the configured time zone for the embedded date.
+	 *
+	 * @returns {int}
+	 *   The difference in minutes between the UTC and the configured time zone for the embedded date
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getTimezoneOffset
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the year of the embedded date instance minus 1900 according to the configured time zone and
+	 * selected calender. In case of the Gregorian calendar the 1900 is subtracted from the year value.
+	 *
+	 * @returns {int}
+	 *   The year of the embedded date instance (minus 1900 if the Gregorian calendar is selected)
+	 *   according to the configured time zone and selected calender
+	 *
+	 * @deprecated for the Gregorian calendar since version 1.111.0 as it is deprecated in
+	 *   JavaScript Date, it can be used with other calendars. It still is recommended to use
+	 *   {@link #getFullYear} instead, independent on the selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getYear
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the timestamp in milliseconds of the embedded date based on the UNIX epoch.
+	 *
+	 * @returns {int}
+	 *   The timestamp in milliseconds of the embedded date based on the UNIX epoch, or <code>NaN</code> if
+	 *   the embedded date is an invalid date
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getTime
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the day of the month of the embedded date instance according to universal time and
+	 * selected calender.
+	 *
+	 * @returns {int}
+	 *   A number representing the day of the month of the embedded date instance according
+	 *   to universal time and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getUTCDate
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 *
+	 * Returns the day of the week of the embedded date instance according to universal time and
+	 * selected calender.
+	 *
+	 * @returns {int}
+	 *   A number representing the day of the week of the embedded date instance according to universal
+	 *   time and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getUTCDay
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the year of the embedded date instance according to universal time and selected calender.
+	 *
+	 * @returns {int}
+	 *   The year of the embedded date instance according to universal time and selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getUTCFullYear
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the hours of the embedded date instance according to universal time.
+	 *
+	 * @returns {int}
+	 *   A number representing the hours of the embedded date instance according to universal time
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getUTCHours
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the milliseconds of the embedded date instance according to universal time.
+	 *
+	 * @returns {int}
+	 *   A number between 0 and 999 representing the milliseconds of the embedded date instance
+	 *   according to universal time
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getUTCMilliseconds
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the minutes of the embedded date instance according to universal time.
+	 *
+	 * @returns {int}
+	 *   A number between 0 and 59 representing the minutes of the embedded date instance according
+	 *   to universal time
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getUTCMinutes
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the month index of the embedded date instance according to universal time and
+	 * selected calender.
+	 *
+	 * @returns {int}
+	 *   The month index of the embedded date instance according to universal time and selected
+	 *   calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getUTCMonth
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the seconds of the embedded date instance according to universal time.
+	 *
+	 * @returns {int}
+	 *   A number between 0 and 59 representing the seconds of the embedded date instance according
+	 *   to universal time
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.getUTCSeconds
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the day of the month for the embedded date instance considering the configured time zone
+	 * and selected calender.
+	 *
+	 * @param {int} iDay
+	 *   An integer representing the new day value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setDate
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the year, month and day for the embedded date instance considering the configured time
+	 * zone and selected calender.
+	 *
+	 * @param {int} yearValue An integer representing the new year value
+	 * @param {int} [monthValue] An integer representing the new month index
+	 * @param {int} [dateValue] An integer representing the new day value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setFullYear
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the hours, minutes, seconds and milliseconds for the embedded date instance considering
+	 * the configured time zone.
+	 *
+	 * @param {int} hoursValue An integer representing the new hours value
+	 * @param {int} [minutesValue] An integer representing the new minutes value
+	 * @param {int} [secondsValue] An integer representing the new seconds value
+	 * @param {int} [msValue] An integer representing the new milliseconds value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setHours
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the milliseconds for the embedded date instance considering the configured time zone.
+	 *
+	 * @param {int} millisecondsValue An integer representing the new milliseconds value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setMilliseconds
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the minutes, seconds and milliseconds for the embedded date instance considering the configured
+	 * time zone.
+	 *
+	 * @param {int} minutesValue An integer representing the new minutes value
+	 * @param {int} [secondsValue] An integer representing the new seconds value
+	 * @param {int} [msValue] An integer representing the new milliseconds value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setMinutes
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the month and day for the embedded date instance considering the configured time zone and
+	 * selected calender.
+	 *
+	 * @param {int} monthValue An integer representing the new month index
+	 * @param {int} [dayValue] An integer representing the new day value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setMonth
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the seconds and milliseconds for the embedded date instance considering the configured time zone.
+	 *
+	 * @param {int} secondsValue An integer representing the new seconds value
+	 * @param {int} [msValue] An integer representing the new milliseconds value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setSeconds
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the day of the month for the embedded date instance according to universal time and
+	 * selected calender.
+	 *
+	 * @param {int} dayValue
+	 *   An integer representing the new day value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setUTCDate
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the year, month and day for the embedded date instance according to universal time and
+	 * selected calender.
+	 *
+	 * @param {int} yearValue An integer representing the new year value
+	 * @param {int} [monthValue] An integer representing the new month index
+	 * @param {int} [dateValue] An integer representing the new day value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setUTCFullYear
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the hours, minutes, seconds and milliseconds for the embedded date instance according to
+	 * universal time.
+	 *
+	 * @param {int} hoursValue An integer representing the new hours value
+	 * @param {int} [minutesValue] An integer representing the new minutes value
+	 * @param {int} [secondsValue] An integer representing the new seconds value
+	 * @param {int} [msValue] An integer representing the new milliseconds value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setUTCHours
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the milliseconds for the embedded date instance according to universal time.
+	 *
+	 * @param {int} msValue An integer representing the new milliseconds value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setUTCMilliseconds
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the minutes, seconds and milliseconds for the embedded date instance according to universal
+	 * time.
+	 *
+	 * @param {int} minutesValue An integer representing the new minutes value
+	 * @param {int} [secondsValue] An integer representing the new seconds value
+	 * @param {int} [msValue] An integer representing the new milliseconds value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setUTCMinutes
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the month and day for the embedded date instance according to universal time and
+	 * selected calender.
+	 *
+	 * @param {int} monthValue An integer representing the new month index
+	 * @param {int} [dateValue] An integer representing the new day value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setUTCMonth
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the seconds and milliseconds for the embedded date instance according to universal time.
+	 *
+	 * @param {int} secondsValue An integer representing the new seconds value
+	 * @param {int} [msValue] An integer representing the new milliseconds value
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setUTCSeconds
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Sets the year for the embedded date instance considering the configured time zone and the
+	 * selected calender. In case of the Gregorian calendar, 1900 is added to the year value
+	 *
+	 * @param {int} yearValue
+	 *   An integer representing the new year value (plus 1900 for the Gregorian calendar)
+	 * @returns {int}
+	 *   The milliseconds of the new timestamp based on the UNIX epoch, or <code>NaN</code> if the
+	 *   timestamp could not be updated. The new timestamp is a Gregorian timestamp.
+	 *
+	 * @deprecated for the Gregorian calendar since version 1.111.0 as it is deprecated in
+	 *   JavaScript Date, it can be used with other calendars. It still is recommended to use
+	 *   {@link #getFullYear} instead, independent on the selected calender
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.setYear
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the date portion of the embedded date object interpreted in the configured time zone,
+	 * independent on the selected calendar.
+	 *
+	 * @returns {string}
+	 *   The date portion of the embedded date object interpreted in the configured time zone
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.toDateString
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns a string representing the embedded date object interpreted in the configured time
+	 * zone, independent on the selected calendar.
+	 *
+	 * @returns {string}
+	 *   A string representing the embedded date object interpreted in the configured time zone
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.toString
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
+
+	/**
+	 * Returns the value of the embedded date object in milliseconds based on the UNIX epoch.
+	 *
+	 * @returns {int} The primitive value of the embedded date object in milliseconds based on the UNIX epoch
+	 *
+	 * @function
+	 * @name sap.ui.core.date.UniversalDate.prototype.valueOf
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	[
 		"getDate", "getMonth", "getFullYear", "getYear", "getDay", "getHours", "getMinutes", "getSeconds", "getMilliseconds",
@@ -135,10 +714,12 @@ sap.ui.define([
 	});
 
 	/**
-	 * Returns the JS date object representing the current calendar date value.
+	 * Returns the date object representing the current calendar date value.
 	 *
-	 * @returns {Date} The JS date object representing the current calendar date value
-	 * @public
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} The date object representing the current calendar date value
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	UniversalDate.prototype.getJSDate = function() {
 		return this.oDate;
@@ -148,23 +729,63 @@ sap.ui.define([
 	 * Returns the calendar type of the current instance of a UniversalDate.
 	 *
 	 * @returns {sap.ui.core.CalendarType} The calendar type of the date
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	UniversalDate.prototype.getCalendarType = function() {
 		return this.sCalendarType;
 	};
 
-	/*
-	 * Provide additional getters/setters, not yet covered by the JS Date
+	/**
+	 * Returns the era index of for the embedded date instance.
+	 *
+	 * @returns {int} The index of the era for the embedded date instance
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 */
 	UniversalDate.prototype.getEra = function() {
 		return UniversalDate.getEraByDate(this.sCalendarType, this.oDate.getFullYear(), this.oDate.getMonth(), this.oDate.getDate());
 	};
+
+	/**
+	 * Placeholder method which is overwritten by calendar specific implementations. General usage of
+	 * this method is to use it to set the era for the embedded date instance.
+	 *
+	 * @param {int} iEra
+	 *   An number representing the era index which is to be set for the embedded date instance
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.setEra = function(iEra) {
 		// The default implementation does not support setting the era
 	};
+
+	/**
+	 * Returns the era index of for the embedded date instance in universal time.
+	 *
+	 * @returns {int} The index of the era for the embedded date instance in universal time
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.getUTCEra = function() {
 		return UniversalDate.getEraByDate(this.sCalendarType, this.oDate.getUTCFullYear(), this.oDate.getUTCMonth(), this.oDate.getUTCDate());
 	};
+
+	/**
+	 * Placeholder method which is overwritten by calendar specific implementations. General usage of
+	 * this method is to use it to set the era for the embedded date instance in universal time.
+	 *
+	 * @param {int} iEra
+	 *   An number representing the era index which is to be set for the embedded date instance
+	 *   in universal time
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.setUTCEra = function(iEra) {
 		// The default implementation does not support setting the era
 	};
@@ -181,6 +802,7 @@ sap.ui.define([
 	 *   e.g. <code>{firstDayOfWeek: 1, minimalDaysInFirstWeek: 4}</code>
 	 * @returns {{week: int, year: int}} resulting calendar week, note: week index starts with <code>0</code>
 	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 * @throws {TypeError} If:
 	 * <ul>
 	 *   <li>vCalendarWeekNumbering is an object and the fields <code>firstDayOfWeek</code> or <code>minimalDaysInFirstWeek</code>) are missing or have a non-numeric value</li>
@@ -188,7 +810,6 @@ sap.ui.define([
 	 * </ul>
 	 */
 	UniversalDate.prototype.getWeek = function(oLocale, vCalendarWeekNumbering) {
-		checkWeekConfig(vCalendarWeekNumbering);
 		return UniversalDate.getWeekByDate(this.sCalendarType, this.getFullYear(), this.getMonth(), this.getDate(), oLocale, vCalendarWeekNumbering);
 	};
 
@@ -205,6 +826,7 @@ sap.ui.define([
 	 *   If calendar week numbering is not determined from the locale then {@link LocaleData#firstDayStartsFirstWeek} is ignored.
 	 *   e.g. <code>{firstDayOfWeek: 1, minimalDaysInFirstWeek: 4}</code>
 	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 * @throws {TypeError} If:
 	 * <ul>
 	 *   <li>vCalendarWeekNumbering is an object and the fields <code>firstDayOfWeek</code> or <code>minimalDaysInFirstWeek</code>) are missing or have a non-numeric value</li>
@@ -212,7 +834,6 @@ sap.ui.define([
 	 * </ul>
 	 */
 	UniversalDate.prototype.setWeek = function(oWeek, oLocale, vCalendarWeekNumbering) {
-		checkWeekConfig(vCalendarWeekNumbering);
 		var oDate = UniversalDate.getFirstDateOfWeek(this.sCalendarType, oWeek.year || this.getFullYear(), oWeek.week, oLocale, vCalendarWeekNumbering);
 		this.setFullYear(oDate.year, oDate.month, oDate.day);
 	};
@@ -229,6 +850,7 @@ sap.ui.define([
 	 *   e.g. <code>{firstDayOfWeek: 1, minimalDaysInFirstWeek: 4}</code>
 	 * @returns {{week: int, year: int}} resulting calendar week, note: week index starts with <code>0</code>
 	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 * @throws {TypeError} If:
 	 * <ul>
 	 *   <li>vCalendarWeekNumbering is an object and the fields <code>firstDayOfWeek</code> or <code>minimalDaysInFirstWeek</code>) are missing or have a non-numeric value</li>
@@ -236,7 +858,6 @@ sap.ui.define([
 	 * </ul>
 	 */
 	UniversalDate.prototype.getUTCWeek = function(oLocale, vCalendarWeekNumbering) {
-		checkWeekConfig(vCalendarWeekNumbering);
 		return UniversalDate.getWeekByDate(this.sCalendarType, this.getUTCFullYear(), this.getUTCMonth(), this.getUTCDate(), oLocale, vCalendarWeekNumbering);
 	};
 
@@ -253,6 +874,7 @@ sap.ui.define([
 	 *   If calendar week numbering is not determined from the locale then {@link LocaleData#firstDayStartsFirstWeek} is ignored.
 	 *   e.g. <code>{firstDayOfWeek: 1, minimalDaysInFirstWeek: 4}</code>
 	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 * @throws {TypeError} If:
 	 * <ul>
 	 *   <li>vCalendarWeekNumbering is an object and the fields <code>firstDayOfWeek</code> or <code>minimalDaysInFirstWeek</code>) are missing or have a non-numeric value</li>
@@ -260,16 +882,46 @@ sap.ui.define([
 	 * </ul>
 	 */
 	UniversalDate.prototype.setUTCWeek = function(oWeek, oLocale, vCalendarWeekNumbering) {
-		checkWeekConfig(vCalendarWeekNumbering);
 		var oDate = UniversalDate.getFirstDateOfWeek(this.sCalendarType, oWeek.year || this.getFullYear(), oWeek.week, oLocale, vCalendarWeekNumbering);
 		this.setUTCFullYear(oDate.year, oDate.month, oDate.day);
 	};
+
+	/**
+	 * Returns the current quarter of the embedded date instance
+	 *
+	 * @returns {int} The quarter of the embedded date instance
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.getQuarter = function() {
 		return Math.floor((this.getMonth() / 3));
 	};
+
+	/**
+	 * Returns the current quarter of the embedded date instance in universal time
+	 *
+	 * @returns {int} The quarter of the embedded date instance in universal time
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.getUTCQuarter = function() {
 		return Math.floor((this.getUTCMonth() / 3));
 	};
+
+	/**
+	 * Returns an integer value depending on whether the embedded date instance time is set to the
+	 * afternoon or morning.
+	 *
+	 * @returns {int}
+	 *   An integer value which indicates which day period the embedded date instance is set to. If,
+	 *   date time is set in the morning time 0 (i.e. 0:00 - 11:59) or 1 if date time is set in the
+	 *   afternoon (i.e. 12:00 - 23:59).
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.getDayPeriod = function() {
 		if (this.getHours() < 12) {
 			return 0;
@@ -277,6 +929,20 @@ sap.ui.define([
 			return 1;
 		}
 	};
+
+
+	/**
+	 * Returns an integer value depending on whether the embedded date instance time, is set to the
+	 * afternoon or morning, in universal time.
+	 *
+	 * @returns {int}
+	 *   An integer value which indicates which day period the embedded date instance is set to, in
+	 *   universal time. If, universal date time is set in the morning time 0 (i.e. 0:00 - 11:59) or
+	 *   1 if universal date time is set in the afternoon (i.e. 12:00 - 23:59).
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.getUTCDayPeriod = function() {
 		if (this.getUTCHours() < 12) {
 			return 0;
@@ -288,11 +954,28 @@ sap.ui.define([
 
 	// TODO: These are currently needed for the DateFormat test, as the date used in the test
 	// has been enhanced with these methods. Should be implemented using CLDR data.
+	/**
+	 * Returns the short version of the time zone name of the embedded date instance.
+	 *
+	 * @returns {string} The short version of the name, of the time zone of the embedded date instance
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.getTimezoneShort = function() {
 		if (this.oDate.getTimezoneShort) {
 			return this.oDate.getTimezoneShort();
 		}
 	};
+
+	/**
+	 * Returns the long version of the time zone name of the embedded date instance.
+	 *
+	 * @returns {string} The long version of the name, of the time zone of the embedded date instance
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.prototype.getTimezoneLong = function() {
 		if (this.oDate.getTimezoneLong) {
 			return this.oDate.getTimezoneLong();
@@ -321,6 +1004,7 @@ sap.ui.define([
 	 *   e.g. <code>{firstDayOfWeek: 1, minimalDaysInFirstWeek: 4}</code>
 	 * @returns {{week: int, year: int}} resulting calendar week, note: week index starts with <code>0</code>, e.g. <code>{year: 2016, week: 8}</code>
 	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 * @throws {TypeError} If:
 	 * <ul>
 	 *   <li>vCalendarWeekNumbering is an object and the fields <code>firstDayOfWeek</code> or <code>minimalDaysInFirstWeek</code>) are missing or have a non-numeric value</li>
@@ -328,6 +1012,7 @@ sap.ui.define([
 	 * </ul>
 	 */
 	UniversalDate.getWeekByDate = function(sCalendarType, iYear, iMonth, iDay, oLocale, vCalendarWeekNumbering) {
+		vCalendarWeekNumbering = vCalendarWeekNumbering || Configuration.getCalendarWeekNumbering();
 		checkWeekConfig(vCalendarWeekNumbering);
 		oLocale = oLocale || Configuration.getFormatSettings().getFormatLocale();
 		var clDate = this.getClass(sCalendarType);
@@ -374,6 +1059,7 @@ sap.ui.define([
 	 *   e.g. <code>{firstDayOfWeek: 1, minimalDaysInFirstWeek: 4}</code>
 	 * @returns {{month: int, year: int, day: int}} the resulting date, e.g. <code>{year: 2016, month: 1, day: 29}</code>
 	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
 	 * @throws {TypeError} If:
 	 * <ul>
 	 *   <li>vCalendarWeekNumbering is an object and the fields <code>firstDayOfWeek</code> or <code>minimalDaysInFirstWeek</code>) are missing or have a non-numeric value</li>
@@ -381,6 +1067,7 @@ sap.ui.define([
 	 * </ul>
 	 */
 	UniversalDate.getFirstDateOfWeek = function(sCalendarType, iYear, iWeek, oLocale, vCalendarWeekNumbering) {
+		vCalendarWeekNumbering = vCalendarWeekNumbering || Configuration.getCalendarWeekNumbering();
 		checkWeekConfig(vCalendarWeekNumbering);
 		oLocale = oLocale || Configuration.getFormatSettings().getFormatLocale();
 		var clDate = this.getClass(sCalendarType);
@@ -405,73 +1092,52 @@ sap.ui.define([
 	 * Determines if the split week algorithm should be applied (the first day of the first calendar
 	 * week of the year is January 1st).
 	 *
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and
 	 *   <code>minimalDaysInFirstWeek</code>
-	 * @param {sap.ui.core.Locale} [oLocale] the locale used for the week calculation
+	 * @param {sap.ui.core.Locale} oLocale the locale used for the week calculation
 	 * @returns {boolean} if the split week should be applied
-	 * @private
 	 */
 	function isSplitWeek(vCalendarWeekNumbering, oLocale) {
-		oLocale = oLocale || Configuration.getFormatSettings().getFormatLocale();
 		var oLocaleData = LocaleData.getInstance(oLocale);
-		return (!isCalendarWeekConfigurationDefined(vCalendarWeekNumbering) ||
-			vCalendarWeekNumbering === CalendarWeekNumbering.Default)
+
+		// only applies for en_US with default CalendarWeekNumbering (WesternTraditional is default in en_US)
+		return (vCalendarWeekNumbering === CalendarWeekNumbering.Default
+				|| vCalendarWeekNumbering === CalendarWeekNumbering.WesternTraditional)
 			&& oLocaleData.firstDayStartsFirstWeek();
 	}
 
 	/**
 	 * Checks the calendar week configuration
 	 *
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>
 	 * @throws {TypeError} If:
 	 * <ul>
 	 *   <li>vCalendarWeekNumbering is an object and the fields <code>firstDayOfWeek</code> or <code>minimalDaysInFirstWeek</code>) are missing or have a non-numeric value</li>
 	 *   <li>vCalendarWeekNumbering is a string and has an invalid week numbering value</li>
 	 * </ul>
-	 * @private
 	 */
 	function checkWeekConfig(vCalendarWeekNumbering) {
 		if (typeof vCalendarWeekNumbering === "object") {
-			if (!isCalendarWeekConfigurationDefined(vCalendarWeekNumbering)) {
+			if (typeof vCalendarWeekNumbering.firstDayOfWeek !== "number"
+					|| typeof vCalendarWeekNumbering.minimalDaysInFirstWeek !== "number") {
 				throw new TypeError("Week config requires firstDayOfWeek and minimalDaysInFirstWeek to be set");
 			}
-		} else if (vCalendarWeekNumbering && !Object.values(CalendarWeekNumbering).includes(vCalendarWeekNumbering)) {
+		} else if (!Object.values(CalendarWeekNumbering).includes(vCalendarWeekNumbering)) {
 			throw new TypeError("Illegal format option calendarWeekNumbering: '" + vCalendarWeekNumbering + "'");
 		}
 	}
 
 	/**
-	 * Checks if the calendar week configuration is defined
-	 *
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
-	 *   the parameter which is checked
-	 * @returns {boolean} if the parameter vCalendarWeekNumbering is defined and in case of an
-	 *   object has the required properties <code>firstDayOfWeek</code> and
-	 *   <code>minimalDaysInFirstWeek</code> defined with a numeric value
-	 * @private
-	 */
-	function isCalendarWeekConfigurationDefined (vCalendarWeekNumbering) {
-		if (typeof vCalendarWeekNumbering === "object") {
-			return typeof vCalendarWeekNumbering.firstDayOfWeek === "number"
-				&& typeof vCalendarWeekNumbering.minimalDaysInFirstWeek === "number";
-		} else if (vCalendarWeekNumbering) {
-			return true;
-		}
-		return false;
-	}
-
-	/**
 	 * Resolves the calendar week configuration
 	 *
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>
 	 * @param {sap.ui.core.Locale} [oLocale] locale to be used
 	 * @returns {{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} calendar week calculation configuration
-	 * @private
 	 */
-	 function resolveCalendarWeekConfiguration (vCalendarWeekNumbering, oLocale) {
+	function resolveCalendarWeekConfiguration (vCalendarWeekNumbering, oLocale) {
 		// be backward compatible
 		if (typeof vCalendarWeekNumbering === "object"
 				&& typeof vCalendarWeekNumbering.firstDayOfWeek === "number"
@@ -488,12 +1154,11 @@ sap.ui.define([
 	 * @param {int} iYear year, e.g. <code>2016</code>
 	 * @param {sap.ui.core.Locale} [oLocale] the locale used for the week calculation, if oWeekConfig is not provided (falls back to the formatLocale)
 	 *   e.g. <code>new Locale("de-DE")</code>
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>,
 	 *   the default is derived from <code>oLocale</code> but this parameter has precedence over oLocale if both are provided.
 	 *   e.g. <code>{firstDayOfWeek: 1, minimalDaysInFirstWeek: 4}</code>
 	 * @returns {Date} first day of the first week in the given year, e.g. <code>Mon Jan 04 2016 01:00:00 GMT+0100</code>
-	 * @private
 	 */
 	function getFirstDayOfFirstWeek(clDate, iYear, oLocale, vCalendarWeekNumbering) {
 		oLocale = oLocale || Configuration.getFormatSettings().getFormatLocale();
@@ -521,6 +1186,13 @@ sap.ui.define([
 		return oFirstDay;
 	}
 
+	/**
+	 * Returns the rounded amount of weeks a given time frame.
+	 *
+	 * @param {Date} oFromDate The beginning date of the time interval
+	 * @param {Date} oToDate The end date of the time interval
+	 * @returns {int} A rounded number which represents the amount of weeks in the given timer interval
+	 */
 	function calculateWeeks(oFromDate, oToDate) {
 		return Math.floor((oToDate.valueOf() - oFromDate.valueOf()) / iMillisecondsInWeek);
 	}
@@ -530,8 +1202,24 @@ sap.ui.define([
 	 */
 	var mEras = {};
 
+	/**
+	 * Returns an index of the era for the given date values in the given calender. For
+	 * an index to be returned the date value has to be within the era time period, i.e. the
+	 * timestamp value of the date has to be bigger or equal than the start timestamp of the era
+	 * or smaller than the end of the end period.
+	 *
+	 * @param {string} sCalendarType The given calender type which the eras available for selection
+	 * @param {int} iYear The year value for which the era is looked for
+	 * @param {int} iMonth The month value for which the era is looked for
+	 * @param {int} iDay The date value for which the era is looked for
+	 * @returns {int} The index of the found era for the given date values in the given calender
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.getEraByDate = function(sCalendarType, iYear, iMonth, iDay) {
 		var aEras = getEras(sCalendarType),
+			// no need to use UI5Date.getInstance as only the UTC timestamp is used
 			iTimestamp = new Date(0).setUTCFullYear(iYear, iMonth, iDay),
 			oEra;
 		for (var i = aEras.length - 1; i >= 0; i--) {
@@ -548,11 +1236,33 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * Returns an index of the current era for the embedded date instance.
+	 *
+	 * @param {string} sCalendarType The calender type which defines the available eras to select from
+	 * @returns {int} The index of the current era of the embedded date instance
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.getCurrentEra = function(sCalendarType) {
-		var oNow = new Date();
+		var oNow = UI5Date.getInstance();
 		return this.getEraByDate(sCalendarType, oNow.getFullYear(), oNow.getMonth(), oNow.getDate());
 	};
 
+	/**
+	 * Returns the start date of the selected era from the given era index, in the given calender type.
+	 *
+	 * @param {string} sCalendarType The calender type from which the era is to be picked
+	 * @param {int} iEra The given era index of the to be selected era
+	 * @returns {object|null}
+	 *   The start date object of the selected era. If no era can be found for the given index the first
+	 *   era of the selected calender is chosen. If the chosen era does not have a start date defined
+	 *   <code>null</code>
+	 *
+	 * @private
+	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+	 */
 	UniversalDate.getEraStartDate = function(sCalendarType, iEra) {
 		var aEras = getEras(sCalendarType),
 			oEra = aEras[iEra] || aEras[0];
@@ -561,6 +1271,14 @@ sap.ui.define([
 		}
 	};
 
+	/**
+	 * Returns an array of era for the given calender.
+	 *
+	 * @param {string} sCalendarType
+	 *   The calender type from which the the locale era data is taken from and the era array is
+	 *   generated
+	 * @returns {array} An array of all available era in the given calender
+	 */
 	function getEras(sCalendarType) {
 		var oLocale = Configuration.getFormatSettings().getFormatLocale(),
 			oLocaleData = LocaleData.getInstance(oLocale),
@@ -588,6 +1306,15 @@ sap.ui.define([
 		return aEras;
 	}
 
+	/**
+	 * Returns an object containing the date parts year, month, day of month and the date timestamp value
+	 * of the given date string.
+	 *
+	 * @param {string} sDateString The date string which is to be parsed
+	 * @returns {object}
+	 *   An object containing the year, month, day of month and date timestamp values of the given
+	 *   date string
+	 */
 	function parseDateString(sDateString) {
 		var aParts = sDateString.split("-"),
 			iYear, iMonth, iDay;
@@ -602,6 +1329,7 @@ sap.ui.define([
 			iDay = parseInt(aParts[2]);
 		}
 		return {
+			// no need to use UI5Date.getInstance as only the UTC timestamp is used
 			timestamp: new Date(0).setUTCFullYear(iYear, iMonth, iDay),
 			year: iYear,
 			month: iMonth,

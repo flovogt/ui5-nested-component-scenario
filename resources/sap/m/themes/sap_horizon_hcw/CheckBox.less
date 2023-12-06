@@ -9,6 +9,10 @@
 	line-height: 2.7rem;
 }
 
+.sapMCb:focus {
+	outline: none;
+}
+
 .sapMCbBg {
 	height: 1.375rem;
 	width: 1.375rem;
@@ -33,7 +37,7 @@
 	}
 }
 
-.sapMCbBgDis .sapMCbBg {
+.sapMCbBgDis {
 	opacity: @sapUiContentDisabledOpacity;
 }
 
@@ -43,20 +47,27 @@
 }
 
 .sapMCbRo > .sapMCbBg.sapMCbMarkChecked:before {
-	color: @sapUiContentNonInteractiveIconColor;
+	color: @sapUiFieldTextColor;
 }
 
-.sapMCbHoverable:hover {
+.sapMCb:not(.sapMCbErr):not(.sapMCbWarn):not(.sapMCbInfo):not(.sapMCbSucc):hover .sapMCbHoverable {
 	border: @sapUiFieldBorderWidth @sapField_BorderStyle @sapUiFieldHoverBorderColor;
 	color: @sapUiContentSelectedForegroundColor;
-	box-shadow: @sapUiContentInteractionShadow;
 	background-color: @sapSelectedColor;
+}
+
+.sapMCb:hover .sapMCbHoverable {
+	background-color: @sapUiFieldHoverBackground;
 }
 
 // value state
 .sapMCbErr {
-	.sapMCbBg {
+	&:hover .sapMCbBg,
+	.sapMCbBg{
 		background-color: @sapUiFieldInvalidBackground;
+	}
+
+	.sapMCbBg {
 		border: @sapUiFieldInvalidBorderWidth dashed  @sapUiFieldInvalidColor;
 		color: @sapUiFieldInvalidColor;
 
@@ -64,27 +75,17 @@
 			border-width: 0.1875rem;
 		}
 	}
-
-	.sapMCbHoverable:hover {
-		box-shadow: @sapUiContentNegativeShadow;
-		background-color: @sapUiFieldHoverBackground;
-	}
 }
 
 .sapMCbWarn {
 	.sapMCbBg {
 		background-color: @sapUiFieldWarningBackground;
 		border: @sapUiFieldWarningBorderWidth dashed @sapUiFieldWarningColor;
-		color: @sapUiFieldTextColor;
+		color: @sapUiFieldWarningColor;
 
 		&.sapMCbMarkChecked.sapMCbMarkPartiallyChecked::before {
 			border-width: 0.1875rem;
 		}
-	}
-
-	.sapMCbHoverable:hover {
-		box-shadow: @sapUiContentCriticalShadow;
-		background-color: @sapUiFieldHoverBackground;
 	}
 }
 
@@ -98,11 +99,6 @@
 			border-width: 0.25rem;
 		}
 	}
-
-	.sapMCbHoverable:hover {
-		box-shadow: @sapUiContentInformativeShadow;
-		background-color: @sapUiFieldHoverBackground;
-	}
 }
 
 .sapMCbSucc {
@@ -110,11 +106,6 @@
 		background-color: @sapUiFieldSuccessBackground;
 		border: @sapUiFieldSuccessBorderWidth solid @sapUiFieldSuccessColor;
 		color: @sapUiFieldSuccessColor;
-	}
-
-	.sapMCbHoverable:hover {
-		box-shadow: @sapUiContentPositiveShadow;
-		background-color: @sapUiFieldHoverBackground;
 	}
 }
 
@@ -176,6 +167,21 @@
 	border-radius: 0.5rem;
 }
 
+/* In Form Checkbox needs to be left aligned to bi in line with other controls (as Form itself has a padding) */
+.sapUiForm {
+	.sapMCbBg {
+		left: 0;
+	}
+
+	.sapMCb {
+		padding-left: 2.0625rem; // to have right gap between checkbox and label
+	}
+
+	.sapMCb:not(.sapMCbBgDis).sapMCbHasLabel:focus:before {
+		left: -0.25rem; /* more is not possible as this would cut off the focus border */
+	}
+}
+
 .sapUiSizeCompact {
 	.sapMCb {
 		height: 2rem;
@@ -215,5 +221,20 @@
 	.sapMCbDisplayOnly .sapMCbBg.sapMCbMark.sapMCbMarkChecked.sapMCbMarkPartiallyChecked {
 		top: 0.5625rem;
 		left: 0.5625rem;
+	}
+
+	/* In Form Checkbox needs to be left aligned to bi in line with other controls (as Form itself has a padding) */
+	.sapUiForm {
+		.sapMCbBg {
+			left: 0;
+		}
+
+		.sapMCb {
+			padding-left: 1.5rem; // to have right gap between checkbox and label
+		}
+
+		.sapMCb:not(.sapMCbBgDis).sapMCbHasLabel:focus:before {
+			left: -0.1875rem;
+		}
 	}
 }

@@ -24,7 +24,10 @@ sap.ui.define([
 	"sap/ui/core/Fragment",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Configuration",
-	"sap/ui/core/Lib"
+	"sap/ui/core/Element",
+	"sap/ui/core/Supportability",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Messaging"
 ], function(
 	moduleTreeHelper,
 	Device,
@@ -45,7 +48,10 @@ sap.ui.define([
 	Fragment,
 	jQuery,
 	Configuration,
-	Library
+	Element,
+	Supportability,
+	Library,
+	Messaging
 ) {
 	"use strict";
 
@@ -471,7 +477,7 @@ sap.ui.define([
 		 * @returns {string} Locale-dependent text for the key
 		 */
 		_getText: function (sKey, aParameters) {
-			return Library.get("sap.ui.core").getResourceBundle().getText(sKey, aParameters);
+			return Library.getResourceBundleFor("sap.ui.core").getText(sKey, aParameters);
 		},
 
 		/**
@@ -724,7 +730,7 @@ sap.ui.define([
 			oViewModel.setProperty("/SupportAssistantPopoverURLs", aSupportedUrls);
 			oViewModel.setProperty("/ApplicationURL", document.location.href);
 			oViewModel.setProperty("/UserAgent", navigator.userAgent);
-			oViewModel.setProperty("/DebugMode", Configuration.getDebug());
+			oViewModel.setProperty("/DebugMode", Supportability.isDebugModeEnabled());
 
 			// If ui version is smaller than 1.48 this sets the default location from where the SA will be loaded
 			// to OpenUI5 (Nightly) because the SA is not available in 1.44 or lower version
@@ -917,9 +923,9 @@ sap.ui.define([
 		 */
 		_getControl:function (sControlId, sFragmentId) {
 			if (sFragmentId) {
-				return sap.ui.getCore().byId(sFragmentId + "--" + sControlId);
+				return Element.getElementById(sFragmentId + "--" + sControlId);
 			}
-			return sap.ui.getCore().byId(sControlId);
+			return Element.getElementById(sControlId);
 		},
 
 		/**
@@ -1013,7 +1019,7 @@ sap.ui.define([
 
 					// register message validation and trigger it once to validate the value coming from local storage
 					var oCustomBootstrapURL =  this._getControl("customBootstrapURL", this._SUPPORT_ASSISTANT_POPOVER_ID);
-					sap.ui.getCore().getMessageManager().registerObject(oCustomBootstrapURL, true);
+					Messaging.registerObject(oCustomBootstrapURL, true);
 				}.bind(this));
 			}
 			return this._pAssistantPopover;

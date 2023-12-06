@@ -8,12 +8,13 @@
 sap.ui.define('sap/ui/debug/ControlTree', [
 	'sap/ui/base/EventProvider',
 	'sap/ui/core/Element',
+	'sap/ui/core/Rendering',
 	'sap/ui/core/UIArea',
 	'./Highlighter',
 	"sap/ui/dom/getOwnerWindow",
 	"sap/base/Log"
 ],
-	function(EventProvider, Element, UIArea, Highlighter, getOwnerWindow, Log) {
+	function(EventProvider, Element, Rendering, UIArea, Highlighter, getOwnerWindow, Log) {
 	"use strict";
 
 
@@ -33,7 +34,7 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 	 * @class Control Tree used for the Debug Environment
 	 * @extends sap.ui.base.EventProvider
 	 * @author Martin Schaus, Frank Weigel
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @alias sap.ui.debug.ControlTree
 	 * @private
 	 */
@@ -55,7 +56,7 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 			this.oParentDomRef.addEventListener("mouseover", this.onmouseover);
 			this.oParentDomRef.addEventListener("mouseout", this.onmouseout);
 			this.enableInplaceControlSelection();// see below...
-			this.oCore.attachUIUpdated(this.renderDelayed, this);
+			Rendering.attachUIUpdated(this.renderDelayed, this);
 			this.sSelectedNodeId = "";
 			// Note: window.top is assumed to refer to the app window in embedded mode or to the testsuite window otherwise
 			this.sResourcePath = window.top.sap.ui.require.toUrl("") + "/";
@@ -273,7 +274,7 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 			}
 			var oParent = oSource.parentNode,
 				sId = oParent.getAttribute("sap-id"),
-				oElement = this.oCore.byId(sId),
+				oElement = Element.getElementById(sId),
 				sNodeId = oParent.getAttribute("sap-type") === "Link" ? "sap-debug-controltree-" + sId : oParent.id;
 			this.oSelectionHighlighter.hide();
 			if (oElement instanceof Element) {
@@ -361,7 +362,7 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 	ControlTree.prototype.getTargetDomRef = function(oTreeNodeDomRef) {
 		var sType = oTreeNodeDomRef.getAttribute("sap-type"),
 			sId = oTreeNodeDomRef.getAttribute("sap-id"),
-			oSomething = sType === "UIArea" ? UIArea.registry.get(sId) : this.oCore.byId(sId);
+			oSomething = sType === "UIArea" ? UIArea.registry.get(sId) : Element.getElementById(sId);
 
 		while (oSomething instanceof Element) {
 			var oDomRef = oSomething.getDomRef();
@@ -389,10 +390,10 @@ sap.ui.define('sap/ui/debug/ControlTree', [
 		if ( oEvt ) {
 		  if ( oEvt.ctrlKey && oEvt.shiftKey && !oEvt.altKey ) {
 			  var oControl = oEvt.srcElement || oEvt.target;
-			  while (oControl && (!oControl.id || !this.oCore.byId(oControl.id)) ) {
+			  while (oControl && (!oControl.id || !Element.getElementById(oControl.id)) ) {
 				oControl = oControl.parentNode;
 			}
-			 if ( oControl && oControl.id && this.oCore.byId(oControl.id) ) {
+			 if ( oControl && oControl.id && Element.getElementById(oControl.id) ) {
 				this.oHoverHighlighter.highlight(oControl);
 			 } else {
 			// this.selectControlInTreeByCtrlId(sId);

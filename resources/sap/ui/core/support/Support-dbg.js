@@ -8,23 +8,21 @@
 sap.ui.define([
 	"sap/ui/base/EventProvider",
 	"./Plugin",
-	"sap/base/util/UriParameters",
 	"sap/ui/thirdparty/jquery",
 	"sap/base/Log",
 	"sap/base/security/encodeURL",
+	"sap/ui/core/Element",
 	"sap/ui/core/Lib"
 ], function (
 	EventProvider,
 	Plugin,
-	UriParameters,
 	jQuery,
 	Log,
 	encodeURL,
+	Element,
 	Library
 ) {
 	"use strict";
-
-	/*global document, localStorage, window */
 
 	/**
 	 * Constructor for sap.ui.core.support.Support - must not be used: To get the singleton instance, use
@@ -33,7 +31,7 @@ sap.ui.define([
 	 * @class This class provides the support tool functionality of UI5. This class is internal and all its functions must not be used by an application.
 	 *
 	 * @extends sap.ui.base.EventProvider
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @private
 	 * @alias sap.ui.core.support.Support
 	 */
@@ -77,11 +75,19 @@ sap.ui.define([
 						that._isOpen = true;
 						Support.initPlugins(that, false);
 					});
+					this.attachEvent(mEvents.RELOAD, function(oEvent) {
+						close(this._oRemoteWindow);
+						window.location.reload();
+					}.bind(this));
+					this.attachEvent(mEvents.RELOAD_WITH_PARAMETER, function(oEvent) {
+						close(this._oRemoteWindow);
+						this._reloadWithParameter(oEvent.getParameter("parameterName"), oEvent.getParameter("parameterValue"));
+					}.bind(this));
 					break;
 				case mTypes.TOOL:
 					this._oRemoteWindow = window.opener;
-					this._sRemoteOrigin = UriParameters.fromQuery(window.location.search).get("sap-ui-xx-support-origin");
-					jQuery(window).on("unload", function(oEvent){
+					this._sRemoteOrigin = new URLSearchParams(window.location.search).get("sap-ui-xx-support-origin");
+					window.addEventListener("pagehide", () => {
 						that.sendEvent(mEvents.TEAR_DOWN);
 						Support.exitPlugins(that, true);
 					});
@@ -104,6 +110,8 @@ sap.ui.define([
 					});
 					this.sendEvent(mEvents.LIBS);
 					break;
+				default:
+					break;
 			}
 
 		}
@@ -119,7 +127,9 @@ sap.ui.define([
 	var mEvents = {
 		LIBS: "sapUiSupportLibs",
 		SETUP: "sapUiSupportSetup", //Event when support tool is opened
-		TEAR_DOWN: "sapUiSupportTeardown" //Event when support tool is closed
+		TEAR_DOWN: "sapUiSupportTeardown", //Event when support tool is closed
+		RELOAD: "sapUiSupportReload",
+		RELOAD_WITH_PARAMETER: "sapUiSupportReloadWithParameter"
 	};
 
 
@@ -345,6 +355,26 @@ sap.ui.define([
 		return "sap.ui.core.support.Support";
 	};
 
+	Support.prototype._reloadWithParameter = function (sParameter, vValue) {
+		// fetch current parameters from URL
+		var sSearch = window.location.search,
+			sURLParameter = sParameter + "=" + vValue;
+
+		/// replace or append the new URL parameter
+		if (sSearch && sSearch !== "?") {
+			var oRegExp = new RegExp("(?:^|\\?|&)" + sParameter + "=[^&]+");
+			if (sSearch.match(oRegExp)) {
+				sSearch = sSearch.replace(oRegExp, sURLParameter);
+			} else {
+				sSearch += "&" + sURLParameter;
+			}
+		} else {
+			sSearch = "?" + sURLParameter;
+		}
+
+		// reload the page by setting the new parameters
+		window.location.search = sSearch;
+	};
 
 	/**
 	 * @see sap.ui.base.EventProvider.prototype.fireEvent
@@ -791,9 +821,9 @@ sap.ui.define([
 			for (var n in mSupportInfos) {
 				var oData = mSupportInfos[n];
 				if (oData && oData.indexOf(sSupportData) === 0) {
-					var oInstance = sap.ui.getCore().byId(n);
+					var oInstance = Element.getElementById(n);
 					if (oInstance) {
-						aControls.push(sap.ui.getCore().byId(n));
+						aControls.push(Element.getElementById(n));
 					}
 				}
 			}
@@ -946,11 +976,14 @@ sap.ui.define([
 			Log.info("sap.ui.core.support.Support.info initialized.");
 		}
 
-		if ( bAsync ) {
-			sap.ui.require(aModulesWhereToInjectSupportInfo, injectSupportInfo);
-		} else {
+		/**
+		 * @deprecated
+		 */
+		if (!bAsync) {
 			injectSupportInfo.apply(null, aModulesWhereToInjectSupportInfo.map(sap.ui.requireSync) ); // legacy-relevant: Sync path
+			return;
 		}
+		sap.ui.require(aModulesWhereToInjectSupportInfo, injectSupportInfo);
 	};
 
 	return Support;

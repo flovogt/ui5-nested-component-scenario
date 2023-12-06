@@ -19,12 +19,12 @@ sap.ui.define([
 	 *
 	 * @class
 	 * The <code>QuickTotalItem</code> class is used for items for the <code>sap.m.table.columnmenu.QuickTotal</code>.
-	 * It can be used to specify control- and application-specific items for totalling.
+	 * It can be used to specify control- and application-specific items for totaling.
 	 *
 	 * @extends sap.m.table.columnmenu.QuickActionItem
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @since 1.110

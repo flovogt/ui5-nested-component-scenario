@@ -23,7 +23,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObjectObserv
 		 * @extends sap.ui.core.Item
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
@@ -124,13 +124,13 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObjectObserv
 
 		MenuItem.prototype.setProperty = function(sPropertyKey, vPropertyValue) {
 			Item.prototype.setProperty.apply(this, arguments);
-			this.fireEvent("propertyChanged", {propertyKey: sPropertyKey, propertyValue: vPropertyValue });
+			this.fireEvent("propertyChanged", {propertyKey: sPropertyKey, propertyValue: vPropertyValue }, false, true);
 		};
 
 		MenuItem.prototype.setAggregation = function(sAggregationName, oObject, bSuppressInvalidate) {
 			Item.prototype.setAggregation.apply(this, arguments);
 
-			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "set", methodParams: { item: oObject } });
+			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "set", methodParams: { item: oObject } }, false, true);
 
 			return this;
 		};
@@ -146,7 +146,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObjectObserv
 				this._addCustomData(oVisualItem, oObject);
 			}
 
-			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "add", methodParams: { item: oObject } });
+			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "add", methodParams: { item: oObject } }, false, true);
 
 			return this;
 		};
@@ -163,7 +163,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObjectObserv
 				this._observeCustomDataChanges(oObject);
 			}
 
-			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "insert", methodParams: { item: oObject, index: iIndex }});
+			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "insert", methodParams: { item: oObject, index: iIndex }}, false, true);
 
 			return this;
 		};
@@ -181,7 +181,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObjectObserv
 				}
 			}
 
-			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "remove", methodParams: { item: oObject }});
+			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "remove", methodParams: { item: oObject }}, false, true);
 
 			return oObject;
 		};
@@ -193,7 +193,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObjectObserv
 				this._disconnectAndDestroyCustomDataObserver();
 			}
 
-			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "removeall", methodParams: { items: aObjects }});
+			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "removeall", methodParams: { items: aObjects }}, false, true);
 
 			return aObjects;
 		};
@@ -203,7 +203,7 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObjectObserv
 				this._disconnectAndDestroyCustomDataObserver();
 			}
 
-			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "destroy"});
+			this.fireEvent("aggregationChanged", { aggregationName: sAggregationName, methodName: "destroy"}, false, true);
 			return Item.prototype.destroyAggregation.apply(this, arguments);
 		};
 
@@ -215,6 +215,28 @@ sap.ui.define(['./library', 'sap/ui/core/Item', 'sap/ui/base/ManagedObjectObserv
 			}
 
 			return Item.prototype.destroy.apply(this, arguments);
+		};
+
+		MenuItem.prototype.addEventDelegate = function (oDelegate, oThis) {
+			Item.prototype.addEventDelegate.apply(this, arguments);
+
+			if (this._getVisualControl()) {
+				var oVisualControl = sap.ui.getCore().byId(this._getVisualControl());
+				oVisualControl.addEventDelegate(oDelegate, oThis);
+			}
+
+			return this;
+		};
+
+		MenuItem.prototype.removeEventDelegate = function (oDelegate) {
+			Item.prototype.removeEventDelegate.apply(this, arguments);
+
+			if (this._getVisualControl()) {
+				var oVisualControl = sap.ui.getCore().byId(this._getVisualControl());
+				oVisualControl.removeEventDelegate(oDelegate);
+			}
+
+			return this;
 		};
 
 		/**

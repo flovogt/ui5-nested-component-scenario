@@ -9,6 +9,7 @@ sap.ui.define([
 	'./library',
 	"sap/ui/core/Configuration",
 	'sap/ui/core/Control',
+	"sap/ui/core/Core",
 	'sap/ui/core/RenderManager',
 	'./NavContainerRenderer',
 	"sap/ui/thirdparty/jquery",
@@ -18,6 +19,7 @@ sap.ui.define([
 	library,
 	Configuration,
 	Control,
+	Core,
 	RenderManager,
 	NavContainerRenderer,
 	jQuery,
@@ -43,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -186,6 +188,8 @@ sap.ui.define([
 				/**
 				 * The event is fired when navigation between two pages has completed (once all events to the child controls have been fired).
 				 * In case of animated transitions this event is fired with some delay after the "navigate" event.
+				 * This event is only fired if the DOM ref of the <code>NavContainer</code> is available.
+				 * If the DOM ref is not available, the <code>navigationFinished</code> event should be used instead.
 				 * @since 1.7.1
 				 */
 				afterNavigate: {
@@ -234,6 +238,67 @@ sap.ui.define([
 						/**
 						 * Whether this was a navigation to a specific page, triggered by "backToPage()".
 						 * @since 1.7.2
+						 */
+						isBackToPage: {type: "boolean"},
+
+						/**
+						 * How the navigation was triggered, possible values are "to", "back", "backToPage", and "backToTop".
+						 */
+						direction: {type: "string"}
+					}
+				},
+
+				/**
+				 * The event is fired when navigation between two pages has completed regardless of whether the DOM is ready or not.
+				 * This event is useful when performing navigation without/before rendering of the <code>NavContainer</code>.
+				 * Keep in mind that the DOM is not guaranteed to be ready when this event is fired.
+				 * @since 1.111.0
+				 */
+				navigationFinished: {
+					parameters: {
+
+						/**
+						 * The page which had been shown before navigation.
+						 */
+						from: {type: "sap.ui.core.Control"},
+
+						/**
+						 * The ID of the page which had been shown before navigation.
+						 */
+						fromId: {type: "string"},
+
+						/**
+						 * The page which is now shown after navigation.
+						 */
+						to: {type: "sap.ui.core.Control"},
+
+						/**
+						 * The ID of the page which is now shown after navigation.
+						 */
+						toId: {type: "string"},
+
+						/**
+						 * Whether the "to" page (more precisely: a control with the ID of the page which has been navigated to) had not been shown/navigated to before.
+						 */
+						firstTime: {type: "boolean"},
+
+						/**
+						 * Whether was a forward navigation, triggered by "to()".
+						 */
+						isTo: {type: "boolean"},
+
+						/**
+						 * Whether this was a back navigation, triggered by "back()".
+						 */
+						isBack: {type: "boolean"},
+
+						/**
+						 * Whether this was a navigation to the root page, triggered by "backToTop()".
+						 */
+						isBackToTop: {type: "boolean"},
+
+						/**
+						 * Whether this was a navigation to a specific page, triggered by "backToPage()".
 						 */
 						isBackToPage: {type: "boolean"},
 
@@ -577,6 +642,9 @@ sap.ui.define([
 			this._applyAutoFocus(oNavInfo);
 		}
 
+		this.enhancePagesAccessibility();
+
+		this.fireNavigationFinished(oNavInfo);
 		this.fireAfterNavigate(oNavInfo);
 		this._dequeueNavigation();
 	};
@@ -595,6 +663,20 @@ sap.ui.define([
 			Log.warning(this.toString() + ": target page '" + oNavInfo.toId + "' still has CSS class 'sapMNavItemHidden' after transition. This should not be the case, please check the preceding log statements.");
 			oNavInfo.to.removeStyleClass("sapMNavItemHidden");
 		}
+	};
+
+	NavContainer.prototype.enhancePagesAccessibility = function () {
+		var oCurrentPage = this.getCurrentPage();
+
+		this.getPages().forEach(function (oPage) {
+			var oFocusDomRef = oPage?.getFocusDomRef();
+
+			if (oCurrentPage === oPage) {
+				oFocusDomRef?.removeAttribute("aria-hidden");
+			} else {
+				oFocusDomRef?.setAttribute("aria-hidden", true);
+			}
+		});
 	};
 
 	NavContainer.prototype._dequeueNavigation = function () {
@@ -802,7 +884,7 @@ sap.ui.define([
 
 				if (!this.getDomRef()) { // the wanted animation has been recorded, but when the NavContainer is not rendered, we cannot animate, so just return
 					Log.info("'Hidden' 'to' navigation in not-rendered NavContainer " + this.toString());
-
+					this.fireNavigationFinished(oNavInfo);
 					// BCP: 1680140633 - Firefox issue
 					if (this._bRenderingInProgress) {
 						setTimeout(this.invalidate.bind(this), 0);
@@ -1759,7 +1841,8 @@ sap.ui.define([
 	};
 
 	NavContainer.prototype.addPage = function (oPage) {
-		var aPages = this.getPages();
+		var aPages = this.getPages(),
+			rerender = this.invalidate.bind(this);
 		// Routing often adds an already existing page. ManagedObject would remove and re-add it because the order is affected,
 		// but here the order does not matter, so just ignore the call in this case.
 		if (aPages.indexOf(oPage) > -1) {
@@ -1777,7 +1860,13 @@ sap.ui.define([
 			this._fireAdaptableContentChange(oPage);
 			if (this.getDomRef()) {
 				this._ensurePageStackInitialized();
-				this.rerender();
+
+				/**
+				 * @deprecated since 1.70
+				 */
+				rerender = this.rerender.bind(this);
+
+				rerender();
 			}
 		}
 
@@ -1785,7 +1874,8 @@ sap.ui.define([
 	};
 
 	NavContainer.prototype.insertPage = function (oPage, iIndex) {
-		var iPreviousPageCount = this.getPages().length;
+		var iPreviousPageCount = this.getPages().length,
+			rerender = this.invalidate.bind(this);
 
 		this.insertAggregation("pages", oPage, iIndex, true);
 
@@ -1797,7 +1887,13 @@ sap.ui.define([
 			this._fireAdaptableContentChange(oPage);
 			if (this.getDomRef()) {
 				this._ensurePageStackInitialized();
-				this.rerender();
+
+				/**
+				 * @deprecated since 1.70
+				 */
+				rerender = this.rerender.bind(this);
+
+				rerender();
 			}
 		}
 
@@ -1819,9 +1915,10 @@ sap.ui.define([
 	 * @since 1.91
 	 */
 	NavContainer.prototype.showPlaceholder = function(mSettings) {
-		var pLoaded;
+		var pLoaded,
+			Placeholder = sap.ui.require("sap/ui/core/Placeholder");
 
-		if (!Configuration.getPlaceholder()) {
+		if (!Placeholder || !Placeholder.isEnabled()) {
 			return;
 		}
 

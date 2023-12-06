@@ -6,6 +6,7 @@
 
 // Provides control sap.m.MessagePopover.
 sap.ui.define([
+	'sap/ui/core/Core',
 	"./ResponsivePopover",
 	"./Button",
 	"./Toolbar",
@@ -15,6 +16,7 @@ sap.ui.define([
 	"./semantic/SemanticPage",
 	"./Popover",
 	"./MessageView",
+	"./MessageItem",
 	"sap/ui/Device",
 	"./MessagePopoverRenderer",
 	"sap/base/Log",
@@ -22,6 +24,7 @@ sap.ui.define([
 	"sap/ui/thirdparty/jquery"
 ],
 function(
+	Core,
 	ResponsivePopover,
 	Button,
 	Toolbar,
@@ -31,6 +34,7 @@ function(
 	SemanticPage,
 	Popover,
 	MessageView,
+	MessageItem,
 	Device,
 	MessagePopoverRenderer,
 	Log,
@@ -91,7 +95,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
@@ -108,7 +112,7 @@ function(
 					 * You can use this function in order to validate the description before displaying it.
 					 * @callback sap.m.MessagePopover~asyncDescriptionHandler
 					 * @param {object} config A single parameter object
-					 * @param {MessagePopoverItem} config.item Reference to respective MessagePopoverItem instance
+					 * @param {MessageItem} config.item Reference to respective MessageItem instance
 					 * @param {object} config.promise Object grouping a promise's reject and resolve methods
 					 * @param {function} config.promise.resolve Method to resolve promise
 					 * @param {function} config.promise.reject Method to reject promise
@@ -153,7 +157,6 @@ function(
 					 */
 					items: {
 						type: "sap.m.MessageItem",
-						altTypes: ["sap.m.MessagePopoverItem"],
 						multiple: true,
 						singularName: "item",
 						forwarding: {
@@ -225,7 +228,7 @@ function(
 							/**
 							 * Refers to the <code>MessagePopover</code> item that is being presented.
 							 */
-							item: {type: "sap.m.MessagePopoverItem"},
+							item: {type: "sap.m.MessageItem"},
 							/**
 							 * Refers to the type of messages being shown.
 							 */
@@ -347,7 +350,7 @@ function(
 			var oPopupControl;
 			this._oOpenByControl = null;
 
-			this._oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			this._oResourceBundle = Core.getLibraryResourceBundle("sap.m");
 
 			this._oMessageView = this._initMessageView();
 
@@ -384,10 +387,21 @@ function(
 					that.getInitiallyExpanded() && that._oMessageView._restoreFocus();
 				},
 				afterClose: function (oEvent) {
-					that._oMessageView._navContainer.backToTop();
+					// remove and add back all pages instead of calling backToTop as it will trigger animation
+					// if the Popover is open right after the close, animation is not finished and rendering is broken
+					that._oMessageView._navContainer.removeAllPages().forEach(function(oPage) {
+						that._oMessageView._navContainer.addPage(oPage);
+					});
+
 					that.fireAfterClose({openBy: oEvent.getParameter("openBy")});
 				},
 				beforeOpen: function (oEvent) {
+					var aItems = that.getItems();
+
+					if (!that.getBindingInfo("items") && !aItems.length) {
+						that._bindToMessageModel();
+					}
+
 					that.fireBeforeOpen({openBy: oEvent.getParameter("openBy")});
 				},
 				beforeClose: function (oEvent) {
@@ -421,6 +435,26 @@ function(
 			}, this);
 
 			this._observeItems();
+		};
+
+		MessagePopover.prototype._bindToMessageModel = function() {
+			var that = this;
+
+			this.setModel(Core.getMessageManager().getMessageModel(), "message");
+
+			this._oMessageItemTemplate = new MessageItem({
+				type: "{message>type}",
+				title: "{message>message}",
+				description: "{message>description}",
+				longtextUrl: "{message>longtextUrl}"
+			});
+
+			this.bindAggregation("items",
+				{
+					path: "message>/",
+					template: that._oMessageItemTemplate
+				}
+			);
 		};
 
 		MessagePopover.prototype._observeItems = function () {
@@ -674,8 +708,7 @@ function(
 		 * @private
 		 */
 		MessagePopover.prototype._expandMsgPopover = function () {
-			var sDomHeight,
-				sHeight = DEFAULT_CONTENT_HEIGHT,
+			var sHeight = DEFAULT_CONTENT_HEIGHT,
 				sDomHeight = this._oPopover.$("cont").css("height");
 
 			if (this.getInitiallyExpanded() && sDomHeight !== "0px") {

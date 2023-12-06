@@ -7,6 +7,8 @@
 // Provides class sap.m.GrowingEnablement
 sap.ui.define([
 	'sap/ui/base/Object',
+	'sap/ui/core/Lib',
+	'sap/ui/core/RenderManager', // Future TODO: replace the creation of new RenderManager instance
 	'sap/ui/core/format/NumberFormat',
 	'sap/m/library',
 	'sap/ui/model/ChangeReason',
@@ -15,11 +17,12 @@ sap.ui.define([
 	'sap/ui/core/HTML',
 	'sap/m/CustomListItem',
 	'sap/base/security/encodeXML',
-	'sap/ui/core/Core',
 	"sap/ui/thirdparty/jquery"
 ],
 	function(
 		BaseObject,
+		Library,
+		RenderManager,
 		NumberFormat,
 		library,
 		ChangeReason,
@@ -28,7 +31,6 @@ sap.ui.define([
 		HTML,
 		CustomListItem,
 		encodeXML,
-		Core,
 		jQuery
 	) {
 	"use strict";
@@ -66,7 +68,6 @@ sap.ui.define([
 			this._iRenderedDataItems = iRenderedItemsLength;
 			this._iLimit = iRenderedItemsLength;
 			this._bLoading = false;
-			this._sGroupingPath = "";
 			this._bDataRequested = false;
 			this._bSkippedItemsUpdateUntilDataReceived = false;
 			this._iLastItemsCount = 0;
@@ -137,19 +138,23 @@ sap.ui.define([
 			// Navigate from last item to growing trigger and vice versa via arrow keys
 			var oControl = this._oControl;
 			if (oControl._oItemNavigation && !oEvent.isMarked()) {
-				var aItemDomRefs = oControl._oItemNavigation.getItemDomRefs();
+				var oItemNavigation = oControl._oItemNavigation;
+				var aItemDomRefs = oItemNavigation.getItemDomRefs();
+				var oFirstItemDomRef = aItemDomRefs[0];
+				var oLastItemDomRef = aItemDomRefs[aItemDomRefs.length - oItemNavigation.iColumns];
 				var sDir = oControl.getGrowingDirection();
-				if ((sDir != ListGrowingDirection.Upwards && oEvent.type == "sapdown" && oEvent.target === aItemDomRefs[aItemDomRefs.length - 1])
-						|| (sDir == ListGrowingDirection.Upwards && oEvent.type == "sapup" && oEvent.target === aItemDomRefs[0])) {
+				if ((sDir != ListGrowingDirection.Upwards && oEvent.type == "sapdown" && oEvent.target === oLastItemDomRef)
+						|| (sDir == ListGrowingDirection.Upwards && oEvent.type == "sapup" && oEvent.target === oFirstItemDomRef)) {
 					var $Trigger = oControl.$("trigger");
 					$Trigger.trigger("focus");
 					oEvent.setMarked();
 					oEvent.stopImmediatePropagation(); // to prevent ItemNavigation
-				} else if ((sDir == ListGrowingDirection.Upwards && oEvent.type == "sapdown")
-						|| (sDir != ListGrowingDirection.Upwards && oEvent.type == "sapup")
+				} else if (((sDir == ListGrowingDirection.Upwards && oEvent.type == "sapdown")
+						|| (sDir != ListGrowingDirection.Upwards && oEvent.type == "sapup"))
 						&& oEvent.target === oControl.getDomRef("trigger")) {
-					jQuery(aItemDomRefs[oEvent.type == "sapdown" ? 0 : aItemDomRefs.length - 1]).trigger("focus");
+					jQuery(oEvent.type == "sapdown" ? oFirstItemDomRef : oLastItemDomRef).trigger("focus");
 					oEvent.setMarked();
+					oEvent.stopImmediatePropagation(); // to prevent ItemNavigation
 				}
 			}
 		},
@@ -210,9 +215,7 @@ sap.ui.define([
 		},
 
 		onScrollToLoad: function() {
-			var oTriggerButton = this._oControl.getDomRef("triggerList");
-
-			if (this._bLoading || !oTriggerButton || oTriggerButton.style.display != "none") {
+			if (this._bLoading) {
 				return;
 			}
 
@@ -266,7 +269,7 @@ sap.ui.define([
 			var sTriggerID = this._oControl.getId() + "-trigger",
 				sTriggerText = this._oControl.getGrowingTriggerText();
 
-			sTriggerText = sTriggerText || Core.getLibraryResourceBundle("sap.m").getText("LOAD_MORE_DATA");
+			sTriggerText = sTriggerText || Library.getResourceBundleFor("sap.m").getText("LOAD_MORE_DATA");
 			this._oControl.addNavSection(sTriggerID);
 
 			if (this._oTrigger) {
@@ -352,7 +355,7 @@ sap.ui.define([
 		_getGroupingPath : function(oBinding) {
 			var aSorters = oBinding.aSorters || [];
 			var oSorter = aSorters[0] || {};
-			return (oSorter.fnGroup) ? oSorter.sPath || "" : "";
+			return (oSorter.fnGroup) ? oSorter.sPath || "" : undefined;
 		},
 
 		// if table has pop-in then we have two rows for one item
@@ -380,7 +383,7 @@ sap.ui.define([
 			}
 
 			// after growing-button gets hidden scroll container should still be scrollable
-			return this._oScrollDelegate.getMaxScrollTop() > this._oControl.getDomRef("triggerList").clientHeight;
+			return this._oScrollDelegate.getMaxScrollTop() > this._oControl.getDomRef("triggerList").offsetHeight;
 		},
 
 		// destroy all items in the list and cleanup
@@ -540,14 +543,17 @@ sap.ui.define([
 				}
 			}
 
-			this._oRM = this._oRM || Core.createRenderManager();
+			this._oRM = this._oRM || new RenderManager(); // Future TODO: replace the creation of new RenderManager instance
 			for (var i = 0; i < iLength; i++) {
 				this._oRM.renderControl(this._aChunk[i]);
 			}
 
-			var bHasFocus = (vInsert == false) && oDomRef.contains(document.activeElement);
+			this._bHadFocus = (vInsert == false) && oDomRef.contains(document.activeElement);
 			this._oRM.flush(oDomRef, false, this._getDomIndex(vInsert));
-			bHasFocus && this._oControl.focus();
+			this._bHadFocus && this._oControl.focus();
+			if (!this._oControl.getBusy()) {
+				this._bHadFocus = false;
+			}
 			this._aChunk = [];
 		},
 
@@ -720,7 +726,7 @@ sap.ui.define([
 
 				} else {
 
-					if (sGroupingPath && !this._sGroupingPath) {
+					if (sGroupingPath != undefined && this._sGroupingPath == undefined) {
 						// if it was already grouped then we need to remove group headers first
 						oControl.removeGroupHeaders(true);
 					}
@@ -781,8 +787,8 @@ sap.ui.define([
 
 		_updateTriggerDelayed: function(bLoading) {
 			if (this._oControl.getGrowingScrollToLoad()) {
-				this._iTriggerTimer && window.cancelAnimationFrame(this._iTriggerTimer);
-				this._iTriggerTimer = window.requestAnimationFrame(this._updateTrigger.bind(this, bLoading));
+				this._iTriggerTimer && clearTimeout(this._iTriggerTimer);
+				this._iTriggerTimer = setTimeout(this._updateTrigger.bind(this, bLoading));
 			} else {
 				this._updateTrigger(bLoading);
 			}
@@ -792,15 +798,12 @@ sap.ui.define([
 		_updateTrigger : function(bLoading) {
 			var oTrigger = this._oTrigger,
 				oControl = this._oControl,
-				bVisibleItems = oControl && oControl.getVisibleItems().length > 0;
+				bVisibleItems = oControl && oControl.getVisibleItems().length > 0,
+				oBinding = oControl && oControl.getBinding("items");
 
 			// If there are no visible columns or items then also hide the trigger.
-			if (!oTrigger || !oControl || !bVisibleItems || !oControl.shouldRenderItems() || !oControl.getDomRef()) {
-				return;
-			}
-
-			var oBinding = oControl.getBinding("items");
-			if (!oBinding) {
+			if (!oTrigger || !oControl || !bVisibleItems || !oBinding || !oControl.shouldRenderItems() || !oControl.getDomRef()) {
+				this._bHadFocus = false;
 				return;
 			}
 
@@ -820,8 +823,17 @@ sap.ui.define([
 					oTriggerDomRef = oTrigger.getDomRef();
 
 				// put the focus to the newly added item if growing button is pressed
-				if (oTriggerDomRef && oTriggerDomRef.contains(document.activeElement)) {
-					(aItems[this._iLastItemsCount] || oControl).focus();
+				// or to the item if the focus was on the items container
+
+				if (this._bHadFocus) {
+					this._bHadFocus = false;
+					jQuery(this._oControl.getNavigationRoot()).trigger("focus");
+				} else if (!this._iFocusTimer && oTriggerDomRef && oTriggerDomRef.contains(document.activeElement)) {
+					var oFocusTarget = aItems[this._iLastItemsCount] || aItems[iItemsLength - 1] || oControl;
+					this._iFocusTimer = setTimeout(function() {
+						this._iFocusTimer = 0;
+						oFocusTarget.focus();
+					}.bind(this));
 				}
 
 				// show, update or hide the growing button
@@ -831,7 +843,7 @@ sap.ui.define([
 					oControl.$("triggerList").css("display", "none");
 					oControl.$("listUl").removeClass("sapMListHasGrowing");
 				} else {
-					var oBundle = Core.getLibraryResourceBundle("sap.m");
+					var oBundle = Library.getResourceBundleFor("sap.m");
 					if (bLengthFinal) {
 						oControl.$("triggerInfo").css("display", "block").text(this._getListItemInfo());
 						var aCounts = this._getItemCounts();
@@ -843,10 +855,7 @@ sap.ui.define([
 					oControl.$("triggerList").css("display", "");
 					oControl.$("listUl").addClass("sapMListHasGrowing");
 					oTrigger.$().removeClass("sapMGrowingListBusyIndicatorVisible");
-
-					if (oControl.isA("sap.m.Table") && !oControl.hasPopin()) {
-						this.adaptTriggerButtonWidth(oControl, oTriggerDomRef);
-					}
+					this.adaptTriggerButtonWidth();
 				}
 
 				// store the last item count to be able to focus to the newly added item when the growing button is pressed
@@ -871,31 +880,31 @@ sap.ui.define([
 			}
 		},
 
-		adaptTriggerButtonWidth: function(oControl, oTriggerDomRef) {
-			// adapt trigger button width if dummy col is rendered
-			if (oControl.shouldRenderDummyColumn() && oControl.$("listUl").hasClass("sapMListHasGrowing")) {
+		// adapt trigger button width if dummy col is rendered
+		adaptTriggerButtonWidth: function() {
+			var oControl = this._oControl;
+			if (!oControl.isA("sap.m.Table") || oControl.hasPopin() || !oControl.shouldRenderDummyColumn()) {
+				return;
+			}
+
+			window.requestAnimationFrame(function() {
+				var oTriggerDomRef = this._oTrigger && this._oTrigger.getDomRef();
 				if (!oTriggerDomRef) {
-					oTriggerDomRef = this._oTrigger.getDomRef();
+					return;
 				}
 
-				window.requestAnimationFrame(function() {
-					if (oControl.bIsDestroyed) {
-						return;
+				var sCalWidth = Array.from(oControl.getDomRef("tblHeader").childNodes).slice(0, -1).map(function(oDomRef) {
+					var sWidth = oDomRef.style.width;
+					if (!sWidth || !sWidth.includes("%")) {
+						return oDomRef.getBoundingClientRect().width + "px";
+					} else {
+						return sWidth;
 					}
-
-					var sCalWidth = Array.from(oControl.getDomRef("tblHeader").childNodes).slice(0, -1).map(function(oDomRef) {
-						var sWidth = oDomRef.getAttribute("data-sap-width");
-						if (!sWidth || !sWidth.includes("%")) {
-							return oDomRef.getBoundingClientRect().width + "px";
-						} else {
-							return sWidth;
-						}
-					}).join(" + ");
-					// 1px is borderLeft of the dummyCell
-					oTriggerDomRef.style.width = "calc(" + sCalWidth + " + 1px)";
-					oTriggerDomRef.classList.add("sapMGrowingListDummyColumn");
-				});
-			}
+				}).join(" + ");
+				// 1px is borderLeft of the dummyCell
+				oTriggerDomRef.style.width = "calc(" + sCalWidth + " + 1px)";
+				oTriggerDomRef.classList.add("sapMGrowingListDummyColumn");
+			}.bind(this));
 		}
 	});
 

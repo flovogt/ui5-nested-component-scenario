@@ -3,6 +3,8 @@
 /* Horizon theme                      */
 /* ================================== */
 
+@_sap_m_Radio_Button_Read_Only_fill: @sapUiFieldTextColor;
+
 .sapMRb {
 	height: 2.75rem;
 
@@ -75,16 +77,12 @@
 	}
 }
 
-.sapMRb:not(.sapMRbErr):not(.sapMRbWarn):not(.sapMRbInfo):not(.sapMRbSucc) .sapMRbHoverable:hover {
-	filter: drop-shadow(0 0 0.125rem fade(@sapContent_ShadowColor, 72)); //drop-shadow(@sapContent_Interaction_Shadow) doesn't work; Reason: Chrome, Safari and Opera, and maybe other browsers, do not support this 4th length; shadow will not render if added.
-}
-
 .sapMRb:not(.sapMRbErr):not(.sapMRbWarn):not(.sapMRbInfo):not(.sapMRbSucc) .sapMRbHoverable:hover .sapMRbBOut {
 	stroke: @sapUiFieldHoverBorderColor;
 }
 
 .sapMRb:not(.sapMRbDis) .sapMRbHoverable:hover .sapMRbBOut {
-	fill: @sapUiFieldHoverBackground;
+	fill: @sapUiContentSelectedHoverBackground;
 }
 
 .sapMRb:focus:before {
@@ -135,14 +133,10 @@
 	}
 }
 
-.sapMRbErr:not(.sapMRbDis) .sapMRbHoverable:hover {
-	filter: drop-shadow(0 0 0.125rem fade(@sapNegativeColor, 72)); // @sapContent_Negative_Shadow; same as above
-}
-
 .sapMRbWarn.sapMRbSel,
 .sapMRbWarn.sapMRbSel.sapMRbRo {
 	.sapMRbBInn {
-		fill:  @sapUiFieldTextColor;
+		fill:  @sapUiFieldWarningColor;
 		stroke: none;
 	}
 }
@@ -154,10 +148,6 @@
 		fill: @sapUiFieldWarningBackground;
 		stroke-width: @sapUiFieldWarningBorderWidth;
 	}
-}
-
-.sapMRbWarn:not(.sapMRbDis) .sapMRbHoverable:hover {
-	filter: drop-shadow(0 0 0.125rem fade(@sapCriticalColor, 72)); // @sapContent_Critical_Shadow; same as above
 }
 
 .sapMRbSucc.sapMRbSel,
@@ -177,11 +167,6 @@
 	}
 }
 
-
-.sapMRbSucc:not(.sapMRbDis) .sapMRbHoverable:hover {
-	filter: drop-shadow(0 0 0.125rem fade(@sapPositiveColor, 72)); // @sapContent_Positive_Shadow; same as above
-}
-
 .sapMRbInfo.sapMRbSel,
 .sapMRbInfo.sapMRbSel.sapMRbRo {
 	.sapMRbBInn {
@@ -199,17 +184,10 @@
 	}
 }
 
-.sapMRbInfo:not(.sapMRbDis) .sapMRbHoverable:hover {
-	filter: drop-shadow(0 0 0.125rem fade(@sapInformativeColor, 72)); // @sapContent_Informative_Shadow; same as above
-}
-
 .sapMRbRo .sapMRbBOut {
 	stroke-dasharray:  4,2; // parameter needed for the type of the dashes
 }
 
-.sapMRb.sapMRbRo.sapMRbSel .sapMRbBInn {
-	fill: @sapUiContentNonInteractiveIconColor;
-}
 
 html[data-sap-ui-browser^="sf"] {
 	// fix for blur caused by drop-shadow in Safari

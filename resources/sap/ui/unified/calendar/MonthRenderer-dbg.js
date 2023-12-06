@@ -4,9 +4,29 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar/CalendarDate', 'sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarLegendRenderer',
-	'sap/ui/core/library', 'sap/ui/unified/library', "sap/base/Log", 'sap/ui/core/InvisibleText', "sap/ui/core/Configuration"],
-	function(CalendarUtils, CalendarDate, CalendarLegend, CalendarLegendRenderer, coreLibrary, library, Log, InvisibleText, Configuration) {
+sap.ui.define([
+    'sap/ui/unified/calendar/CalendarUtils',
+    'sap/ui/unified/calendar/CalendarDate',
+    'sap/ui/unified/CalendarLegend',
+    'sap/ui/unified/CalendarLegendRenderer',
+	'sap/ui/core/library',
+    'sap/ui/unified/library',
+    "sap/base/Log",
+    'sap/ui/core/InvisibleText',
+    'sap/ui/core/date/UI5Date',
+    "sap/ui/core/Configuration"
+],
+	function(
+        CalendarUtils,
+        CalendarDate,
+        CalendarLegend,
+        CalendarLegendRenderer,
+        coreLibrary,
+        library,
+        Log,
+        InvisibleText,
+        UI5Date,
+        Configuration) {
 	"use strict";
 
 
@@ -313,7 +333,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 	/**
 	 * Generates helper object from passed date
 	 * @param {sap.ui.unified.calendar.Month} oMonth the month instance
-	 * @param {sap.ui.unified.calendar.CalendarDate} oDate JavaScript date object
+	 * @param {sap.ui.unified.calendar.CalendarDate} oDate date instance
 	 * @returns {object} helper object
 	 * @private
 	 */
@@ -331,7 +351,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 				iWeekendEnd: oLocaleData.getWeekendEnd(),
 				aNonWorkingDays: oMonth._getNonWorkingDays(),
 				sToday: oLocaleData.getRelativeDay(0),
-				oToday: CalendarDate.fromLocalJSDate(CalendarUtils._convertToTimezone(new Date(), Configuration.getTimezone()), oMonth.getPrimaryCalendarType()),
+				oToday: CalendarDate.fromLocalJSDate(UI5Date.getInstance(), oMonth.getPrimaryCalendarType()),
 				sId: oMonth.getId(),
 				oFormatLong: oMonth._getFormatLong(),
 				sPrimaryCalendarType: oMonth.getPrimaryCalendarType(),
@@ -386,6 +406,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		var iWeekDay = oDay.getDay();
 		var iSelected = oMonth._checkDateSelected(oDay);
 		var aDayTypes = oMonth._getDateTypes(oDay);
+		var sSpecialDateTypeFilter = oHelper && oHelper.oLegend ? oHelper.oLegend._getSpecialDateTypeFilter() : '';
 		var bEnabled = oMonth._checkDateEnabled(oDay);
 		var i = 0;
 		var bShouldBeMarkedAsSpecialDate = oMonth._isSpecialDateMarkerEnabled(oDay);
@@ -439,6 +460,10 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 			mAccProps["describedby"] = mAccProps["describedby"] + " " + oHelper.sId + "-End";
 		}
 
+		if (this.renderWeekNumbers && oMonth._oDate) {
+			mAccProps["describedby"] = mAccProps["describedby"] + " " + oMonth.getId() + "-week-" + oMonth._calculateWeekNumber(oDay) + "-text";
+		}
+
 		if (bShouldBeMarkedAsSpecialDate) {
 			aDayTypes.forEach(function(oDayType) {
 				if (oDayType.type !== CalendarDayType.None) {
@@ -447,10 +472,13 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 						sNonWorkingDayText = this._addNonWorkingDayText(mAccProps);
 						return;
 					}
-					oRm.class("sapUiCalItem" + oDayType.type);
-					sAriaType = oDayType.type;
-					if (oDayType.tooltip) {
-						oRm.attr('title', oDayType.tooltip);
+
+					if (sSpecialDateTypeFilter === "" || sSpecialDateTypeFilter === CalendarDayType.None || sSpecialDateTypeFilter === oDayType.type) {
+						oRm.class("sapUiCalItem" + oDayType.type);
+						sAriaType = oDayType.type;
+						if (oDayType.tooltip) {
+							oRm.attr('title', oDayType.tooltip);
+						}
 					}
 				}
 			}.bind(this));
@@ -515,7 +543,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		if (aDayTypes[0] && bShouldBeMarkedAsSpecialDate){ //if there's a special date inside current month, render it
 			oRm.openStart("div");
 			oRm.class("sapUiCalSpecialDate");
-			if (aDayTypes[0].color) { // if there's a custom color, render it
+			if (aDayTypes[0].color && (sSpecialDateTypeFilter === "" || sSpecialDateTypeFilter === CalendarDayType.None)) { // if there's a custom color and no special date filtering, render it
 
 				oRm.style("background-color", aDayTypes[0].color);
 			}

@@ -36,6 +36,9 @@ sap.ui.define([
 	// shortcut for sap.m.ListType
 	var ListType = mLibrary.ListType;
 
+	// shortcut for sap.m.MultiSelectMode
+	var MultiSelectMode = mLibrary.MultiSelectMode;
+
 	/**
 	 * Constructor for a new <code>SelectionPanel</code>.
 	 *
@@ -48,7 +51,7 @@ sap.ui.define([
 	 * @extends sap.m.p13n.BasePanel
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @since 1.96
@@ -105,6 +108,14 @@ sap.ui.define([
 				 */
 				itemFactory: {
 					type: "function"
+				},
+
+				/**
+				 * Defines the multi-selection mode for the inner list control.
+				 */
+				multiSelectMode: {
+					type: "sap.m.MultiSelectMode",
+					defaultValue: MultiSelectMode.ClearAll
 				}
 			}
 		},
@@ -123,6 +134,12 @@ sap.ui.define([
 		this.addStyleClass("SelectionPanelHover");
 		this._displayColumns();
 		this._updateMovement(this.getEnableReorder());
+		this._oListControl.setMultiSelectMode(this.getMultiSelectMode());
+	};
+
+	SelectionPanel.prototype.setMultiSelectMode = function(sMultiSelectMode) {
+		this._oListControl.setMultiSelectMode(sMultiSelectMode);
+		return this.setProperty("multiSelectMode", sMultiSelectMode);
 	};
 
 	SelectionPanel.prototype.setItemFactory = function(fnItemFactory) {
@@ -137,8 +154,10 @@ sap.ui.define([
 			type: {
 				path: this.P13N_MODEL + ">" + this.PRESENCE_ATTRIBUTE,
 				formatter: function(bSelected) {
-					return bSelected ? ListType.Active : ListType.Inactive;
-				}
+					//In case the factory control is displayed, no move buttons are displayed --> item should be inactive
+					//to avoid issues with the label for mechanism
+					return bSelected && !this._bShowFactory ? ListType.Active : ListType.Inactive;
+				}.bind(this)
 			},
 			cells: [
 				new VBox({
@@ -200,7 +219,11 @@ sap.ui.define([
 		return this;
 	};
 
-
+	SelectionPanel.prototype.setFieldColumn = function(sFieldColumn) {
+		this.setProperty("fieldColumn", sFieldColumn);
+		this._displayColumns();
+		return this;
+	};
 
 	SelectionPanel.prototype.setShowHeader = function(bShowHeader) {
 		if (bShowHeader){
@@ -293,6 +316,11 @@ sap.ui.define([
 	SelectionPanel.prototype.showFactory = function(bShow) {
 		this._bShowFactory = bShow;
 		this._displayColumns();
+
+		this._oListControl.getItems().forEach(function(oItem){
+			oItem.setType(bShow ? "Inactive" : "Active");
+		});
+
 		if (bShow){
 			this.removeStyleClass("SelectionPanelHover");
 			this._oListControl.setKeyboardMode(ListKeyboardMode.Edit); //--> tab through editable fields (fields shown)

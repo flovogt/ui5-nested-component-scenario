@@ -48,6 +48,7 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/core/Conf
 		var isHalfFrame = frameType === frameTypes.OneByHalf || frameType === frameTypes.TwoByHalf;
 		var sBGColor = oControl._sBGColor;
 		var bIsIconModeOneByOne = oControl._isIconMode() && frameType === frameTypes.OneByOne;
+		var aLinkTileContent = oControl.getLinkTileContents();
 
 		// Render a link when URL is provided, not in action scope and the state is enabled
 		var bRenderLink = oControl.getUrl() && (!oControl._isInActionScope() || oControl.getMode() === GenericTileMode.IconMode) && sState !== LoadState.Disabled && !oControl._isNavigateActionEnabled() && !oControl._isActionMode();
@@ -159,6 +160,9 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/core/Conf
 		if (this._isNewsContentPresent(aTileContent,iLength)){
 			oRm.class("sapMGTNewsContent");
 		}
+		if (aLinkTileContent.length > 0) {
+			oRm.class("sapMGTLinkTileContent");
+		}
 		oRm.openEnd();
 		if (sTooltipText) {
 			oControl.getAggregation("_invisibleText").setText(sTooltipText);
@@ -263,12 +267,15 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/core/Conf
 						oRm.openEnd();
 					}
 					oRm.openStart("div");
+
 					if (frameType === frameTypes.OneByOne) {
 						oRm.class("sapMGTOneByOneIcon");
 					} else {
 						oRm.class("sapMGTTwoByHalfIcon");
-						if (!this._isThemeHighContrast()) {
-							oRm.style("background-color", sBGColor);
+						if (oControl._sTileBadge) {
+							oRm.class("sapMGTIconBadge");
+						} else if (!this._isThemeHighContrast()) {
+								oRm.style("background-color", sBGColor);
 						} else {
 							oRm.class("HighContrastTile");
 							oRm.style("border-color", sBGColor);
@@ -276,10 +283,19 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/core/Conf
 						}
 					}
 					oRm.openEnd();
-					if (oControl.getTileIcon()) {
-						var sAggregation = oControl._generateIconAggregation(oControl.getTileIcon());
+					if (oControl.getTileIcon() || oControl._sTileBadge) {
+						var sAggregation = oControl._generateIconAggregation(oControl._sTileBadge ? "sap-icon://folder-full" : oControl.getTileIcon());
 						if (sAggregation) {
-							oRm.renderControl(oControl.getAggregation(sAggregation));
+							var oIcon = oControl.getAggregation(sAggregation);
+							if (oControl._sTileBadge) {
+								oIcon.setColor(sBGColor);
+							}
+							oRm.renderControl(oIcon);
+						}
+						if (oControl._sTileBadge) {
+							oRm.openStart("div", oControl.getId() + "-tileBadge").class("sapMGTileBadge").openEnd();
+							oRm.text(oControl._sTileBadge);
+							oRm.close("div");
 						}
 					}
 					oRm.close("div");
@@ -365,6 +381,13 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/core/Conf
 					}
 				}
 				oRm.openEnd();
+				if (aLinkTileContent.length > 0) {
+					oRm.openStart("div", oControl.getId() + "-linkTileContent").class("sapMGTLinkTileContentWrapper").openEnd();
+					for (var i = 0; i < aLinkTileContent.length; i++) {
+						oRm.renderControl(aLinkTileContent[i].getLinkTileContentInstance());
+					}
+					oRm.close("div");
+				}
 				for (var i = 0; i < iLength; i++) {
 					oRm.renderControl(aTileContent[i]);
 				}

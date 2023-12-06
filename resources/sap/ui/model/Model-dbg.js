@@ -51,7 +51,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.message.MessageProcessor
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @alias sap.ui.model.Model
@@ -515,16 +515,6 @@ sap.ui.define([
 		return this;
 	};
 
-	Model.prototype.attachMessageChange = function(oData, fnFunction, oListener) {
-		this.attachEvent("messageChange", oData, fnFunction, oListener);
-		return this;
-	};
-
-	Model.prototype.detachMessageChange = function(fnFunction, oListener) {
-		this.detachEvent("messageChange", fnFunction, oListener);
-		return this;
-	};
-
 	/**
 	 * Fires event {@link #event:propertyChange propertyChange} to attached listeners.
 	 *
@@ -643,6 +633,8 @@ sap.ui.define([
 	 *   Predefined filter/s (can be either a filter or an array of filters)
 	 * @param {object} [mParameters]
 	 *   Additional model-specific parameters
+	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} filter instance is contained in <code>aFilters</code>
+	 *   together with other filters
 	 *
 	 * @return {sap.ui.model.ListBinding}
 	 *   The newly created binding
@@ -664,6 +656,8 @@ sap.ui.define([
 	 *   Additional model specific parameters
 	 * @param {sap.ui.model.Sorter[]} [aSorters]
 	 *   Predefined sap.ui.model.sorter/s contained in an array
+	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} filter instance is contained in <code>aFilters</code>
+	 *   together with other filters
 	 *
 	 * @return {sap.ui.model.TreeBinding}
 	 *   The newly created binding
@@ -961,9 +955,10 @@ sap.ui.define([
 			for (var sKey in this.mMessages) {
 				aMessages = aMessages.concat(this.mMessages[sKey]);
 			}
-			this.fireMessageChange({
-				oldMessages: aMessages
-			});
+			var Messaging = sap.ui.require("sap/ui/core/Messaging");
+			if (Messaging) {
+				Messaging.updateMessages(aMessages, []);
+			}
 		}
 	};
 
@@ -1169,12 +1164,14 @@ sap.ui.define([
 	 *   Single filter or an array of filter instances
 	 * @throws {Error}
 	 *   If at least one filter uses an <code>sap.ui.model.FilterOperator</code> that is not
-	 *   supported by the related model instance
+	 *   supported by the related model instance or if the {@link sap.ui.model.Filter.NONE} filter instance is contained
+	 *   in <code>vFilters</code> together with other filters
 	 * @private
 	 * @ui5-restricted sap.ui.model
 	 */
-	Model.prototype.checkFilterOperation = function(vFilters) {
-		_traverseFilter(vFilters, function (oFilter) {
+	Model.prototype.checkFilter = function(vFilters) {
+		Filter.checkFilterNone(vFilters);
+		Model._traverseFilter(vFilters, function (oFilter) {
 			if (this.mUnsupportedFilterOperators[oFilter.sOperator]) {
 				throw new Error("Filter instances contain an unsupported FilterOperator: " + oFilter.sOperator);
 			}
@@ -1209,7 +1206,7 @@ sap.ui.define([
 	 *   Check function which is called for each filter instance in the tree
 	 * @private
 	 */
-	function _traverseFilter (vFilters, fnCheck) {
+	Model._traverseFilter = function(vFilters, fnCheck) {
 		vFilters = vFilters || [];
 
 		if (vFilters instanceof Filter) {
@@ -1223,12 +1220,12 @@ sap.ui.define([
 			fnCheck(oFilter);
 
 			// check subfilter for lambda expressions (e.g. Any, All, ...)
-			_traverseFilter(oFilter.oCondition, fnCheck);
+			Model._traverseFilter(oFilter.oCondition, fnCheck);
 
 			// check multi filter if necessary
-			_traverseFilter(oFilter.aFilters, fnCheck);
+			Model._traverseFilter(oFilter.aFilters, fnCheck);
 		}
-	}
+	};
 
 	/**
 	 * Introduces data binding support on the ManagedObject prototype via mixin.

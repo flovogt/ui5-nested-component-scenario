@@ -13,7 +13,6 @@ sap.ui.define([
 	'./Targets',
 	'./History',
 	'sap/ui/thirdparty/crossroads',
-	"sap/base/util/UriParameters",
 	"sap/base/util/each",
 	"sap/base/util/deepEqual",
 	"sap/base/util/isEmptyObject",
@@ -31,7 +30,6 @@ sap.ui.define([
 		Targets,
 		History,
 		crossroads,
-		UriParameters,
 		each,
 		deepEqual,
 		isEmptyObject,
@@ -50,7 +48,9 @@ sap.ui.define([
 		 * @class
 		 * @extends sap.ui.base.EventProvider
 		 *
-		 * @param {object|object[]} [oRoutes] may contain many Route configurations as {@link sap.ui.core.routing.Route#constructor}.<br/>
+		 * @param {Object<string,sap.ui.core.routing.$RouteSettings>|Array<sap.ui.core.routing.$RouteSettings>} [oRoutes]
+		 *  may contain many Route configurations as {@link sap.ui.core.routing.Route#constructor}.<br/>
+		 *
 		 * Each of the routes contained in the array/object will be added to the router.<br/>
 		 *
 		 * One way of defining routes is an array:
@@ -178,7 +178,7 @@ sap.ui.define([
 		 * @param {sap.ui.core.UIComponent} [oOwner] the Component of all the views that will be created by this Router,<br/>
 		 * will get forwarded to the {@link sap.ui.core.routing.Views#constructor}.<br/>
 		 * If you are using the componentMetadata to define your routes you should skip this parameter.
-		 * @param {object} [oTargetsConfig] Since 1.28 the target configuration, see {@link sap.ui.core.routing.Targets#constructor} documentation (the options object).<br/>
+		 * @param {Object<string,sap.ui.core.routing.$TargetSettings>} [oTargetsConfig] Since 1.28 the target configuration, see {@link sap.ui.core.routing.Targets#constructor} documentation (the options object).<br/>
 		 * You should use Targets to create and display views. Since 1.28 the route should only contain routing relevant properties.<br/>
 		 * <b>Example:</b>
 		 * <pre>
@@ -231,7 +231,7 @@ sap.ui.define([
 
 				// temporarily: for checking the url param
 				function checkUrl() {
-					if (UriParameters.fromQuery(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
+					if (new URLSearchParams(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
 						Log.warning("Activation of async view loading in routing via url parameter is only temporarily supported and may be removed soon", "Router");
 						return true;
 					}
@@ -349,7 +349,7 @@ sap.ui.define([
 			/**
 			 * Adds a route to the router.
 			 *
-			 * @param {object} oConfig Configuration object for the route @see sap.ui.core.routing.Route#constructor
+			 * @param {sap.ui.core.routing.$RouteSettings} oConfig Configuration object for the route @see sap.ui.core.routing.Route#constructor
 			 * @param {sap.ui.core.routing.Route} oParent The parent route - if a parent route is given, the <code>routeMatched</code> event of this route will also trigger the <code>routeMatched</code> of the parent and it will also create the view of the parent (if provided).
 			 * @public
 			 */
@@ -664,7 +664,7 @@ sap.ui.define([
 			/**
 			 * @typedef {object} sap.ui.core.routing.RouteInfo
 			 * @property {string} name The route name
-			 * @property {Object.<string, string>} arguments The route data
+			 * @property {Object.<string, string|Object.<string, string>>} arguments The route data
 			 * @public
 			 */
 
@@ -834,15 +834,15 @@ sap.ui.define([
 			 * @param {object} [oComponentTargetInfo.anyName.componentTargetInfo] The information for the targets within a
 			 *  nested component. This shares the same structure with the <code>oComponentTargetInfo</code> parameter.
 			 * @param {boolean} [bReplace=false]
-			*             If set to <code>true</code>, the hash is replaced, and there will be no entry in the browser
-			*             history. If set to <code>false</code>, the hash is set and the entry is stored in the browser
-			*             history.
+			 *             If set to <code>true</code>, the hash is replaced, and there will be no entry in the browser
+			 *             history. If set to <code>false</code>, the hash is set and the entry is stored in the browser
+			 *             history.
+			 * @ui5-omissible-params oComponentTargetInfo
 			 * @public
 			 * @returns {this} this for chaining.
 			 */
 			navTo : function (sName, oParameters, oComponentTargetInfo, bReplace) {
 				var that = this,
-					bRouteSwitched = this._getLastMatchedRouteName() !== sName,
 					oRoute = this.getRoute(sName),
 					pComponentHashChange, sHash;
 
@@ -855,6 +855,13 @@ sap.ui.define([
 					Log.warning("Route with name " + sName + " does not exist", this);
 					return this;
 				}
+
+				var bRouteSwitched = this._getLastMatchedRouteName() !== sName && this._sRouteInProgress !== sName;
+
+				// this property is set after navTo is called and is reset once the browser fires the next "hashChange"
+				// event. This is used to detect the parallel calls of 'navTo' when oComponentTargetInfo is given
+				// because it runs asynchronously when there's target info given to the nested component
+				this._sRouteInProgress = sName;
 
 				if (typeof oComponentTargetInfo === "boolean") {
 					bReplace = oComponentTargetInfo;
@@ -1429,8 +1436,10 @@ sap.ui.define([
 						// check whether there's a duplicate history entry with the last history entry and remove it if there is
 						this._aHistory.some(function(oEntry, i, aHistory) {
 							if (i < aHistory.length - 1 && deepEqual(oEntry, oLastHistoryEntry)) {
-								return aHistory.splice(i, 1);
+								aHistory.splice(i, 1);
+								return true;
 							}
+							return false;
 						});
 					} else {
 						if (this._bLastHashReplaced) {

@@ -105,15 +105,14 @@ sap.ui.define([
 		var bForceUpdate,
 			oOldContext = this.oContext;
 
-		if (oContext && oContext.isPreliminary()) {
+		if (oContext && oContext.isPreliminary && oContext.isPreliminary()) {
 			return;
 		}
 
 		if (Context.hasChanged(this.oContext, oContext)) {
 			this.oContext = oContext;
 			if (this.isRelative()) {
-				bForceUpdate = !!(oOldContext !== oContext
-					&& this.getDataState().getControlMessages().length);
+				bForceUpdate = !!(oOldContext !== oContext && this.getDataState().getMessages().length);
 				this.checkUpdate(bForceUpdate);
 			}
 		}

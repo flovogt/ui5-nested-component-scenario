@@ -14,16 +14,29 @@ sap.ui.define([
 	function(Log, ObjectPath, ManagedObjectMetadata, Renderer) {
 	"use strict";
 
+	/**
+	 * Control Renderer
+	 *
+	 * @typedef {object} sap.ui.core.ControlRenderer
+	 * @public
+	 *
+	 * @property {function(sap.ui.core.RenderManager, sap.ui.core.Element):void} render
+	 *  The function that renders the control
+	 * @property {1|2|4} [apiVersion] The API version of the RenderManager that are used in this renderer. See {@link
+	 *  sap.ui.core.RenderManager RenderManager} API documentation for detailed information
+	 */
 
 	/**
 	 * Creates a new metadata object for a UIElement subclass.
 	 *
 	 * @param {string} sClassName fully qualified name of the class that is described by this metadata object
 	 * @param {object} oClassInfo static info to construct the metadata from
+	 * @param {sap.ui.core.Element.MetadataOptions} [oClassInfo.metadata]
+	 *  The metadata object describing the class
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @since 0.8.6
 	 * @alias sap.ui.core.ElementMetadata
 	 * @extends sap.ui.base.ManagedObjectMetadata
@@ -70,7 +83,7 @@ sap.ui.define([
 	 * Retrieves the renderer for the described control class
 	 *
 	 * If no renderer exists <code>undefined</code> is returned
-	 * @returns {object|undefined} The renderer
+	 * @returns {sap.ui.core.ControlRenderer|undefined} The renderer
 	 */
 	ElementMetadata.prototype.getRenderer = function() {
 
@@ -117,7 +130,7 @@ sap.ui.define([
 		this._sVisibility = oStaticInfo.visibility || "public";
 
 		// remove renderer stuff before calling super.
-		var vRenderer = oClassInfo.hasOwnProperty("renderer") ? (oClassInfo.renderer || "") : undefined;
+		var vRenderer = Object.hasOwn(oClassInfo, "renderer") ? (oClassInfo.renderer || "") : undefined;
 		delete oClassInfo.renderer;
 
 		ManagedObjectMetadata.prototype.applySettings.call(this, oClassInfo);
@@ -202,7 +215,7 @@ sap.ui.define([
 	 * Returns an info object describing the drag-and-drop behavior.
 	 *
 	 * @param {string} [sAggregationName] name of the aggregation or empty.
-	 * @returns {Object} An info object about the drag-and-drop behavior.
+	 * @returns {sap.ui.core.Element.MetadataOptions.DnD} An info object about the drag-and-drop behavior.
 	 * @public
 	 * @since 1.56
 	 */

@@ -7,37 +7,9 @@ sap.ui.define([
 ], function () {
 	"use strict";
 
+	var pWriteAPI;
+
 	var FlexUtil = {
-
-		getPropertySetterChanges: function(mDeltaInfo) {
-			var oControl = mDeltaInfo.control;
-			var aExistingState = mDeltaInfo.existingState;
-			var aChangedState = mDeltaInfo.changedState;
-			var sOperation = mDeltaInfo.operation;
-			var sSetAttribute = mDeltaInfo.deltaAttribute;
-
-			var aSetterChanges = [];
-
-			aChangedState.forEach(function(oItem){
-				//check if the provided state item holds the value to check for
-				if (oItem.hasOwnProperty(sSetAttribute)) {
-					var oExistingItem = aExistingState.find(function(oExisting){return oExisting.name == oItem.name;});
-
-					//compare to identify delta (only create a change if really necessary)
-					var vOldValue = oExistingItem && oExistingItem.hasOwnProperty(sSetAttribute) && oExistingItem[sSetAttribute];
-					var vNewValue = oItem[sSetAttribute];
-					var bValueChanged = vOldValue !== vNewValue;
-					if (bValueChanged) {
-						aSetterChanges.push(this.createChange(oControl, sOperation, {
-							name: oItem.name,
-							value: oItem[sSetAttribute]
-						}));
-					}
-				}
-			}.bind(this));
-
-			return aSetterChanges;
-		},
 
 		/**
 		 * Method which reduces a propertyinfo map to changecontent relevant attributes.
@@ -78,17 +50,6 @@ sap.ui.define([
 			});
 		},
 
-		createChange: function(oControl, sOperation, oContent){
-			var oAddRemoveChange = {
-				selectorElement: oControl,
-				changeSpecificData: {
-					changeType: sOperation,
-					content: oContent
-				}
-			};
-			return oAddRemoveChange;
-		},
-
 		createConditionChange: function(sChangeType, oControl, sFieldPath, oCondition) {
 			delete oCondition.filtered;
 			var oConditionChange = {
@@ -105,55 +66,50 @@ sap.ui.define([
 			return oConditionChange;
 		},
 
-		handleChanges: function (aChanges, bIgnoreVM, bUseStaticArea) {
-			return new Promise(function (resolve, reject) {
-				sap.ui.require([
-					"sap/ui/fl/write/api/ControlPersonalizationWriteAPI"
-				], function (ControlPersonalizationWriteAPI) {
-					ControlPersonalizationWriteAPI.add({
-						changes: aChanges,
-						ignoreVariantManagement: bIgnoreVM,
-						useStaticArea: bUseStaticArea
-					}).then(function (aDirtyChanges) {
-						resolve(aDirtyChanges);
-					}, reject);
+		_requireWriteAPI: function() {
+			if (!pWriteAPI) {
+				pWriteAPI = new Promise(function (resolve, reject) {
+					sap.ui.require([
+						"sap/ui/fl/write/api/ControlPersonalizationWriteAPI"
+					], function (ControlPersonalizationWriteAPI) {
+						resolve(ControlPersonalizationWriteAPI);
+					});
+				});
+			}
+			return pWriteAPI;
+		},
+
+		handleChanges: function (aChanges, bIgnoreVM, bTransient) {
+
+			if (bTransient) {
+				aChanges.forEach((oChange) => {oChange.transient = true;});
+			}
+
+			return FlexUtil._requireWriteAPI().then(function(ControlPersonalizationWriteAPI){
+				return ControlPersonalizationWriteAPI.add({
+					changes: aChanges,
+					ignoreVariantManagement: bIgnoreVM
 				});
 			});
 		},
 
 		saveChanges: function (oControl, aDirtyChanges) {
-			return new Promise(function (resolve, reject) {
-				sap.ui.require([
-					"sap/ui/fl/write/api/ControlPersonalizationWriteAPI"
-				], function (ControlPersonalizationWriteAPI) {
-					ControlPersonalizationWriteAPI.save({
-						selector: oControl, changes: aDirtyChanges
-					}).then(resolve);
+			return FlexUtil._requireWriteAPI().then(function(ControlPersonalizationWriteAPI){
+				return ControlPersonalizationWriteAPI.save({
+					selector: oControl, changes: aDirtyChanges
 				});
 			});
 		},
 
 		restore: function(mPropertyBag) {
-			return new Promise(function (resolve, reject) {
-				sap.ui.require([
-					"sap/ui/fl/write/api/ControlPersonalizationWriteAPI"
-				], function (ControlPersonalizationWriteAPI) {
-					ControlPersonalizationWriteAPI.restore(mPropertyBag).then(function () {
-						resolve();
-					}, reject);
-				});
+			return FlexUtil._requireWriteAPI().then(function(ControlPersonalizationWriteAPI){
+				return ControlPersonalizationWriteAPI.restore(mPropertyBag);
 			});
 		},
 
 		reset: function(mPropertyBag) {
-			return new Promise(function (resolve, reject) {
-				sap.ui.require([
-					"sap/ui/fl/write/api/ControlPersonalizationWriteAPI"
-				], function (ControlPersonalizationWriteAPI) {
-					ControlPersonalizationWriteAPI.reset(mPropertyBag).then(function () {
-						resolve();
-					}, reject);
-				});
+			return FlexUtil._requireWriteAPI().then(function(ControlPersonalizationWriteAPI){
+				return ControlPersonalizationWriteAPI.reset(mPropertyBag);
 			});
 		}
 	};

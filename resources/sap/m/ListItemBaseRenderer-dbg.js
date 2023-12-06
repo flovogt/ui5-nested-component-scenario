@@ -4,8 +4,8 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/InvisibleText", "sap/ui/core/InvisibleRenderer", "sap/ui/core/Configuration"],
-	function(library, Core, Device, InvisibleText, InvisibleRenderer, Configuration) {
+sap.ui.define(["sap/ui/core/ControlBehavior", "./library", "sap/ui/Device", "sap/ui/core/InvisibleText", "sap/ui/core/InvisibleRenderer", "sap/ui/core/Configuration", "sap/ui/core/Lib"],
+	function(ControlBehavior, library, Device, InvisibleText, InvisibleRenderer, Configuration, Library) {
 	"use strict";
 
 
@@ -85,7 +85,7 @@ sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/In
 		oModeControl.removeStyleClass("sapMLIBSelectAnimation sapMLIBUnselectAnimation");
 
 		// determine whether animation is necessary or not
-		if (Core.getConfiguration().getAnimationMode() === Configuration.AnimationMode.none || !oLI.getListProperty("modeAnimationOn")) {
+		if (ControlBehavior.getAnimationMode() === Configuration.AnimationMode.none || !oLI.getListProperty("modeAnimationOn")) {
 			return;
 		}
 
@@ -120,7 +120,7 @@ sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/In
 
 	ListItemBaseRenderer.renderCounterContent = function(rm, oLI, iCounter) {
 		rm.openStart("div", oLI.getId() + "-counter");
-		rm.attr("aria-label", Core.getLibraryResourceBundle("sap.m").getText("LIST_ITEM_COUNTER", iCounter));
+		rm.attr("aria-label", Library.getResourceBundleFor("sap.m").getText("LIST_ITEM_COUNTER", [iCounter]));
 		rm.class("sapMLIBCounter");
 		rm.openEnd();
 		rm.text(iCounter);
@@ -221,7 +221,12 @@ sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/In
 	 * @protected
 	 */
 	ListItemBaseRenderer.getAriaRole = function(oLI) {
-		return "listitem";
+		if (oLI.isGroupHeader()) {
+			return "listitem";
+		}
+
+		var oList = oLI.getList();
+		return (oList && oList.getAriaRole() == "listbox") ? "option" : "listitem";
 	};
 
 	/**
@@ -275,6 +280,17 @@ sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/In
 	};
 
 	/**
+	 * Returns the accessibility position of the control
+	 *
+	 * @param {sap.m.ListItemBase} oLI an object representation of the control
+	 * @protected
+	 */
+	ListItemBaseRenderer.getAccessbilityPosition = function(oLI) {
+		var oList = oLI.getList();
+		return oList && oList.getAccessbilityPosition && oList.getAccessbilityPosition(oLI);
+	};
+
+	/**
 	 * Returns the accessibility state of the control
 	 *
 	 * @param {sap.m.ListItemBase} oLI an object representation of the control
@@ -284,6 +300,7 @@ sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/In
 		var sAriaLabelledBy = this.getAriaLabelledBy(oLI),
 			sAriaDescribedBy = this.getAriaDescribedBy(oLI),
 			sRole = this.getAriaRole(oLI),
+			bPositionNeeded = true,
 			mAccessibilityState = {
 				role: sRole
 			};
@@ -309,8 +326,9 @@ sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/In
 		if (sRole === "listitem") {
 			mAccessibilityState.selected = null;
 			if (oLI.isGroupHeader()) {
+				bPositionNeeded = false;
 				mAccessibilityState.role = "group";
-				mAccessibilityState.roledescription = oLI.getAccessibilityType(Core.getLibraryResourceBundle("sap.m"));
+				mAccessibilityState.roledescription = Library.getResourceBundleFor("sap.m").getText("LIST_ITEM_GROUP_HEADER");
 				var aGroupedItems = oLI.getGroupedItems();
 				if (aGroupedItems && aGroupedItems.length) {
 					mAccessibilityState.owns = aGroupedItems.join(" ");
@@ -318,6 +336,11 @@ sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/In
 			}
 		} else if (oLI.isSelectable()) {
 			mAccessibilityState.selected = oLI.getSelected();
+		}
+
+		if (bPositionNeeded) {
+			var mPosition = this.getAccessbilityPosition(oLI);
+			Object.assign(mAccessibilityState, mPosition);
 		}
 
 		return mAccessibilityState;
@@ -431,7 +454,7 @@ sap.ui.define(["./library", "sap/ui/core/Core", "sap/ui/Device", "sap/ui/core/In
 		this.renderTabIndex(rm, oLI);
 
 		// handle accessibility states
-		if (Core.getConfiguration().getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			rm.accessibilityState(oLI, this.getAccessibilityState(oLI));
 		}
 

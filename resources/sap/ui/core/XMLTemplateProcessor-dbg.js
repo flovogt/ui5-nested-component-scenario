@@ -25,7 +25,7 @@ sap.ui.define([
 	'sap/base/util/JSTokenizer',
 	'sap/base/util/each',
 	'sap/base/util/isEmptyObject',
-	'sap/ui/core/Configuration',
+	'sap/ui/base/DesignTime',
 	'sap/ui/core/Lib'
 ],
 function(
@@ -47,16 +47,30 @@ function(
 	JSTokenizer,
 	each,
 	isEmptyObject,
-	Configuration,
+	DesignTime,
 	Library
 ) {
 	"use strict";
 
-	function parseScalarType(sType, sValue, sName, oContext, oRequireModules) {
+	function parseScalarType(sType, sValue, sName, oContext, oRequireModules, aTypePromises) {
+		var bResolveTypesAsync = !!aTypePromises;
+		var oBindingInfo;
+
 		// check for a binding expression (string)
-		var oBindingInfo = BindingInfo.parse(sValue, oContext, /*bUnescape*/true,
+		var oBindingParseResult = BindingInfo.parse(sValue, oContext, /*bUnescape*/true,
 			/*bTolerateFunctionsNotFound*/false, /*bStaticContext*/false, /*bPreferContext*/false,
-			oRequireModules);
+			oRequireModules,
+			/* bResolveTypesAsync: Whether we want the type classes to be resolved,
+			        true if async == true, false otherwise */
+			bResolveTypesAsync);
+
+		// asynchronously resolved types result in a Promise we need to unwrap here
+		if (bResolveTypesAsync && oBindingParseResult) {
+			aTypePromises.push(oBindingParseResult.resolved);
+			oBindingInfo = oBindingParseResult.bindingInfo;
+		} else {
+			oBindingInfo = oBindingParseResult;
+		}
 
 		if ( oBindingInfo && typeof oBindingInfo === "object" ) {
 			return oBindingInfo;
@@ -397,6 +411,7 @@ function(
 						+ oRequireContext[sKey] + "'under key '" + sKey + "'";
 					return true;
 				}
+				return false;
 			});
 		}
 
@@ -583,11 +598,22 @@ function(
 				}
 			};
 
+		// We might have a set of already resolved "core:require" modules given from outside.
+		// This only happens when a new XMLView instance is used as a wrapper for HTML nodes, in this case
+		// the "core:require" modules need to be propagated down into the nested XMLView.
+		// We now need to merge the set of passed "core:require" modules with the ones defined on our root element,
+		// with our own modules having priority in case of duplicate aliases.
+		if (oParseConfig?.settings?.requireContext) {
+			pResultChain = pResultChain.then((mRequireContext) => {
+				return Object.assign({}, oParseConfig.settings.requireContext, mRequireContext);
+			});
+		}
+
 		bAsync = bAsync && !!oView._sProcessingMode;
 		Log.debug("XML processing mode is " + (oView._sProcessingMode || "default") + ".", "", "XMLTemplateProcessor");
 		Log.debug("XML will be processed " + (bAsync ? "asynchronously" : "synchronously") + ".", "", "XMLTemplateProcessor");
 
-		var bDesignMode = Configuration.getDesignMode();
+		var bDesignMode = DesignTime.isDesignModeEnabled();
 		if (bDesignMode) {
 			oView._sapui_declarativeSourceInfo = {
 				// the node representing the current control
@@ -877,7 +903,8 @@ function(
 						// write attributes
 						for (i = 0; i < node.attributes.length; i++) {
 							var attr = node.attributes[i];
-							if ( attr.name !== "id" ) {
+							// id and core:require should not be output to DOM
+							if ( attr.name !== "id" && (attr.localName !== "require" || attr.namespaceURI !== CORE_NAMESPACE)) {
 								rm.attr(bXHTML ? attr.name.toLowerCase() : attr.name, attr.value);
 							}
 						}
@@ -891,6 +918,15 @@ function(
 							}
 						} else {
 							rm.openEnd();
+
+							var pSelfRequireContext = parseAndLoadRequireContext(node, bAsync);
+
+							if (pSelfRequireContext) {
+								pRequireContext = SyncPromise.all([pRequireContext, pSelfRequireContext])
+									.then(function(aContexts) {
+										return Object.assign({}, ...aContexts);
+									});
+							}
 
 							// write children
 							// For HTMLTemplateElement nodes, skip the associated DocumentFragment node
@@ -936,10 +972,11 @@ function(
 						} else {
 							// plain HTML node - create a new View control
 							// creates a view instance, but makes sure the new view receives the correct owner component
-							var fnCreateView = function (oViewClass) {
+							var fnCreateView = function (oViewClass, oRequireContext) {
 								var mViewParameters = {
 									id: id ? getId(oView, node, id) : undefined,
 									xmlNode: node,
+									requireContext: oRequireContext,
 									containingView: oView._oContainingView,
 									processingMode: oView._sProcessingMode // add processing mode, so it can be propagated to subviews inside the HTML block
 								};
@@ -954,16 +991,16 @@ function(
 								return new oViewClass(mViewParameters);
 							};
 
-							return pRequireContext.then(function() {
+							return pRequireContext.then(function(oRequireContext) {
 								if (bAsync) {
 									return new Promise(function (resolve, reject) {
 										sap.ui.require(["sap/ui/core/mvc/XMLView"], function(XMLView) {
-											resolve([fnCreateView(XMLView)]);
+											resolve([fnCreateView(XMLView, oRequireContext)]);
 										}, reject);
 									});
 								} else {
 									var XMLView = sap.ui.requireSync("sap/ui/core/mvc/XMLView"); // legacy-relevant: Sync path
-									return [fnCreateView(XMLView)];
+									return [fnCreateView(XMLView, oRequireContext)];
 								}
 							});
 						}
@@ -1150,6 +1187,11 @@ function(
 
 				oRequireContext = oRequireModules;
 
+				// [ASYNC only]: In async mode we instruct the BindingParser to resolve the Types asynchronously.
+				//               The function "parseScalarType()" will then collect the Promises from the BindingParser,
+				//               so that we can then wait for them later on here.
+				var aTypePromises = bAsync ? [] : undefined;
+
 				if (!bEnrichFullIds) {
 					for (var i = 0; i < node.attributes.length; i++) {
 						var attr = node.attributes[i],
@@ -1215,8 +1257,8 @@ function(
 							if (sNamespace === CUSTOM_DATA_NAMESPACE) {  // CustomData attribute found
 								var sLocalName = localName(attr);
 								aCustomData.push(new CustomData({
-									key:sLocalName,
-									value:parseScalarType("any", sValue, sLocalName, oView._oContainingView.oController, oRequireModules)
+									key: sLocalName,
+									value: parseScalarType("any", sValue, sLocalName, oView._oContainingView.oController, oRequireModules, aTypePromises)
 								}));
 							} else if (sNamespace === SUPPORT_INFO_NAMESPACE) {
 								sSupportData = sValue;
@@ -1246,7 +1288,7 @@ function(
 
 						} else if (oInfo && oInfo._iKind === 0 /* PROPERTY */ ) {
 							// other PROPERTY
-							mSettings[sName] = parseScalarType(oInfo.type, sValue, sName, oView._oContainingView.oController, oRequireModules); // View._oContainingView.oController is null when [...]
+							mSettings[sName] = parseScalarType(oInfo.type, sValue, sName, oView._oContainingView.oController, oRequireModules, aTypePromises); // View._oContainingView.oController is null when [...]
 							// FIXME: ._oContainingView might be the original Fragment for an extension fragment or a fragment in a fragment - so it has no controller bit ITS containingView.
 
 						} else if (oInfo && oInfo._iKind === 1 /* SINGLE_AGGREGATION */ && oInfo.altTypes ) {
@@ -1328,6 +1370,11 @@ function(
 					if (aCustomData.length > 0) {
 						mSettings.customData = aCustomData;
 					}
+				}
+
+				// aTypePromises is only filled when we run in async mode, so we don't need to use SyncPromise here
+				if (Array.isArray(aTypePromises)) {
+					return Promise.all(aTypePromises).then(function() { return oRequireModules; });
 				}
 
 				return oRequireModules;

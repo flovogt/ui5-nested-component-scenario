@@ -72,10 +72,11 @@ sap.ui.define([
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/message-page/ Message Page}
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
+		 * @deprecated as of version 1.112 Use the {@link sap.m.IllustratedMessage} instead.
 		 * @since 1.28
 		 * @alias sap.m.MessagePage
 		 */

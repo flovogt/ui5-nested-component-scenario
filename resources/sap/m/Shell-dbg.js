@@ -10,12 +10,13 @@ sap.ui.define([
 	'sap/ui/core/Core',
 	'sap/ui/core/Control',
 	'sap/ui/core/library',
+	'sap/m/Image',
 	'sap/m/ShellRenderer',
 	"sap/ui/util/Mobile",
 	"sap/base/Log",
 	"sap/ui/core/theming/Parameters"
 ],
-	function(library, Core, Control, coreLibrary, ShellRenderer, Mobile, Log, ThemeParameters) {
+	function(library, Core, Control, coreLibrary, Image, ShellRenderer, Mobile, Log, ThemeParameters) {
 		"use strict";
 
 
@@ -35,7 +36,7 @@ sap.ui.define([
 		 * The Shell control can be used as root element of applications. It can contain an App or a <code>SplitApp</code> control.
 		 * The Shell provides some overarching functionality for the overall application and takes care of visual adaptation, such as a frame around the App, on desktop browser platforms.
 		 * @extends sap.ui.core.Control
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
@@ -265,7 +266,7 @@ sap.ui.define([
 
 		Shell.prototype._getImage = function() {
 			if (!this.oImg) {
-				this.oImg = new sap.m.Image(this.getId() + "-logo", {
+				this.oImg = new Image(this.getId() + "-logo", {
 					decorative: false,
 					alt: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("SHELL_ARIA_LOGO")
 				});

@@ -6,9 +6,9 @@
 
 // Provides control sap.m.SearchField.
 sap.ui.define([
+	'sap/ui/core/Theming',
 	'./library',
 	'sap/ui/core/Control',
-	'sap/ui/core/Core',
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
 	'./Suggest',
@@ -16,20 +16,22 @@ sap.ui.define([
 	'./SearchFieldRenderer',
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/core/Lib",
 	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos"
 ],
 	function(
+		Theming,
 		library,
 		Control,
-		Core,
 		EnabledPropagator,
 		IconPool,
 		Suggest,
 		Device,
 		SearchFieldRenderer,
 		KeyCodes,
-		jQuery
+		jQuery,
+		Library
 	) {
 	"use strict";
 
@@ -67,7 +69,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	* @implements sap.ui.core.IFormContent
 	* @author SAP SE
-	* @version 1.110.0
+	* @version 1.120.1
 	*
 	* @constructor
 	* @public
@@ -216,7 +218,19 @@ sap.ui.define([
 						 * Indicates if the user pressed the clear icon.
 						 * @since 1.34
 						 */
-						clearButtonPressed : {type : "boolean"}
+						clearButtonPressed : {type : "boolean"},
+						/**
+						 * Indicates if the user pressed the search button.
+						 * @since 1.114
+						 */
+						searchButtonPressed : {type : "boolean"},
+
+						/**
+						 * Indicates that ESC key triggered the event.
+						 * <b>Note:</b> This parameter will not be sent unless the ESC key is pressed.
+						 * @since 1.115
+						 */
+						escPressed : {type : "boolean"}
 					}
 				},
 
@@ -354,18 +368,12 @@ sap.ui.define([
 				});
 			}
 		}
-
-		if (!Core.isThemeApplied()) {
-			Core.attachThemeChanged(this._handleThemeLoad, this);
-		}
 	};
 
-	SearchField.prototype._handleThemeLoad = function() {
+	SearchField.prototype.onThemeChanged = function() {
 		if (this._oSuggest) {
 			this._oSuggest.setPopoverMinWidth();
 		}
-
-		Core.detachThemeChanged(this._handleThemeLoad, this);
 	};
 
 	/**
@@ -379,6 +387,7 @@ sap.ui.define([
 
 		// in case of escape, revert to the original value, otherwise clear with ""
 		var value = oOptions && oOptions.value || "";
+		var bClearButtonPressed = !!(oOptions && oOptions.clearButton);
 
 		if (!this.getInputElement() || this.getValue() === value) {
 			return;
@@ -388,11 +397,19 @@ sap.ui.define([
 		updateSuggestions(this);
 		this.fireLiveChange({newValue: value});
 		this._fireChangeEvent();
-		this.fireSearch({
+
+		var mParams = {
 			query: value,
 			refreshButtonPressed: false,
-			clearButtonPressed: !!(oOptions && oOptions.clearButton)
-		});
+			clearButtonPressed: bClearButtonPressed,
+			searchButtonPressed: false
+		};
+
+		if (!bClearButtonPressed) {
+			mParams.escPressed = true;
+		}
+
+		this.fireSearch(mParams);
 	};
 
 	/**
@@ -477,11 +494,13 @@ sap.ui.define([
 			if (Device.system.desktop && !this.getShowRefreshButton() && (document.activeElement !== oInputElement)) {
 				oInputElement.focus();
 			}
+			var bRefreshButtonPressed = !!(this.getShowRefreshButton() && !this.hasStyleClass("sapMFocus"));
 			this._fireChangeEvent();
 			this.fireSearch({
 				query: this.getValue(),
-				refreshButtonPressed: !!(this.getShowRefreshButton() && !this.hasStyleClass("sapMFocus")),
-				clearButtonPressed: false
+				refreshButtonPressed: bRefreshButtonPressed,
+				clearButtonPressed: false,
+				searchButtonPressed: !bRefreshButtonPressed
 			});
 		} else {
 			// focus by form area touch outside of the input field
@@ -523,7 +542,8 @@ sap.ui.define([
 		this.fireSearch({
 			query: value,
 			refreshButtonPressed: false,
-			clearButtonPressed: false
+			clearButtonPressed: false,
+			searchButtonPressed: false
 		});
 
 		// If the user has pressed the search button on the soft keyboard - close it,
@@ -649,7 +669,8 @@ sap.ui.define([
 					query: this.getValue(),
 					suggestionItem: suggestionItem,
 					refreshButtonPressed: this.getShowRefreshButton() && event.which === KeyCodes.F5,
-					clearButtonPressed: false
+					clearButtonPressed: false,
+					searchButtonPressed: false
 				});
 				break;
 			case KeyCodes.ESCAPE:
@@ -875,7 +896,7 @@ sap.ui.define([
 	SearchField.prototype._applySuggestionAcc = function () {
 		var sAriaText = "",
 			iNumItems = this.getSuggestionItems().length,
-			oRb = Core.getLibraryResourceBundle("sap.m");
+			oRb = Library.getResourceBundleFor("sap.m");
 
 		// add items to list
 		if (iNumItems === 1) {

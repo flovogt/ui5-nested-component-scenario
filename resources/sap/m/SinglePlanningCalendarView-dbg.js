@@ -26,7 +26,7 @@ function (library, Log, Element) {
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -100,7 +100,7 @@ function (library, Log, Element) {
 	 * Should calculate the startDate which will be displayed in the <code>sap.m.SinglePlanningCalendar</code>
 	 * based on a given date.
 	 *
-	 * @param {Date} oDate A JavaScript Date
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
 	 * @public
 	 * @abstract
 	 */

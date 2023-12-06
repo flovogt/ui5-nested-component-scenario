@@ -6,8 +6,8 @@
 
 // Provides control sap.m.OverflowToolbar.
 sap.ui.define([
+	"sap/ui/core/Theming",
 	"sap/ui/core/library",
-	"sap/ui/core/Core",
 	"./library",
 	"sap/ui/core/Control",
 	"sap/ui/core/Element",
@@ -22,10 +22,11 @@ sap.ui.define([
 	"sap/ui/Device",
 	"./OverflowToolbarRenderer",
 	"sap/base/Log",
+	"sap/ui/core/Lib",
 	"sap/ui/dom/jquery/Focusable" // jQuery Plugin "lastFocusableDomRef"
 ], function(
+	Theming,
 	coreLibrary,
-	oCore,
 	library,
 	Control,
 	Element,
@@ -39,7 +40,8 @@ sap.ui.define([
 	IconPool,
 	Device,
 	OverflowToolbarRenderer,
-	Log
+	Log,
+	Library
 ) {
 	"use strict";
 
@@ -129,7 +131,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -228,8 +230,8 @@ sap.ui.define([
 
 		this.addStyleClass("sapMOTB");
 
-		this._sAriaRoleDescription = oCore
-			.getLibraryResourceBundle("sap.m")
+		this._sAriaRoleDescription = Library
+			.getResourceBundleFor("sap.m")
 			.getText(OverflowToolbar.ARIA_ROLE_DESCRIPTION);
 
 		this._fnMediaChangeRef = this._fnMediaChange.bind(this);
@@ -255,6 +257,42 @@ sap.ui.define([
 	};
 
 	/**
+	 * This method is a hook for the RenderManager that gets called
+	 * during the rendering of child Controls. It allows to add,
+	 * remove and update existing accessibility attributes (ARIA) of
+	 * those controls.
+	 *
+	 * @param {sap.ui.core.Control} oElement - The Control that gets rendered by the RenderManager
+	 * @param {object} mAriaProps - The mapping of "aria-" prefixed attributes
+	 * @protected
+	 */
+	OverflowToolbar.prototype.enhanceAccessibilityState = function (oElement, mAriaProps) {
+		Toolbar.prototype.enhanceAccessibilityState.apply(this, arguments);
+		if (oElement === this.getAggregation("_overflowButton")) {
+			this._enhanceOverflowButtonAccessibility(mAriaProps);
+		}
+	};
+
+	OverflowToolbar.prototype._enhanceOverflowButtonAccessibility = function (mAriaProps) {
+		var oPopover = this.getAggregation("_popover"),
+			oOverflowButton = this.getAggregation("_overflowButton");
+
+		if (!oOverflowButton) {
+			return;
+		}
+
+		// the overflow toolbar button is better represented as a menu button
+		// because it opens a menu with the overflowed content
+		// because of that the aria-pressed is to be removed and the aria-expanded is to be added
+		mAriaProps.expanded = oOverflowButton.getPressed();
+		delete mAriaProps.pressed;
+
+		if (oPopover && oPopover.getDomRef()) {
+			mAriaProps.controls = oPopover.getId();
+		}
+	};
+
+	/**
 	 * Sets the <code>asyncMode</code> property.
 	 *
 	 * @since 1.67
@@ -268,6 +306,14 @@ sap.ui.define([
 		return this.setProperty("asyncMode", bValue, true);
 	};
 
+	/**
+	 * Called before the control is rendered
+	 */
+	OverflowToolbar.prototype.onBeforeRendering = function () {
+		if (!this.getDomRef()) {
+			this._bControlsInfoCached = false;
+		}
+	};
 
 	/**
 	 * Called after the control is rendered
@@ -312,12 +358,6 @@ sap.ui.define([
 	OverflowToolbar.prototype._doLayout = function () {
 		var iWidth;
 
-		// If the theme is not applied, control widths should not be measured and cached
-		if (!oCore.isThemeApplied()) {
-			Log.debug("OverflowToolbar: theme not applied yet, skipping calculations", this);
-			return;
-		}
-
 		this._recalculateOverflowButtonSize();
 
 		iWidth = this.$().is(":visible") ? this.$().width() : 0;
@@ -330,6 +370,10 @@ sap.ui.define([
 
 		// Deregister the resize handler to avoid multiple instances of the same code running at the same time
 		this._deregisterToolbarResize();
+
+		if (this._iPreviousToolbarWidth !== iWidth) {
+			this._bResized = true;
+		}
 
 		if (iWidth > 0) {
 
@@ -344,6 +388,8 @@ sap.ui.define([
 				this._setControlsOverflowAndShrinking(iWidth);
 				this.fireEvent("_controlWidthChanged");
 			}
+		} else {
+			this._iPreviousToolbarWidth = iWidth;
 		}
 
 		// Register the resize handler again after all calculations are done and it's safe to do so
@@ -377,7 +423,7 @@ sap.ui.define([
 			$LastFocusableChildControl = this.$().lastFocusableDomRef();
 
 		if (this.sFocusedChildControlId) {
-			oFocusedChildControl = oCore.byId(this.sFocusedChildControlId);
+			oFocusedChildControl = Element.registry.get(this.sFocusedChildControlId);
 		}
 
 		if (oFocusedChildControl && oFocusedChildControl.getDomRef()){
@@ -402,7 +448,8 @@ sap.ui.define([
 	 */
 	OverflowToolbar.prototype._preserveChildControlFocusInfo = function () {
 		// Preserve focus info
-		var sActiveElementId = oCore.getCurrentFocusedControlId();
+		var oElement = Element.closestTo(document.activeElement);
+		var sActiveElementId = oElement ? oElement.getId() : null;
 
 		if (this._getControlsIds().indexOf(sActiveElementId) !== -1) {
 			this._bControlWasFocused = true;
@@ -973,7 +1020,7 @@ sap.ui.define([
 				id: this.getId() + sIdPrefix,
 				icon: IconPool.getIconURI("overflow"),
 				press: this._overflowButtonPressed.bind(this),
-				tooltip: oCore.getLibraryResourceBundle("sap.m").getText(OverflowToolbar.TOGGLE_BUTTON_TOOLTIP),
+				tooltip: Library.getResourceBundleFor("sap.m").getText(OverflowToolbar.TOGGLE_BUTTON_TOOLTIP),
 				type: ButtonType.Transparent
 		});
 	};
@@ -1554,20 +1601,32 @@ sap.ui.define([
 		oLayoutData = vControl.getLayoutData && vControl.getLayoutData();
 		if (oLayoutData && oLayoutData instanceof OverflowToolbarLayoutData) {
 
+			/**
+			 * @deprecated since 1.32
+			 */
 			if (oLayoutData.getMoveToOverflow() === false) {
 				return OverflowToolbarPriority.NeverOverflow;
 			}
 
+			/**
+			 * @deprecated since 1.32
+			 */
 			if (oLayoutData.getStayInOverflow() === true) {
 				return OverflowToolbarPriority.AlwaysOverflow;
 			}
 
 			sPriority = oLayoutData.getPriority();
 
+			/**
+			 * @deprecated since 1.48
+			 */
 			if (sPriority === OverflowToolbarPriority.Never) {
 				return OverflowToolbarPriority.NeverOverflow;
 			}
 
+			/**
+			 * @deprecated since 1.48
+			 */
 			if (sPriority === OverflowToolbarPriority.Always) {
 				return OverflowToolbarPriority.AlwaysOverflow;
 			}

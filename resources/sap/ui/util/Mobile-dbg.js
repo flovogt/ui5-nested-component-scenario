@@ -21,15 +21,17 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', 'sap/base/util/extend', 'sap/ui/
 	var _bInitTriggered = false;
 
 	function addElementToHead(sTag, mAttributes) {
-		mAttributes = mAttributes || {};
+		if (sTag !== "meta" || (mAttributes && !document.querySelector("meta[name='" + mAttributes.name + "']"))) {
+			mAttributes = mAttributes || {};
 
-		var oTag = document.createElement(sTag);
-		for (var key in mAttributes) {
-			if (mAttributes[key]) {
-				oTag.setAttribute(key, mAttributes[key]);
+			var oTag = document.createElement(sTag);
+			for (var key in mAttributes) {
+				if (mAttributes[key]) {
+					oTag.setAttribute(key, mAttributes[key]);
+				}
 			}
+			document.head.appendChild(oTag);
 		}
-		document.head.appendChild(oTag);
 	}
 
 	function removeFromHead(sSelector) {
@@ -49,7 +51,8 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', 'sap/base/util/extend', 'sap/ui/
 	 *
 	 * It can have the following properties:
 	 * <ul>
-	 * <li>viewport: whether to set the viewport in a way that disables zooming (default: true)</li>
+	 * <li>viewport: whether to set the viewport in a way that disables zooming (default: true). This does not
+	 * work in case there is already a meta tag with name 'viewport'.</li>
 	 * <li>statusBar: the iOS status bar color, "default", "black" or "black-translucent" (default: "default")</li>
 	 * <li>hideBrowser: whether the browser UI should be hidden as far as possible to make the app feel more native
 	 * (default: true)</li>
@@ -58,7 +61,7 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', 'sap/base/util/extend', 'sap/ui/
 	 * <li>preventPhoneNumberDetection: whether Safari Mobile should be prevented from transforming any numbers
 	 * that look like phone numbers into clickable links; this should be left as "true", otherwise it might break
 	 * controls because Safari actually changes the DOM. This only affects all page content which is created after
-	 * init() is called.</li>
+	 * init() is called and only in case there is not already a meta tag with name 'format-detection'.</li>
 	 * <li>rootId: the ID of the root element that should be made fullscreen; only used when hideBrowser is set
 	 * (default: the document.body)</li>
 	 * <li>useFullScreenHeight: a boolean that defines whether the height of the html root element should be set to
@@ -105,6 +108,8 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', 'sap/base/util/extend', 'sap/ui/
 				mobileWebAppCapable: "default"
 			}, options);
 
+			var bAppleMobileDevice = Device.os.ios || (Device.os.macintosh && Device.browser.mobile);
+
 			// en-/disable automatic link generation for phone numbers
 			if (options.preventPhoneNumberDetection) {
 				// iOS specific meta tag
@@ -126,15 +131,17 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', 'sap/base/util/extend', 'sap/ui/
 				// UI) and auto zoom (browser zooms in the UI automatically under some circumtances, for example when an
 				// input gets the focus and the font-size of the input is less than 16px on iOS) functionalities on the
 				// mobile platform, but there's some difference between the mobile platforms:
-				//  * iOS: This does not disable manual zoom in Safari and it only disables the auto zoom function. In
-				//  Chrome browser on iOS, it does disable the manual zoom but since Chrome on iOS isn't in the support
-				//  matrix, we can ignore this.
+				//  * Apple mobile device: This does not disable manual zoom in Safari and it only disables the auto
+				//    zoom function. In Chrome browser on iOS, it does disable the manual zoom but since Chrome on iOS
+				//    isn't in the support matrix, we can ignore this. The "Request Desktop Website" is turned on by
+				//    default on iPad, therefore we need to check the (macintosh + touch) combination to detect the iPad
+				//    with "Request Desktop Website" turned on to disable the auto zoom.
 				//  * other mobile platform: it does disable the manual zoom option but there's no auto zoom function.
-				//  So we need to remove the maximum-scale=1.0:
+				//    So we need to remove the maximum-scale=1.0:
 				//
 				//  Therefore we need to add the additional settings (maximum-scale and user-scalable) only for iOS
 				//  platform
-				if (Device.os.ios) {
+				if (bAppleMobileDevice) {
 					sMeta += ", maximum-scale=1.0, user-scalable=no";
 				}
 
@@ -155,7 +162,7 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', 'sap/base/util/extend', 'sap/ui/
 				});
 			}
 
-			if (options.preventScroll && (Device.os.ios || (Device.os.mac && Device.browser.mobile))) {
+			if (options.preventScroll && bAppleMobileDevice) {
 				_ready().then(function() {
 					document.documentElement.style.position = "fixed";
 					document.documentElement.style.overflow = "hidden";
@@ -234,7 +241,14 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', 'sap/base/util/extend', 'sap/ui/
 	 * icons with glare effect, so the "precomposed" property can be set to "true". Some Android devices may also
 	 * use the favicon for bookmarks instead of the home icons.</li>
 	 *
-	 * @param {object} oIcons
+	 * @param {object} oIcons Icon settings
+	 * @param {string} [oIcons.phone] a 120x120 pixel version for iPhones with low pixel density
+	 * @param {string} [oIcons.tablet] a 152x152 pixel version for iPads with low pixel density
+	 * @param {string} [oIcons."phone@2"] a 180x180 pixel version for iPhones with high pixel density
+	 * @param {string} [oIcons."tablet@2"] a 167x167 pixel version for iPads with high pixel density
+	 * @param {boolean} [oIcons.precomposed=false] whether the home icons already have some glare effect (otherwise iOS will add it)
+	 * @param {string} [oIcons.favicon] the ICO file to be used inside the browser and for desktop shortcuts
+	 *
 	 * @function
 	 * @static
 	 * @public

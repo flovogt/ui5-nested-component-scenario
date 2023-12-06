@@ -11,7 +11,7 @@ sap.ui.define([
 ], function (BaseObject, PersistenceProvider, ControlVariantApplyAPI) {
 	"use strict";
 
-	var ERROR_INSTANCING = "DefaultProviderRegistry: This class is a singleton and should not be used without an AdaptationProvider. Please use 'sap.m.p13n.Engine.getInstance().defaultProviderRegistry' instead";
+	var ERROR_INSTANCING = "DefaultProviderRegistry: This class is a singleton and should not be used without an AdaptationProvider. Please use 'Engine.getInstance().defaultProviderRegistry' instead";
 
 	//Singleton storage
 	var oDefaultProviderRegistry;
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @private
 	 * @since 1.104
@@ -80,18 +80,6 @@ sap.ui.define([
 		if (oDefaultProvider.getFor().indexOf(sElementId) === -1) {
 			oDefaultProvider.addFor(vElement);
 		}
-
-		var oProvider = this._mDefaultProviders[sPersistenceMode];
-
-		var fnAttachVariantModel = function(){
-			var oModel = oElement.getModel(ControlVariantApplyAPI.getVariantModelName());
-			if (oModel) {
-				oProvider.setModel(oModel, ControlVariantApplyAPI.getVariantModelName());
-				oElement.detachEvent("modelContextChange", fnAttachVariantModel);
-			}
-		};
-
-		oElement.attachEvent("modelContextChange", fnAttachVariantModel);
 
 		return oDefaultProvider;
 	};

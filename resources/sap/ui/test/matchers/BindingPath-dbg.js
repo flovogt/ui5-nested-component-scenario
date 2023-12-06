@@ -5,10 +5,10 @@
  */
 
 sap.ui.define([
-	'sap/ui/thirdparty/jquery',
+	"sap/base/util/isPlainObject",
 	'sap/ui/test/matchers/Matcher',
 	'sap/ui/model/StaticBinding'
-], function ($, Matcher, StaticBinding) {
+], function (isPlainObject, Matcher, StaticBinding) {
 	"use strict";
 
 	/**
@@ -205,7 +205,7 @@ sap.ui.define([
 	});
 
 	function _pathMatches(sPath, vMatcherPath, bWithContext) {
-		if ($.isPlainObject(vMatcherPath) && vMatcherPath.regex && vMatcherPath.regex.source) {
+		if (isPlainObject(vMatcherPath) && vMatcherPath.regex && vMatcherPath.regex.source) {
 			// declarative syntax
 			vMatcherPath = new RegExp(vMatcherPath.regex.source, vMatcherPath.regex.flags);
 		}

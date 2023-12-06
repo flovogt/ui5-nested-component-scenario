@@ -41,7 +41,7 @@ sap.ui.define([
 		} else {
 			sType = library.ListType.Inactive;
 		}
-		this.setProperty("type", sType, true);
+		this.setType(sType);
 	};
 
 	/**
@@ -58,7 +58,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @protected

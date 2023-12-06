@@ -26,32 +26,30 @@ sap.ui.define(['./BarInPageEnabler'],
 	ToolbarRenderer.render = BarInPageEnabler.prototype.render;
 
 	/**
-	 * Writes the accessibility state.
+	 * Writes the accessibility state of the given toolbar using the given renderer manager.
 	 * To be overwritten by subclasses.
 	 *
 	 * @private
-	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-	 * @param {sap.m.Toolbar} oToolbar An object representation of the control that should be rendered.
+	 * @param {sap.ui.core.RenderManager} oRm - The renderer manager to use for writing the accessibility state.
+	 * @param {sap.m.Toolbar} oToolbar - The toolbar to write the accessibility state for.
+	 * @returns {void}
+	 *
+	 * @description
+	 * This function uses the `assignAccessibilityState` method of the toolbar to obtain a map of ARIA properties to set on
+	 * the rendered toolbar element. If the map is empty, the accessibility state is set to `null` to ensure that no
+	 * unnecessary ARIA attributes are present. Otherwise, the accessibility state is set to the toolbar.
+	 * The purpose of this logic is to ensure that the rendered toolbar has appropriate ARIA attributes for accessibility
+	 * purposes, while avoiding unnecessary attributes that could be confusing or misleading to users of assistive technology.
 	 */
 	ToolbarRenderer.writeAccessibilityState = function(oRm, oToolbar) {
-		var sRole = oToolbar._getAccessibilityRole(),
-			oAccInfo = {
-				role: sRole
-			};
+		var oAccInfo = {},
+			mAriaProps = oToolbar.assignAccessibilityState(oAccInfo);
 
-		if (!oToolbar.getAriaLabelledBy().length && sRole) {
-			oAccInfo.labelledby = oToolbar.getTitleId();
+		if (!Object.keys(mAriaProps).length) {
+			oRm.accessibilityState(null);
+		} else {
+			oRm.accessibilityState(oToolbar, mAriaProps);
 		}
-
-		if (oToolbar.getActive()) {
-			oAccInfo.haspopup = oToolbar.getAriaHasPopup();
-		}
-
-		if (oToolbar._sAriaRoleDescription && sRole) {
-			oAccInfo.roledescription = oToolbar._sAriaRoleDescription;
-		}
-
-		oRm.accessibilityState(oToolbar, oAccInfo);
 	};
 
 	/**
@@ -61,17 +59,16 @@ sap.ui.define(['./BarInPageEnabler'],
 	 * @param {sap.m.Toolbar} oToolbar an object representation of the control that should be rendered
 	 */
 	ToolbarRenderer.decorateRootElement = function (oRm, oToolbar) {
-		this.writeAccessibilityState(oRm, oToolbar);
+		var bToolbarActive = oToolbar.getActive();
+		if (bToolbarActive) {
+			oRm.class("sapMTBActive");
+		} else {
+			this.writeAccessibilityState(oRm, oToolbar);
+			oRm.class("sapMTBInactive");
+		}
 
 		oRm.class("sapMTB");
 		oRm.class("sapMTBNewFlex");
-
-		if (oToolbar.getActive()) {
-			oRm.class("sapMTBActive");
-			oRm.attr("tabindex", "0");
-		} else {
-			oRm.class("sapMTBInactive");
-		}
 
 		oRm.class("sapMTB" + oToolbar.getStyle());
 		oRm.class("sapMTB-" + oToolbar.getActiveDesign() + "-CTX");
@@ -81,8 +78,19 @@ sap.ui.define(['./BarInPageEnabler'],
 	};
 
 	ToolbarRenderer.renderBarContent = function(rm, oToolbar) {
+		var oFirstVisibleControl = null;
+
+		if (oToolbar.getActive()) {
+			rm.renderControl(oToolbar._getActiveButton());
+		}
 		oToolbar.getContent().forEach(function(oControl) {
 			BarInPageEnabler.addChildClassTo(oControl, oToolbar);
+			if (!oFirstVisibleControl && oControl.getVisible()) {
+				oControl.addStyleClass("sapMBarChildFirstChild");
+				oFirstVisibleControl = oControl;
+			} else {
+				oControl.removeStyleClass("sapMBarChildFirstChild");
+			}
 			rm.renderControl(oControl);
 		});
 	};

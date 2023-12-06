@@ -27,7 +27,9 @@ sap.ui.define([
 	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aApplicationFilters=null] Predefined application filter, either a single instance or an array
 	 * @param {object} [mParameters=null] Additional model specific parameters as defined by subclasses; this class does not introduce any own parameters
 	 * @param {sap.ui.model.Sorter[]} [aSorters=null] Predefined sorter/s contained in an array (optional)
-	 * @throws {Error} When one of the filters uses an operator that is not supported by the underlying model implementation
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *   <code>aApplicationFilters</code> together with other filters
 	 *
 	 * @class
 	 * Tree binding implementation for client models.
@@ -58,7 +60,7 @@ sap.ui.define([
 			this.mNormalizeCache = {};
 
 			if (aApplicationFilters) {
-				this.oModel.checkFilterOperation(aApplicationFilters);
+				this.oModel.checkFilter(aApplicationFilters);
 
 				if (this.oModel._getObject(this.sPath, this.oContext)) {
 					this.filter(aApplicationFilters, FilterType.Application);
@@ -267,7 +269,10 @@ sap.ui.define([
 	 *   is given, any previously configured application filters are cleared, and the given filters
 	 *   are used as control filters
 	 * @return {this} <code>this</code> to facilitate method chaining
-	 * @throws {Error} When one of the filters uses an operator that is not supported by the underlying model implementation
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *   <code>aFilters</code> together with other filters
+	 *
 	 * @public
 	 */
 	ClientTreeBinding.prototype.filter = function(aFilters, sFilterType){
@@ -279,7 +284,7 @@ sap.ui.define([
 		}
 
 		// check filter integrity
-		this.oModel.checkFilterOperation(aFilters);
+		this.oModel.checkFilter(aFilters);
 
 		if (sFilterType == FilterType.Application) {
 			this.aApplicationFilters = aFilters || [];

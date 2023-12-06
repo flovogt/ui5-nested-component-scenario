@@ -4,8 +4,8 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["./library", "sap/ui/base/ManagedObject", "sap/base/Log"],
-function (coreLibrary, ManagedObject, Log) {
+sap.ui.define(["./library", "sap/ui/base/ManagedObject", "sap/base/Log", "sap/ui/core/StaticArea"],
+function (coreLibrary, ManagedObject, Log, StaticArea) {
 	"use strict";
 
 	var oInstance;
@@ -32,7 +32,7 @@ function (coreLibrary, ManagedObject, Log) {
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @hideconstructor
 	 * @public
 	 * @since 1.78
@@ -42,6 +42,7 @@ function (coreLibrary, ManagedObject, Log) {
 	var InvisibleMessage = ManagedObject.extend("sap.ui.core.InvisibleMessage", /** @lends sap.ui.core.InvisibleMessage.prototype */ {
 
 		constructor: function () {
+			ManagedObject.apply(this, arguments);
 			if (oInstance) {
 				Log.warning('This is a singleton, therefore you are not able to create another instance of this class.');
 
@@ -49,8 +50,6 @@ function (coreLibrary, ManagedObject, Log) {
 			}
 
 			oInstance = this;
-
-			ManagedObject.apply(this, arguments);
 		}
 	});
 
@@ -69,8 +68,7 @@ function (coreLibrary, ManagedObject, Log) {
 	};
 
 	InvisibleMessage.prototype.init = function () {
-		var oCore = sap.ui.getCore(),
-			oStatic = oCore.getStaticAreaRef();
+		var oStatic = StaticArea.getDomRef();
 
 		oStatic.insertAdjacentHTML("beforeend", this.getPoliteInstance());
 		oStatic.insertAdjacentHTML("beforeend", this.getAssertiveInstance());
@@ -84,8 +82,7 @@ function (coreLibrary, ManagedObject, Log) {
 	 * @public
 	 */
 	InvisibleMessage.prototype.announce = function (sText, sMode) {
-		var oCore = sap.ui.getCore(),
-			oStatic = oCore.getStaticAreaRef(),
+		var oStatic = StaticArea.getDomRef(),
 			oPoliteMarkup = oStatic.querySelector(".sapUiInvisibleMessagePolite"),
 			oAssertiveMarkup = oStatic.querySelector(".sapUiInvisibleMessageAssertive");
 

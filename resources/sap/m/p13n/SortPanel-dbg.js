@@ -21,7 +21,7 @@ sap.ui.define([
 	 * @extends sap.m.p13n.QueryPanel
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @since 1.96
@@ -76,11 +76,11 @@ sap.ui.define([
 	 */
 
 	SortPanel.prototype._createRemoveButton = function () {
-		var oRemvoeBtn = QueryPanel.prototype._createRemoveButton.apply(this, arguments);
-		oRemvoeBtn.setLayoutData(new GridData({
+		var oRemoveBtn = QueryPanel.prototype._createRemoveButton.apply(this, arguments);
+		oRemoveBtn.setLayoutData(new GridData({
 			span: "XL3 L3 M3 S4"//on "S" the Asc/Desc text is invisible, we need to increase the size the
 		}));
-		return oRemvoeBtn;
+		return oRemoveBtn;
 	};
 
 	SortPanel.prototype._createOrderSwitch = function (sKey, bDesc) {
@@ -99,8 +99,9 @@ sap.ui.define([
 					icon: "sap-icon://sort-descending"
 				})
 			],
-			select: function (oEvt) {
-				var sSortOrder = oEvt.getParameter("key");
+			selectionChange: function (oEvt) {
+				var oItem = oEvt.getParameter("item");
+				var sSortOrder = oItem.getKey();
 				var oText = oEvt.getSource().getParent().getContent()[2];
 				oText.setText(this._getSortOrderText(sSortOrder === "desc"));
 				var sKey = oEvt.oSource.getParent().getContent()[0].getSelectedItem().getKey();
@@ -147,6 +148,10 @@ sap.ui.define([
 
 	SortPanel.prototype._getRemoveButtonTooltipText = function () {
 		return this._getResourceText("p13n.SORT_REMOVEICONTOOLTIP");
+	};
+
+	SortPanel.prototype._getRemoveButtonAnnouncementText = function () {
+		return this._getResourceText("p13n.SORT_REMOVEICONANNOUNCE");
 	};
 
 	SortPanel.prototype._selectKey = function(oComboBox) {

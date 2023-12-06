@@ -20,6 +20,7 @@ sap.ui.define([
 	'sap/ui/core/library',
 	'sap/ui/core/Element',
 	'sap/ui/core/ResizeHandler',
+	'sap/ui/core/StaticArea',
 	'./PopoverRenderer',
 	"sap/ui/dom/containsOrEquals",
 	"sap/ui/thirdparty/jquery",
@@ -45,6 +46,7 @@ sap.ui.define([
 		coreLibrary,
 		Element,
 		ResizeHandler,
+		StaticArea,
 		PopoverRenderer,
 		containsOrEquals,
 		jQuery,
@@ -120,7 +122,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.110.0
+		* @version 1.120.1
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -198,7 +200,6 @@ sap.ui.define([
 					/**
 					 * This property is deprecated. Please use properties verticalScrolling and horizontalScrolling instead. If you still use this property it will be mapped on the new properties verticalScrolling and horizontalScrolling.
 					 * @deprecated Since version 1.15.0.
-					 * This property is deprecated. Please use properties verticalScrolling and horizontalScrolling instead. If you still use this property it will be mapped on the new properties verticalScrolling and horizontalScrolling.
 					 */
 					enableScrolling: {type: "boolean", group: "Misc", defaultValue: true, deprecated: true},
 
@@ -495,7 +496,7 @@ sap.ui.define([
 				},
 				onAfterRendering: function () {
 					if (this._sFocusControlId && !containsOrEquals(this.getDomRef(), document.activeElement)) {
-						sap.ui.getCore().byId(this._sFocusControlId).focus();
+						Element.registry.get(this._sFocusControlId).focus();
 					}
 				}
 			};
@@ -717,8 +718,8 @@ sap.ui.define([
 			}
 
 			// title alignment
-			if (oHeader && oHeader.getTitleAlignment) {
-				oHeader.setProperty("titleAlignment", this.getTitleAlignment(), true);
+			if (oHeader && oHeader.setTitleAlignment) {
+				oHeader.setTitleAlignment(this.getTitleAlignment());
 			}
 
 		};
@@ -801,8 +802,8 @@ sap.ui.define([
 		/**
 		 * Opens the Popover and sets the Popover position according to the {@link #getPlacement() placement} property around the <code>oControl</code> parameter.
 		 *
-		 * @param {object} oControl This is the control to which the Popover will be placed. It can be not only a UI5 control, but also an existing DOM reference. The side of the placement depends on the placement property set in the Popover.
-		 * @param {boolean} bSkipInstanceManager Indicates whether popover should be managed by InstanceManager or not
+		 * @param {sap.ui.core.Control|HTMLElement} oControl This is the control to which the Popover will be placed. It can be not only a UI5 control, but also an existing DOM reference. The side of the placement depends on the placement property set in the Popover.
+		 * @param {boolean} [bSkipInstanceManager=false] Indicates whether popover should be managed by InstanceManager or not.
 		 * @returns {this} Reference to the control instance for chaining
 		 * @public
 		 */
@@ -1132,7 +1133,7 @@ sap.ui.define([
 
 			// Set focus to the first visible focusable element
 			var sFocusId = this._getInitialFocusId(),
-			oControl = sap.ui.getCore().byId(sFocusId),
+			oControl = Element.registry.get(sFocusId),
 			oDomById = (sFocusId ? window.document.getElementById(sFocusId) : null);
 			if (oControl && oControl.getFocusDomRef()){
 				oControl.getFocusDomRef().focus();
@@ -1416,8 +1417,7 @@ sap.ui.define([
 				iOffsetY = this._getOffsetY();
 
 			var aParts = sOffset.split(" ");
-			var sOffset = (parseInt(aParts[0]) + iOffsetX) + " " + (parseInt(aParts[1]) + iOffsetY);
-			return sOffset;
+			return (parseInt(aParts[0]) + iOffsetX) + " " + (parseInt(aParts[1]) + iOffsetY);
 		};
 
 		Popover.prototype._calcPlacement = function () {
@@ -1712,7 +1712,7 @@ sap.ui.define([
 		 * Calculate outerHeight of the element; used as hook for SVG elements
 		 * @param {HTMLElement} oElement An Element for which outerHeight will be calculated.
 		 * @param {boolean} [bIncludeMargin=false] Determines if the margins should be included in the calculated outerHeight
-		 * * @returns {number} The outer height of the element
+		 * @returns {number} The outer height of the element
 		 * @protected
 		 */
 		Popover.outerHeight = function (oElement, bIncludeMargin) {
@@ -1903,7 +1903,7 @@ sap.ui.define([
 				iMaxContentWidth = this._getMaxContentWidth(oPosParams),
 				iMaxContentHeight = this._getMaxContentHeight(oPosParams);
 
-			//make sure iMaxContentHeight is NEVER less than 0
+				//make sure iMaxContentHeight is NEVER less than 0
 			iMaxContentHeight = Math.max(iMaxContentHeight, 0);
 
 			oCSS["max-width"] = iMaxContentWidth + "px";
@@ -2208,13 +2208,13 @@ sap.ui.define([
 		 */
 		Popover.prototype._isPopupElement = function (oDOMNode) {
 			var oParentDomRef = this._getOpenByDomRef();
-			return !!(jQuery(oDOMNode).closest(sap.ui.getCore().getStaticAreaRef()).length) || !!(jQuery(oDOMNode).closest(oParentDomRef).length);
+			return !!(jQuery(oDOMNode).closest(StaticArea.getDomRef()).length) || !!(jQuery(oDOMNode).closest(oParentDomRef).length);
 		};
 
 		/**
 		 * If customHeader is set, this will return the customHeaer. Otherwise it creates a header and put the
 		 * title and buttons if needed inside, and finally return this newly create header.
-		 * @returns {object} The created header
+		 * @returns {sap.ui.core.Control|sap.m.Bar} The created header
 		 * @protected
 		 */
 		Popover.prototype._getAnyHeader = function () {
@@ -2330,7 +2330,7 @@ sap.ui.define([
 			if (this.isOpen()) {
 				//restore the focus after rendering when popover is already open
 				var sFocusId = this._getInitialFocusId(),
-				oControl = sap.ui.getCore().byId(sFocusId),
+				oControl = Element.registry.get(sFocusId),
 				oDomById = (sFocusId ? window.document.getElementById(sFocusId) : null);
 				if (oControl && oControl.getFocusDomRef()){
 					oControl.getFocusDomRef().focus();
@@ -2548,17 +2548,13 @@ sap.ui.define([
 
 			this._createInternalHeader();
 
-			//this is used in the getAggregation method
+			// this is used in the getAggregation method
 			this._endButton = oButton;
 
+			this._internalHeader.removeContentRight(oOldEndButton);
+
 			if (oButton) {
-				if (oOldEndButton) {
-					this._internalHeader.removeAggregation("contentRight", oOldEndButton, true);
-				}
-				this._internalHeader.insertAggregation("contentRight", oButton, 1, true);
-				this._internalHeader.invalidate();
-			} else {
-				this._internalHeader.removeContentRight(oOldEndButton);
+				this._internalHeader.addContentRight(oButton);
 			}
 
 			return this;
@@ -2566,7 +2562,7 @@ sap.ui.define([
 
 		Popover.prototype.setLeftButton = function (vButton) {
 			if (!(vButton instanceof Button)) {
-				vButton = sap.ui.getCore().byId(vButton);
+				vButton = Element.registry.get(vButton);
 			}
 
 			//setting leftButton also sets the beginButton
@@ -2576,7 +2572,7 @@ sap.ui.define([
 
 		Popover.prototype.setRightButton = function (vButton) {
 			if (!(vButton instanceof Button)) {
-				vButton = sap.ui.getCore().byId(vButton);
+				vButton = Element.registry.get(vButton);
 			}
 
 			//setting rightButton also sets the endButton
@@ -2621,8 +2617,8 @@ sap.ui.define([
 		};
 
 		/**
-		 * Returns the sap.ui.core.ScrollEnablement delegate which is used with this control.
-		 * @returns {sap.ui.core.ScrollEnablement} The scroll delegate
+		 * Returns the sap.ui.core.delegate.ScrollEnablement delegate which is used with this control.
+		 * @returns {sap.ui.core.delegate.ScrollEnablement} The scroll delegate
 		 * @private
 		 */
 		Popover.prototype.getScrollDelegate = function () {

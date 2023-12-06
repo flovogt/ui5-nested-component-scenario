@@ -5,12 +5,13 @@
  */
 /* eslint-disable no-loop-func */
  sap.ui.define([
+    "sap/base/util/extend",
+    "sap/base/util/isEmptyObject",
     'sap/ui/base/ManagedObject',
     "sap/ui/test/_OpaLogger",
-    'sap/ui/thirdparty/jquery',
     "sap/ui/test/selectors/_ControlSelectorValidator",
     'sap/ui/test/selectors/_selectors'
-], function (ManagedObject, _OpaLogger, $, _ControlSelectorValidator, selectors) {
+], function (extend, isEmptyObject, ManagedObject, _OpaLogger, _ControlSelectorValidator, selectors) {
     "use strict";
 
     /**
@@ -93,7 +94,7 @@
                 return _ControlSelectorGenerator._executeGenerator(oGenerator, oOptions);
             })).then(function (aSelectors) {
                 aSelectors = aSelectors.filter(function (vSelector) {
-                    return vSelector && !$.isEmptyObject(vSelector) && (!Array.isArray(vSelector) || vSelector.length);
+                    return vSelector && !isEmptyObject(vSelector) && (!Array.isArray(vSelector) || vSelector.length);
                 });
                 if (aSelectors.length) {
                     _oLogger.debug("The matching " + (oOptions.multiple ? "non-unique" : "unique") + " selectors are: " + JSON.stringify(aSelectors));
@@ -227,7 +228,7 @@
             .then(function (mUniqueAncestor) {
                 return _ControlSelectorGenerator._generateUniqueSelectorInSubtree(oOptions.control, mUniqueAncestor.ancestor)
                     .then(function (mRelativeSelector) {
-                        return $.extend({}, mRelativeSelector, {
+                        return extend({}, mRelativeSelector, {
                             ancestor: mUniqueAncestor.selector
                         });
                     }).then(_ControlSelectorGenerator._filterUniqueHierarchical(oOptions));
@@ -252,7 +253,7 @@
         }).then(function (mMultiSelector) {
             return _ControlSelectorGenerator._generateUniqueDescendantSelector(oOptions.control)
                 .then(function (mUniqueDescendantSelector) {
-                    return $.extend({}, mMultiSelector, {
+                    return extend({}, mMultiSelector, {
                         descendant: mUniqueDescendantSelector
                     });
                 }).then(_ControlSelectorGenerator._filterUniqueHierarchical(oOptions));
@@ -458,6 +459,7 @@
      /**
      * Iterate through all controls a a given level and attempt to generate a unique selector for each one.
      * stop the cycle as soon as one unique selector is found
+     * @param {object} oOptions Object with options
      * @param {Array} oOptions.siblings the children at a given tree level
      * @param {object} oOptions.options filter options
      * @param {number} oOptions.index index of the child for which to start the search
@@ -479,7 +481,7 @@
             shallow: true
         }).then(function (mUniqueSiblingSelector) {
             // then, combine the sibling's selector with the non-unique selector for the target
-            var mSelector = $.extend({}, oOptions.targetMultiSelector, {
+            var mSelector = extend({}, oOptions.targetMultiSelector, {
                 sibling: [
                     mUniqueSiblingSelector, {
                         level: oOptions.level.number
@@ -490,7 +492,7 @@
             return _ControlSelectorGenerator._filterUniqueHierarchical(oOptions.options)(mSelector);
         }).catch(function () {
             // if combination is not unique, search through the other children of the same ancestor
-            return _ControlSelectorGenerator._generateSelectorWithUniqueSiblingAtLevel($.extend(oOptions, {
+            return _ControlSelectorGenerator._generateSelectorWithUniqueSiblingAtLevel(extend(oOptions, {
                 index: oOptions.index + 1
             }));
         });
@@ -518,6 +520,7 @@
     /**
      * Filters valid selectors.
      * @param {object} vSelector a control selector or array of selectors
+     * @param {object} oOptions Object with options
      * @param {object} oOptions.validationRoot the subtree root. If not defined, the selector will be valid for the entire app.
      * @param {boolean} oOptions.multiple whether the selector can match multiple controls. False by default.
      * @returns {array} an array of valid selectors

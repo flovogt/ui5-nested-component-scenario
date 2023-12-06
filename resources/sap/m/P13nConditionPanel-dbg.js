@@ -112,7 +112,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The ConditionPanel Control will be used to implement the Sorting, Filtering and Grouping panel of the new Personalization dialog.
 	 * @extends sap.ui.core.Control
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
@@ -706,7 +706,8 @@ sap.ui.define([
 	};
 
 	/*
-	 * Initialize the control @private
+	 * Initialize the control
+	 * @private
 	 */
 	P13nConditionPanel.prototype.init = function() {
 		// init some resources
@@ -1019,7 +1020,8 @@ sap.ui.define([
 	};
 
 	/*
-	 * removes all condition rows from the main ConditionGrid. @private
+	 * removes all condition rows from the main ConditionGrid.
+	 * @private
 	 */
 	P13nConditionPanel.prototype._clearConditions = function() {
 		var aGrid = this._oConditionsGrid.getContent();
@@ -1039,7 +1041,8 @@ sap.ui.define([
 	};
 
 	/*
-	 * creates all condition rows and updated the values of the fields. @private
+	 * creates all condition rows and updated the values of the fields.
+	 * @private
 	 */
 	P13nConditionPanel.prototype._fillConditions = function() {
 		var oCondition, sConditionKey;
@@ -1067,7 +1070,8 @@ sap.ui.define([
 	};
 
 	/*
-	 * add one condition @private
+	 * add one condition
+	 * @private
 	 */
 	P13nConditionPanel.prototype._addCondition = function(oCondition) {
 		var i = 0;

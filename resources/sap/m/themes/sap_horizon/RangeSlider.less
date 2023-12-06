@@ -9,22 +9,16 @@
 @_sap_m_RangeSlider_Handle_Width_Compact: 1.5rem;
 
 .sapMRangeSlider.sapMSlider .sapMSliderInner {
-	&:not(.sapMSliderInnerDisabled):hover>.sapMSliderHandle {
-		border: 1px @sapContent_FocusStyle @sapUiSliderHoverHandleBorderColor;
-		background: @sapUiSliderRangeHandleBackground;
-		box-shadow: @sapUiContentSelectedShadow;
-	}
-
-	&:not(.sapMSliderInnerDisabled) .sapMSliderHandle:hover {
-		background-color: @sapUiSliderRangeHandleBackground;
-		border-color: @sapUiSliderHoverHandleBorderColor;
-		box-shadow: @sapUiContentSelectedShadow;
+	&:not(.sapMSliderInnerDisabled).sapMSliderProgress:hover ~ .sapMSliderHandle,
+	.sapMSliderHandle:hover  {
+		border: 0.0625rem @sapContent_FocusStyle @sapUiSliderHoverHandleBorderColor;
+		background: @sapUiSliderHoverRangeHandleBackground;
 	}
 
 	&:not(.sapMSliderInnerDisabled) .sapMSliderHandle.sapMSliderHandlePressed {
 		&:not(:focus) {
 			background: transparent;
-			border: 0.125rem solid #0070F2;
+			border: 0.125rem solid @sapUiContentFocusColor;
 			outline: none;
 			box-shadow: none;
 			top: -0.625rem;
@@ -33,7 +27,7 @@
 
 	&:not(.sapMSliderInnerDisabled) .sapMSliderHandle:focus {
 		background: @sapUiSliderActiveRangeHandleBackground;
-		border: 0.125rem solid #0070F2;
+		border: 0.125rem solid @sapUiContentFocusColor;
 		outline: none;
 		box-shadow: none;
 		top: -0.625rem;
@@ -41,7 +35,6 @@
 
 	.sapMSliderHandle {
 		background: @sapUiSliderRangeHandleBackground;
-		box-shadow: @sapUiContentSelectedShadow;
 		top: -0.625rem;
 	}
 
@@ -73,7 +66,7 @@
 	.sapMRangeSlider.sapMSlider .sapMSliderInner:not(.sapMSliderInnerDisabled) .sapMSliderHandle.sapMSliderHandlePressed {
 		&:not(:focus) {
 			background: transparent;
-			border: 0.125rem solid #0070F2;
+			border: @sapUiContentFocusWidth solid @sapUiContentFocusColor;
 			outline: none;
 			box-shadow: none;
 			top: -0.5rem;
@@ -90,7 +83,7 @@
 
 	.sapMRangeSlider.sapMSlider .sapMSliderInner:not(.sapMSliderInnerDisabled) .sapMSliderHandle:focus {
 		background: @sapUiSliderActiveRangeHandleBackground;
-		border: 0.125rem solid #0070F2;
+		border: 0.125rem solid @sapUiContentFocusColor;
 		outline: none;
 		box-shadow: none;
 		top: -0.5rem;

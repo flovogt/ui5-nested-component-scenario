@@ -14,7 +14,8 @@ sap.ui.define([
 	"sap/ui/events/PseudoEvents",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Configuration",
-	"sap/ui/core/InvisibleText"
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/Lib"
 ],
 	function(
 		library,
@@ -26,7 +27,8 @@ sap.ui.define([
 		PseudoEvents,
 		jQuery,
 		Configuration,
-		InvisibleText
+		InvisibleText,
+		CoreLib
 	) {
 	"use strict";
 
@@ -43,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @since 1.34
 	 *
 	 * @public
@@ -139,7 +141,7 @@ sap.ui.define([
 	 * Init function for the control
 	 */
 	SlideTile.prototype.init = function () {
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = CoreLib.getResourceBundleFor("sap.m");
 		this.setAggregation("_pausePlayIcon", new Icon({
 			id: this.getId() + "-pause-play-icon",
 			src: "sap-icon://media-pause",
@@ -172,9 +174,9 @@ sap.ui.define([
 		this._sWidth = this._sHeight = undefined;
 		this._iCurrentTile = this._iPreviousTile = undefined;
 
-		//sets the extra width of 0.5rem when the grid container has 1rem gap for the TwoByxxxx tiles
+		//Applies new dimensions for the SlideTile if it is inscribed inside a GridContainer
 		if (this.getParent() && this.getParent().isA("sap.f.GridContainer")){
-			this._applyExtraWidth();
+			this._applyNewDim();
 		}
 	};
 
@@ -411,6 +413,10 @@ sap.ui.define([
 	 */
 	SlideTile.prototype._setupResizeClassHandler = function () {
 		var fnCheckMedia = function () {
+			var oParent = this.getParent();
+			if (oParent && oParent.isA("sap.f.GridContainer")) {
+				this._applyNewDim();
+			}
 			if (this.getSizeBehavior() === TileSizeBehavior.Small || window.matchMedia("(max-width: 374px)").matches || this._hasStretchTiles()){
 				this.$().addClass("sapMTileSmallPhone");
 			} else {
@@ -720,12 +726,8 @@ sap.ui.define([
 			this.$().removeClass(this._sFrameType);
 		}
 
-		if (this._sSize) {
-			this.$().removeClass(this._sSize);
-		}
-		this.$().addClass(oTile.getFrameType()).addClass(oTile.getSize());
+		this.$().addClass(oTile.getFrameType());
 		this._sFrameType = oTile.getFrameType();
-		this._sSize = oTile.getSize();
 	};
 
 	/**
@@ -824,14 +826,24 @@ sap.ui.define([
 		return false;
 	};
 
-	SlideTile.prototype._applyExtraWidth = function() {
-		var sGap = this.getParent().getActiveLayoutSettings().getGap();
+	/**
+	 * Applies new dimensions for the SlideTile if it is inscribed inside a GridContainer
+	 *
+	 * @private
+	 */
+	SlideTile.prototype._applyNewDim = function() {
+		var oParent = this.getParent();
+		var sGap = oParent.getActiveLayoutSettings().getGap();
 		var bisGap16px = sGap === "16px" || sGap === "1rem";
 		if (bisGap16px){
-			this.addStyleClass("sapMSTWidthForGridContainer");
-		} else if (!bisGap16px && this.hasStyleClass("sapMSTWidthForGridContainer")){
-			this.removeStyleClass("sapMSTWidthForGridContainer");
+			this.addStyleClass("sapMSTGridContainerOneRemGap");
+		} else if (!bisGap16px && this.hasStyleClass("sapMSTGridContainerOneRemGap")){
+			this.removeStyleClass("sapMSTGridContainerOneRemGap");
 		}
+		//Applying the new dimensions to the GenericTile as well
+		this.getTiles().forEach(function(oTile){
+			oTile._applyNewDim(oParent);
+		});
 	};
 
 	/**

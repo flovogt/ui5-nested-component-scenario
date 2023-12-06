@@ -19,9 +19,12 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 		"sap.m.Link",
 		"sap.m.Label",
 		"sap.m.Text",
+		"sap.m.Select",
 		"sap.ui.webc.main.Label",
 		"sap.ui.webc.main.Link"
 	];
+
+	var Element;
 
 	// Returns the control for the given id (if available) and invalidates it if desired
 	function toControl(sId, bInvalidate) {
@@ -29,7 +32,8 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 			return null;
 		}
 
-		var oControl = sap.ui.getCore().byId(sId);
+		Element = Element ? Element : sap.ui.require("sap/ui/core/Element");
+		var oControl = Element.getElementById(sId);
 		// a control must only be invalidated if there is already a DOM Ref. If there is no DOM Ref yet, it will get
 		// rendered later in any case. Elements must always be invalidated because they have no own renderer.
 		if (oControl && bInvalidate && (!oControl.isA('sap.ui.core.Control') || oControl.getDomRef())) {
@@ -136,7 +140,7 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 	 * @see sap.ui.core.LabelEnablement#enrich
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @protected
 	 * @alias sap.ui.core.LabelEnablement
 	 * @namespace
@@ -215,8 +219,10 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 		var aLabelIds = LabelEnablement.getReferencingLabels(oElement),
 			oLabel;
 
+		Element = Element ? Element : sap.ui.require("sap/ui/core/Element");
+
 		for (var i = 0; i < aLabelIds.length; i++) {
-			oLabel = sap.ui.getCore().byId(aLabelIds[i]);
+			oLabel = Element.getElementById(aLabelIds[i]);
 			if (checkRequired(oLabel)) {
 				return true;
 			}
@@ -251,7 +257,7 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 	 * <b>What does this function do?</b>
 	 *
 	 * A mechanism is added that ensures that a bidirectional reference between the label and its labeled control is established:
-	 * The label references the labeled control via the HTML 'for' attribute (@see sap.ui.core.LabelEnablement#writeLabelForAttribute).
+	 * The label references the labeled control via the HTML 'for' attribute (see {@link sap.ui.core.LabelEnablement#writeLabelForAttribute}).
 	 * If the labeled control supports the aria-labelledby attribute, a reference to the label is added automatically.
 	 *
 	 * In addition an alternative to apply a 'for' reference without influencing the labelFor association of the API is applied (e.g. used by Form).
@@ -300,8 +306,24 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 		oControl.getLabelForRendering = function() {
 			var sId = this.getLabelFor() || this._sAlternativeId;
 			var oControl = toControl(sId);
+			var oLabelForControl;
+
+			Element = Element ? Element : sap.ui.require("sap/ui/core/Element");
+
+			if (oControl && oControl.getIdForLabel && oControl.getIdForLabel()) {
+				oLabelForControl = Element.getElementById(oControl.getIdForLabel());
+				if (oLabelForControl) {
+					oControl = oLabelForControl;
+				}
+			}
 
 			return isLabelableControl(oControl) ? sId : "";
+		};
+
+		oControl.isLabelFor = function(oControl) {
+			var sId = oControl.getId();
+			var aLabels = CONTROL_TO_LABELS_MAPPING[sId];
+			return aLabels && aLabels.indexOf(this.getId()) > -1;
 		};
 
 		if (!oControl.getMetadata().getProperty("required")) {

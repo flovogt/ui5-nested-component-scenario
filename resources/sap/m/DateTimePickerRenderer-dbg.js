@@ -3,8 +3,20 @@
  * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['sap/ui/core/Renderer', './DatePickerRenderer', './InputBaseRenderer', 'sap/ui/core/library'],
-	function(Renderer, DatePickerRenderer, InputBaseRenderer, coreLibrary) {
+sap.ui.define([
+	'sap/ui/core/Renderer',
+	'./DatePickerRenderer',
+	'./DateTimeFieldRenderer',
+	'sap/ui/core/library',
+	'sap/ui/core/date/UI5Date'
+],
+	function(
+		Renderer,
+		DatePickerRenderer,
+		DateTimeFieldRenderer,
+		coreLibrary,
+		UI5Date
+) {
 	"use strict";
 
 	/**
@@ -25,7 +37,7 @@ sap.ui.define(['sap/ui/core/Renderer', './DatePickerRenderer', './InputBaseRende
 
 	DateTimePickerRenderer.getDescribedByAnnouncement = function(oDP) {
 
-		var sBaseAnnouncement = InputBaseRenderer.getDescribedByAnnouncement.apply(this, arguments);
+		var sBaseAnnouncement = DateTimeFieldRenderer.getDescribedByAnnouncement.apply(this, arguments);
 		return sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("DATETIMEPICKER_TYPE") + " " + sBaseAnnouncement;
 
 	};
@@ -33,7 +45,9 @@ sap.ui.define(['sap/ui/core/Renderer', './DatePickerRenderer', './InputBaseRende
 	DateTimePickerRenderer.getAccessibilityState = function(oDP) {
 		var mAccessibilityState = DatePickerRenderer.getAccessibilityState.apply(this, arguments);
 
-		mAccessibilityState["haspopup"] = coreLibrary.aria.HasPopup.Dialog.toLowerCase();
+		if (oDP.getEditable() && oDP.getEnabled()) {
+			mAccessibilityState["haspopup"] = coreLibrary.aria.HasPopup.Dialog.toLowerCase();
+		}
 
 		return mAccessibilityState;
 	};
@@ -61,9 +75,7 @@ sap.ui.define(['sap/ui/core/Renderer', './DatePickerRenderer', './InputBaseRende
 		oRm.openEnd();
 
 		// try to choose the date that is the longest when formatted
-		oRm.text(oControl._getFormatter(true).format(
-			new Date(Date.UTC(2000, 10, 20, 10, 10, 10)),
-			"UTC"));
+		oRm.text(oControl._getFormatter(true).format(UI5Date.getInstance(2000, 10, 20, 10, 10, 10)));
 		oRm.close("span");
 	};
 
@@ -78,7 +90,7 @@ sap.ui.define(['sap/ui/core/Renderer', './DatePickerRenderer', './InputBaseRende
 	};
 
 	DateTimePickerRenderer.getAriaDescribedBy = function(oControl) {
-		var sDescribedBy = InputBaseRenderer.getAriaDescribedBy.apply(this, arguments);
+		var sDescribedBy = DateTimeFieldRenderer.getAriaDescribedBy.apply(this, arguments);
 
 		if (oControl._getShowTimezone()) {
 			sDescribedBy += " " + oControl.getId() + "-timezoneID";

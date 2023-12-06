@@ -5,8 +5,8 @@
  */
 
 // Provides class sap.ui.core.date.Islamic
-sap.ui.define(['./UniversalDate', '../CalendarType', 'sap/base/Log', './_Calendars', 'sap/ui/core/Configuration'],
-	function(UniversalDate, CalendarType, Log, _Calendars, Configuration) {
+sap.ui.define(['./UniversalDate', '../CalendarType', 'sap/base/Log', 'sap/base/i18n/Formatting', './_Calendars'],
+	function(UniversalDate, CalendarType, Log, Formatting, _Calendars) {
 	"use strict";
 
 
@@ -212,9 +212,9 @@ sap.ui.define(['./UniversalDate', '../CalendarType', 'sap/base/Log', './_Calenda
 
 		oCustomizationMap = {};
 
-		sDateFormat = Configuration.getFormatSettings().getLegacyDateFormat();
+		sDateFormat = Formatting.getABAPDateFormat();
 		sDateFormat = _isSupportedIslamicCalendarType(sDateFormat) ? sDateFormat : "A"; // set "A" as a fall-back format always
-		oCustomizationJSON = Configuration.getFormatSettings().getLegacyDateCalendarCustomizing();
+		oCustomizationJSON = Formatting.getCustomIslamicCalendarData();
 		oCustomizationJSON = oCustomizationJSON || [];
 
 
@@ -226,6 +226,7 @@ sap.ui.define(['./UniversalDate', '../CalendarType', 'sap/base/Log', './_Calenda
 		oCustomizationJSON.forEach(function (oEntry) {
 			if (oEntry.dateFormat === sDateFormat) {
 				var date = parseDate(oEntry.gregDate);
+				// no need to use UI5Date.getInstance as only the UTC timestamp is used
 				var iGregorianDate = new Date(Date.UTC(date.year, date.month - 1, date.day));
 				var iMillis = iGregorianDate.getTime();
 				var iIslamicMonthStartDays = (iMillis - ISLAMIC_MILLIS) / ONE_DAY;

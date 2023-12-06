@@ -20,6 +20,8 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Configuration",
+	'sap/ui/core/date/UI5Date',
+	'sap/ui/unified/calendar/CalendarUtils',
 	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos"
 ], function(
@@ -36,7 +38,9 @@ sap.ui.define([
 	deepEqual,
 	Log,
 	jQuery,
-	Configuration
+	Configuration,
+	UI5Date,
+	CalendarUtils
 ) {
 	"use strict";
 
@@ -61,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -84,7 +88,7 @@ sap.ui.define([
 				valueFormat: {type: "string", group: "Data", defaultValue: null},
 
 				/**
-				 * Holds a reference to a JavaScript Date Object. The <code>value</code> (string)
+				 * Holds a reference to a UI5Date or JavaScript Date object. The <code>value</code> (string)
 				 * property will be set according to it. Alternatively, if the <code>value</code>
 				 * and <code>valueFormat</code> pair properties are supplied instead,
 				 * the <code>dateValue</code> will be instantiated according to the parsed
@@ -96,7 +100,7 @@ sap.ui.define([
 				dateValue: {type: "object", group: "Data", defaultValue: null},
 
 				/**
-				 * Holds a reference to a JavaScript Date Object to define the initially focused
+				 * Holds a reference to a UI5Date or JavaScript Date object to define the initially focused
 				 * date/time when the picker popup is opened.
 				 *
 				 * <b>Notes:</b>
@@ -104,7 +108,7 @@ sap.ui.define([
 				 * <li>Setting this property does not change the <code>value</code> property.</li>
 				 * <li>Depending on the context this property is used in ({@link sap.m.TimePicker},
 				 * {@link sap.m.DatePicker} or {@link sap.m.DateTimePicker}), it takes into account only the time part, only
-				 * the date part or both parts of the JavaScript Date Object.</li>
+				 * the date part or both parts of the UI5Date or JavaScript Date object.</li>
 				 * </ul>
 				 * @since 1.54
 				 */
@@ -138,7 +142,6 @@ sap.ui.define([
 	});
 
 	DateTimeField.prototype.setValue = function (sValue) {
-
 		sValue = this.validateProperty("value", sValue); // to convert null and undefined to ""
 
 		var sOldValue = this.getValue();
@@ -204,18 +207,37 @@ sap.ui.define([
 	};
 
 	/**
+	 * Determines if a user is currently typing into the input field and this interaction should be taken with priority.
+	 * @returns {boolean} True if a user interaction is currently getting handled with priority.
+	 */
+	DateTimeField.prototype._inPreferredUserInteraction = function() {
+		if (this._bPreferUserInteraction && this.getDomRef()) {
+			var oInnerDomRef = this.getFocusDomRef(),
+				sInputDOMValue = oInnerDomRef && this._getInputValue(),
+				sInputPropertyValue = this.getProperty("value"),
+				bInputFocused = document.activeElement === oInnerDomRef;
+
+			// if the user is currently in the field and he has typed a value,
+			// the changes from the model should not overwrite the user input
+			return bInputFocused && sInputDOMValue && (sInputPropertyValue !== sInputDOMValue);
+		}
+
+		return false;
+	};
+
+	/**
 	 * Setter for property <code>dateValue</code>.
 	 *
-	 * The date and time in DateTimeField as JavaScript Date object.
+	 * The date and time in DateTimeField as UI5Date or JavaScript Date object.
 	 *
-	 * @param {Date} oDate A JavaScript Date
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
 	DateTimeField.prototype.setDateValue = function (oDate) {
 
 		if (!this._isValidDate(oDate)) {
-			throw new Error("Date must be a JavaScript date object; " + this);
+			throw new Error("Date must be a JavaScript or UI5Date date object; " + this);
 		}
 
 		if (deepEqual(this.getDateValue(), oDate)) {
@@ -356,18 +378,23 @@ sap.ui.define([
 
 	DateTimeField.prototype._getPlaceholder = function() {
 
-		var sPlaceholder = this.getPlaceholder();
+		var sPlaceholder = this.getPlaceholder(),
+			oBinding = this.getBinding("value"),
+			oBindingType = oBinding && oBinding.getType && oBinding.getType(),
+			bDisplayFormat;
 
 		if (!sPlaceholder) {
-			sPlaceholder = this._getDisplayFormatPattern();
-
-			if (!sPlaceholder) {
-				sPlaceholder = this._getDefaultDisplayStyle();
+			if (oBindingType instanceof SimpleDateType) {
+				return oBindingType.getPlaceholderText();
 			}
 
-			if (this._checkStyle(sPlaceholder)) {
-				sPlaceholder = this._getLocaleBasedPattern(sPlaceholder);
+			if (oBindingType instanceof ODataType && oBindingType.oFormat) {
+				return oBindingType.oFormat.getPlaceholderText();
 			}
+
+			bDisplayFormat = !!this._getDisplayFormatPattern();
+
+			sPlaceholder = this._getFormatter(bDisplayFormat).getPlaceholderText();
 		}
 
 		return sPlaceholder;
@@ -380,14 +407,6 @@ sap.ui.define([
 		).getDatePattern(sPlaceholder);
 	};
 
-	DateTimeField.prototype._getTimezoneFormatter = function() {
-		if (!this._timezoneFormatter) {
-			this._timezoneFormatter = DateFormat.getDateTimeWithTimezoneInstance({ showTimezone: false });
-		}
-
-		return this._timezoneFormatter;
-	};
-
 	DateTimeField.prototype._parseValue = function (sValue, bDisplayFormat) {
 		var oBinding = this.getBinding("value"),
 			oBindingType = oBinding && oBinding.getType && oBinding.getType(),
@@ -396,8 +415,7 @@ sap.ui.define([
 			oFormatter = this._getFormatter(bDisplayFormat),
 			oFormatOptions,
 			oDateLocal,
-			oDate,
-			sFormatted;
+			oDate;
 
 		if (this._isSupportedBindingType(oBindingType)) {
 			try {
@@ -410,7 +428,7 @@ sap.ui.define([
 				oFormatOptions = oBindingType.oFormatOptions;
 				if (oFormatOptions && oFormatOptions.source && oFormatOptions.source.pattern == "timestamp") {
 					// convert timestamp back to Date
-					oDate = new Date(oDate);
+					oDate = UI5Date.getInstance(oDate);
 				} else if (oFormatOptions && oFormatOptions.source && typeof oFormatOptions.source.pattern === "string") {
 					oDate = oBindingType.oInputFormat.parse(sValue);
 				}
@@ -420,10 +438,10 @@ sap.ui.define([
 
 			if (oDate && ((oBindingType.oFormatOptions && this._isFormatOptionsUTC(oBindingType.oFormatOptions)) || (oBindingType.oConstraints && oBindingType.oConstraints.isDateOnly))) {
 				// convert to local date because it was parsed as UTC date
-				sFormatted = this._getTimezoneFormatter().format(oDate, "UTC");
-				oDateLocal = this._getTimezoneFormatter().parse(sFormatted,
-					Configuration.getTimezone())[0];
+				oDateLocal = UI5Date.getInstance(oDate.getUTCFullYear(), oDate.getUTCMonth(), oDate.getUTCDate(),
+					oDate.getUTCHours(), oDate.getUTCMinutes(), oDate.getUTCSeconds(), oDate.getUTCMilliseconds());
 
+				oDateLocal.setFullYear(oDate.getUTCFullYear());
 				oDate = oDateLocal;
 			}
 			return oDate;
@@ -441,15 +459,14 @@ sap.ui.define([
 		var oBinding = this.getBinding("value"),
 			oBindingType = oBinding && oBinding.getType && oBinding.getType(),
 			oFormatOptions,
-			oDateUTC,
-			sFormatted;
+			oDateUTC;
 
 		if (this._isSupportedBindingType(oBindingType)) {
 			if ((oBindingType.oFormatOptions && oBindingType.oFormatOptions.UTC) || (oBindingType.oConstraints && oBindingType.oConstraints.isDateOnly)) {
 				// convert to UTC date because it will be formatted as UTC date
-				sFormatted = this._getTimezoneFormatter().format(oDate, Configuration.getTimezone());
-				oDateUTC = this._getTimezoneFormatter().parse(sFormatted, "UTC")[ 0 ];
+				oDateUTC = CalendarUtils._createUTCDate(oDate, true);
 
+				oDateUTC.setUTCFullYear(oDate.getFullYear());
 				oDate = oDateUTC;
 			}
 
@@ -588,8 +605,8 @@ sap.ui.define([
 			return oBindingType.getOutputPattern();
 		}
 
-		if (oBindingType instanceof ODataType && oBindingType.oFormat) {
-			return oBindingType.oFormat.oFormatOptions.pattern;
+		if (oBindingType instanceof ODataType) {
+			return oBindingType.getFormat().oFormatOptions.pattern;
 		}
 
 		return undefined;

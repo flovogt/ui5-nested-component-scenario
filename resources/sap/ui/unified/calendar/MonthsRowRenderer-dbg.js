@@ -5,8 +5,8 @@
  */
 
 sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar/CalendarDate', 'sap/ui/unified/CalendarLegendRenderer',
-		'sap/ui/unified/library', "sap/base/Log"],
-	function (CalendarUtils, CalendarDate, CalendarLegendRenderer, library, Log) {
+		'sap/ui/unified/library', "sap/base/Log", "sap/ui/core/date/UI5Date"],
+	function (CalendarUtils, CalendarDate, CalendarLegendRenderer, library, Log, UI5Date) {
 		"use strict";
 
 
@@ -192,7 +192,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 
 		oHelper.sLocale = oMonthsRow._getLocale();
 		oHelper.oLocaleData = oMonthsRow._getLocaleData();
-		oHelper.oToday = CalendarDate.fromLocalJSDate(new Date(), sPrimaryCalendarType);
+		oHelper.oToday = CalendarDate.fromLocalJSDate(UI5Date.getInstance(), sPrimaryCalendarType);
 		oHelper.sCurrentMonth = oMonthsRow._rb.getText("CALENDAR_CURRENT_MONTH");
 		oHelper.sId = oMonthsRow.getId();
 		oHelper.oFormatLong = oMonthsRow._getFormatLong();
@@ -270,10 +270,6 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 			label: "",
 			describedby: ""
 		};
-
-		if (!oMonthsRow._bLongMonth && oMonthsRow._bNamesLengthChecked) {
-			mAccProps["label"] = oHelper.aMonthNamesWide[oDate.getMonth()];
-		}
 
 		var sYyyymm = oMonthsRow._oFormatYyyymm.format(oDate.toUTCJSDate(), true);
 		var iSelected = oMonthsRow._checkDateSelected(oDate);

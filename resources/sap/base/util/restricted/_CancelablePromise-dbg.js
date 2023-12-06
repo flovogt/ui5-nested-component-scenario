@@ -11,7 +11,7 @@
  * Cancelable promise.
  *
  * This file contains an integration of p-cancelable library.
- * For usage examples please @see https://github.com/sindresorhus/p-cancelable/tree/v2.0.0#readme
+ * For usage examples please see {@link https://github.com/sindresorhus/p-cancelable/tree/v2.0.0#readme}.
  *
  * How to update:
  * 1. Take resources of p-cancelable package from npm. E.g. using unpkg: https://unpkg.com/browse/p-cancelable@2.0.0/index.js (normally it's just a single file — `index.js`);
@@ -26,7 +26,7 @@
  * @alias module:sap/base/util/restricted/_CancelablePromise
  * @author SAP SE
  * @since 1.79
- * @version 1.110.0
+ * @version 1.120.1
  * @private
  * @ui5-restricted
 */

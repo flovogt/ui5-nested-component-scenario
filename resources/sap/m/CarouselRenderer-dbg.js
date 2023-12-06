@@ -42,7 +42,7 @@ sap.ui.define([
 			iPageCount = aPages.length,
 			sPageIndicatorPlacement = oCarousel.getPageIndicatorPlacement(),
 			sArrowsPlacement = oCarousel.getArrowsPlacement(),
-			iIndex = oCarousel._getPageIndex(oCarousel.getActivePage());
+			iIndex = oCarousel._iCurrSlideIndex;
 
 		this._renderOpeningDiv(oRM, oCarousel);
 		this._renderDummyArea(oRM, oCarousel, "before");
@@ -83,6 +83,7 @@ sap.ui.define([
 	CarouselRenderer._renderOpeningDiv = function (oRM, oCarousel) {
 		var sTooltip = oCarousel.getTooltip_AsString();
 		var sBackgroundDesign = "sapMCrslBackground-" + oCarousel.getBackgroundDesign();
+
 		//Outer carousel div
 		oRM.openStart("div", oCarousel)
 			.class("sapMCrsl")
@@ -183,8 +184,11 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.core.RenderManager} oRM the RenderManager that can be used for writing to the render output buffer
 	 * @param {sap.m.Carousel} oCarousel the control being rendered
-	 * @param {Array} mSettings.iPages
+	 * @param {object} mSettings
+	 * @param {int} mSettings.iPageCount
+	 * @param {int} mSettings.iIndex
 	 * @param {boolean} mSettings.bBottom
+	 * @param {sap.m.CarouselArrowsPlacement} mSettings.sArrowsPlacement
 	 * @param {boolean} mSettings.bShowPageIndicator
 	 * @private
 	 */
@@ -194,7 +198,8 @@ sap.ui.define([
 			sId = oCarousel.getId(),
 			aOffsetClasses = [],
 			iNumberOfItemsToShow = oCarousel._getNumberOfItemsToShow(),
-			iPageNumber = 1;
+			sPageIndicatorBackgroundDesign = "sapMCrslControlsBackground-" + oCarousel.getPageIndicatorBackgroundDesign(),
+			sPageIndicatorBorderDesign = "sapMCrslControlsBorder-" + oCarousel.getPageIndicatorBorderDesign();
 
 		// If there is only one page - do not render the indicator
 		if (iPageCount <= oCarousel._getNumberOfItemsToShow()) {
@@ -213,14 +218,16 @@ sap.ui.define([
 
 		if (bShowIndicatorArrows) {
 			oRM.openStart("div").class("sapMCrslControls");
-			aOffsetClasses.forEach(function (sClass) { oRM.class(sClass); });
-			oRM.openEnd();
-
-			oRM.openStart("div").class("sapMCrslControlsContainer");
-			aOffsetClasses.forEach(function (sClass) { oRM.class(sClass); });
-			oRM.openEnd();
 		} else {
 			oRM.openStart("div").class("sapMCrslControlsNoArrows");
+		}
+
+		oRM.class(sPageIndicatorBackgroundDesign).class(sPageIndicatorBorderDesign);
+		aOffsetClasses.forEach(function (sClass) { oRM.class(sClass); });
+		oRM.openEnd();
+
+		if (bShowIndicatorArrows) {
+			oRM.openStart("div").class("sapMCrslControlsContainer");
 			aOffsetClasses.forEach(function (sClass) { oRM.class(sClass); });
 			oRM.openEnd();
 		}
@@ -243,15 +250,12 @@ sap.ui.define([
 
 			for (var i = 1; i <= iPageCount - iNumberOfItemsToShow + 1; i++) {
 				oRM.openStart("span")
-					.attr("data-slide", iPageNumber)
+					.attr("data-slide", i)
 					.accessibilityState({
 						role: "img",
 						label: oResourceBundle.getText("CAROUSEL_POSITION", [i, iPageCount])
 					}).openEnd()
-					.text(i)
 					.close("span");
-
-				iPageNumber++;
 			}
 
 		} else {
@@ -311,14 +315,25 @@ sap.ui.define([
 	};
 
 	CarouselRenderer._renderArrow = function (oRM, oCarousel, sDirection) {
-		var sShort = sDirection.slice(0, 4);
+		var sShort = sDirection.slice(0, 4),
+			bLoop = oCarousel.getLoop(),
+			bFirstPageIsActive = oCarousel._aAllActivePagesIndexes[0] === 0,
+			bLastPageIsActive = oCarousel._aAllActivePagesIndexes[oCarousel._aAllActivePagesIndexes.length - 1] === oCarousel.getPages().length - 1;
 
-		oRM.openStart("span")
+		oRM.openStart("span", oCarousel.getId() + "-arrow-" + sDirection)
 			.class("sapMCrslArrow")
 			.class("sapMCrsl" + capitalize(sShort))
 			.attr("data-slide", sShort)
-			.attr("title", oResourceBundle.getText("PAGINGBUTTON_" + sDirection.toUpperCase()))
-			.openEnd();
+			.attr("title", oResourceBundle.getText("PAGINGBUTTON_" + sDirection.toUpperCase()));
+
+		// Hide unneeded arrow when we are on the first or last page and "loop" property is set to false
+		if (bFirstPageIsActive && sDirection === "previous" && !bLoop) {
+			oRM.class("sapMCrslLeftmost");
+		} else if (bLastPageIsActive && sDirection !== "previous" && !bLoop) {
+			oRM.class("sapMCrslRightmost");
+		}
+
+		oRM.openEnd();
 
 		oRM.openStart("div").class("sapMCrslArrowInner").openEnd();
 
@@ -377,6 +392,7 @@ sap.ui.define([
 	CarouselRenderer._renderDummyArea = function(oRM, oControl, sAreaId) {
 		oRM.openStart("div", oControl.getId() + "-" + sAreaId)
 			.class("sapMCrslDummyArea")
+			.attr("role", "none")
 			.attr("tabindex", 0)
 			.openEnd()
 			.close("div");

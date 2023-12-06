@@ -21,7 +21,7 @@ sap.ui.define([
 	 * @extends sap.m.p13n.QueryPanel
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @alias sap.m.p13n.GroupPanel
@@ -147,6 +147,11 @@ sap.ui.define([
 	GroupPanel.prototype._getRemoveButtonTooltipText = function () {
 		return this._getResourceText("p13n.GROUP_REMOVEICONTOOLTIP");
 	};
+
+	GroupPanel.prototype._getRemoveButtonAnnouncementText = function () {
+		return this._getResourceText("p13n.GROUP_REMOVEICONANNOUNCE");
+	};
+
 
 	GroupPanel.prototype._selectKey = function(oComboBox) {
 		QueryPanel.prototype._selectKey.apply(this, arguments);

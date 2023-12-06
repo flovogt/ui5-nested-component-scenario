@@ -8,10 +8,11 @@
 sap.ui.define([
 	'sap/ui/core/support/Plugin',
 	'sap/ui/core/format/DateFormat',
+	'sap/ui/core/date/UI5Date',
 	"sap/base/Log",
 	"sap/base/security/encodeXML"
 ],
-	function(Plugin, DateFormat, Log, encodeXML) {
+	function(Plugin, DateFormat, UI5Date, Log, encodeXML) {
 	"use strict";
 
 		/**
@@ -19,7 +20,7 @@ sap.ui.define([
 		 * @class This class represents the trace plugin for the support tool functionality of UI5. This class is internal and all its functions must not be used by an application.
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 * @private
 		 * @alias sap.ui.core.support.plugins.Trace
 		 */
@@ -228,7 +229,7 @@ sap.ui.define([
 		function getEntryHTML(oPlugin, oEntry){
 			var aLevelInfo = oEntry._levelInfo;
 			var sResult = "<div class='sapUiSupportTraceEntry'><span class='sapUiSupportTraceEntryLevel sapUiSupportTraceEntryLevel_" + aLevelInfo[0] + "'>" + aLevelInfo[0] +
-					"</span><span class='sapUiSupportTraceEntryTime'>" + oPlugin._oDateFormat.format(new Date(oEntry.timestamp)) +
+					"</span><span class='sapUiSupportTraceEntryTime'>" + oPlugin._oDateFormat.format(UI5Date.getInstance(oEntry.timestamp)) +
 					"</span><span class='sapUiSupportTraceEntryMessage'>" + encodeXML(oEntry.message || "") + "</div>";
 			return sResult;
 		}

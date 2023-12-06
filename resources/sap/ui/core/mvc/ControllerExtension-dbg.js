@@ -93,7 +93,7 @@ sap.ui.define([
 			getInterface: function() {
 				var mMethods = {};
 				var oMetadata = this.getMetadata();
-				var aPublicMethods = oMetadata.getAllPublicMethods();
+				var aPublicMethods = oMetadata._aAllPublicMethods;
 
 				aPublicMethods.forEach(function(sMethod) {
 					var fnFunction = this[sMethod];
@@ -133,7 +133,7 @@ sap.ui.define([
 		 * <b>Note:</b> This static method is automatically propagated to subclasses of
 		 * <code>ControllerExtension</code>.
 		 *
-		 * @param {object} oExtension The custom extension definition
+		 * @param {Object<string, function>} oExtension The custom extension definition
 		 * @return {function} A controller extension class
 		 * @public
 		 */

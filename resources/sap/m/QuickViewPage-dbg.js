@@ -13,6 +13,7 @@ sap.ui.define([
 	"sap/ui/layout/form/SimpleForm",
 	"sap/ui/layout/VerticalLayout",
 	"sap/ui/layout/HorizontalLayout",
+	"sap/m/library",
 	"sap/m/Avatar",
 	"sap/m/Page",
 	"sap/m/Button",
@@ -41,6 +42,7 @@ sap.ui.define([
 	SimpleForm,
 	VerticalLayout,
 	HorizontalLayout,
+	mLibrary,
 	Avatar,
 	Page,
 	Button,
@@ -87,6 +89,9 @@ sap.ui.define([
 
 	var oRB = Core.getLibraryResourceBundle('sap.m');
 
+	// shortcut for sap.m.PageBackgroundDesign
+	var PageBackgroundDesign = mLibrary.PageBackgroundDesign;
+
 	/**
 	 * Constructor for a new QuickViewPage.
 	 *
@@ -100,7 +105,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -136,8 +141,9 @@ sap.ui.define([
 
 				/**
 				 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
+				 * @deprecated As of version 1.111. Attach avatar <code>press</code> event instead.
 				 */
-				crossAppNavCallback: { type: "object", group: "Misc" },
+				crossAppNavCallback: { type: "object", group: "Misc", deprecated: true },
 
 				/**
 				 * Specifies the text displayed under the header of the content section.
@@ -186,7 +192,7 @@ sap.ui.define([
 	 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
 	 *
 	 * When called with a value of <code>null</code> or <code>undefined</code>, the default value of the property will be restored.
-	 *
+	 * @deprecated As of version 1.111.
 	 * @method
 	 * @param {function(): {target: object, params: object}} [oCrossAppNavCallback] New value for property <code>crossAppNavCallback</code>
 	 * @public
@@ -198,7 +204,7 @@ sap.ui.define([
 	 * Gets current value of property {@link #getCrossAppNavCallback crossAppNavCallback}.
 	 *
 	 * Specifies the application which provides target and param configuration for cross-application navigation from the 'page header'.
-	 *
+	 * @deprecated As of version 1.111.
 	 * @method
 	 * @returns {function(): {target: object, params: object}} Value of property <code>crossAppNavCallback</code>
 	 * @public
@@ -206,6 +212,15 @@ sap.ui.define([
 	 */
 
 	QuickViewPage.prototype.init =  function() {
+		if (this._initCrossAppNavigationService) {
+			this._initCrossAppNavigationService();
+		}
+	};
+
+	/**
+	* @deprecated As of version 1.111.
+	*/
+	QuickViewPage.prototype._initCrossAppNavigationService =  function() {
 		//see API docu for sap.ushell.services.CrossApplicationNavigation
 		var fGetService =  sap.ushell && sap.ushell.Container && sap.ushell.Container.getService;
 		if (fGetService) {
@@ -296,7 +311,8 @@ sap.ui.define([
 			oPage.setCustomHeader(new Bar());
 		} else {
 			oPage = this._oPage = new Page(mNavContext.quickViewId + '-' + this.getPageId(), {
-				customHeader : new Bar()
+				customHeader : new Bar(),
+				backgroundDesign: PageBackgroundDesign.Transparent
 			});
 
 			oPage.addEventDelegate({
@@ -434,50 +450,62 @@ sap.ui.define([
 		var oAvatar = this._getAvatar(),
 			oVLayout = new VerticalLayout(),
 			oHLayout = new HorizontalLayout(),
-			sIcon = this.getIcon(),
 			sTitle = this.getTitle(),
 			sDescription = this.getDescription(),
-			sTitleUrl = this.getTitleUrl();
+			sTitleUrl = this.getTitleUrl(),
+			oTitle,
+			oDescription;
 
-		if (!oAvatar && !sIcon && !sTitle && !sDescription) {
-			return null;
-		}
-
-		if (oAvatar) {
+		if (oAvatar && oAvatar.getVisible()) {
 			oHLayout.addContent(oAvatar);
 		}
 
-		var oTitle;
-
-		if (sTitleUrl) {
+		if (sTitleUrl && sTitle) {
 			oTitle = new Link({
-				text	: sTitle,
-				href	: sTitleUrl,
-				target	: "_blank"
+				text: sTitle,
+				href: sTitleUrl,
+				target: "_blank"
 			});
-		} else if (this.getCrossAppNavCallback()) {
+		} else if (this.getCrossAppNavCallback && this.getCrossAppNavCallback() && sTitle) {
 			oTitle = new Link({
-				text	: sTitle
+				text: sTitle
 			});
 			oTitle.attachPress(this._crossApplicationNavigation.bind(this));
-		} else {
+		} else if (sTitle) {
 			oTitle = new Title({
-				text	: sTitle,
-				level	: CoreTitleLevel.H3
+				text: sTitle,
+				level: CoreTitleLevel.H3
 			});
 		}
 
 		this.setPageTitleControl(oTitle);
 
-		var oDescription = new Text({
-			text	: sDescription
-		});
+		if (sDescription) {
+			oDescription = new Text({
+				text: sDescription
+			});
+		}
 
-		oVLayout.addContent(oTitle);
-		oVLayout.addContent(oDescription);
-		oHLayout.addContent(oVLayout);
+		if (oTitle) {
+			oVLayout.addContent(oTitle);
+		}
+		if (oDescription) {
+			oVLayout.addContent(oDescription);
+		}
 
-		return oHLayout;
+		if (oVLayout.getContent().length) {
+			oHLayout.addContent(oVLayout);
+		} else {
+			oVLayout.destroy();
+		}
+
+		if (oHLayout.getContent().length) {
+			return oHLayout;
+		}
+
+		oHLayout.destroy();
+
+		return null;
 	};
 
 	/**
@@ -495,8 +523,8 @@ sap.ui.define([
 
 		if (oGroup.getHeading()) {
 			oForm.addContent(new CoreTitle({
-				text : oGroup.getHeading(),
-				level : CoreTitleLevel.H4
+				text: oGroup.getHeading(),
+				level: CoreTitleLevel.H4
 			}));
 		}
 
@@ -568,7 +596,7 @@ sap.ui.define([
 	 * @private
 	 */
 	QuickViewPage.prototype._crossApplicationNavigation = function () {
-		if (this.getCrossAppNavCallback() && this.oCrossAppNavigator) {
+		if (this.getCrossAppNavCallback && this.getCrossAppNavCallback() && this.oCrossAppNavigator) {
 			var targetConfigCallback = this.getCrossAppNavCallback();
 			if (typeof targetConfigCallback == "function") {
 				var targetConfig = targetConfigCallback();
@@ -697,14 +725,14 @@ sap.ui.define([
 
 	QuickViewPage.prototype._getAvatar = function () {
 		var oAvatar = null,
-			sIcon = this.getIcon();
+			sIcon = this.getIcon && this.getIcon();
 
 		if (this.getAvatar()) {
 			// Copy the values of properties directly, don't clone bindings,
 			// as this avatar and the whole NavContainer are not aggregated by the real QuickViewPage
 			oAvatar = this.getAvatar().clone(null, null, { cloneBindings: false, cloneChildren: true });
 			this._checkAvatarProperties(oAvatar);
-		} else if (sIcon) {
+		} else if (sIcon && this.getFallbackIcon) {
 			oAvatar = new Avatar({
 				displayShape: AvatarShape.Square,
 				fallbackIcon: this.getFallbackIcon(),

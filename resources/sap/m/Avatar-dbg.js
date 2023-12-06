@@ -6,7 +6,6 @@
 
 // Provides control sap.m.Avatar.
 sap.ui.define([
-
     "sap/ui/core/Control",
     "sap/ui/core/IconPool",
     "./AvatarRenderer",
@@ -14,8 +13,10 @@ sap.ui.define([
     "sap/base/Log",
     "sap/ui/core/Icon",
     "./library",
-	"sap/ui/core/library"
-], function(Control, IconPool, AvatarRenderer, KeyCodes, Log, Icon, library, coreLibrary) {
+	"sap/ui/core/library",
+	'sap/ui/core/InvisibleText',
+	'sap/m/imageUtils/getCacheBustedUrl'
+], function(Control, IconPool, AvatarRenderer, KeyCodes, Log, Icon, library, coreLibrary, InvisibleText, getCacheBustedUrl) {
 	"use strict";
 
 	// shortcut for sap.m.AvatarType
@@ -35,6 +36,9 @@ sap.ui.define([
 
 	// shortcut for sap.ui.core.aria.HasPopup
 	var AriaHasPopup = coreLibrary.aria.HasPopup;
+
+	// shortcut for sap.ui.core.ValueState
+	var ValueState = coreLibrary.ValueState;
 
 	// shortcut for Accent colors keys only (from AvatarColor enum)
 	var AccentColors = Object.keys(AvatarColor).filter(function (sCurrColor) {
@@ -80,7 +84,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -188,8 +192,33 @@ sap.ui.define([
 				 *
 				 * @since 1.99.0
 				 */
-				ariaHasPopup : {type : "sap.ui.core.aria.HasPopup", group : "Accessibility", defaultValue : AriaHasPopup.None}
+				ariaHasPopup : {type : "sap.ui.core.aria.HasPopup", group : "Accessibility", defaultValue : AriaHasPopup.None},
 
+				/**
+				 * Visualizes the validation state of the badge, e.g. <code>Error</code>, <code>Warning</code>,
+				 * <code>Success</code>, <code>Information</code>.
+				 * @since 1.116.0
+				 */
+				badgeValueState: {
+					type: "sap.ui.core.ValueState",
+					group: "Appearance",
+					defaultValue: ValueState.None
+				},
+
+				/**
+				 * Determines whether the <code>Avatar</code> is enabled (default is set to <code>true</code>).
+				 * A disabled <code>Button</code> has different colors depending on the {@link sap.m.AvatarColor AvatarColor}.
+				 * @since 1.117.0
+				 */
+				enabled : {type : "boolean", group : "Behavior", defaultValue : true},
+
+				/**
+				 * Determines whether the <code>Avatar</code> is active/toggled (default is set to <code>false</code>).
+				 * Active state is meant to be toggled when user clicks on the <code>Avatar</code>.
+				 * The Active state is only applied, when the <code>Avatar</code> has <code>press</code> listeners.
+				 * @since 1.120.0
+				 */
+				active : {type : "boolean", group : "Behavior", defaultValue : false}
 			},
 			aggregations : {
 				/**
@@ -259,7 +288,6 @@ sap.ui.define([
 		"sap-icon://edit": sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("AVATAR_TOOLTIP_EDIT")
 	};
 
-
 	Avatar.prototype.init = function () {
 		// Property holding the actual display type of the avatar
 		this._sActualType = null;
@@ -272,6 +300,12 @@ sap.ui.define([
 
 		//Reference to badge hidden aggregation
 		this._badgeRef = null;
+	};
+
+	Avatar.prototype.onBeforeRendering = function () {
+		if (this._getImageCustomData() && !this._iCacheBustingValue) {
+			this._setNewCacheBustingValue();
+		}
 	};
 
 	Avatar.prototype.onAfterRendering = function() {
@@ -289,6 +323,11 @@ sap.ui.define([
 
 		if (this._badgeRef) {
 			this._badgeRef.destroy();
+		}
+
+		if (this._oInvisibleText) {
+			this._oInvisibleText.destroy();
+			this._oInvisibleText = null;
 		}
 
 		this._sPickedRandomColor = null;
@@ -325,6 +364,16 @@ sap.ui.define([
 		}
 
 		return this.setAggregation("detailBox", oLightBox);
+	};
+
+	Avatar.prototype.setBadgeValueState = function(sValue) {
+
+		Object.keys(ValueState).forEach(function(val){
+			this.toggleStyleClass('sapFAvatar' + val, val === sValue);
+		}.bind(this));
+
+		this.setProperty("badgeValueState", sValue, true);
+		return this;
 	};
 
 	/*
@@ -379,7 +428,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Avatar.prototype.ontap = function () {
-		this.firePress({/* no parameters */});
+		this._handlePress();
 	};
 
 	/**
@@ -399,7 +448,7 @@ sap.ui.define([
 		}
 
 		if (oEvent.which === KeyCodes.ENTER) {
-			this.firePress({/* no parameters */});
+			this._handlePress();
 		}
 	};
 
@@ -412,7 +461,7 @@ sap.ui.define([
 	Avatar.prototype.onkeyup = function (oEvent) {
 		if (oEvent.which === KeyCodes.SPACE) {
 			if (!this._bShouldInterupt) {
-				this.firePress({/* no parameters */});
+				this._handlePress();
 			}
 
 			this._bShouldInterupt = false;
@@ -421,6 +470,13 @@ sap.ui.define([
 			//stop the propagation, it is handled by the control
 			oEvent.stopPropagation();
 		}
+	};
+
+	Avatar.prototype._handlePress = function () {
+		if (!this.getEnabled()) {
+			return;
+		}
+		this.firePress({/* no parameters */});
 	};
 
 	/**
@@ -432,7 +488,7 @@ sap.ui.define([
 	 * @private
 	 */
 	 Avatar.prototype._areInitialsValid = function (sInitials) {
-		var validInitials = /^[a-zA-Z]{1,3}$/;
+		var validInitials = /^[a-zA-Z\xc0-\xd6\xd8-\xdc\xe0-\xf6\xf8-\xfc]{1,3}$/;
 		if (!validInitials.test(sInitials)) {
 			Log.warning("Initials should consist of only 1,2 or 3 latin letters", this);
 			this._sActualType = AvatarType.Icon;
@@ -458,8 +514,8 @@ sap.ui.define([
 			this._bIsDefaultIcon = true;
 			this._sActualType = AvatarType.Image;
 
-		// we perform this action in order to validate the image source and
-		// take further actions depending on that
+			// we perform this action in order to validate the image source and
+			// take further actions depending on that
 			this.preloadedImage = new window.Image();
 			this.preloadedImage.src = sSrc;
 			this.preloadedImage.onload = this._onImageLoad.bind(this);
@@ -468,7 +524,6 @@ sap.ui.define([
 
 		return this;
 	};
-
 
 	/**
 	 * Validates the <code>src</code> parameter, and returns sap.ui.core.Icon object.
@@ -479,10 +534,10 @@ sap.ui.define([
 	 */
 	Avatar.prototype._getDisplayIcon = function (sSrc) {
 
-	return IconPool.isIconURI(sSrc) && IconPool.getIconInfo(sSrc) ?
-		IconPool.createControlByURI({
-			src: sSrc
-		}) : null;
+		return IconPool.isIconURI(sSrc) && IconPool.getIconInfo(sSrc) ?
+			IconPool.createControlByURI({
+				src: sSrc
+			}) : null;
 	};
 
 	/**
@@ -492,7 +547,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Avatar.prototype._getActualDisplayType = function () {
-		var sSrc = this.getSrc(),
+		var sSrc = this._getAvatarSrc(),
 			sInitials = this.getInitials();
 
 		if (sSrc) {
@@ -712,6 +767,95 @@ sap.ui.define([
 
 		$this.removeClass("sapFAvatarInitials");
 		$this.addClass("sapFAvatarIcon");
+	};
+
+	Avatar.prototype._getInvisibleText = function() {
+
+		if (!this._oInvisibleText && this.sInitials) {
+			this._oInvisibleText = new InvisibleText({ id: this.getId() + "-InvisibleText"});
+			this._oInvisibleText.setText(this.sInitials).toStatic();
+		}
+
+		return this._oInvisibleText;
+	};
+
+	Avatar.prototype._getAriaLabelledBy = function () {
+		var aLabelledBy = this.getAriaLabelledBy(),
+			sInitialsAriaLabelledBy;
+			this.sInitials = this.getInitials();
+
+		if (this.sInitials && aLabelledBy.length > 0) {
+			sInitialsAriaLabelledBy = this._getInvisibleText().getId();
+			aLabelledBy.push(sInitialsAriaLabelledBy);
+		}
+		return aLabelledBy;
+	};
+
+	/**
+	 * Retrieves the custom data object for the Avatar control.
+	 *
+	 * @function
+	 * @param {sap.m.Avatar} oAvatar - The Avatar control to retrieve the custom data for.
+	 * @returns {sap.m.ImageCustomData|undefined} The custom data object or undefined if no custom data is found.
+	 * @private
+	 */
+	Avatar.prototype._getImageCustomData = function (oAvatar) {
+		var oImageCustomData = this.getCustomData().filter(function (item) {
+			return item.isA("sap.m.ImageCustomData");
+		});
+		return oImageCustomData.length ? oImageCustomData[0] : undefined;
+	};
+
+	/**
+	 * Sets the cache busting value for the Avatar control.
+	 * This is needed in order to force the browser to reload the image.
+	 *
+	 * @function
+	 * @private
+	 */
+	Avatar.prototype._setNewCacheBustingValue = function () {
+		if (this._getImageCustomData()) {
+			this._iCacheBustingValue = Date.now();
+		}
+	};
+
+	/**
+	 * Returns the Avatar control's source URL with cache busting applied if necessary, based on the ImageCustomData configuration.
+	 * If cache busting is applied, the source URL is updated; otherwise, the original source URL is returned.
+	 *
+	 * @function
+	 * @returns {string} sSrc - The Avatar control's source URL
+	 * @private
+	 */
+	Avatar.prototype._getAvatarSrc = function () {
+		var aImageCustomData = this._getImageCustomData(),
+			sSrc = this.getSrc();
+
+		if (aImageCustomData && sSrc) {
+			var oConfig = {
+				sUrl: sSrc,
+				sParamName: aImageCustomData.getParamName(),
+				sParamValue: this._iCacheBustingValue
+			};
+
+			return getCacheBustedUrl(oConfig);
+		}
+
+		return sSrc;
+	};
+
+	/**
+ 	 * Refreshes the cache busting value for the Avatar and invalidates the control.
+	 * It can be used when you have applied ImageCustomData to the Avatar control and you want to force the browser to reload the image.
+	 *
+	 * @function
+	 * @experimental
+	 * @private
+	 * @ui5-restricted sap.fe
+	 */
+	Avatar.prototype.refreshAvatarCacheBusting = function () {
+		this._setNewCacheBustingValue();
+		this.invalidate();
 	};
 
 	return Avatar;

@@ -738,7 +738,7 @@ sap.ui.predefine("sap/m/rules/IconTabBar.support", ["sap/ui/support/library", "s
 	//**********************************************************
 
 	var oIconTabBarRuleHDesign = {
-		id: "iconTabFilterWithHorizontalDesingShouldHaveIcons",
+		id: "iconTabFilterWithHorizontalDesignShouldHaveIcons",
 		audiences: [Audiences.Application],
 		categories: [Categories.FioriGuidelines],
 		enabled: true,
@@ -1036,6 +1036,29 @@ sap.ui.predefine("sap/m/rules/Input.support", ["sap/ui/support/library"],
 	// Rule Definitions
 	//**********************************************************
 
+	function isInsideFormOrTable(oControl) {
+		var oParent = oControl.getParent();
+
+		if (!oParent) {
+			return false;
+		}
+
+		return oParent.isA("sap.ui.layout.form.SimpleForm") || oParent.isA("sap.m.Table") || isInsideFormOrTable(oParent);
+	}
+
+	function isLabelled(oInput, aLabels) {
+		var bHasLabelForInput = aLabels.some(function (oLabel) {
+			return oLabel.getLabelFor() === oInput.getId();
+		});
+
+		if (bHasLabelForInput) {
+			return true;
+		}
+
+		// form and table manage the labelling automatically
+		return isInsideFormOrTable(oInput);
+	}
+
 	/**
 	 * Input field needs to have a label association
 	 */
@@ -1053,32 +1076,23 @@ sap.ui.predefine("sap/m/rules/Input.support", ["sap/ui/support/library"],
 			href:"https://experience.sap.com/fiori-design-web/input-field/#guidelines"
 		}],
 		check: function (issueManager, oCoreFacade, oScope) {
+			var aLabels = oScope.getElementsByClassName("sap.m.Label");
 
-			var aInputIds = oScope.getElementsByClassName("sap.m.Input")
-				.map(function(oInput) {
-					return oInput.getId();
-				});
-
-			oScope.getElementsByClassName("sap.m.Label")
-				.forEach(function (oLabel){
-					var sLabelFor = oLabel.getLabelFor();
-					if (aInputIds.indexOf(sLabelFor) > -1) {
-						var iIndex = aInputIds.indexOf(sLabelFor);
-						aInputIds.splice(iIndex, 1);
+			oScope.getElementsByClassName("sap.m.Input")
+				.filter(function (oInput) {
+					return oInput.getUIArea(); // filter aggregation binding templates
+				})
+				.forEach(function(oInput) {
+					if (!isLabelled(oInput, aLabels)) {
+						issueManager.addIssue({
+							severity: Severity.Medium,
+							details: "Input field" + " (" + oInput.getId() + ") is missing a label.",
+							context: {
+								id: oInput.getId()
+							}
+						});
 					}
 				});
-
-			if (aInputIds.length > 0) {
-				aInputIds.forEach(function(sInputId) {
-					issueManager.addIssue({
-						severity: Severity.Medium,
-						details: "Input field" + " (" + sInputId + ") is missing a label.",
-						context: {
-							id: sInputId
-						}
-					});
-				});
-			}
 		}
 	};
 

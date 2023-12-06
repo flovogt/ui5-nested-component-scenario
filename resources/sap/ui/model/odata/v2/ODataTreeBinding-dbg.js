@@ -42,6 +42,12 @@ sap.ui.define([
 	 *   The application filters to be used initially
 	 * @param {object} [mParameters]
 	 *   Map of binding parameters
+	 * @param {boolean} [mParameters.transitionMessagesOnly=false]
+	 *   Whether the tree binding only requests transition messages from the back end. If messages
+	 *   for entities of this collection need to be updated, use
+	 *   {@link sap.ui.model.odata.v2.ODataModel#read} on the parent entity corresponding to the
+	 *   tree binding's context, with the parameter <code>updateAggregatedMessages</code> set to
+	 *   <code>true</code>.
 	 * @param {object} [mParameters.treeAnnotationProperties]
 	 *   The mapping between data properties and the hierarchy used to visualize the tree, if not
 	 *   provided by the service's metadata
@@ -85,6 +91,9 @@ sap.ui.define([
 	 *   sets, which is used for constructing and paging the tree
 	 * @param {sap.ui.model.Sorter | sap.ui.model.Sorter[]} [vSorters]
 	 *   The dynamic sorters to be used initially
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *   <code>vFilters</code> together with other filters
 	 *
 	 * @alias sap.ui.model.odata.v2.ODataTreeBinding
 	 * @author SAP SE
@@ -93,7 +102,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.TreeBinding
 	 * @hideconstructor
 	 * @public
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 */
 	var ODataTreeBinding = TreeBinding.extend("sap.ui.model.odata.v2.ODataTreeBinding", /** @lends sap.ui.model.odata.v2.ODataTreeBinding.prototype */ {
 
@@ -120,15 +129,19 @@ sap.ui.define([
 
 			this.mNormalizeCache = {};
 
+			vFilters = vFilters || [];
 			// The ODataTreeBinding expects there to be only an array in this.aApplicationFilters later on.
 			// Wrap the given application filters inside an array if necessary
 			if (vFilters instanceof Filter) {
 				vFilters = [vFilters];
 			}
+			if (vFilters.length > 1) {
+				vFilters = [FilterProcessor.groupFilters(vFilters)];
+			}
 			this.aApplicationFilters = vFilters;
 
 			// check filter integrity
-			this.oModel.checkFilterOperation(this.aApplicationFilters);
+			this.oModel.checkFilter(this.aApplicationFilters);
 
 			// a queue containing all parallel running requests
 			// a request is identified by (node id, startindex, length)
@@ -180,6 +193,7 @@ sap.ui.define([
 			this.oAllKeys = null;
 			this.oAllLengths = null;
 			this.oAllFinalLengths = null;
+			this.bTransitionMessagesOnly = !!this.mParameters.transitionMessagesOnly;
 
 			// Whether a refresh has been performed
 			this.bRefresh = false;
@@ -200,6 +214,18 @@ sap.ui.define([
 		Collapsed: "collapsed",
 		Expanded: "expanded",
 		Leaf: "leaf"
+	};
+
+	/**
+	 * Gets the request headers for a read request.
+	 *
+	 * @returns {Object<string, string>|undefined}
+	 *   The request headers for a read request, or <code>undefined</code> if no headers are required
+	 *
+	 * @private
+	 */
+	ODataTreeBinding.prototype._getHeaders = function () {
+		return this.bTransitionMessagesOnly ? {"sap-messages": "transientOnly"} : undefined;
 	};
 
 	/**
@@ -254,6 +280,7 @@ sap.ui.define([
 		if (sAbsolutePath) {
 			this.mRequestHandles[sRequestKey] = this.oModel.read(sAbsolutePath, {
 				groupId: sGroupId,
+				headers: this._getHeaders(),
 				success: function (oData) {
 					var sNavPath = that._getNavPath(that.getPath());
 
@@ -819,16 +846,20 @@ sap.ui.define([
 
 		// figure out how to request the count
 		var sCountType = "";
+		let oHeaders;
 		if (this.sCountMode == CountMode.Request || this.sCountMode == CountMode.Both) {
 			sCountType = "/$count";
+			// this.bTransitionMessagesOnly is not relevant for $count requests -> no sap-messages header
 		} else if (this.sCountMode == CountMode.Inline || this.sCountMode == CountMode.InlineRepeat) {
 			aParams.push("$top=0");
 			aParams.push("$inlinecount=allpages");
+			oHeaders = this._getHeaders();
 		}
 
 		// send the counting request
 		if (sAbsolutePath) {
 			this.oModel.read(sAbsolutePath + sCountType, {
+				headers: oHeaders,
 				urlParameters: aParams,
 				success: _handleSuccess.bind(this),
 				error: _handleError.bind(this),
@@ -906,6 +937,7 @@ sap.ui.define([
 		if (sAbsolutePath) {
 			sGroupId = this.sRefreshGroupId ? this.sRefreshGroupId : this.sGroupId;
 			this.oModel.read(sAbsolutePath + "/$count", {
+				// this.bTransitionMessagesOnly is not relevant for $count requests -> no sap-messages header
 				urlParameters: aParams,
 				success: _handleSuccess,
 				error: _handleError,
@@ -1054,7 +1086,7 @@ sap.ui.define([
 				if (oData.results.length > 0) {
 					var sParentKey = this.oModel.getKey(oData.results[0]);
 					this._updateNodeKey(oNode, sParentKey);
-					var mKeys = this._createKeyMap(oData.results);
+					var mKeys = this._createKeyMap(oData.results, true);
 					this._importCompleteKeysHierarchy(mKeys);
 				}
 
@@ -1092,6 +1124,7 @@ sap.ui.define([
 			if (sAbsolutePath) {
 				sGroupId = this.sRefreshGroupId ? this.sRefreshGroupId : this.sGroupId;
 				this.mRequestHandles[sRequestKey] = this.oModel.read(sAbsolutePath, {
+					headers: this._getHeaders(),
 					urlParameters: aParams,
 					success: fnSuccess,
 					error: fnError,
@@ -1262,6 +1295,7 @@ sap.ui.define([
 			if (sAbsolutePath) {
 				sGroupId = this.sRefreshGroupId ? this.sRefreshGroupId : this.sGroupId;
 				this.mRequestHandles[sRequestKey] = this.oModel.read(sAbsolutePath, {
+					headers: this._getHeaders(),
 					urlParameters: aParams,
 					success: fnSuccess,
 					error: fnError,
@@ -1397,6 +1431,7 @@ sap.ui.define([
 				aURLParams.push("$top=" + this.iTotalCollectionCount);
 			}
 			this.mRequestHandles[sRequestKey] = this.oModel.read(sAbsolutePath, {
+				headers: this._getHeaders(),
 				urlParameters: aURLParams,
 				success: fnSuccess,
 				error: fnError,
@@ -1598,6 +1633,9 @@ sap.ui.define([
 	 *   depending on whether the filtering has been done
 	 * @return {this}
 	 *   Returns <code>this</code> to facilitate method chaining
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *   <code>aFilters</code> together with other filters
 	 *
 	 * @see sap.ui.model.TreeBinding.prototype.filter
 	 * @public
@@ -1607,7 +1645,7 @@ sap.ui.define([
 		sFilterType = sFilterType || FilterType.Control;
 
 		// check filter integrity
-		this.oModel.checkFilterOperation(aFilters);
+		this.oModel.checkFilter(aFilters);
 
 		// check if filtering is supported for the current binding configuration
 		if (sFilterType == FilterType.Control && (!this.bClientOperation || this.sOperationMode == OperationMode.Server)) {
@@ -1630,6 +1668,9 @@ sap.ui.define([
 		if (sFilterType === FilterType.Control) {
 			this.aFilters = aFilters;
 		} else {
+			if (aFilters.length > 1) {
+				aFilters = [FilterProcessor.groupFilters(aFilters)];
+			}
 			this.aApplicationFilters = aFilters;
 		}
 
@@ -2514,6 +2555,22 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns the filter information as an AST.
+	 *
+	 * @param {boolean} bIncludeOrigin
+	 *   Whether to include information about the filter objects from which the tree has been created
+	 * @returns {object|null} The AST of the filter tree or null if no filter is set
+	 * @private
+	 * @override
+	 * @ui5-restricted sap.ui.table, sap.ui.export
+	 */
+	ODataTreeBinding.prototype.getFilterInfo = function (bIncludeOrigin) {
+		return this.aApplicationFilters[0]
+			? this.aApplicationFilters[0].getAST(bIncludeOrigin)
+			: null;
+	};
+
+	/**
 	* Abort all pending requests
 	*
 	* @private
@@ -2586,16 +2643,42 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Creates a new binding context related to this binding instance.
+	 * Creates a new entry for the tree.
 	 *
-	 * The available API is the same as for the v2.ODataModel.
-	 * See the API documentation here: {@link sap.ui.model.odata.v2.ODataModel#createEntry createEntry}.
+	 * A context object is returned which can be inserted in the tree hierarchy via
+	 * {@link sap.ui.model.odata.v2.ODataTreeBinding#addContexts addContexts}.
+	 * <b>Note:</b> The back-end request to create the entry is sent with the batch group stored at this binding's model
+	 * for this binding's resolved path.
 	 *
-	 * This feature is only available when the underlying OData service exposes the "hierarchy-node-descendant-count-for" annotation.
-	 * See the constructor documentation for more details.
+	 * This feature is only available when the underlying OData service exposes the
+	 * "hierarchy-node-descendant-count-for" annotation. See
+	 * {@link sap.ui.model.odata.v2.ODataModel#bindTree} for more details.
 	 *
 	 * @function
 	 * @name sap.ui.model.odata.v2.ODataTreeBinding.prototype.createEntry
+	 * @param {object} [mParameters]
+	 *   A map of the following parameters:
+	 * @param {string} [mParameters.changeSetId]
+	 *   The ID of the <code>ChangeSet</code> that this request should belong to
+	 * @param {function} [mParameters.created]
+	 *   The callback function that is called after the metadata of the service has been loaded and the
+	 *   {@link sap.ui.model.odata.v2.Context} instance for the newly created entry is available;
+	 *   The {@link sap.ui.model.odata.v2.Context} instance for the newly created entry is passed as
+	 *   the first and only parameter.
+	 * @param {function} [mParameters.error]
+	 *   The error callback function
+	 * @param {Object<string,string>} [mParameters.headers]
+	 *   A map of headers
+	 * @param {array|object} [mParameters.properties]
+	 *   An array that specifies a set of properties or the initial data for the new entity as an object
+	 * @param {function} [mParameters.success]
+	 *   The success callback function
+	 * @param {Object<string,string>} [mParameters.urlParameters]
+	 *   A map of URL parameters
+	 * @returns {sap.ui.model.odata.v2.Context|undefined}
+	 *   An OData V2 context object that points to the newly created entry, or
+	 *   <code>undefined</code> if the service metadata are not yet loaded or if a
+	 *   <code>created</code> callback parameter is given
 	 * @private
 	 * @ui5-restricted
 	 */
@@ -2612,6 +2695,7 @@ sap.ui.define([
 	 *
 	 * @function
 	 * @name sap.ui.model.odata.v2.ODataTreeBinding.prototype.submitChanges
+	 * @deprecated Since 1.104 use {@link sap.ui.model.odata.v2.ODataModel#submitChanges} instead
 	 * @private
 	 * @ui5-restricted
 	 */

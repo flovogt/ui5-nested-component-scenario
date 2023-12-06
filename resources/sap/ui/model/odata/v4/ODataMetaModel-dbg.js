@@ -11,7 +11,6 @@ sap.ui.define([
 	"./lib/_Helper",
 	"sap/base/assert",
 	"sap/base/Log",
-	"sap/base/util/isEmptyObject",
 	"sap/base/util/JSTokenizer",
 	"sap/base/util/ObjectPath",
 	"sap/ui/base/ManagedObject",
@@ -43,11 +42,11 @@ sap.ui.define([
 	"sap/ui/model/odata/type/String",
 	"sap/ui/model/odata/type/TimeOfDay",
 	"sap/ui/thirdparty/URI"
-], function (AnnotationHelper, ValueListType, _Helper, assert, Log, isEmptyObject, JSTokenizer,
-		ObjectPath, ManagedObject, SyncPromise, BindingMode, ChangeReason, ClientListBinding,
-		BaseContext, ContextBinding, MetaModel, PropertyBinding, OperationMode, Boolean, Byte,
-		EdmDate, DateTimeOffset, Decimal, Double, Guid, Int16, Int32, Int64, Raw, SByte, Single,
-		Stream, String, TimeOfDay, URI) {
+], function (AnnotationHelper, ValueListType, _Helper, assert, Log, JSTokenizer, ObjectPath,
+		ManagedObject, SyncPromise, BindingMode, ChangeReason, ClientListBinding, BaseContext,
+		ContextBinding, MetaModel, PropertyBinding, OperationMode, Boolean, Byte, EdmDate,
+		DateTimeOffset, Decimal, Double, Guid, Int16, Int32, Int64, Raw, SByte, Single, Stream,
+		String, TimeOfDay, URI) {
 	"use strict";
 	/*eslint max-nested-callbacks: 0 */
 
@@ -157,7 +156,7 @@ sap.ui.define([
 		 * @hideconstructor
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 */
 		ODataMetaModel = MetaModel.extend("sap.ui.model.odata.v4.ODataMetaModel", {
 				constructor : constructor
@@ -211,7 +210,7 @@ sap.ui.define([
 	 *   A namespace, for example "foo.bar.", of a schema.
 	 * @param {function} fnLog
 	 *   The log function
-	 * @returns {object|SyncPromise|undefined}
+	 * @returns {object|sap.ui.base.SyncPromise|undefined}
 	 *   The schema, or a promise which is resolved without details or rejected with an error, or
 	 *   <code>undefined</code>.
 	 * @throws {Error}
@@ -706,6 +705,7 @@ sap.ui.define([
 		this.sDefaultBindingMode = BindingMode.OneTime;
 		this.mETags = {};
 		this.sLanguage = sLanguage;
+		// no need to use UI5Date.getInstance as only the timestamp is relevant
 		this.oLastModified = new Date(0);
 		this.oMetadataPromise = null;
 		this.oModel = oModel;
@@ -724,7 +724,7 @@ sap.ui.define([
 		this.mSchema2MetadataUrl = {};
 		this.mSupportedBindingModes = {OneTime : true, OneWay : true};
 		this.bSupportReferences = bSupportReferences !== false; // default is true
-		// ClientListBinding#filter calls checkFilterOperation on the model; ClientModel does
+		// ClientListBinding#filter calls checkFilter on the model; ClientModel does
 		// not support "All" and "Any" filters
 		this.mUnsupportedFilterOperators = {All : true, Any : true};
 		this.sUrl = sUrl;
@@ -1629,7 +1629,7 @@ sap.ui.define([
 			}
 
 			if (mFormatOptions) {
-				if (isEmptyObject(mFormatOptions)) {
+				if (_Helper.isEmptyObject(mFormatOptions)) {
 					mFormatOptions = undefined;
 				} else if ("parseKeepsEmptyString" in mFormatOptions
 						&& oProperty.$Type !== "Edm.String") {
@@ -1723,6 +1723,7 @@ sap.ui.define([
 				// The relative path following sEntityPath (parameter re-used - encoded)
 				//sPropertyPath,
 				aSegments, // The resource path split in segments (encoded)
+				bTransient = false, // Whether the property is within a transient entity
 				oType; // The type of the data at sInstancePath
 
 			// Determines the predicate from a segment (empty string if there is none)
@@ -1732,10 +1733,10 @@ sap.ui.define([
 				return i >= 0 ? sSegment.slice(i) : "";
 			}
 
-			// Pushes a request to append the key predicate for oType and the instance at
+			// Pushes a request to append the segment with the key predicate of the instance at
 			// sInstancePath. Does not calculate it yet, because it might be replaced again later.
 			function prepareKeyPredicate(sSegment) {
-				aEditUrl.push({path : sInstancePath, prefix : sSegment, type : oType});
+				aEditUrl.push({path : sInstancePath, prefix : sSegment});
 			}
 
 			// Strips off the predicate from a segment
@@ -1743,16 +1744,6 @@ sap.ui.define([
 				var i = sSegment.indexOf("(");
 
 				return i >= 0 ? sSegment.slice(0, i) : sSegment;
-			}
-
-			// The segment is added to the edit URL; transient predicate is converted to real
-			// predicate
-			function pushToEditUrl(sSegment) {
-				if (sSegment.includes("($uid=")) {
-					prepareKeyPredicate(stripPredicate(sSegment));
-				} else {
-					aEditUrl.push(sSegment);
-				}
 			}
 
 			aSegments = sResolvedPath.slice(1).split("/");
@@ -1767,8 +1758,8 @@ sap.ui.define([
 			oType = mScope[oEntitySet.$Type];
 			sPropertyPath = "";
 			sNavigationPath = "";
-			aEditUrl = [];
-			pushToEditUrl(sFirstSegment);
+			aEditUrl = [sFirstSegment];
+			bTransient = sFirstSegment.includes("($uid=");
 			aSegments.forEach(function (sSegment) {
 				var oProperty, sPropertyName;
 
@@ -1792,7 +1783,12 @@ sap.ui.define([
 						}
 					}
 					oType = mScope[oProperty.$Type];
-					if (oProperty.$kind === "NavigationProperty") {
+					if (sSegment.includes("($uid=")) {
+						// a transient entity in a nested collection
+						sEntityPath = sInstancePath;
+						sPropertyPath = "";
+						bTransient = true;
+					} else if (!bTransient && oProperty.$kind === "NavigationProperty") {
 						if (oEntitySet.$NavigationPropertyBinding
 								&& sNavigationPath in oEntitySet.$NavigationPropertyBinding) {
 							sEntitySetName = oEntitySet.$NavigationPropertyBinding[sNavigationPath];
@@ -1808,7 +1804,7 @@ sap.ui.define([
 								prepareKeyPredicate(aEditUrl.pop());
 							}
 						} else {
-							pushToEditUrl(sSegment);
+							aEditUrl.push(sSegment);
 						}
 						sEntityPath = sInstancePath;
 						sPropertyPath = "";
@@ -1818,7 +1814,7 @@ sap.ui.define([
 				}
 			});
 
-			if (bNoEditUrl) {
+			if (bTransient || bNoEditUrl) {
 				return SyncPromise.resolve({
 					editUrl : undefined,
 					entityPath : sEntityPath,
@@ -1838,10 +1834,6 @@ sap.ui.define([
 					if (!oEntity) {
 						error("No instance to calculate key predicate at " + vSegment.path);
 					}
-					if (oEntity["@$ui5.context.isTransient"]) {
-						bNoEditUrl = true;
-						return undefined;
-					}
 					sPredicate = _Helper.getPrivateAnnotation(oEntity, "predicate");
 					if (!sPredicate) {
 						error("No key predicate known at " + vSegment.path);
@@ -1852,7 +1844,7 @@ sap.ui.define([
 				});
 			})).then(function (aFinalEditUrl) {
 				return {
-					editUrl : bNoEditUrl ? undefined : aFinalEditUrl.join("/"),
+					editUrl : aFinalEditUrl.join("/"),
 					entityPath : sEntityPath,
 					propertyPath : sPropertyPath
 				};
@@ -2202,6 +2194,9 @@ sap.ui.define([
 			if (oProperty.$Nullable === false) {
 				setConstraint("nullable", false);
 			}
+			if (oProperty.$Type === "Edm.DateTimeOffset") {
+				setConstraint("V4", true);
+			}
 		}
 		return mConstraints;
 	};
@@ -2372,7 +2367,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * @deprecated As of 1.37.0, use {@link #getObject}.
+	 * Use {@link #getObject}.
+	 *
 	 * @function
 	 * @public
 	 * @see sap.ui.model.Model#getProperty
@@ -2737,7 +2733,7 @@ sap.ui.define([
 	 * parameter <code>supportReferences</code> of
 	 * {@link sap.ui.model.odata.v4.ODataModel#constructor}).
 	 *
-	 * @returns {Promise}
+	 * @returns {Promise<object>}
 	 *   A promise which is resolved with the OData metadata as a "JSON" object as soon as it is
 	 *   available.
 	 *
@@ -2984,7 +2980,7 @@ sap.ui.define([
 	 *   Optional (binding) parameters; if they are given, <code>oContext</code> cannot be omitted
 	 * @param {object} [mParameters.scope]
 	 *   Optional scope for lookup of aliases for computed annotations (since 1.43.0)
-	 * @returns {Promise}
+	 * @returns {Promise<any>}
 	 *   A promise which is resolved with the requested metadata value as soon as it is available;
 	 *   it is rejected if the requested metadata cannot be loaded
 	 *
@@ -3006,7 +3002,7 @@ sap.ui.define([
 	 *   Type-specific format options, since 1.81.0. The boolean format option
 	 *   "parseKeepsEmptyString" applies to {@link sap.ui.model.odata.type.String} only and is
 	 *   ignored for all other types. All other format options are passed "as is".
-	 * @returns {Promise}
+	 * @returns {Promise<sap.ui.model.odata.type.ODataType>}
 	 *   A promise that gets resolved with the corresponding UI5 type from
 	 *   {@link sap.ui.model.odata.type}; if no specific type can be
 	 *   determined, a warning is logged and {@link sap.ui.model.odata.type.Raw} is used
@@ -3016,8 +3012,7 @@ sap.ui.define([
 	 * @see #getUI5Type
 	 * @since 1.37.0
 	 */
-	ODataMetaModel.prototype.requestUI5Type
-		= _Helper.createRequestMethod("fetchUI5Type");
+	ODataMetaModel.prototype.requestUI5Type = _Helper.createRequestMethod("fetchUI5Type");
 
 	/**
 	 * Request unit customizing based on the code list reference given in the entity container's
@@ -3118,7 +3113,7 @@ sap.ui.define([
 	 *   Context to resolve "14.5.12 Expression edm:Path" references contained in a
 	 *   "com.sap.vocabularies.Common.v1.ValueListRelevantQualifiers" annotation. Supported since
 	 *   1.84.0
-	 * @returns {Promise}
+	 * @returns {Promise<Object<object>>}
 	 *   A promise which is resolved with a map of qualifier to value list mapping objects
 	 *   structured as defined by <code>com.sap.vocabularies.Common.v1.ValueListType</code>;
 	 *   the map entry with key "" represents the mapping without qualifier. Each entry has an
@@ -3269,7 +3264,7 @@ sap.ui.define([
 
 				// Each reference must have contributed at least one qualifier. So if oValueListInfo
 				// is empty, there cannot have been a reference.
-				if (isEmptyObject(oValueListInfo)) {
+				if (_Helper.isEmptyObject(oValueListInfo)) {
 					throw new Error("No annotation '" + sValueListReferences.slice(1) + "' for "
 						+ sPropertyPath);
 				}
@@ -3340,7 +3335,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sPropertyPath
 	 *   An absolute path to an OData property within the OData data model
-	 * @returns {Promise}
+	 * @returns {Promise<sap.ui.model.odata.v4.ValueListType>}
 	 *   A promise that is resolved with the type of the value list, a constant of the enumeration
 	 *   {@link sap.ui.model.odata.v4.ValueListType}. The promise is rejected if the property cannot
 	 *   be found in the metadata.
@@ -3479,8 +3474,10 @@ sap.ui.define([
 		}
 
 		// handle & remove Date, ETag and Last-Modified headers
+		// no need to use UI5Date.getInstance as only the timestamp is relevant
 		oLastModified = mScope.$LastModified ? new Date(mScope.$LastModified) : null;
 		this.mETags[sUrl] = mScope.$ETag ? mScope.$ETag : oLastModified;
+		// no need to use UI5Date.getInstance as only the timestamp is relevant
 		oDate = mScope.$Date ? new Date(mScope.$Date) : new Date();
 		oLastModified = oLastModified || oDate; // @see #getLastModified
 		if (this.oLastModified < oLastModified) {

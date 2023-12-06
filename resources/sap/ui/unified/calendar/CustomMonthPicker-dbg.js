@@ -61,13 +61,14 @@ sap.ui.define([
 	CustomMonthPicker.prototype.onBeforeRendering = function () {
 		var oSelectedDates = this.getSelectedDates(),
 			oYearPickerDate = this._getYearPicker().getDate(),
-			oMonthPicker, oSelectedStartDate;
+			oMonthPicker = this._getMonthPicker(),
+			oSelectedStartDate,
+			bMPEmptyYear = oMonthPicker && !oMonthPicker._iYear;
 
 		Calendar.prototype.onBeforeRendering.apply(this, arguments);
 
 		if (this._iMode === 1) {
-			if (oSelectedDates.length && oSelectedDates[0].getStartDate() && (!oYearPickerDate || (oSelectedDates[0].getStartDate().getFullYear() === oYearPickerDate.getFullYear()))) {
-				oMonthPicker = this._getMonthPicker();
+			if (oSelectedDates.length && oSelectedDates[0].getStartDate() && (!oYearPickerDate || bMPEmptyYear || (oSelectedDates[0].getStartDate().getFullYear() === oYearPickerDate.getFullYear()))) {
 				oSelectedStartDate = oSelectedDates[0].getStartDate();
 				oMonthPicker.setMonth(oSelectedStartDate.getMonth());
 				oMonthPicker._iYear = oSelectedStartDate.getFullYear();
@@ -86,7 +87,7 @@ sap.ui.define([
 			oYearPicker = this._getYearPicker(),
 			oFocusedDate = this._getFocusedDate();
 
-		oFocusedDate.setYear(oYearPicker.getYear());
+		oFocusedDate.setYear(oYearPicker.getDate().getFullYear());
 		oMonthPicker._setYear(oFocusedDate.getYear());
 		oMonthPicker._setDate(oFocusedDate);
 

@@ -8,14 +8,16 @@
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
+	'sap/ui/core/StaticArea',
 	'sap/ui/core/theming/Parameters',
 	'./RatingIndicatorRenderer',
 	"sap/ui/events/KeyCodes",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration"
+	"sap/ui/core/Configuration",
+	'sap/ui/core/LabelEnablement'
 ],
-	function(library, Control, Parameters, RatingIndicatorRenderer, KeyCodes, Log, jQuery, Configuration) {
+	function(library, Control, StaticArea, Parameters, RatingIndicatorRenderer, KeyCodes, Log, jQuery, Configuration, LabelEnablement) {
 	"use strict";
 
 
@@ -52,7 +54,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -116,7 +118,14 @@ sap.ui.define([
 				 * Defines whether the user is allowed to edit the RatingIndicator. If editable is false the control is focusable, and in the tab chain but not interactive.
 				 * @since 1.52.0
 				 */
-				editable : {type : "boolean", group : "Behavior", defaultValue : true}
+				editable : {type : "boolean", group : "Behavior", defaultValue : true},
+				/**
+				 * Indicates that the control is required. This property is only needed for accessibility purposes when a single relationship between
+				 * the control and a label (see aggregation <code>labelFor</code> of <code>sap.m.Label</code>) cannot be established
+				 * (e.g. one label should label multiple controls).
+				 * @since 1.116
+				 */
+				required : {type : "boolean", group : "Misc", defaultValue : false}
 			},
 			associations: {
 				/**
@@ -264,6 +273,10 @@ sap.ui.define([
 		} else {
 			this._setContentDensitySizes();
 		}
+	};
+
+	RatingIndicator.prototype._isRequired = function () {
+		return this.getRequired() || LabelEnablement.isRequired(this);
 	};
 
 	RatingIndicator.prototype._setDisplayOnlySizes = function () {
@@ -440,7 +453,7 @@ sap.ui.define([
 			if (RegExp("^(auto|0)$|^[+-\.]?[0-9].?([0-9]+)?(px|em|rem|ex|%|in|cm|mm|pt|pc)$").test(cssSize)) {
 				oScopeTest = jQuery('<div>&nbsp;</div>')
 					.css({"display": "none", "width": cssSize, "margin": 0, "padding": 0, "height": "auto", "line-height": 1, "border": 0, "overflow": "hidden"})
-					.appendTo(sap.ui.getCore().getStaticAreaRef());
+					.appendTo(StaticArea.getDomRef());
 				vScopeVal = oScopeTest.width();
 				oScopeTest.remove();
 			} else {
@@ -944,7 +957,7 @@ sap.ui.define([
 	/* =========================================================== */
 
 	/**
- 	 * @returns {object} Current accessibility state of the control
+ 	 * @returns {{role: string, type: string, description: string, focusable: boolean, enabled: boolean, editable: boolean}} Current accessibility state of the control
 	 * @see sap.ui.core.Control#getAccessibilityInfo
 	 * @protected
 	 */

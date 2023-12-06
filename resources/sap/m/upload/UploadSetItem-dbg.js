@@ -20,11 +20,14 @@ sap.ui.define([
 	"sap/m/Link",
 	"sap/m/ProgressIndicator",
 	"sap/m/VBox",
-	"sap/m/HBox"
+	"sap/m/HBox",
+	"sap/ui/core/Lib"
 ], function (Log, CoreLibrary, Element, Icon, IconPool, HTML,
-			 MobileLibrary, Button, CustomListItem, Image, Input, Label, Link, ProgressIndicator, VBox,
-			 HBox) {
+			 MobileLibrary, Button, CustomListItem, Image, Input,
+			 Label, Link, ProgressIndicator, VBox, HBox, CoreLib) {
 	"use strict";
+
+	var UploadType = MobileLibrary.UploadType;
 
 	/**
 	 * Constructor for a new UploadSetItem.
@@ -34,7 +37,7 @@ sap.ui.define([
 	 * @class Item that represents one file to be uploaded using the {@link sap.m.upload.UploadSet} control.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @constructor
 	 * @public
 	 * @since 1.63
@@ -124,6 +127,15 @@ sap.ui.define([
 					singularName: "status"
 				},
 				/**
+				 * Statuses of the item, but it would be appearing in the markers section
+				 * @since 1.117
+				 */
+				markersAsStatus: {
+					type: "sap.m.ObjectStatus",
+					multiple: true,
+					singularName: "markerAsStatus"
+				},
+				/**
 				 * Header fields to be included in the header section of an XMLHttpRequest (XHR) request
 				 * @since 1.90
 				 */
@@ -183,6 +195,7 @@ sap.ui.define([
 				oRm.openStart("div").class("sapMUSTextInnerContainer").openEnd();
 				oRm.renderControl(oItem._bInEditMode ? oItem._getFileNameEdit() : oItem._getFileNameLink());
 				oItem._renderMarkers(oRm);
+				oItem._renderMarkersAsStatus(oRm);
 				oRm.close("div");
 
 				oItem._renderAttributes(oRm);
@@ -206,7 +219,7 @@ sap.ui.define([
 	/* ================== */
 
 	UploadSetItem.prototype.init = function () {
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = CoreLib.getResourceBundleFor("sap.m");
 
 		// Inner controls
 		this._oListItem = null;
@@ -239,6 +252,9 @@ sap.ui.define([
 		this._bNameLengthRestricted = false;
 		this._bSizeRestricted = false;
 		this._bMediaTypeRestricted = false;
+
+		//Deafult upload type
+		this._sUploadType = UploadType.Native;
 	};
 
 	/* ===================== */
@@ -332,6 +348,9 @@ sap.ui.define([
 			this.setProperty("enabledEdit", bEnable, true);
 			if (this.getParent()) {
 				this._getEditButton().setEnabled(bEnable);
+				if (!bEnable) {
+					this.getParent().handleItemGetDisabled(this);
+				}
 			}
 		}
 		return this;
@@ -342,6 +361,9 @@ sap.ui.define([
 			this.setProperty("visibleEdit", bVisible, true);
 			if (this.getParent()) {
 				this._getEditButton().setVisible(bVisible);
+				if (!bVisible) {
+					this.getParent().handleItemGetDisabled(this);
+				}
 			}
 		}
 		return this;
@@ -473,6 +495,20 @@ sap.ui.define([
 		return this._bInEditMode;
 	};
 
+	/**
+	 * Returns the upload type of the item
+	 * The method by default returns Native
+	 * It is recommended to use this method, when the user has uploded the instance
+	 *
+	 * @public
+	 * @since 1.117.0
+	 * @returns {sap.m.UploadType} edit state of uploadSetItem
+	 *
+	 */
+	UploadSetItem.prototype.getUploadType = function () {
+		return this._sUploadType;
+	};
+
 	/* ============== */
 	/* Event handlers */
 	/* ============== */
@@ -590,7 +626,8 @@ sap.ui.define([
 		if (!this._oFileNameLink) {
 			this._oFileNameLink = new Link({
 				id: this.getId() + "-fileNameLink",
-				press: [this, this._handleFileNamePressed, this]
+				press: [this, this._handleFileNamePressed, this],
+				wrapping: true
 			});
 			this._oFileNameLink.setText(this.getFileName());//For handling curly braces in file name we have to use setter.Otherwise it will be treated as binding.
 			this._oFileNameLink.addStyleClass("sapMUCFileName");
@@ -659,32 +696,10 @@ sap.ui.define([
 			this._oFileNameEdit.addStyleClass("sapMUCEditBox");
 			this._oFileNameEdit.setFieldWidth("75%");
 			this._oFileNameEdit.setDescription(oSplit.extension);
-			this._updateFileNameEdit();
 			this.addDependent(this._oFileNameEdit);
 		}
 
 		return this._oFileNameEdit;
-	};
-
-	UploadSetItem.prototype._updateFileNameEdit = function () {
-		var oEdit = this._getFileNameEdit();
-
-		// TODO Needed?
-		// if (!this._bInEditMode) {
-		// 	var oSplit = UploadSetItem._splitFileName(this.getFileName());
-		// 	oEdit.setValue(oSplit.name);
-		// }
-
-		if (this._bContainsError) {
-			oEdit.setValueState(ValueState.Error);
-			oEdit.setValueStateText("");
-			oEdit.setShowValueStateMessage(true);
-			if (oEdit.getValue().length === 0) {
-				oEdit.setValueStateText(this._oRb.getText("UPLOAD_SET_TYPE_FILE_NAME"));
-			} else {
-				oEdit.setValueStateText(this._oRb.getText("UPLOAD_SET_FILE_NAME_EXISTS"));
-			}
-		}
 	};
 
 	/**
@@ -729,7 +744,13 @@ sap.ui.define([
 
 	UploadSetItem.prototype._setInEditMode = function (bInEditMode) {
 		if (bInEditMode && !this._bInEditMode) {
-			var oSplit = UploadSetItem._splitFileName(this.getFileName());
+			var oSplit = UploadSetItem._splitFileName(this.getFileName()),
+				iMaxLength = this.getParent().getMaxFileNameLength(),
+				iFileExtensionLength = oSplit.extension ? oSplit.extension.length + 1 : 0;
+			iMaxLength = iMaxLength ? iMaxLength : 0;
+			var iNameMaxLength = iMaxLength - iFileExtensionLength;
+			iNameMaxLength = iNameMaxLength < 0 ? 0 : iNameMaxLength;
+			this._getFileNameEdit().setProperty("maxLength", iNameMaxLength, true);
 			this._getFileNameEdit().setValue(oSplit.name);
 		}
 		this._bInEditMode = bInEditMode;
@@ -743,12 +764,19 @@ sap.ui.define([
 		return this._bContainsError;
 	};
 
+	/**
+	 * Sets the upload type
+	 *@param {string} sType indicates the type of the upload
+	 * @private
+	 * @since 1.117
+	 *
+	 */
+	UploadSetItem.prototype._setUploadType = function (sType) {
+		this._sUploadType = sType;
+	};
+
 	UploadSetItem.prototype._setContainsError = function (bContainsError) {
 		this._bContainsError = bContainsError;
-		if (!this._bContainsError) {
-			return;
-		}
-		this._updateFileNameEdit();
 	};
 
 	UploadSetItem._splitFileName = function (sFileName, bWithDot) {
@@ -904,19 +932,20 @@ sap.ui.define([
 	};
 
 	UploadSetItem.prototype._renderAttributes = function (oRm) {
-		var iLastAttribure = this.getAttributes().length - 1;
-
-		if (this.getAttributes().length > 0) {
-			oRm.openStart("div").class("sapMUCAttrContainer").openEnd();
-			this.getAttributes().forEach(function (oAttribute, iIndex) {
-				oRm.renderControl(oAttribute.addStyleClass("sapMUCAttr"));
-				if (iIndex < iLastAttribure && oAttribute.getVisible()) {
-					oRm.openStart("div").class("sapMUCSeparator").openEnd();
-					oRm.text("\u00a0\u00B7\u00a0").close("div");
-				}
-			});
-			oRm.close("div");
+		if (this.getAttributes().length === 0) {
+			return;
 		}
+		var bFirstVisible = false;
+		oRm.openStart("div").class("sapMUCAttrContainer").openEnd();
+		this.getAttributes().forEach(function (oAttribute, iIndex) {
+			if (bFirstVisible && oAttribute.getVisible()) {
+				oRm.openStart("div").class("sapMUCSeparator").openEnd();
+				oRm.text("\u00a0\u00B7\u00a0").close("div");
+			}
+			bFirstVisible = bFirstVisible || oAttribute.getVisible();
+			oRm.renderControl(oAttribute.addStyleClass("sapMUCAttr"));
+		});
+		oRm.close("div");
 	};
 
 	UploadSetItem.prototype._renderMarkers = function (oRm) {
@@ -929,20 +958,31 @@ sap.ui.define([
 		}
 	};
 
-	UploadSetItem.prototype._renderStatuses = function (oRm) {
-		var iLastStatus = this.getStatuses().length - 1;
-
-		if (this.getStatuses().length > 0) {
-			oRm.openStart("div").class("sapMUCStatusContainer").openEnd();
-			this.getStatuses().forEach(function (oStatus, iIndex) {
-				oRm.renderControl(oStatus);
-				if (iIndex < iLastStatus) {
-					oRm.openStart("div").class("sapMUCSeparator").openEnd();
-					oRm.text("\u00a0\u00B7\u00a0").close("div");
-				}
+	UploadSetItem.prototype._renderMarkersAsStatus = function (oRm) {
+		if (this.getMarkersAsStatus().length > 0) {
+			oRm.openStart("div").class("sapMUSObjectMarkersAsStatusContainer").openEnd();
+			this.getMarkersAsStatus().forEach(function (oStatus) {
+				oRm.renderControl(oStatus.addStyleClass("sapMUCObjectMarkersAsStatus"));
 			});
 			oRm.close("div");
 		}
+	};
+
+	UploadSetItem.prototype._renderStatuses = function (oRm) {
+		if (this.getStatuses().length === 0) {
+			return;
+		}
+		var bFirstVisible = false;
+		oRm.openStart("div").class("sapMUCStatusContainer").openEnd();
+		this.getStatuses().forEach(function (oStatus, iIndex) {
+			if (bFirstVisible && oStatus.getVisible()) {
+				oRm.openStart("div").class("sapMUCSeparator").openEnd();
+				oRm.text("\u00a0\u00B7\u00a0").close("div");
+			}
+			bFirstVisible = bFirstVisible || oStatus.getVisible();
+			oRm.renderControl(oStatus);
+		});
+		oRm.close("div");
 	};
 
 	UploadSetItem.prototype._renderStateAndProgress = function (oRm) {

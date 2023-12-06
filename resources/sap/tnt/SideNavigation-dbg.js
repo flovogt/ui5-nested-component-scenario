@@ -8,19 +8,15 @@
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
-	'sap/ui/core/ResizeHandler',
 	"sap/ui/core/theming/Parameters",
 	'sap/ui/core/Icon',
-	'sap/ui/core/delegate/ScrollEnablement',
 	"./SideNavigationRenderer"
 ],
 	function(
 		library,
 		Control,
-		ResizeHandler,
 		Parameters,
 		Icon,
-		ScrollEnablement,
 		SideNavigationRenderer
 	) {
 		'use strict';
@@ -42,18 +38,25 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
 		 * @since 1.34
 		 * @alias sap.tnt.SideNavigation
-		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/side-navigation/ Side Navigation}
 		 */
 		var SideNavigation = Control.extend('sap.tnt.SideNavigation', /** @lends sap.t.SideNavigation.prototype */ {
 			metadata: {
 				library: 'sap.tnt',
 				properties: {
+					/**
+					 * Specifies the width of the control.
+					 *
+					 * <Note:> Depending on the theme, there is a minimum width set (16rem for Horizon theme).
+					 * This property can be used to set a bigger width.
+					 * @since 1.120
+					 */
+					width: {type: "sap.ui.core.CSSSize", group: "Dimension"},
 					/**
 					 * Specifies if the control is expanded.
 					 */
@@ -83,15 +86,7 @@ sap.ui.define([
 					/**
 					 * Defines the content inside the footer.
 					 */
-					footer: {type: 'sap.tnt.NavigationList', multiple: false},
-					/**
-					 * The top arrow, used for scrolling throw items when SideNavigation is collapsed.
-					 */
-					_topArrowControl: {type: "sap.ui.core.Icon", multiple: false, visibility: "hidden"},
-					/**
-					 * The bottom arrow, used for scrolling throw items when SideNavigation is collapsed.
-					 */
-					_bottomArrowControl: {type: "sap.ui.core.Icon", multiple: false, visibility: "hidden"}
+					footer: {type: 'sap.tnt.NavigationList', multiple: false}
 				},
 				associations: {
 					/**
@@ -120,19 +115,8 @@ sap.ui.define([
 		});
 
 		SideNavigation.prototype.init = function () {
-			this._scroller = new ScrollEnablement(this, this.getId() + "-Flexible-Content", {
-				horizontal: false,
-				vertical: true
-			});
-
 			// Define group for F6 handling
 			this.data('sap-ui-fastnavgroup', 'true', true);
-		};
-
-		// event listener for theme changed
-		SideNavigation.prototype.onThemeChanged = function() {
-			this._mThemeParams = null;
-			this._initThemeParams();
 		};
 
 		SideNavigation.prototype.setAggregation = function (aggregationName, object) {
@@ -151,116 +135,25 @@ sap.ui.define([
 		 * @returns {this} this SideNavigation reference for chaining.
 		 */
 		SideNavigation.prototype.setExpanded = function (isExpanded) {
-
 			if (this.getExpanded() === isExpanded) {
 				return this;
 			}
 
 			var that = this,
-				$this = this.$(),
 				itemAggregation = that.getAggregation('item'),
-				fixedItemAggregation = that.getAggregation('fixedItem'),
-				themeParams,
-				expandedWidth,
-				collapsedWidth,
-				width;
+				fixedItemAggregation = that.getAggregation('fixedItem');
 
-			if (!this.getDomRef()) {
-				this.setProperty('expanded', isExpanded);
+			this.setProperty('expanded', isExpanded);
 
-				if (itemAggregation) {
-					itemAggregation.setExpanded(isExpanded);
-				}
-
-				if (fixedItemAggregation) {
-					fixedItemAggregation.setExpanded(isExpanded);
-				}
-
-				return this;
+			if (itemAggregation) {
+				itemAggregation.setExpanded(isExpanded);
 			}
 
-			this.setProperty('expanded', isExpanded, true);
-
-			if (that._hasActiveAnimation) {
-				that._finishAnimation(!isExpanded);
-				$this.stop();
+			if (fixedItemAggregation) {
+				fixedItemAggregation.setExpanded(isExpanded);
 			}
-
-			if (isExpanded) {
-				this.getDomRef().classList.toggle('sapTntSideNavigationNotExpanded', !isExpanded);
-
-				if (itemAggregation) {
-					itemAggregation.setExpanded(isExpanded);
-				}
-
-				if (fixedItemAggregation) {
-					fixedItemAggregation.setExpanded(isExpanded);
-				}
-			} else {
-				// hide scroller during collapsing animation
-				this._scroller.setVertical(false);
-			}
-
-			that._hasActiveAnimation = true;
-
-			themeParams = this._mThemeParams || {};
-			expandedWidth = themeParams['_sap_tnt_SideNavigation_Width'] || "15rem";
-			collapsedWidth = themeParams['_sap_tnt_SideNavigation_CollapsedWidth'] || "3rem";
-			width = isExpanded ? expandedWidth : collapsedWidth;
-
-			$this.animate({
-					width: width
-				},
-				{
-					duration: 300,
-					complete: function () {
-						var isExpanded = that.getExpanded();
-						that._finishAnimation(isExpanded);
-					}
-				});
 
 			return this;
-		};
-
-		/**
-		 * @private
-		 */
-		SideNavigation.prototype._finishAnimation = function (isExpanded) {
-			if (!this._hasActiveAnimation || !this.getDomRef()) {
-				return;
-			}
-
-			this.getDomRef().classList.toggle('sapTntSideNavigationNotExpandedWidth', !isExpanded);
-
-			if (!isExpanded) {
-				this.getDomRef().classList.toggle('sapTntSideNavigationNotExpanded', !isExpanded);
-
-				if (this.getAggregation('item')) {
-					this.getAggregation('item').setExpanded(isExpanded);
-				}
-
-				if (this.getAggregation('fixedItem')) {
-					this.getAggregation('fixedItem').setExpanded(isExpanded);
-				}
-
-				// enable back the scroller after collapsing animation
-				this._scroller.setVertical(true);
-			}
-
-			this.$().css('width', '');
-			this._hasActiveAnimation = false;
-
-			// wait for any re-rendering after the animation, before calling toggle arrows
-			setTimeout(this._toggleArrows.bind(this), 0);
-		};
-
-		SideNavigation.prototype._initThemeParams = function() {
-			this._mThemeParams = Parameters.get({
-				name: ["_sap_tnt_SideNavigation_Width", "_sap_tnt_SideNavigation_CollapsedWidth"],
-				callback: function (mParams) {
-					this._mThemeParams = mParams;
-				}.bind(this)
-			});
 		};
 
 		/**
@@ -275,20 +168,6 @@ sap.ui.define([
 			} else if (selectedItem) {
 				this.setSelectedItem(selectedItem);
 			}
-
-			this._deregisterControl();
-
-			if (!this._mThemeParams) {
-				this._initThemeParams();
-			}
-		};
-
-		/**
-		 * @private
-		 */
-		SideNavigation.prototype.onAfterRendering = function () {
-			this._ResizeHandler = ResizeHandler.register(this.getDomRef(), this._toggleArrows.bind(this));
-			this._toggleArrows();
 		};
 
 		/**
@@ -374,13 +253,7 @@ sap.ui.define([
 		 * @private
 		 */
 		SideNavigation.prototype.exit = function () {
-			if (this._scroller) {
-				this._scroller.destroy();
-				this._scroller = null;
-			}
-
 			this._mThemeParams = null;
-			this._deregisterControl();
 		};
 
 		/**
@@ -397,104 +270,6 @@ sap.ui.define([
 			});
 		};
 
-		/**
-		 * @private
-		 */
-		SideNavigation.prototype._deregisterControl = function () {
-			if (this._ResizeHandler) {
-				ResizeHandler.deregister(this._ResizeHandler);
-				this._ResizeHandler = null;
-			}
-		};
-
-		/**
-		 * Returns the sap.ui.core.Icon control used to display the group icon.
-		 * @returns {sap.ui.core.Icon}
-		 * @private
-		 */
-		SideNavigation.prototype._getTopArrowControl = function () {
-			var iconControl = this.getAggregation('_topArrowControl');
-			var that = this;
-
-			if (!iconControl) {
-				iconControl = new Icon({
-					src: 'sap-icon://navigation-up-arrow',
-					noTabStop: true,
-					useIconTooltip: false,
-					tooltip: '',
-					press: this._arrowPress.bind(that)
-				}).addStyleClass('sapTntSideNavigationScrollIcon sapTntSideNavigationScrollIconUp');
-				this.setAggregation("_topArrowControl", iconControl, true);
-			}
-
-			return iconControl;
-		};
-
-		/**
-		 * Returns the sap.ui.core.Icon control used to display the group icon.
-		 * @returns {sap.ui.core.Icon}
-		 * @private
-		 */
-		SideNavigation.prototype._getBottomArrowControl = function () {
-			var iconControl = this.getAggregation('_bottomArrowControl');
-			var that = this;
-
-			if (!iconControl) {
-				iconControl = new Icon({
-					src: 'sap-icon://navigation-down-arrow',
-					noTabStop: true,
-					useIconTooltip: false,
-					tooltip: '',
-					press: this._arrowPress.bind(that)
-				}).addStyleClass('sapTntSideNavigationScrollIcon sapTntSideNavigationScrollIconDown');
-
-				this.setAggregation("_bottomArrowControl", iconControl, true);
-			}
-
-			return iconControl;
-		};
-
-		SideNavigation.prototype._toggleArrows = function () {
-			var domRef = this.getDomRef();
-
-			if (!domRef) {
-				return;
-			}
-
-			var scrollContainerWrapper = this.$('Flexible')[0];
-			var scrollContainerContent = this.$('Flexible-Content')[0];
-			var isAsideExpanded = this.getExpanded();
-
-			if (this._hasActiveAnimation) {
-				domRef.querySelector('.sapTntSideNavigationScrollIconUp').style.display = 'none';
-				domRef.querySelector('.sapTntSideNavigationScrollIconDown').style.display = 'none';
-				return;
-			}
-
-			if ((scrollContainerContent.offsetHeight > scrollContainerWrapper.offsetHeight) && !isAsideExpanded) {
-				domRef.querySelector('.sapTntSideNavigationScrollIconUp').style.display = 'block';
-				domRef.querySelector('.sapTntSideNavigationScrollIconDown').style.display = 'block';
-
-				domRef.querySelector('.sapTntSideNavigationScrollIconDown').classList.remove('sapTntSideNavigationScrollIconDisabled');
-			} else {
-				domRef.querySelector('.sapTntSideNavigationScrollIconUp').style.display = 'none';
-				domRef.querySelector('.sapTntSideNavigationScrollIconDown').style.display = 'none';
-			}
-		};
-
-		SideNavigation.prototype._arrowPress = function (event) {
-			event.preventDefault();
-
-			var source = event.getSource().getDomRef();
-			var isDirectionForward = source.classList.contains('sapTntSideNavigationScrollIconDown') ? true : false;
-
-			var $container = this.$('Flexible');
-
-			var step = isDirectionForward ? 40 : -40;
-			$container[0].scrollTop += step;
-		};
-
 		return SideNavigation;
-
 	}
 );

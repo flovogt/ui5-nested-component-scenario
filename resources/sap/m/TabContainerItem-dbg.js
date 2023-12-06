@@ -8,12 +8,9 @@
 sap.ui.define(['sap/ui/core/Element',
 	'sap/ui/core/IconPool',
 	'./TabStripItem',
-	'./library'],
-	function(Element, IconPool, TabStripItem, library) {
+	'sap/m/ImageHelper'],
+	function(Element, IconPool, TabStripItem, ImageHelper) {
 		"use strict";
-
-		// shortcut for sap.m.ImageHelper
-		var ImageHelper = library.ImageHelper;
 
 		/**
 		 * Constructor for a new <code>TabContainerItem</code>.
@@ -26,7 +23,7 @@ sap.ui.define(['sap/ui/core/Element',
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public

@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.110.0"
+      "version": "1.120.1"
     },
     "title": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
     "description": "The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.",
@@ -29,17 +29,17 @@
   },
   "sap.ui5": {
     "dependencies": {
-      "minUI5Version": "1.110",
+      "minUI5Version": "1.120",
       "libs": {
         "sap.ui.core": {
-          "minVersion": "1.110.0"
+          "minVersion": "1.120.1"
         },
         "sap.ui.layout": {
-          "minVersion": "1.110.0",
+          "minVersion": "1.120.1",
           "lazy": true
         },
         "sap.ui.unified": {
-          "minVersion": "1.110.0",
+          "minVersion": "1.120.1",
           "lazy": true
         }
       }
@@ -79,6 +79,7 @@
           "ko",
           "lt",
           "lv",
+          "mk",
           "ms",
           "nl",
           "no",
@@ -275,6 +276,8 @@
           "sap.m.UploadCollectionToolbarPlaceholder",
           "sap.m.upload.UploadSet",
           "sap.m.upload.UploadSetToolbarPlaceholder",
+          "sap.m.upload.UploadSetwithTable",
+          "sap.m.upload.UploadSetwithTableItem",
           "sap.m.VariantManagement",
           "sap.m.VBox",
           "sap.m.ViewSettingsDialog",
@@ -299,19 +302,21 @@
         ],
         "elements": [
           "sap.m.BadgeCustomData",
+          "sap.m.CarouselLayout",
           "sap.m.Column",
           "sap.m.ColumnPopoverActionItem",
           "sap.m.ColumnPopoverCustomItem",
           "sap.m.ColumnPopoverItem",
           "sap.m.ColumnPopoverSortItem",
-          "sap.m.CustomDynamicDateOption",
           "sap.m.DynamicDateOption",
           "sap.m.DynamicDateValueHelpUIType",
           "sap.m.FlexItemData",
           "sap.m.FeedListItemAction",
           "sap.m.IconTabFilter",
           "sap.m.IconTabSeparator",
+          "sap.m.ImageCustomData",
           "sap.m.LightBoxItem",
+          "sap.m.LinkTileContent",
           "sap.m.OverflowToolbarLayoutData",
           "sap.m.MaskInputRule",
           "sap.m.MenuItem",
@@ -344,8 +349,11 @@
           "sap.m.ToolbarLayoutData",
           "sap.m.UploadCollectionItem",
           "sap.m.UploadCollectionParameter",
+          "sap.m.upload.FilePreviewDialog",
           "sap.m.upload.Uploader",
+          "sap.m.upload.UploaderTableItem",
           "sap.m.upload.UploadSetItem",
+          "sap.m.upload.FilePreviewDialog",
           "sap.m.VariantItem",
           "sap.m.ViewSettingsCustomItem",
           "sap.m.ViewSettingsCustomTab",
@@ -404,7 +412,9 @@
           "sap.m.BadgeState",
           "sap.m.BadgeAnimationType",
           "sap.m.BarDesign",
+          "sap.m.BorderDesign",
           "sap.m.BreadcrumbsSeparatorStyle",
+          "sap.m.ButtonAccessibleRole",
           "sap.m.ButtonType",
           "sap.m.CarouselArrowsPlacement",
           "sap.m.DateTimeInputType",
@@ -412,8 +422,11 @@
           "sap.m.DialogRoleType",
           "sap.m.DialogType",
           "sap.m.DraftIndicatorState",
+          "sap.m.DynamicDateRangeGroups",
+          "sap.m.EmptyIndicatorMode",
           "sap.m.FacetFilterListDataType",
           "sap.m.FacetFilterType",
+          "sap.m.FilterPanelField",
           "sap.m.FlexAlignContent",
           "sap.m.FlexAlignItems",
           "sap.m.FlexAlignSelf",
@@ -489,19 +502,23 @@
           "sap.m.ToolbarDesign",
           "sap.m.ToolbarStyle",
           "sap.m.UploadState",
+          "sap.m.UploadType",
           "sap.m.ValueColor",
           "sap.m.ValueCSSColor",
           "sap.m.VerticalPlacementType",
           "sap.m.WrappingType",
           "sap.m.WizardRenderMode",
+          "sap.m.plugins.CopyPreference",
           "sap.m.semantic.SemanticRuleSetType",
           "sap.m.table.columnmenu.Category",
-          "sap.m.upload.UploaderHttpRequestMethod"
+          "sap.m.upload.UploaderHttpRequestMethod",
+          "sap.m.UploadSetwithTableActionPlaceHolder"
         ],
         "interfaces": [
           "sap.m.IBar",
           "sap.m.IBadge",
           "sap.m.IBreadcrumbs",
+          "sap.m.ITableItem",
           "sap.m.p13n.IContent",
           "sap.m.IconTab",
           "sap.m.IScale",

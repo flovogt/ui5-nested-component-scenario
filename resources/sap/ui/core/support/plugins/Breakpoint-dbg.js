@@ -5,8 +5,8 @@
  */
 
 // Provides class sap.ui.core.support.plugins.Breakpoint (Breakpoint support Plugin)
-sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap/base/util/LoaderExtensions", "sap/base/util/ObjectPath"],
-	function(Device, ElementMetadata, Plugin, LoaderExtensions, ObjectPath) {
+sap.ui.define(['sap/ui/Device', "sap/ui/core/Element", 'sap/ui/core/ElementMetadata', '../Plugin', "sap/base/util/LoaderExtensions", "sap/base/util/ObjectPath"],
+	function(Device, Element, ElementMetadata, Plugin, LoaderExtensions, ObjectPath) {
 	"use strict";
 
 	/*global alert */
@@ -16,8 +16,6 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 			constructor : function(oSupportStub) {
 				Plugin.apply(this, ["sapUiSupportBreakpoint", "", oSupportStub]);
-
-				this._oStub = oSupportStub;
 
 				this._methodType = {
 					clazz: 1, proto: 2
@@ -179,7 +177,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 		Breakpoint.prototype.getInstanceMethods = function(sControlId) {
 
-			var oControl = sap.ui.getCore().byId(sControlId), // get control instance
+			var oControl = Element.getElementById(sControlId), // get control instance
 				aMethods = [];
 
 			// check if control was found
@@ -303,7 +301,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 		Breakpoint.prototype.changeInstanceBreakpoint = function(sControlId, sMethodName, bActive) {
 
 			// get control instance
-			var oControl = sap.ui.getCore().byId(sControlId);
+			var oControl = Element.getElementById(sControlId);
 
 			// check if control was found and a method was specified
 			if (!oControl || !sMethodName || !oControl[sMethodName]) {
@@ -509,13 +507,13 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/core/ElementMetadata', '../Plugin', "sap
 
 			return function() {
 
-				var time = (new Date()).getTime();
+				var time = Date.now();
 
 				/*eslint-disable no-debugger */
 				debugger;
 				/*eslint-enable no-debugger */
 
-				if ((new Date().getTime()) - time < 50) {
+				if (Date.now() - time < 50) {
 					that._alertNoDebugger();
 				}
 

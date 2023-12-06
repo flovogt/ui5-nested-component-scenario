@@ -24,13 +24,13 @@ sap.ui.define([], function() {
 	TimePickerInputsRenderer.render = function(oRm, oControl) {
 		var aControls = oControl.getAggregation("_inputs"),
 			oSegButton = oControl.getAggregation("_buttonAmPm"),
-			aSeparators = oControl._getTimeSeparators(oControl._getDisplayFormatPattern()),
-			sSeparator,
+			aSeparators = aControls && aControls.length ? Array(aControls.length - 1).fill(":") : [],
 			iIndex;
 
 		if (aControls) {
 			if (oSegButton) {
 				aControls.push(oSegButton);
+				aSeparators.push(" ");
 			}
 
 			oRm.openStart("div", oControl); // outer wrapper
@@ -39,17 +39,14 @@ sap.ui.define([], function() {
 			oRm.attr("aria-roledescription", oControl._getAriaRoleDescription());
 			oRm.openEnd();
 
+			// render buttons and separators
 			for (iIndex = 0; iIndex < aControls.length; iIndex++) {
 				oRm.renderControl(aControls[iIndex]);
-				if (iIndex < aControls.length - 1) {
-					sSeparator = aSeparators.shift();
-					if (!sSeparator) {
-						sSeparator = " ";
-					}
+				if (aSeparators[iIndex]) {
 					oRm.openStart("span");
 					oRm.attr("aria-hidden", "true");
 					oRm.openEnd();
-					oRm.text(sSeparator);
+					oRm.text(aSeparators[iIndex]);
 					oRm.close("span");
 				}
 			}

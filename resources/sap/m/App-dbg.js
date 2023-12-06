@@ -49,7 +49,7 @@ sap.ui.define([
 	 * @extends sap.m.NavContainer
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -147,7 +147,7 @@ sap.ui.define([
 
 				/**
 				 * Fired when the orientation (portrait/landscape) of the device is changed.
-				 * @deprecated Since version 1.20.0, use {@link sap.ui.Device.orientation.attachHandler} instead.
+				 * @deprecated As of version 1.20.0, use {@link sap.ui.Device.orientation.attachHandler} instead.
 				 */
 				orientationChange : {deprecated: true,
 					parameters : {
@@ -175,6 +175,9 @@ sap.ui.define([
 			preventScroll: !this._debugZoomAndScroll,
 			rootId: this.getId()
 		});
+		/**
+		 * @deprecated As of version 1.20.0, <code>orientationChange</code> event is deprecated
+		 */
 		jQuery(window).on("resize", jQuery.proxy(this._handleOrientationChange, this));
 	};
 
@@ -223,13 +226,18 @@ sap.ui.define([
 	 * @private
 	 */
 	App.prototype.exit = function() {
+		/**
+		 * <code>orientationChange</code> event is @deprecated As of version 1.20.0
+		 */
 		jQuery(window).off("resize", this._handleOrientationChange);
 
 		if (this._sInitTimer) {
 			clearTimeout(this._sInitTimer);
 		}
 	};
-
+		/**
+		 * <code>orientationChange</code> event is @deprecated As of version 1.20.0
+		 */
 	App.prototype._handleOrientationChange = function() {
 		var $window = jQuery(window);
 		var isLandscape = $window.width() > $window.height();

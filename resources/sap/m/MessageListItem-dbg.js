@@ -33,7 +33,7 @@ sap.ui.define([
 		 * @extends sap.m.StandardListItem
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @private
@@ -74,10 +74,9 @@ sap.ui.define([
 			if (oLink && !oLink.getAriaDescribedBy().length) {
 				oDescribedByText = this._getLinkAriaDescribedBy();
 
-				oLink.setProperty("text", this.getTitle(), true);
-				oLink.addAssociation('ariaDescribedBy', oDescribedByText.getId(), true);
-
-				this.setAggregation("linkAriaDescribedBy", oDescribedByText, true);
+				oLink.setText(this.getTitle());
+				oLink.addAriaDescribedBy(oDescribedByText.getId());
+				this.setLinkAriaDescribedBy(oDescribedByText);
 			}
 		};
 
@@ -112,6 +111,27 @@ sap.ui.define([
 				sAnnouncement += ". ".concat(sAdditionalTextLocation, ". ", sAdditionalTextDescription);
 			}
 			return sAnnouncement;
+		};
+
+		/**
+		 * Returns item's title dom ref
+		 *
+		 * @returns {HTMLElement} Dom Ref of the list item's title
+		 * @public
+		 */
+		MessageListItem.prototype.getTitleRef = function () {
+			var bActiveTitle = this.getActiveTitle();
+			var sDescription = this.getDescription();
+
+			if (bActiveTitle) {
+				return this.getDomRef().querySelector("a");
+			}
+
+			if (sDescription) {
+				return this.getDomRef().querySelector(".sapMSLITitle");
+			}
+
+			return this.getDomRef().querySelector(".sapMSLITitleOnly");
 		};
 
 		return MessageListItem;

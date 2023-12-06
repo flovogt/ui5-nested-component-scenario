@@ -10,9 +10,10 @@ sap.ui.define([
 	"sap/base/Log",
 	"./library",
 	'sap/ui/core/format/TimezoneUtil',
-	'sap/ui/core/Core'
+	'sap/ui/core/Core',
+	'sap/ui/core/date/UI5Date'
 ], function(
-	StandardDynamicDateOption, Log, library, TimezoneUtil, Core) {
+	StandardDynamicDateOption, Log, library, TimezoneUtil, Core, UI5Date) {
 	"use strict";
 
 	var STANDARD_KEYS_ARRAY = [
@@ -37,11 +38,15 @@ sap.ui.define([
 		"TO",
 		"YEARTODATE",
 		"DATETOYEAR",
+		"LASTMINUTES",
+		"LASTHOURS",
 		"LASTDAYS",
 		"LASTWEEKS",
 		"LASTMONTHS",
 		"LASTQUARTERS",
 		"LASTYEARS",
+		"NEXTMINUTES",
+		"NEXTHOURS",
 		"NEXTDAYS",
 		"NEXTWEEKS",
 		"NEXTMONTHS",
@@ -76,8 +81,7 @@ sap.ui.define([
 	 *
 	 * @namespace
 	 * @alias sap.m.DynamicDateUtil
-	 * @public
-	 * @experimental Since 1.92. This class is experimental and provides only limited functionality. Also the API might be changed in future.
+	 * @protected
 	 */
 	var DynamicDateUtil = {
 		_options: {
@@ -104,11 +108,15 @@ sap.ui.define([
 			"NEXTMONTH": new StandardDynamicDateOption({ key: "NEXTMONTH", valueTypes: [] }),
 			"NEXTQUARTER": new StandardDynamicDateOption({ key: "NEXTQUARTER", valueTypes: [] }),
 			"NEXTYEAR": new StandardDynamicDateOption({ key: "NEXTYEAR", valueTypes: [] }),
+			"LASTMINUTES": new StandardDynamicDateOption({ key: "LASTMINUTES", valueTypes: ["int"] }),
+			"LASTHOURS": new StandardDynamicDateOption({ key: "LASTHOURS", valueTypes: ["int"] }),
 			"LASTDAYS": new StandardDynamicDateOption({ key: "LASTDAYS", valueTypes: ["int"] }),
 			"LASTWEEKS": new StandardDynamicDateOption({ key: "LASTWEEKS", valueTypes: ["int"] }),
 			"LASTMONTHS": new StandardDynamicDateOption({ key: "LASTMONTHS", valueTypes: ["int"] }),
 			"LASTQUARTERS": new StandardDynamicDateOption({ key: "LASTQUARTERS", valueTypes: ["int"] }),
 			"LASTYEARS": new StandardDynamicDateOption({ key: "LASTYEARS", valueTypes: ["int"] }),
+			"NEXTMINUTES": new StandardDynamicDateOption({ key: "NEXTMINUTES", valueTypes: ["int"] }),
+			"NEXTHOURS": new StandardDynamicDateOption({ key: "NEXTHOURS", valueTypes: ["int"] }),
 			"NEXTDAYS": new StandardDynamicDateOption({ key: "NEXTDAYS", valueTypes: ["int"] }),
 			"NEXTWEEKS": new StandardDynamicDateOption({ key: "NEXTWEEKS", valueTypes: ["int"] }),
 			"NEXTMONTHS": new StandardDynamicDateOption({ key: "NEXTMONTHS", valueTypes: ["int"] }),
@@ -191,13 +199,13 @@ sap.ui.define([
 	};
 
 	/**
-	 * Parses a string to an array of objects in the DynamicDateRange's value format.
+	 * Parses a string to an array of objects of type <code>sap.m.DynamicDateRangeValue</code>.
 	 * Uses the provided formatter.
 	 *
 	 * @param {string} sValue The string to be parsed
 	 * @param {sap.m.DynamicDateFormat} oFormatter A dynamic date formatter
-	 * @param {array} aOptionKeys array of option names
-	 * @returns {object[]} An array of value objects in the DynamicDateRange's value format
+	 * @param {string[]} aOptionKeys array of option names
+	 * @returns {sap.m.DynamicDateRangeValue[]} An array of <code>sap.m.DynamicDateRangeValue</code> objects
 	 * @static
 	 * @public
 	 */
@@ -235,13 +243,14 @@ sap.ui.define([
 	 * Calculates a date range from a provided object in the format of the DynamicDateRange's value.
 	 *
 	 * @param {string} oValue The provided value
+	 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
 	 * @returns {sap.ui.core.date.UniversalDate[]} An array of two date objects - start and end date
 	 * @static
 	 * @public
 	 */
-	DynamicDateUtil.toDates = function(oValue) {
+	DynamicDateUtil.toDates = function(oValue, sCalendarWeekNumbering) {
 		var sKey = oValue.operator;
-		return DynamicDateUtil._options[sKey].toDates(oValue);
+		return DynamicDateUtil._options[sKey].toDates(oValue, sCalendarWeekNumbering);
 	};
 
 
@@ -254,7 +263,7 @@ sap.ui.define([
 	 * @public
 	 */
 	DynamicDateUtil.removeTimezoneOffset = function(oDate) {
-		var oNewDate = new Date(oDate);
+		var oNewDate = UI5Date.getInstance(oDate);
 		var sTimezone = Core.getConfiguration().getTimezone();
 		var iOffsetInSeconds = TimezoneUtil.calculateOffset(oNewDate, sTimezone) - oNewDate.getTimezoneOffset() * 60;
 

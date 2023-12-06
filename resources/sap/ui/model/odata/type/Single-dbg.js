@@ -25,28 +25,6 @@ sap.ui.define([
 	}
 
 	/**
-	 * Returns the formatter. Creates it lazily.
-	 * @param {sap.ui.model.odata.type.Single} oType
-	 *   the type instance
-	 * @returns {sap.ui.core.format.NumberFormat}
-	 *   the formatter
-	 */
-	function getFormatter(oType) {
-		var oFormatOptions, oTypeFormatOptions;
-
-		if (!oType.oFormat) {
-			oFormatOptions = {groupingEnabled : true};
-			oTypeFormatOptions = oType.oFormatOptions || {};
-			if (oTypeFormatOptions.style !== "short" && oTypeFormatOptions.style !== "long") {
-				oFormatOptions.preserveDecimals = true;
-			}
-			Object.assign(oFormatOptions, oType.oFormatOptions);
-			oType.oFormat = NumberFormat.getFloatInstance(oFormatOptions);
-		}
-		return oType.oFormat;
-	}
-
-	/**
 	 * Returns the type's nullable constraint.
 	 *
 	 * @param {sap.ui.model.odata.type.Single} oType
@@ -95,12 +73,15 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @alias sap.ui.model.odata.type.Single
 	 * @param {object} [oFormatOptions]
 	 *   Format options as defined in {@link sap.ui.core.format.NumberFormat.getFloatInstance}.
 	 *   In contrast to NumberFormat <code>groupingEnabled</code> defaults to <code>true</code>.
+	 * @param {boolean} [oFormatOptions.parseEmptyValueToZero=false]
+	 *   Whether the empty string and <code>null</code> are parsed to <code>0</code> if the <code>nullable</code>
+	 *   constraint is set to <code>false</code>; see {@link #parseValue parseValue}; since 1.115.0
 	 * @param {boolean} [oFormatOptions.preserveDecimals=true]
 	 *   by default decimals are preserved, unless <code>oFormatOptions.style</code> is given as
 	 *   "short" or "long"; since 1.89.0
@@ -117,6 +98,7 @@ sap.ui.define([
 					ODataType.apply(this, arguments);
 					this.oFormatOptions = oFormatOptions;
 					setConstraints(this, oConstraints);
+					this.checkParseEmptyValueToZero();
 				}
 			}
 		);
@@ -160,7 +142,7 @@ sap.ui.define([
 				return Math.floor(fValue);
 			case "string":
 				// toPrecision to avoid rounding errors and parseFloat to avoid trailing zeroes
-				return getFormatter(this).format(parseFloat(fValue.toPrecision(7)));
+				return this.getFormat().format(parseFloat(fValue.toPrecision(7)));
 			default:
 				throw new FormatException("Don't know how to format " + this.getName() + " to "
 					+ sTargetType);
@@ -168,48 +150,68 @@ sap.ui.define([
 	};
 
 	/**
+	 * @override
+	 */
+	Single.prototype.getFormat = function () {
+		if (!this.oFormat) {
+			var oFormatOptions = {groupingEnabled : true},
+				oTypeFormatOptions = this.oFormatOptions || {};
+			if (oTypeFormatOptions.style !== "short" && oTypeFormatOptions.style !== "long") {
+				oFormatOptions.preserveDecimals = true;
+			}
+			Object.assign(oFormatOptions, this.oFormatOptions);
+			delete oFormatOptions.parseEmptyValueToZero;
+			this.oFormat = NumberFormat.getFloatInstance(oFormatOptions);
+		}
+
+		return this.oFormat;
+	};
+
+	/**
 	 * Parses the given value, which is expected to be of the given type, to an Edm.Single in
 	 * <code>number</code> representation.
 	 *
-	 * @param {string|number} vValue
-	 *   the value to be parsed; the empty string and <code>null</code> are parsed to
-	 *   <code>null</code>; note that there is no way to enter <code>Infinity</code> or
+	 * @param {number|string|null} vValue
+	 *   The value to be parsed; note that there is no way to enter <code>Infinity</code> or
 	 *   <code>NaN</code> values
 	 * @param {string} sSourceType
-	 *   the source type (the expected type of <code>vValue</code>); may be "float", "int",
+	 *   The source type (the expected type of <code>vValue</code>); may be "float", "int",
 	 *   "string", or a type with one of these types as its
 	 *   {@link sap.ui.base.DataType#getPrimitiveType primitive type}.
 	 *   See {@link sap.ui.model.odata.type} for more information.
-	 * @returns {number}
-	 *   the parsed value
+	 * @returns {number|null}
+	 *   The parsed value. The empty string and <code>null</code> are parsed to:
+	 *   <ul>
+	 *     <li><code>0</code> if the <code>parseEmptyValueToZero</code> format option
+	 *       is set to <code>true</code> and the <code>nullable</code> constraint is set to <code>false</code>,</li>
+	 *     <li><code>null</code> otherwise.</li>
+	 *   </ul>
 	 * @throws {sap.ui.model.ParseException}
-	 *   if <code>sSourceType</code> is unsupported or if the given string cannot be parsed to a
+	 *   If <code>sSourceType</code> is unsupported or if the given string cannot be parsed to a
 	 *   Single
 	 * @public
 	 * @since 1.29.0
 	 */
 	Single.prototype.parseValue = function (vValue, sSourceType) {
-		var fResult;
-
-		if (vValue === null || vValue === "") {
-			return null;
+		var vEmptyValue = this.getEmptyValue(vValue, true);
+		if (vEmptyValue !== undefined) {
+			return vEmptyValue;
 		}
+
 		switch (this.getPrimitiveType(sSourceType)) {
 			case "string":
-				fResult = getFormatter(this).parse(vValue);
+				var fResult = this.getFormat().parse(vValue);
 				if (isNaN(fResult)) {
 					throw new ParseException(getErrorMessage());
 				}
-				break;
+				return Math.fround(fResult);
 			case "int":
 			case "float":
-				fResult = vValue;
-				break;
+				return Math.fround(vValue);
 			default:
 				throw new ParseException("Don't know how to parse " + this.getName() + " from "
 					+ sSourceType);
 		}
-		return Math.fround(fResult);
 	};
 
 	/**

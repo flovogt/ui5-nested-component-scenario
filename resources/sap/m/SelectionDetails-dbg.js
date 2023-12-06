@@ -39,7 +39,7 @@ function(
 	 * <b><i>Note:</i></b>It is protected and should only be used within the framework itself.
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -369,10 +369,10 @@ function(
 
 			height = Math.min(SelectionDetails._POPOVER_MAX_HEIGHT, height);
 			oPopover._oControl._deregisterContentResizeHandler();
-
+			var bAnimationMode = Configuration.getAnimationMode() !== Configuration.AnimationMode.none;
 			$PopoverContent.animate({
 				"height": Math.min(height, iMaxHeight)
-			}, Configuration.getAnimation() ? 100 : 0, function() {
+			}, bAnimationMode ? 100 : 0, function() {
 				oPopover.setProperty("contentHeight", height + "px", true);
 				oPopover._oControl._registerContentResizeHandler();
 			});

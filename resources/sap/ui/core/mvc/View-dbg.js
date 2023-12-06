@@ -12,8 +12,8 @@ sap.ui.define([
 	"sap/base/util/isEmptyObject",
 	"sap/base/util/merge",
 	"sap/ui/base/ManagedObject",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/Control",
+	"sap/ui/base/DesignTime",
 	"sap/ui/core/Element",
 	"./Controller",
 	"./ViewRenderer",
@@ -26,8 +26,8 @@ sap.ui.define([
 		isEmptyObject,
 		merge,
 		ManagedObject,
-		Configuration,
 		Control,
+		DesignTime,
 		Element,
 		Controller,
 		ViewRenderer,
@@ -142,7 +142,7 @@ sap.ui.define([
 	 * The default implementation of this method returns <code>false</code>.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.View
@@ -436,12 +436,16 @@ sap.ui.define([
 	 * @private
 	 */
 	var createAndConnectController = function(oThis, mSettings) {
+		var bAsync = mSettings.async;
+		var connectToView = function (oController) {
+			oThis.oController = oController;
+			oController.oView = oThis;
+		};
 
-		if (!Configuration.getControllerCodeDeactivated()) {
+		if (!DesignTime.isControllerCodeDeactivated()) {
 			// only set when used internally
 			var oController = mSettings.controller,
-				sName = oController && typeof oController.getMetadata === "function" && oController.getMetadata().getName(),
-				bAsync = mSettings.async;
+				sName = oController && typeof oController.getMetadata === "function" && oController.getMetadata().getName();
 
 			if (!oController && oThis.getControllerName) {
 				oThis.bControllerIsViewManaged = true;
@@ -478,11 +482,6 @@ sap.ui.define([
 			}
 
 			if (oController) {
-				var connectToView = function(oController) {
-					oThis.oController = oController;
-					oController.oView = oThis;
-				};
-
 				if (bAsync) {
 					if (!oThis.oAsyncState) {
 						throw new Error("The view " + oThis.sViewName + " runs in sync mode and therefore cannot use async controller extensions!");
@@ -492,9 +491,12 @@ sap.ui.define([
 					connectToView(oController);
 				}
 			}
+		} else if (bAsync) {
+			const oController = Object.assign(new Controller(), { "_sap.ui.core.mvc.EmptyControllerImpl": true });
+			return Promise.resolve(oController).then(connectToView);
 		} else {
-			sap.ui.controller("sap.ui.core.mvc.EmptyControllerImpl", {"_sap.ui.core.mvc.EmptyControllerImpl":true});
-			oThis.oController = sap.ui.controller("sap.ui.core.mvc.EmptyControllerImpl");
+			sap.ui.controller("sap.ui.core.mvc.EmptyControllerImpl", {"_sap.ui.core.mvc.EmptyControllerImpl":true}); // legacy-relevant: Sync path
+			oThis.oController = sap.ui.controller("sap.ui.core.mvc.EmptyControllerImpl"); // legacy-relevant: Sync path
 		}
 	};
 
@@ -656,14 +658,14 @@ sap.ui.define([
 	 *
 	 * This method expects a view-local ID of an element (the same as e.g. defined in the *.view.xml
 	 * of an XMLView). For a search with a global ID (the value returned by <code>oElement.getId()</code>)
-	 * you should rather use {@link sap.ui.core.Core#byId sap.ui.getCore().byId()}.
+	 * you should rather use {@link sap.ui.core.Element#getElementById Element.getElementById}.
 	 *
 	 * @param {string} sId View local ID of the element
 	 * @return {sap.ui.core.Element|undefined} Element by its ID or <code>undefined</code>
 	 * @public
 	 */
 	View.prototype.byId = function(sId) {
-		return Element.registry.get(this.createId(sId));
+		return Element.getElementById(this.createId(sId));
 	};
 
 	/**
@@ -820,7 +822,7 @@ sap.ui.define([
 	 * @see sap.ui.core.mvc.View.Preprocessor.process
 	 *
 	 * @param {boolean} bSync Describes the view execution, true if sync
-	 * @returns {object} Info object for the view
+	 * @returns {{name: string, componentId: string, id: string, caller: string, sync: boolean}} Info object for the view
 	 *
 	 * @protected
 	 */
@@ -926,7 +928,7 @@ sap.ui.define([
 	 * @static
 	 * @param {string} sType
 	 * 		the type of content to be processed
-	 * @param {string|function} vPreprocessor
+	 * @param {string|function(Object, sap.ui.core.mvc.View.Preprocessor.ViewInfo, object)} vPreprocessor
 	 * 		module path of the preprocessor implementation or a preprocessor function
 	 * @param {string} sViewType
 	 * 		type of the calling view, e.g. <code>XML</code>
@@ -1013,7 +1015,7 @@ sap.ui.define([
 	 * See also the API references for the specific view factories:
 	 * <ul>
 	 * <li>{@link sap.ui.core.mvc.XMLView.create}</li>
-	 * <li>{@link sap.ui.core.mvc.JSONView.create}</li>
+	 * <li>{@link sap.ui.core.mvc.JSONView.create} (deprecated)</li>
 	 * <li>{@link sap.ui.core.mvc.HTMLView.create} (deprecated)</li>
 	 * </ul>
 	 *
@@ -1068,7 +1070,7 @@ sap.ui.define([
 		var Component = sap.ui.require("sap/ui/core/Component");
 		var oOwnerComponent;
 		if (Component && ManagedObject._sOwnerId) {
-			oOwnerComponent = Component.get(ManagedObject._sOwnerId);
+			oOwnerComponent = Component.getComponentById(ManagedObject._sOwnerId);
 		}
 
 		function createView() {
@@ -1258,17 +1260,29 @@ sap.ui.define([
 		}
 		if (!oViewSettings.type) {
 			throw new Error("No view type specified.");
-		} else if (oViewSettings.type === ViewType.JS) {
+		}
+
+		if (oViewSettings.type === ViewType.XML) {
+			return 'sap/ui/core/mvc/XMLView';
+		}
+
+		/**
+		 * The different ViewTypes have been deprecated with different UI5 versions.
+		 * Please see the public "sap/ui/core/mvc/ViewType" enum for the specific versions.
+		 * @deprecated
+		 */
+		if (oViewSettings.type === ViewType.JS) {
 			sViewClass = 'sap/ui/core/mvc/JSView';
 		} else if (oViewSettings.type === ViewType.JSON) {
 			sViewClass = 'sap/ui/core/mvc/JSONView';
-		} else if (oViewSettings.type === ViewType.XML) {
-			sViewClass = 'sap/ui/core/mvc/XMLView';
 		} else if (oViewSettings.type === ViewType.HTML) {
 			sViewClass = 'sap/ui/core/mvc/HTMLView';
 		} else if (oViewSettings.type === ViewType.Template) {
 			sViewClass = 'sap/ui/core/mvc/TemplateView';
-		} else { // unknown view type
+		}
+
+		// unknown view type
+		if (!sViewClass) {
 			throw new Error("Unknown view type " + oViewSettings.type + " specified.");
 		}
 
@@ -1296,7 +1310,7 @@ sap.ui.define([
 	 * @since 1.30
 	 * @public
 	 * @deprecated since 1.66: Use {@link sap.ui.core.mvc.View.create View.create} instead
-	 * @return {Promise} resolves with the complete view instance, rejects with any thrown error
+	 * @return {Promise<sap.ui.core.mvc.View>} resolves with the complete view instance, rejects with any thrown error
 	 */
 	View.prototype.loaded = function() {
 		if (this.oAsyncState && this.oAsyncState.promise) {
@@ -1341,6 +1355,18 @@ sap.ui.define([
 	 */
 
 	/**
+	 * Information about the view that is processed by the preprocessor
+	 *
+	 * @typedef {object} sap.ui.core.mvc.View.Preprocessor.ViewInfo
+	 * @property {string} id the ID of the view
+	 * @property {string} name the name of the view
+	 * @property {string} componentId the ID of the owning Component of the view
+	 * @property {string} caller
+	 * 		identifies the caller of this preprocessor; basis for log or exception messages
+	 * @public
+	 */
+
+	/**
 	 * Processing method that must be implemented by a Preprocessor.
 	 *
 	 * @name sap.ui.core.mvc.View.Preprocessor.process
@@ -1348,18 +1374,13 @@ sap.ui.define([
 	 * @public
 	 * @static
 	 * @abstract
-	 * @param {object} vSource the source to be processed
-	 * @param {object} oViewInfo identification information about the calling instance
-	 * @param {string} oViewInfo.id the id
-	 * @param {string} oViewInfo.name the name
-	 * @param {string} oViewInfo.componentId the id of the owning Component
-	 * @param {string} oViewInfo.caller
-	 * 		identifies the caller of this preprocessor; basis for log or exception messages
+	 * @param {Object} vSource the source to be processed
+	 * @param {sap.ui.core.mvc.View.Preprocessor.ViewInfo}
+	 * 		oViewInfo identification information about the calling instance
 	 * @param {object} [mSettings]
 	 * 		settings object containing the settings provided with the preprocessor
-	 * @return {object|Promise}
-	 * 		the processed resource or a promise which resolves with the processed resource or an error according to the
-	 * 		declared preprocessor sync capability
+	 * @return {Object|Promise<Object>}
+	 * 		the processed resource or a promise which resolves with the processed resource
 	 */
 
 	/**
@@ -1381,13 +1402,13 @@ sap.ui.define([
 	 * @param {string} oViewInfo.id ID
 	 * @param {string} oViewInfo.name Name
 	 * @param {string} oViewInfo.componentId ID of the owning Component
-	 * @return {string|Promise} String or Promise resolving with a string
+	 * @return {string|Promise<string>} String or Promise resolving with a string
 	 */
 
 	/**
 	 * A method to be implemented by typed <code>View</code>s, returning the view UI.
 	 *
-	 * While for declarative view types like <code>XMLView</code> or <code>JSONView</code> the user interface definition
+	 * While for declarative view types like <code>XMLView</code> or <code>JSONView</code> (deprecated) the user interface definition
 	 * is declared in a separate file, <code>View</code>s programmatically constructs the UI. This happens in the
 	 * <code>createContent</code> method, which every <code>View</code> needs to implement. The view implementation
 	 * can construct the complete UI in this method, or only return the root control and create the remainder of the UI

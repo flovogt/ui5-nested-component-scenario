@@ -29,8 +29,10 @@ sap.ui.define(["sap/ui/core/library", "./library", "./ListItemBase", "./GroupHea
 	 *
 	 * @extends sap.m.ListItemBase
 	 *
+	 * @implements sap.m.ITableItem
+
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -39,7 +41,9 @@ sap.ui.define(["sap/ui/core/library", "./library", "./ListItemBase", "./GroupHea
 	 */
 	var GroupHeaderListItem = ListItemBase.extend("sap.m.GroupHeaderListItem", /** @lends sap.m.GroupHeaderListItem.prototype */ {
 		metadata : {
-
+			interfaces : [
+				"sap.m.ITableItem"
+			],
 			library : "sap.m",
 			properties : {
 
@@ -99,12 +103,11 @@ sap.ui.define(["sap/ui/core/library", "./library", "./ListItemBase", "./GroupHea
 
 			// defines the tag name
 			this.TagName = "tr";
+			this.aAriaOwns = [];
 		}
 	};
 
 	GroupHeaderListItem.prototype.getAccessibilityType = function(oBundle) {
-		var sType = this.getTable() ? "ROW" : "LISTITEM";
-		return oBundle.getText("LIST_ITEM_GROUP_HEADER") + " " + oBundle.getText("ACC_CTR_TYPE_" + sType);
 	};
 
 	GroupHeaderListItem.prototype.getContentAnnouncement = function() {

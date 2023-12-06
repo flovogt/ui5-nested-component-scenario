@@ -21,6 +21,7 @@ sap.ui.define([
 	"sap/ui/thirdparty/jquery",
 	"sap/m/inputUtils/forwardItemProperties",
 	"sap/m/inputUtils/highlightDOMElements",
+	"sap/m/inputUtils/highlightItemsWithContains",
 	"sap/m/inputUtils/ListHelpers",
 	"sap/ui/core/IconPool",
 	"sap/ui/core/Core"
@@ -42,6 +43,7 @@ sap.ui.define([
 		jQuery,
 		forwardItemProperties,
 		highlightDOMElements,
+		highlightItemsWithContains,
 		ListHelpers,
 		IconPool,
 		Core
@@ -66,7 +68,7 @@ sap.ui.define([
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
@@ -102,7 +104,7 @@ sap.ui.define([
 
 					/**
 					 * Specifies whether clear icon is shown.
-					 * Pressing the icon will clear input's value and fire the change and liveChange events.
+					 * Pressing the icon will clear input's value.
 					 * @since 1.96
 					 */
 					showClearIcon: { type: "boolean", defaultValue: false },
@@ -224,10 +226,6 @@ sap.ui.define([
 				oList.setBusy(false);
 				oList.setShowNoData(!this.getItems().length);
 				this.bInitialBusyIndicatorState = false;
-
-				if (this.getValue()) {
-					this.open();
-				}
 			}
 		};
 
@@ -237,9 +235,10 @@ sap.ui.define([
 		 * - currenly typed value in the input field
 		 * - item to be matched
 		 * The function should return a Boolean value (true or false) which represents whether an item will be shown in the dropdown or not.
+		 * If no callback is provided, the control fallbacks to default filtering.
 		 *
 		 * @public
-		 * @param {function} fnFilter A callback function called when typing in a ComboBoxBase control or ancestor.
+		 * @param {function(string=, sap.ui.core.Item=):boolean} [fnFilter] A callback function called when typing in a ComboBoxBase control or ancestor.
 		 * @returns {this} <code>this</code> to allow method chaining.
 		 * @since 1.58
 		 */
@@ -268,9 +267,23 @@ sap.ui.define([
 		ComboBoxBase.prototype.highlightList = function (sValue) {
 			var aListItemsDOM = [];
 
-			aListItemsDOM = this._getList().$().find('.sapMSLIInfo, .sapMSLITitleOnly');
+			aListItemsDOM = this._getList().$().find('.sapMSLIInfo [id$=-infoText], .sapMSLITitleOnly [id$=-titleText]');
 
-			highlightDOMElements(aListItemsDOM, sValue);
+			if (this.useHighlightItemsWithContains()) {
+				highlightItemsWithContains(aListItemsDOM, sValue);
+			} else {
+				highlightDOMElements(aListItemsDOM, sValue);
+			}
+		};
+
+		/**
+		 * Handles highlighting of items after filtering.
+		 *
+		 * @protected
+		 * @ui5-restricted sap.ui.comp.smartfield.ComboBox
+		 */
+		ComboBoxBase.prototype.useHighlightItemsWithContains = function () {
+			return false;
 		};
 
 		/**
@@ -1527,11 +1540,10 @@ sap.ui.define([
 		/**
 		 * Opens the <code>SuggestionsPopover</code> with the available items.
 		 *
-		 * @param {function} fnFilter Function to filter the items shown in the SuggestionsPopover
+		 * @param {function|undefined} fnFilter Function to filter the items shown in the SuggestionsPopover
 		 * @returns {void}
 		 *
 		 * @since 1.64
-		 * @experimental Since 1.64
 		 * @public
 		 */
 		ComboBoxBase.prototype.showItems = function (fnFilter) {

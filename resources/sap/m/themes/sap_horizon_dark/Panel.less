@@ -4,7 +4,7 @@
 /* ================================== */
 
 .sapMPanel {
-	min-height: 2.5rem;
+	min-height: 2.75rem;
 	border-radius: @sapElement_BorderCornerRadius;
 
 	.sapMPanelWrappingDiv:not(.sapMPanelWrappingDivExpanded),
@@ -27,7 +27,7 @@
 }
 
 /* if Panel is not expandable, we do wish header to come with own border */
-.sapMPanel > .sapMPanelHdr,
+.sapMPanel .sapMPanelHeadingDiv > .sapMPanelHdr,
 /* notice: sapMPanelWrappingDiv is available if Panel is expandable */
 .sapMPanelWrappingDiv,
 /* do not want border if expanded and if only header text */
@@ -62,6 +62,20 @@
 	border-bottom: none;
 }
 
+.sapMPanelContent {
+	padding: 0.625rem 1rem;
+	border-bottom-left-radius: inherit;
+	border-bottom-right-radius: inherit;
+}
+
+.sapMPanel.sapMPanelExpanded.sapMPanelAnimating {
+	background: transparent;
+}
+
+.sapMPanelContent::-webkit-scrollbar {
+	border-bottom-right-radius: .75rem;
+}
+
 .sapMPanel .sapMPanelHdr {
 	line-height: 2.75rem;
 	height: 2.75rem;
@@ -71,8 +85,13 @@
 	width: 2.25rem;
 }
 
-.sapUiSizeCompact .sapMPanelWrappingDiv .sapUiIcon {
-	width: 2rem;
+.sapUiSizeCompact {
+	.sapMPanel {
+		min-height: 2.5rem;
+	}
+	.sapMPanelWrappingDiv .sapUiIcon {
+		width: 2rem;
+	}
 }
 
 .sapMPanel.sapMPanelExpandable .sapMPanelWrappingDivTb {
@@ -94,4 +113,10 @@
 
 .sapMPanelWrappingDiv .sapUiIcon {
 	color: @sapButton_Lite_TextColor;
+}
+
+.sapMPanelStickyHeadingDiv {
+	border-top-left-radius: inherit;
+	border-top-right-radius: inherit;
+	overflow: hidden;
 }

@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.m.Button
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -109,6 +109,14 @@ sap.ui.define([
 		if (oEvent.which === KeyCodes.ENTER && !oEvent.ctrlKey && !oEvent.metaKey) {
 			this.ontap(oEvent);
 		}
+
+		if (oEvent.which === KeyCodes.SPACE) {
+			this._bPressedSpace = true;
+		}
+
+		if (oEvent.which === KeyCodes.SHIFT && this._bPressedSpace) {
+			this._bPressedShift = true;
+		}
 	};
 
 	/**
@@ -116,12 +124,16 @@ sap.ui.define([
 	 * @param {jQuery.Event} oEvent The fired event
 	 */
 	ToggleButton.prototype.onkeyup = function(oEvent) {
-		if (oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
+		if (!this._bPressedShift && oEvent.which === KeyCodes.SPACE || oEvent.which === KeyCodes.ENTER) {
 			oEvent.setMarked();
 		}
 
-		if (oEvent.which === KeyCodes.SPACE) {
+		if (!this._bPressedShift && oEvent.which === KeyCodes.SPACE) {
 			this.ontap(oEvent);
+		}
+
+		if (oEvent.which === KeyCodes.SPACE) {
+			this._bPressedShift = false;
 		}
 	};
 
@@ -151,6 +163,8 @@ sap.ui.define([
 	ToggleButton.prototype._getToolbarInteractive = function () {
 		return true;
 	};
+
+	ToggleButton.prototype._toggleLiveChangeAnnouncement = function() {};
 
 	return ToggleButton;
 

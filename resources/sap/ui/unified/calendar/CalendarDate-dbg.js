@@ -7,14 +7,15 @@
 // Provides class sap.ui.unified.calendar.CalendarDate
 sap.ui.define([
 	'sap/ui/base/Object',
-	'sap/ui/core/date/UniversalDate'
+	'sap/ui/core/date/UniversalDate',
+	'sap/ui/core/date/UI5Date'
 ],
-	function(BaseObject, UniversalDate) {
+	function(BaseObject, UniversalDate, UI5Date) {
 		"use strict";
 
 		/*
 		 * All calculations in this class are done by representing the date(year, month, date) as UTC values for an
-		 * internal JavaScript Date object.
+		 * internal UI5Date or JavaScript Date object.
 		 */
 
 		/**
@@ -22,7 +23,7 @@ sap.ui.define([
 		 *
 		 * @class
 		 * Lightweight container for calendar date. It is a timezone agnostic and contains an year, month and date.
-		 * The difference between this class and the JavaScript Date object is: <br/>
+		 * The difference between this class and the UI5Date or JavaScript Date object is: <br/>
 		 * <ul>
 		 *     <li>it does not contain the time part</li>
 		 *     <li>year is always considered as full year, i.e. year 10 means 10, not 1910.</li>
@@ -57,7 +58,7 @@ sap.ui.define([
 
 				switch (aArgs.length) {
 					case 0: // defaults to the current date
-						oNow = new Date();
+						oNow = UI5Date.getInstance();
 						return CalendarDate.call(this, oNow.getFullYear(), oNow.getMonth(), oNow.getDate());
 
 					case 1: // CalendarDate
@@ -68,7 +69,7 @@ sap.ui.define([
 						sCalendarType = aArgs[1] ? aArgs[1] : aArgs[0]._oUDate.sCalendarType;
 						//Use source.valueOf() (returns the same point of time regardless calendar type) instead of
 						//source's getters to avoid non-gregorian Year, Month and Date may be used to construct a Gregorian date
-						oJSDate = new Date(aArgs[0].valueOf());
+						oJSDate = UI5Date.getInstance(aArgs[0].valueOf());
 
 						//Make this date really local. Now getters are safe.
 						oJSDate.setFullYear(oJSDate.getUTCFullYear(), oJSDate.getUTCMonth(), oJSDate.getUTCDate());
@@ -83,7 +84,7 @@ sap.ui.define([
 						checkNumericLike(aArgs[1], "Invalid month: " + aArgs[1]);
 						checkNumericLike(aArgs[2], "Invalid date: " + aArgs[2]);
 
-						oJSDate = new Date(0,0,1);
+						oJSDate = UI5Date.getInstance(0,0,1);
 						oJSDate.setFullYear(aArgs[0], aArgs[1], aArgs[2]); // 2 digits year is not supported. If so, it is considered as full year as well.
 
 						if (aArgs[3]) {
@@ -253,12 +254,12 @@ sap.ui.define([
 		/**
 		 * Converts the underlying sap.ui.unified.calendar.CalendarDate to a JavaScript Gregorian date by setting its time part to zero.
 		 * For example if the date is 2017-01-10, this method will return JSDate object like: 2017-01-10 00:00:00 local time.
-		 * @returns {Date} the JavaScript Date corresponding to the underlying calendar date
+		 * @returns {Date|module:sap/ui/core/date/UI5Date} the date instance corresponding to the underlying calendar date
 		 */
 		CalendarDate.prototype.toLocalJSDate = function () {
 			// Use this._oUDate.getTime()(returns the same point of time regardless calendar type)  instead of
 			// this._oUDate's getters to avoid non-gregorian Year, Month and Date to be used to construct a Gregorian date
-			var oLocalDate = new Date(this._oUDate.getTime());
+			var oLocalDate = UI5Date.getInstance(this._oUDate.getTime());
 
 			//Make this date really local. Now getters are safe.
 			oLocalDate.setFullYear(oLocalDate.getUTCFullYear(), oLocalDate.getUTCMonth(), oLocalDate.getUTCDate());
@@ -270,12 +271,12 @@ sap.ui.define([
 		/**
 		 * Converts the underlying sap.ui.unified.calendar.CalendarDate to a JavaScript Gregorian date by setting its time part to zero.
 		 * For example if the date is 2017-01-10, this method will return JSDate object like: 2017-01-10 00:00:00 utc time.
-		 * @returns {Date} the JavaScript Date corresponding to the underlying calendar date
+		 * @returns {Date|module:sap/ui/core/date/UI5Date} the date instance corresponding to the underlying calendar date
 		 */
 		CalendarDate.prototype.toUTCJSDate = function () {
 			// Use this._oUDate.getTime()(returns the same point of time regardless calendar type)  instead of
 			// this._oUDate's getters to avoid non-gregorian Year, Month and Date to be used to construct a Gregorian date
-			var oUTCDate = new Date(this._oUDate.getTime());
+			var oUTCDate = UI5Date.getInstance(this._oUDate.getTime());
 			oUTCDate.setUTCHours(0, 0, 0, 0);
 
 			return oUTCDate;
@@ -298,36 +299,36 @@ sap.ui.define([
 		};
 
 		/**
-		 * Creates an instance from a local date information of a JavaScript Date. Time related information is cut.
-		 * For example, if this method is called with JavaScript Date "2017-12-21 01:00:00 GMT +02:00", the returned result would be "2017-12-21"
-		 * despite that the given JavaScript date corresponds to "2017-12-20 23:00:00 GMT".
-		 * @param {Date} oJSDate a JavaScript date object
+		 * Creates an instance from a local date information of a UI5Date or JavaScript Date. Time related information is cut.
+		 * For example, if this method is called with UI5Date or JavaScript Date "2017-12-21 01:00:00 GMT +02:00", the returned result would be "2017-12-21"
+		 * despite that the given UI5Date or JavaScript Date corresponds to "2017-12-20 23:00:00 GMT".
+		 * @param {Date|module:sap/ui/core/date/UI5Date} oJSDate a date instance
 		 * @param {sap.ui.core.CalendarType} [sCalendarType] to be used. If not specified, the calendar type from configuration will be used.
 		 * For more details on the Configuration, please check sap.ui.core.Configuration#getCalendarType
-		 * @returns {sap.ui.unified.calendar.CalendarDate} the calendar date corresponding to the given JavaScript Date.
+		 * @returns {sap.ui.unified.calendar.CalendarDate} the calendar date corresponding to the given UI5Date or JavaScript Date.
 		 */
 		CalendarDate.fromLocalJSDate = function (oJSDate, sCalendarType) {
 			// Cross frame check for a date should be performed here otherwise setDateValue would fail in OPA tests
 			// because Date object in the test is different than the Date object in the application (due to the iframe).
 			if (!oJSDate || Object.prototype.toString.call(oJSDate) !== "[object Date]" || isNaN(oJSDate)) {
-				throw new Error("Date parameter must be a JavaScript Date object: [" + oJSDate + "].");
+				throw new Error("Date parameter must be a JavaScript or UI5Date date object: [" + oJSDate + "].");
 			}
 			return new CalendarDate(oJSDate.getFullYear(), oJSDate.getMonth(), oJSDate.getDate(), sCalendarType);
 		};
 
-		/* The UTC components of a JavaScript date are used to create a CalendarDate */
+		/* The UTC components of a UI5Date or JavaScript Date are used to create a CalendarDate */
 		CalendarDate.fromUTCDate = function (oJSDate, sCalendarType) {
 			// Cross frame check for a date should be performed here otherwise setDateValue would fail in OPA tests
 			// because Date object in the test is different than the Date object in the application (due to the iframe).
 			if (!oJSDate || Object.prototype.toString.call(oJSDate) !== "[object Date]" || isNaN(oJSDate)) {
-				throw new Error("Date parameter must be a JavaScript Date object: [" + oJSDate + "].");
+				throw new Error("Date parameter must be a JavaScript or UI5Date date object: [" + oJSDate + "].");
 			}
 			return new CalendarDate(oJSDate.getUTCFullYear(), oJSDate.getUTCMonth(), oJSDate.getUTCDate(), sCalendarType);
 		};
 
 		/**
 		 * Creates an UniversalDate corresponding to the given date and calendar type.
-		 * @param {Date} oDate JavaScript date object to create the UniversalDate from. Local date information is used.
+		 * @param {Date|module:sap/ui/core/date/UI5Date} oDate date instance to create the UniversalDate from. Local date information is used.
 		 * @param {sap.ui.core.CalendarType} sCalendarType The type to be used. If not specified, the calendar type from configuration will be used.
 		 * For more details on the Configuration, please check sap.ui.core.Configuration#getCalendarType
 		 * @returns {sap.ui.core.date.UniversalDate} The created date
@@ -341,12 +342,12 @@ sap.ui.define([
 		}
 
 		/**
-		 * Creates a JavaScript UTC Date corresponding to the given JavaScript Date.
-		 * @param {Date} oDate JavaScript date object. Time related information is cut.
-		 * @returns {Date} JavaScript date created from the date object, but this time considered as UTC date information.
+		 * Creates a UI5Date or JavaScript UTC date corresponding to the given UI5Date or JavaScript Date.
+		 * @param {Date|module:sap/ui/core/date/UI5Date} oDate date instance. Time related information is cut.
+		 * @returns {Date|module:sap/ui/core/date/UI5Date} date instance created from the date object, but this time considered as UTC date information.
 		 */
 		function createUTCDate(oDate) {
-			var oUTCDate = new Date(Date.UTC(0, 0, 1));
+			var oUTCDate = UI5Date.getInstance(Date.UTC(0, 0, 1));
 
 			oUTCDate.setUTCFullYear(oDate.getFullYear(), oDate.getMonth(), oDate.getDate());
 

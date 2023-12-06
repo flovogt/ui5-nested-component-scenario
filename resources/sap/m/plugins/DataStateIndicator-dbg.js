@@ -19,7 +19,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @since 1.73
@@ -57,7 +57,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 					 */
 					dataState: {type: "sap.ui.model.DataState"},
 					/**
-					 * The messages (@see sap.ui.core.message.Message) from the current <code>dataState</code> object filtered by the given <code>filter</code> function.
+					 * The messages ({@link sap.ui.core.message.Message}) from the current <code>dataState</code> object filtered by the given <code>filter</code> function.
 					 */
 					filteredMessages: {type: "object[]"}
 				}
@@ -126,6 +126,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 		}
 
 		if (this._oMessageStrip) {
+			oControl.removeAriaLabelledBy(this._oMessageStrip);
 			this._oMessageStrip.destroy();
 			this._oMessageStrip = null;
 		}
@@ -179,6 +180,10 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 
 		if (this._oMessageStrip) {
 			this._oMessageStrip.setText(sText).setType(sType).setVisible(!!sText);
+			this.getControl().removeAriaLabelledBy(this._oMessageStrip);
+			if (sText) {
+				this.getControl().addAriaLabelledBy(this._oMessageStrip);
+			}
 		} else {
 			sap.ui.require(["sap/m/MessageStrip"], function(MessageStrip) {
 				var oControl = this.getControl();
@@ -187,6 +192,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 					showIcon: true,
 					close: function() {
 						oControl.focus();
+						oControl.removeAriaLabelledBy(this._oMessageStrip);
 						this.fireClose();
 					}.bind(this)
 				}).addStyleClass("sapUiTinyMargin");
@@ -265,11 +271,13 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 			return;
 		}
 
-
 		var oParent = this.getParent();
 		var oControl = this.getControl();
 		var oBinding = oControl && oControl.getBinding(this._getBindingName());
 		if (oBinding && oBinding.bIsBeingDestroyed) {
+			oDataState.getAllMessages().forEach(function(oMessage) {
+				oMessage.removeControlId(oControl.getId());
+			});
 			return;
 		}
 
@@ -298,7 +306,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 			});
 
 			this._sCombinedType = this._getCombinedType(aMessages);
-			if (aMessages.length == 1 && oFirstMessage.getTarget() && oFirstMessage.getTarget().endsWith(oBinding.getPath())) {
+			if (aMessages.length == 1 && isMessageRelatedToPath(oFirstMessage, oBinding.getPath())) {
 				sMessage = oFirstMessage.getMessage();
 			} else {
 				sMessage = this._translate(this._sCombinedType.toUpperCase());
@@ -317,7 +325,7 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 			}
 
 			if (bUpdateMessageModel) {
-				Core.getMessageManager().getMessageModel().checkUpdate(false, true);
+				Core.getMessageManager().getMessageModel().checkUpdate(true, true);
 			}
 		} else {
 			this.showMessage("");
@@ -473,6 +481,18 @@ sap.ui.define(["./PluginBase", "sap/ui/core/Core", "sap/ui/base/ManagedObjectObs
 		return Core.getLibraryResourceBundle("sap.m").getText(sBundleText);
 	};
 
+	/**
+	 * Checks whether the given message is related to the given binding path.
+	 * @param {sap.ui.core.message.Message} oMessage
+	 * @param {string} sPath
+	 * @returns {boolean} Whether the message is related to the path
+	 * @private
+	 */
+	function isMessageRelatedToPath(oMessage, sPath) {
+		return oMessage.getTargets().some(function(sTarget) {
+			return sTarget.endsWith(sPath);
+		});
+	}
 
 	/**
 	 * Plugin-specific control configurations

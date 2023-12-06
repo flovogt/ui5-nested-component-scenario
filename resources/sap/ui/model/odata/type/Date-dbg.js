@@ -8,49 +8,18 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/base/util/extend",
 	"sap/ui/core/CalendarType",
+	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/type/ODataType"
-], function (Log, extend, CalendarType, DateFormat, FormatException, ParseException,
+], function (Log, extend, CalendarType, UI5Date, DateFormat, FormatException, ParseException,
 		ValidateException, ODataType) {
 	"use strict";
 
 	var rDate = /\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])/,
-		oDemoDate = new Date().getFullYear() + "-12-31",
 		oModelFormatter;
-
-	/**
-	 * Returns the matching locale-dependent error message for the type based on the constraints.
-	 *
-	 * @param {sap.ui.model.odata.type.Date} oType
-	 *   the type
-	 * @returns {string}
-	 *   the locale-dependent error message
-	 */
-	function getErrorMessage(oType) {
-		return sap.ui.getCore().getLibraryResourceBundle().getText("EnterDate",
-			[oType.formatValue(oDemoDate, "string")]);
-	}
-
-	/**
-	 * Returns the formatter. Creates it lazily.
-	 * @param {sap.ui.model.odata.type.Date} oType
-	 *   the type instance
-	 * @returns {sap.ui.core.format.DateFormat}
-	 *   the formatter
-	 */
-	function getFormatter(oType) {
-		var oFormatOptions;
-
-		if (!oType.oFormat) {
-			oFormatOptions = extend({strictParsing : true}, oType.oFormatOptions);
-			oFormatOptions.UTC = true;
-			oType.oFormat = DateFormat.getDateInstance(oFormatOptions);
-		}
-		return oType.oFormat;
-	}
 
 	/**
 	 * Returns a formatter that formats the date into yyyy-MM-dd. Creates it lazily.
@@ -106,7 +75,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @alias sap.ui.model.odata.type.Date
 	 * @param {object} [oFormatOptions]
@@ -150,10 +119,10 @@ sap.ui.define([
 	 *   the target type; may be "any", "object" (since 1.69.0), "string", or a type with one of
 	 *   these types as its {@link sap.ui.base.DataType#getPrimitiveType primitive type}; see
 	 *   {@link sap.ui.model.odata.type} for more information.
-	 * @returns {string|Date}
+	 * @returns {string|Date|module:sap/ui/core/date/UI5Date}
 	 *   the formatted output value in the target type; <code>undefined</code> or <code>null</code>
 	 *   are formatted to <code>null</code>; <code>Date</code> objects are returned for target type
-	 *   "object" and represent the given date with time "00:00:00" in local time
+	 *   "object" and represent the given date with time "00:00:00" in the configured time zone
 	 * @throws {sap.ui.model.FormatException}
 	 *   if <code>sTargetType</code> is unsupported
 	 * @public
@@ -169,15 +138,77 @@ sap.ui.define([
 				return vValue;
 			case "object":
 				return vValue instanceof Date
-					? new Date(vValue.getUTCFullYear(), vValue.getUTCMonth(), vValue.getUTCDate())
+					? UI5Date.getInstance(vValue.getUTCFullYear(), vValue.getUTCMonth(), vValue.getUTCDate())
 					: getModelFormatter().parse(vValue, false);
 			case "string":
 				oDate = vValue instanceof Date ? vValue : getModelFormatter().parse(vValue);
-				return oDate ? getFormatter(this).format(oDate) : vValue;
+				return oDate ? this.getFormat().format(oDate) : vValue;
 			default:
 				throw new FormatException("Don't know how to format " + this.getName() + " to "
 					+ sTargetType);
 		}
+	};
+
+	/**
+	 * Returns the matching locale-dependent error message for the type based on the constraints.
+	 *
+	 * @returns {string}
+	 *   The locale-dependent error message
+	 *
+	 * @private
+	 */
+	EdmDate.prototype._getErrorMessage = function () {
+		var sDemoDate = UI5Date.getInstance().getFullYear() + "-12-31";
+
+		return sap.ui.getCore().getLibraryResourceBundle().getText("EnterDate",
+			[this.formatValue(sDemoDate, "string")]);
+	};
+
+	/**
+	 * Returns a date object for a given model value.
+	 *
+	 * @param {string|null} sModelValue
+	 *   The model value of this type. Can be retrieved via {@link sap.ui.model.odata.type.Date#getModelValue}.
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null}
+	 *   An instance of <code>Date</code> for which the local getters <code>getDate()</code>, <code>getMonth()</code>,
+	 *   and <code>getFullYear()</code> can be used to get the corresponding day, month, and year of the given model
+	 *   value
+	 *
+	 * @since 1.113.0
+	 * @private
+	 * @ui5-restricted sap.fe, sap.suite.ui.generic.template, sap.ui.comp, sap.ui.generic
+	 */
+	EdmDate.prototype.getDateValue = function (sModelValue) {
+		return sModelValue ? UI5Date.getInstance(sModelValue + "T00:00") : null;
+	};
+
+	/**
+	 * @override
+	 */
+	EdmDate.prototype.getFormat = function () {
+		if (!this.oFormat) {
+			var oFormatOptions = extend({strictParsing : true}, this.oFormatOptions);
+			oFormatOptions.UTC = true;
+			this.oFormat = DateFormat.getDateInstance(oFormatOptions);
+		}
+
+		return this.oFormat;
+	};
+
+	/**
+	 * Returns the ISO string for the given model value.
+	 *
+	 * @param {string|null} sModelValue
+	 *   The model value, as returned by {@link #getModelValue}
+	 * @returns {string|null}
+	 *   A date string according to ISO 8601, or <code>null</code> if the given model value is falsy
+	 *
+	 * @since 1.114.0
+	 * @private
+	 * @ui5-restricted sap.fe, sap.suite.ui.generic.template, sap.ui.comp, sap.ui.generic
+	 */
+	EdmDate.prototype.getISOStringFromModelValue = function (sModelValue) {
+		return sModelValue ? sModelValue : null;
 	};
 
 	/**
@@ -193,6 +224,57 @@ sap.ui.define([
 	 */
 	EdmDate.prototype.getModelFormat = function () {
 		return getModelFormatter();
+	};
+
+	/**
+	 * Gets the model value according to this type's constraints and format options for the given
+	 * date object representing a date. Validates the resulting value against the constraints of
+	 * this type instance.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oDate
+	 *   The date object considering the configured time zone. Must be created via
+	 *   {@link module:sap/ui/core/date/UI5Date.getInstance}
+	 * @returns {string|null}
+	 *   The model representation of the date
+	 * @throws {Error}
+	 *   If the given date object is not valid or does not consider the configured time zone
+	 * @throws {sap.ui.model.ValidateException}
+	 *   If the constraints of this type instance are violated
+	 *
+	 * @public
+	 * @since 1.111.0
+	 */
+	EdmDate.prototype.getModelValue = function (oDate) {
+		var vResult;
+
+		if (oDate === null) {
+			vResult = null;
+		} else {
+			UI5Date.checkDate(oDate);
+			vResult = UI5Date.getInstance(0);
+			vResult.setUTCFullYear(oDate.getFullYear(), oDate.getMonth(), oDate.getDate());
+			vResult = this.getModelFormat().format(vResult);
+		}
+		this.validateValue(vResult);
+
+		return vResult;
+	};
+
+	/**
+	 * Returns the model value for the given ISO string.
+	 *
+	 * @param {string|null} sISOString
+	 *   A string according to ISO 8601, as returned by {@link #getISOStringFromModelValue}
+	 * @returns {string|null}
+	 *   The model representation for the given ISO string for this type,
+	 *   or <code>null</code> if the given ISO string is falsy
+	 *
+	 * @since 1.114.0
+	 * @private
+	 * @ui5-restricted sap.fe, sap.suite.ui.generic.template, sap.ui.comp, sap.ui.generic
+	 */
+	EdmDate.prototype.getModelValueFromISOString = function (sISOString) {
+		return sISOString ? sISOString : null;
 	};
 
 	/**
@@ -233,9 +315,9 @@ sap.ui.define([
 			case "object":
 				return getModelFormatter().format(vValue, false);
 			case "string":
-				oResult = getFormatter(this).parse(vValue);
+				oResult = this.getFormat().parse(vValue);
 				if (!oResult) {
-					throw new ParseException(getErrorMessage(this));
+					throw new ParseException(this._getErrorMessage());
 				}
 				return getModelFormatter().format(oResult);
 			default:
@@ -257,7 +339,7 @@ sap.ui.define([
 	EdmDate.prototype.validateValue = function (sValue) {
 		if (sValue === null) {
 			if (this.oConstraints && this.oConstraints.nullable === false) {
-				throw new ValidateException(getErrorMessage(this));
+				throw new ValidateException(this._getErrorMessage());
 			}
 		} else if (typeof sValue !== "string" || !rDate.test(sValue)) {
 			throw new ValidateException("Illegal " + this.getName() + " value: " + sValue);

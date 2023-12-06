@@ -8,6 +8,7 @@
 @_sap_m_Avatar_Font_Size_M: 2rem;
 @_sap_m_Avatar_Font_Size_S: 1.5rem;
 @_sap_m_Avatar_Font_Size_XS: 1rem;
+@_sap_m_Avatar_Hover_Box_Shadow_Offset: 0px 0px 0px 0.0625rem;
 
 .sapFAvatar {
 	display: inline-block;
@@ -17,6 +18,10 @@
 
 	&.sapFAvatarBorder {
 		border: 0.0625rem solid @sapGroup_ContentBorderColor;
+	}
+
+	&.sapMAvatarDisabled {
+		opacity: @sapUiContentDisabledOpacity;
 	}
 }
 
@@ -34,11 +39,16 @@
 .generateColor (@accentIndex) {
 	@css-selector: ~"sapFAvatarColorAccent@{accentIndex}"; // Create the css selector string
 	@color-param: ~"sapUiAccent@{accentIndex}"; // Build the color param which is a sapUiAccent
+	@border-param: ~"sapAvatar_@{accentIndex}_TextColor"; // Build the border param
 
 	// Build the real CSS selector.
 	// The output would be something like this: .sapFAvatar.sapFAvatarColorAccent6 {background-color: #0092d1;}
 	.@{css-selector} {
 		background-color: @@color-param;
+
+		&.sapFAvatarFocusable:not(.sapMAvatarPressed):not(.sapMAvatarDisabled):hover {
+			box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @@border-param;
+		}
 	}
 }
 
@@ -66,14 +76,26 @@
 	&>.sapFAvatarInitialsHolder {
 		color: @sapUiContentIconColor;
 	}
+
+	&.sapFAvatarFocusable:not(.sapMAvatarPressed):not(.sapMAvatarDisabled):hover {
+		box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @sapUiContentIconColor;
+	}
 }
 
 .sapFAvatarColorTileIcon {
 	background-color: @sapUiTileIconColor;
+
+	&.sapFAvatarFocusable:not(.sapMAvatarPressed):not(.sapMAvatarDisabled):hover {
+		box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @sapUiTileIconColor;
+	}
 }
 
 .sapFAvatarColorPlaceholder {
 	background-color: @sapUiContentImagePlaceholderBackground;
+
+	&.sapFAvatarFocusable:not(.sapMAvatarPressed):not(.sapMAvatarDisabled):hover {
+		box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @sapUiContentImagePlaceholderForegroundColor;
+	}
 }
 
 .sapFAvatarInitialsHolder {
@@ -91,6 +113,10 @@
 
 	.sapFAvatarTypeIcon, .sapFAvatarInitialsHolder {
 		display: none;
+	}
+
+	&.sapFAvatarFocusable:not(.sapMAvatarPressed):not(.sapMAvatarDisabled):hover {
+		box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @sapAvatar_10_TextColor;
 	}
 }
 
@@ -177,18 +203,30 @@
 	}
 }
 
-.sapFAvatarFocusable:focus {
-	outline: 0.0625rem dotted @sapUiContentFocusColor;
+.sapFAvatarFocusable.sapMAvatarPressed {
+	background-color: @sapUiButtonSelectedBackground;
+	color: @sapUiButtonSelectedTextColor;
+	outline-offset: 0.0625rem;
+
+	&:hover {
+		background-color: @sapUiButtonSelectedHoverBackground;
+	}
+
 	.sapUiRespGrid & {
 		z-index: 100;
 	}
-
-    &.sapFAvatarSquare {
-        outline-offset: 0.0625rem;
-    }
 }
 
-html:not(.sap-desktop) .sapFAvatarFocusable:focus {
+.sapFAvatarFocusable:focus {
+	outline: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+	outline-offset: 0.0625rem;
+
+	.sapUiRespGrid & {
+		z-index: 100;
+	}
+}
+
+html:not(.sap-desktop) .sapFAvatarFocusable.sapMAvatarPressed {
 	outline: none;
 }
 
@@ -241,6 +279,38 @@ html:not(.sap-desktop) .sapFAvatarFocusable:focus {
 	}
 }
 
+.sapFAvatarWarning .sapFAvatarBadgeIcon {
+	background-color: @sapWarningBackground;
+	box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @sapWarningBorderColor;
+	>.sapUiIcon {
+		color: @sapCriticalTextColor;
+	}
+}
+
+.sapFAvatarError .sapFAvatarBadgeIcon {
+	background-color: @sapErrorBackground;
+	box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @sapErrorBorderColor;
+	>.sapUiIcon {
+		color: @sapNegativeTextColor;
+	}
+}
+
+.sapFAvatarInformation .sapFAvatarBadgeIcon {
+	background-color: @sapInformationBackground;
+	box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @sapInformationBorderColor;
+	>.sapUiIcon {
+		color: @sapInformativeTextColor;
+	}
+}
+
+.sapFAvatarSuccess .sapFAvatarBadgeIcon {
+	background-color: @sapSuccessBackground;
+	box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @sapSuccessBorderColor;
+	>.sapUiIcon {
+		color: @sapPositiveTextColor;
+	}
+}
+
 .sapFAvatarBadgeIcon {
 	display: inline-block;
 	box-sizing: border-box;
@@ -256,7 +326,7 @@ html:not(.sap-desktop) .sapFAvatarFocusable:focus {
 	text-align: center;
 
 	background-color: @sapButton_Emphasized_Background;
-	border: 0.0625rem solid @sapButton_Emphasized_BorderColor;
+	box-shadow: @_sap_m_Avatar_Hover_Box_Shadow_Offset @sapButton_Emphasized_BorderColor;
 
 	>.sapUiIcon {
 		vertical-align: middle;

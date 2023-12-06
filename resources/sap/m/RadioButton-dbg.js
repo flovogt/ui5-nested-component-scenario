@@ -91,7 +91,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -254,9 +254,9 @@ function(
 		}
 	};
 
-	/**
+	/*
 	 * Destroys all related objects to the RadioButton
-	 * @public
+	 * @protected
 	 */
 	RadioButton.prototype.exit = function() {
 		var sGroupName = this.getGroupName(),

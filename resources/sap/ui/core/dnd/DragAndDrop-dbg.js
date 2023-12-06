@@ -7,11 +7,12 @@ sap.ui.define([
 	"../library",
 	"sap/ui/Device",
 	"sap/ui/core/Element",
+	"sap/ui/core/StaticArea",
 	"../UIArea",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Configuration"
 ],
-function(lib, Device, Element, UIArea, jQuery, Configuration) {
+function(lib, Device, Element, StaticArea, UIArea, jQuery, Configuration) {
 	"use strict";
 
 	var RelativeDropPosition = lib.dnd.RelativeDropPosition;
@@ -26,18 +27,20 @@ function(lib, Device, Element, UIArea, jQuery, Configuration) {
 	 */
 
 	var DnD = {},
-		oDragControl = null,		// the control being dragged
-		oDropControl = null,		// the current drop target control
-		oValidDropControl = null,	// the control which the dragged control can be dropped on based on the valid drop info
-		aValidDragInfos = [],		// valid DragInfos configured for the currently dragged source
-		aValidDropInfos = [],		// valid DropInfos configured for the current drop target
-		oDragSession = null,		// stores active drag session throughout a drag activity
-		$DropIndicator,				// drop position indicator
-		$GhostContainer,			// container to place custom ghosts
-		sCalculatedDropPosition,	// calculated position of the drop action relative to the valid dropped control.
-		iTargetEnteringTime,		// timestamp of drag enter
-		mLastIndicatorStyle = {},	// holds the last style settings of the indicator
-		oDraggableAncestorNode;		// reference to ancestor node that has draggable=true attribute
+		oDragControl = null,        // the control being dragged
+		oDropControl = null,        // the current drop target control
+		oValidDropControl = null,   // the control which the dragged control can be dropped on based on the valid drop info
+		aValidDragInfos = [],       // valid DragInfos configured for the currently dragged source
+		aValidDropInfos = [],       // valid DropInfos configured for the current drop target
+		oDragSession = null,        // stores active drag session throughout a drag activity
+		$DropIndicator,             // drop position indicator
+		$GhostContainer,            // container to place custom ghosts
+		sCalculatedDropPosition,    // calculated position of the drop action relative to the valid dropped control.
+		iTargetEnteringTime,        // timestamp of drag enter
+		mLastIndicatorStyle = {},   // holds the last style settings of the indicator
+		oDraggableAncestorNode,     // reference to ancestor node that has draggable=true attribute
+		iDragEndTimer,              // timer for the dragend event to ensure it is dispatched after the drop event
+		bDraggedOutOfBrowser;       // determines whether something dragged out of the browser context e.g. for file upload
 
 
 	function addStyleClass(oElement, sStyleClass) {
@@ -282,6 +285,7 @@ function(lib, Device, Element, UIArea, jQuery, Configuration) {
 	function closeDragSession(oEvent) {
 		oDragControl = oDropControl = oValidDropControl = oDragSession = null;
 		sCalculatedDropPosition = "";
+		bDraggedOutOfBrowser = false;
 		aValidDragInfos = [];
 		aValidDropInfos = [];
 	}
@@ -292,7 +296,7 @@ function(lib, Device, Element, UIArea, jQuery, Configuration) {
 		}
 
 		$DropIndicator = jQuery("<div class='sapUiDnDIndicator'></div>");
-		jQuery(sap.ui.getCore().getStaticAreaRef()).append($DropIndicator);
+		jQuery(StaticArea.getDomRef()).append($DropIndicator);
 		return $DropIndicator;
 	}
 
@@ -309,7 +313,7 @@ function(lib, Device, Element, UIArea, jQuery, Configuration) {
 			return;
 		}
 
-		var mClientRect = oValidDropControl.getDropAreaRect ? oValidDropControl.getDropAreaRect() : oDropTarget.getBoundingClientRect(),
+		var mClientRect = oValidDropControl.getDropAreaRect ? oValidDropControl.getDropAreaRect(sDropLayout) : oDropTarget.getBoundingClientRect(),
 			mIndicatorConfig = oEvent.dragSession && oEvent.dragSession.getIndicatorConfig(),
 			iPageYOffset = window.pageYOffset,
 			iPageXOffset = window.pageXOffset,
@@ -625,7 +629,7 @@ function(lib, Device, Element, UIArea, jQuery, Configuration) {
 		if (!aValidDropInfos.length) {
 			oValidDropControl = null;
 		} else if (!oDragSession) {
-			// something is dragged from outside the browser
+			bDraggedOutOfBrowser = true;
 			oEvent.dragSession = oDragSession = createDragSession(oEvent);
 		}
 	};
@@ -686,6 +690,14 @@ function(lib, Device, Element, UIArea, jQuery, Configuration) {
 		sCalculatedDropPosition = showDropPosition(oEvent, oValidDropInfo, oValidDropControl);
 	};
 
+	DnD.onafterdragleave = function(oEvent) {
+		// clean up the drop indicator if the user left the browser window while dragging
+		if (bDraggedOutOfBrowser && !oEvent.relatedTarget) {
+			hideDropIndicator();
+			closeDragSession();
+		}
+	};
+
 	DnD.onbeforedrop = function(oEvent) {
 		// prevent default action
 		if (aValidDropInfos.length) {
@@ -700,12 +712,12 @@ function(lib, Device, Element, UIArea, jQuery, Configuration) {
 		});
 
 		// dragend event is not dispatched if the dragged element is removed
-		this.iDragEndTimer = window.requestAnimationFrame(this.onafterdragend.bind(this, oEvent));
+		iDragEndTimer = requestAnimationFrame(this.onafterdragend.bind(this, oEvent));
 	};
 
 	DnD.onafterdragend = function(oEvent) {
 		// cleanup the timer if there is a waiting job on the queue
-		this.iDragEndTimer = window.cancelAnimationFrame(this.iDragEndTimer);
+		iDragEndTimer = cancelAnimationFrame(iDragEndTimer);
 
 		// fire dragend event of valid DragInfos
 		aValidDragInfos.forEach(function(oDragInfo) {

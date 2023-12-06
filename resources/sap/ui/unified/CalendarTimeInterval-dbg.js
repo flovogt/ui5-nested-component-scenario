@@ -26,6 +26,7 @@ sap.ui.define([
 	"sap/base/util/deepEqual",
 	"sap/base/Log",
 	"sap/ui/unified/DateRange",
+	"sap/ui/core/date/UI5Date",
 	"sap/ui/unified/Calendar"
 ], function(
 	Popover,
@@ -48,6 +49,7 @@ sap.ui.define([
 	deepEqual,
 	Log,
 	DateRange,
+    UI5Date,
 	Calendar
 ) {
 	"use strict";
@@ -66,7 +68,7 @@ sap.ui.define([
 	 * @class
 	 * Calendar with granularity of time items displayed in one line.
 	 * @extends sap.ui.core.Control
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -84,7 +86,7 @@ sap.ui.define([
 			width : {type : "sap.ui.core.CSSSize", group : "Dimension", defaultValue : null},
 
 			/**
-			 * Start date of the Interval as JavaScript Date object.
+			 * Start date of the Interval as UI5Date or JavaScript Date object.
 			 * The time interval corresponding to this Date and <code>items</code> and <code>intervalMinutes</code>
 			 * will be the first time in the displayed row.
 			 */
@@ -127,7 +129,7 @@ sap.ui.define([
 			pickerPopup : {type : "boolean", group : "Appearance", defaultValue : false},
 
 			/**
-			 * Minimum date that can be shown and selected in the Calendar. This must be a JavaScript date object.
+			 * Minimum date that can be shown and selected in the Calendar. This must be a UI5Date or JavaScript Date object.
 			 *
 			 * <b>Note:</b> If the <code>minDate</code> is set to be after the <code>maxDate</code>,
 			 * the <code>maxDate</code> is set to the end of the month of the <code>minDate</code>.
@@ -136,7 +138,7 @@ sap.ui.define([
 			minDate : {type : "object", group : "Misc", defaultValue : null},
 
 			/**
-			 * Maximum date that can be shown and selected in the Calendar. This must be a JavaScript date object.
+			 * Maximum date that can be shown and selected in the Calendar. This must be a UI5Date or JavaScript Date object.
 			 *
 			 * <b>Note:</b> If the <code>maxDate</code> is set to be before the <code>minDate</code>,
 			 * the <code>minDate</code> is set to the begin of the month of the <code>maxDate</code>.
@@ -235,9 +237,9 @@ sap.ui.define([
 
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 
-		this._oMinDate = new UniversalDate(new Date(Date.UTC(1, 0, 1)));
+		this._oMinDate = new UniversalDate(UI5Date.getInstance(Date.UTC(1, 0, 1)));
 		this._oMinDate.getJSDate().setUTCFullYear(1); // otherwise year 1 will be converted to year 1901
-		this._oMaxDate = new UniversalDate(new Date(Date.UTC(9999, 11, 31, 23, 59, 59)));
+		this._oMaxDate = new UniversalDate(UI5Date.getInstance(Date.UTC(9999, 11, 31, 23, 59, 59)));
 
 		this._initializeHeader();
 
@@ -254,10 +256,17 @@ sap.ui.define([
 	};
 
 	CalendarTimeInterval.prototype._initializeHeader = function() {
-		var oHeader = new Header(this.getId() + "--Head");
+		var oHeader = new Header(this.getId() + "--Head"),
+			oResourceBundle = Core.getLibraryResourceBundle("sap.m");
 		oHeader.attachEvent("pressPrevious", this._handlePrevious, this);
 		oHeader.attachEvent("pressNext", this._handleNext, this);
 		this.setAggregation("header", oHeader);
+
+		if (oHeader) {
+			oHeader.setAriaLabelButton0(oResourceBundle.getText("DATETIMEPICKER_DATE"));
+			oHeader.setAriaLabelButton1(oResourceBundle.getText("MOBISCROLL_MONTH"));
+			oHeader.setAriaLabelButton2(oResourceBundle.getText("MOBISCROLL_YEAR"));
+		}
 	};
 
 	CalendarTimeInterval.prototype._initializeTimesRow = function() {
@@ -429,9 +438,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets start date of the interval.
-	 * @param {Date} oStartDate A JavaScript date
+	 * Sets start date for the interval.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oStartDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
 	 */
 	CalendarTimeInterval.prototype.setStartDate = function(oStartDate){
 
@@ -447,13 +458,13 @@ sap.ui.define([
 		var oMinDate = this.getMinDate();
 		if (oMinDate && oStartDate.getTime() < oMinDate.getTime()) {
 			Log.warning("startDate < minDate -> minDate as startDate set", this);
-			oStartDate = new Date(oMinDate);
+			oStartDate = UI5Date.getInstance(oMinDate);
 		}
 
 		var oMaxDate = this.getMaxDate();
 		if (oMaxDate && oStartDate.getTime() > oMaxDate.getTime()) {
 			Log.warning("startDate > maxDate -> maxDate as startDate set", this);
-			oStartDate = new Date(oMaxDate);
+			oStartDate = UI5Date.getInstance(oMaxDate);
 		}
 
 		this.setProperty("startDate", oStartDate);
@@ -592,7 +603,7 @@ sap.ui.define([
 	/**
 	 * Sets the focused item of the <code>CalendarTimeInterval</code>.
 	 *
-	 * @param {Date} oDate JavaScript date object for focused item
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate date instance for focused item
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -619,7 +630,7 @@ sap.ui.define([
 	/**
 	 * Displays an item in the <code>CalendarTimeInterval</code> but doesn't set the focus.
 	 *
-	 * @param {Date} oDate JavaScript date object for displayed item.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate date instance for displayed item.
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -771,8 +782,10 @@ sap.ui.define([
 
 	/**
 	 * Set minimum date that can be shown and selected in the Calendar.
+	 *
 	 * @param {Date} [oDate] Min date as a JS Date object
 	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
 	 */
 	CalendarTimeInterval.prototype.setMinDate = function(oDate){
 		var oTimesRow,
@@ -835,8 +848,10 @@ sap.ui.define([
 
 	/**
 	 * Set maximum date that can be shown and selected in the Calendar.
+	 *
 	 * @param {Date} [oDate] Max date as a JS Date object
 	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
 	 */
 	CalendarTimeInterval.prototype.setMaxDate = function(oDate){
 		var oTimesRow,
@@ -1190,7 +1205,7 @@ sap.ui.define([
 			this._oFocusedDate = CalendarUtils._createUniversalUTCDate(aSelectedDates[0].getStartDate(), undefined, true);
 		} else {
 			// use current date
-			var oNewDate = new Date();
+			var oNewDate = UI5Date.getInstance();
 			this._oFocusedDate = CalendarUtils._createUniversalUTCDate(oNewDate, undefined, true);
 		}
 

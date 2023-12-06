@@ -84,7 +84,14 @@ sap.ui.define(['sap/ui/Device', "sap/base/Log", "sap/base/security/URLListValida
 				oRm.renderControl(oControl._objectsRegister.getOverflowToolbarControl());
 			}
 
-			if (oControl._isEmbeddedModeAllowed() && this._isPdfPluginEnabled()) {
+			/**
+			 * if displayType is not link and pdfPlugin is not enabled .. render error content.
+			 * case: if "Always download pdf's" option is enabled in browser setting.. in that
+			 * case display error content (to retain control behaviour)
+			 */
+			if (!oControl._isDisplayTypeLink() && !this._isPdfPluginEnabled() && Device.system.desktop) {
+				this.renderErrorContent(oRm, oControl);
+			} else if (oControl._isEmbeddedModeAllowed() && this._isPdfPluginEnabled()) {
 				this.renderPdfContent(oRm, oControl);
 			}
 
@@ -129,16 +136,12 @@ sap.ui.define(['sap/ui/Device', "sap/base/Log", "sap/base/security/URLListValida
 				oRm.close("iframe");
 			} else {
 				this.renderErrorContent(oRm, oControl);
-				if (!PDFViewerRenderer._isPdfPluginEnabled()) {
-					Log.warning("The PDF plug-in is not available on this device.");
-					oControl.fireEvent("error", {}, true);
-				}
 			}
 		};
 
 		PDFViewerRenderer.renderErrorContent = function (oRm, oControl) {
 			var oErrorContent = oControl.getErrorPlaceholder() ? oControl.getErrorPlaceholder() :
-					oControl._objectsRegister.getPlaceholderMessagePageControl();
+					oControl._objectsRegister.getPlaceholderIllustratedMessageControl();
 
 			oRm.openStart("div");
 			oRm.class("sapMPDFViewerError");
@@ -148,6 +151,11 @@ sap.ui.define(['sap/ui/Device', "sap/base/Log", "sap/base/security/URLListValida
 			oRm.openEnd();
 			oRm.renderControl(oErrorContent);
 			oRm.close("div");
+
+			if (!PDFViewerRenderer._isPdfPluginEnabled()) {
+				Log.warning("Either Inline viewing of pdf is disabled or pdf plug-in is unavailable on this device.");
+				oControl.fireEvent("error", {}, true);
+			}
 		};
 
 		return PDFViewerRenderer;

@@ -123,7 +123,10 @@ sap.ui.define([
 		coverage: {
 			only: null,
 			never: null,
-			branchTracking: false
+			branchTracking: false,
+			// "auto" checks for istanbul middleware and loads istanbul instrumentation, otherwise blanket is used.
+			// The other options set explicitly the desired instrumenter.
+			instrumenter: "auto" // blanket, istanbul, auto (default)
 		},
 		ui5: {
 			bindingSyntax: 'complex',

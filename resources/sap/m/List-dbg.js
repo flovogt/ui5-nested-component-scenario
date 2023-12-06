@@ -30,7 +30,7 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer"],
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -74,21 +74,6 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer"],
 	 */
 	List.prototype.applyAriaRole = function(sRole) {
 		this._sAriaRole = sRole;
-	};
-
-	List.prototype.enhanceAccessibilityState = function(oElement, mAriaProps) {
-		ListBase.prototype.enhanceAccessibilityState.apply(this, arguments);
-
-		// update listitem Accessibility state according to the list's role attribute
-		if (this.getAriaRole() === "listbox" && oElement.isA("sap.m.ListItemBase")) {
-			mAriaProps.roledescription = null;
-			mAriaProps.role = "option";
-			mAriaProps.owns = null;
-
-			if (oElement.isSelectable()) {
-				mAriaProps.selected = oElement.getSelected();
-			}
-		}
 	};
 
 	return List;

@@ -8,12 +8,12 @@
 // ==========================================================================
 
 @_sap_m_SearchField_Height: 2.75rem;
-@_sap_m_SearchField_FormHeight: 2.25rem;
 @_sap_m_SearchField_ButtonSize: 2.25rem;
 @_sap_m_SearchField_ButtonFontSize: 1rem;
 @_sap_m_SearchField_Compact_FormPaddingLeft: 0.5rem;
 @_sap_m_SearchField_ResetIcon: "\e03e";
 @_sap_m_SearchField_PlaceholderFontStyle: normal;
+@_sap_m_SearchField_ActiveBackgroundStyle: @sapUiFieldBackgroundStyle;
 
 .sapMSFF {
 	border-radius: @sapUiFieldBorderCornerRadius;
@@ -37,27 +37,26 @@
 	}
 
 	&:hover {
-		box-shadow: @sapUiContentInteractionShadow;
-		background-color: @sapUiButtonLiteHoverBackground;
-		border-left: 1px solid @sapUiButtonHoverBorderColor; // contrast themes specific
-		border-right: 1px solid transparent;
+		box-shadow: @sapUiFieldHoverShadow;
+		background-color: @sapUiButtonHoverBackground;
+		border-left: 2px solid @sapUiButtonHoverBorderColor; // contrast themes specific
+		border-right: 2px solid transparent;
 	}
 
 	&.sapMSFR:not(:last-child):hover { // if there is no search button the right border is not needed
-		border-right: 1px solid @sapUiButtonHoverBorderColor; // contrast themes specific
+		border-right: 2px solid @sapUiButtonHoverBorderColor; // contrast themes specific
 	}
 
 	&:active,
 	&.sapMSFBA // Firefox specific
 	{
-		box-shadow: @sapUiContentInteractionShadow;
+		box-shadow: @sapUiFieldHoverShadow;
 		color: @sapUiButtonSelectedTextColor;
-		background-color: @sapUiButtonLiteActiveBackground;
+		background-color: @sapUiButtonHoverBackground;
 	}
 }
 
 .sapMSF:not(.sapMSFDisabled):hover .sapMSFF {
-	box-shadow: @sapUiContentInteractionShadow;
 	background-color: @sapUiFieldHoverBackground;
 }
 

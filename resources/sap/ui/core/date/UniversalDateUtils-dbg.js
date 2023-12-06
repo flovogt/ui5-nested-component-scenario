@@ -4,7 +4,13 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/core/LocaleData', 'sap/base/assert', 'sap/ui/core/Configuration'],
+sap.ui.define([
+	'sap/ui/core/date/UniversalDate',
+	'sap/ui/core/Locale',
+	'sap/ui/core/LocaleData',
+	'sap/base/assert',
+	'sap/ui/core/Configuration'
+],
 	function (UniversalDate, Locale, LocaleData, assert, Configuration) {
 		"use strict";
 
@@ -84,6 +90,10 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 
 			if (bBaseOnUnit) {
 				switch (sUnit) {
+				case "MINUTE":
+				case "HOUR":
+					oStartDate = UniversalDateUtils.createNewUniversalDate();
+					break;
 				case "DAY":
 					break;
 				case "WEEK":
@@ -104,6 +114,14 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			}
 
 			switch (sUnit) {
+			case "MINUTE":
+					oEndDate = clone(oStartDate);
+					oEndDate.setMinutes(oStartDate.getMinutes() + iDuration);
+				break;
+			case "HOUR":
+					oEndDate = clone(oStartDate);
+					oEndDate.setHours(oStartDate.getHours() + iDuration);
+				break;
 			case "DAY":
 				if (iDuration > 0) {
 					oStartDate.setDate(oStartDate.getDate() + 1);
@@ -151,6 +169,9 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			if (oEndDate.getTime() < oStartDate.getTime()) {
 				// swap start/end date
 				oEndDate = [oStartDate, oStartDate = oEndDate][0];
+			}
+			if (sUnit === "HOUR" || sUnit === "MINUTE") {
+				return [ oStartDate, oEndDate ];
 			}
 			// adjust endDate (it is 'inclusive')
 			oEndDate.setDate(oEndDate.getDate() - 1);
@@ -359,6 +380,29 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			return new UniversalDate();
 		};
 
+
+		/**
+		 * Returns a date representing the first date of the current week, offset by a number of days.
+		 *
+		 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
+		 * @param {int} iDaysToAdd Day offset
+		 * @returns {sap.ui.core.date.UniversalDate} Starting date of the week with optional day offset.
+		 * @private
+		 */
+		 UniversalDateUtils._getDateFromWeekStartByDayOffset = function (sCalendarWeekNumbering, iDaysToAdd) {
+			var sCalendarType = Configuration.getCalendarType(),
+				oLocale = Configuration.getFormatSettings().getFormatLocale(),
+				oUniversalDate = UniversalDateUtils.createNewUniversalDate(),
+				oWeekAndYear = oUniversalDate.getWeek(oLocale, sCalendarWeekNumbering),
+				oFirstDateOfWeek = UniversalDate.getFirstDateOfWeek(sCalendarType, oWeekAndYear.year, oWeekAndYear.week,
+						oLocale, sCalendarWeekNumbering);
+
+			if (iDaysToAdd === undefined) {
+				iDaysToAdd = 0;
+			}
+			return new UniversalDate(oFirstDateOfWeek.year, oFirstDateOfWeek.month, oFirstDateOfWeek.day + iDaysToAdd, 0, 0, 0);
+		};
+
 		/**
 		 * Helpers to create well-known ranges.
 		 *
@@ -368,7 +412,8 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 		UniversalDateUtils.ranges = {
 			/**
 			 * @param {int} iDays Number of days before the current day
-			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iDays before the current day
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of iDays before the current day
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
@@ -376,7 +421,28 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 				return UniversalDateUtils.getRange(-iDays, "DAY");
 			},
 			/**
-			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of yesterday's date
+			 * @param {int} iMinutes Number of minutes before the current time
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of iMinutes before the current time
+			 * @private
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
+			 */
+			lastMinutes: function (iMinutes) {
+				return UniversalDateUtils.getRange(-iMinutes, "MINUTE");
+			},
+			/**
+			 * @param {int} iHours Number of hours before the current time
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of iHours before the current time
+			 * @private
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
+			 */
+			lastHours: function (iHours) {
+				return UniversalDateUtils.getRange(-iHours, "HOUR");
+			},
+			/**
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of yesterday's date
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
@@ -384,7 +450,8 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 				return UniversalDateUtils.getRange(-1, "DAY");
 			},
 			/**
-			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of today's date
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of today's date
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
@@ -392,7 +459,8 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 				return UniversalDateUtils.getRange(0, "DAY");
 			},
 			/**
-			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of tomorrow's date
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of tomorrow's date
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
@@ -400,8 +468,29 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 				return UniversalDateUtils.getRange(1, "DAY");
 			},
 			/**
+			 * @param {int} iMinutes Number of minutes after the current time
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of iMinutes after the current time
+			 * @private
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
+			 */
+			nextMinutes: function (iMinutes) {
+				return UniversalDateUtils.getRange(iMinutes, "MINUTE");
+			},
+			/**
+			 * @param {int} iHours Number of hours after the current time
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of iHours after the current time
+			 * @private
+			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
+			 */
+			nextHours: function (iHours) {
+				return UniversalDateUtils.getRange(iHours, "HOUR");
+			},
+			/**
 			 * @param {int} iDays Number of days after the current day
-			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iDays after the current day
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of iDays after the current day
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
@@ -411,37 +500,74 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 
 			/**
 			 * @param {int} iWeeks Number of weeks before the current week
-			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iWeeks before the current week
+			 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
+			 * @returns {sap.ui.core.date.UniversalDate[]}
+			 * Array with start and end date of iWeeks before the current week
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
-			lastWeeks: function (iWeeks) {
+			lastWeeks: function (iWeeks, sCalendarWeekNumbering) {
+				var oUniversalFirstDateOfWeek;
+
+				if (sCalendarWeekNumbering) {
+					oUniversalFirstDateOfWeek = UniversalDateUtils._getDateFromWeekStartByDayOffset(sCalendarWeekNumbering);
+
+					return UniversalDateUtils.getRange(-iWeeks, "WEEK", oUniversalFirstDateOfWeek, false);
+				}
 				return UniversalDateUtils.getRange(-iWeeks, "WEEK");
 			},
 			/**
+			 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of last week
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
-			lastWeek: function () {
+			lastWeek: function (sCalendarWeekNumbering) {
+				var oUniversalFirstDateOfWeek;
+
+				if (sCalendarWeekNumbering) {
+					oUniversalFirstDateOfWeek = UniversalDateUtils._getDateFromWeekStartByDayOffset(sCalendarWeekNumbering);
+
+					return UniversalDateUtils.getRange(-1, "WEEK", oUniversalFirstDateOfWeek, false);
+				}
 				return UniversalDateUtils.getRange(-1, "WEEK");
 			},
 			/**
+			 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of the current week
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
-			currentWeek: function () {
+			currentWeek: function (sCalendarWeekNumbering) {
+				var oUniversalFirstDateOfWeek;
+
+				if (sCalendarWeekNumbering) {
+					oUniversalFirstDateOfWeek = UniversalDateUtils._getDateFromWeekStartByDayOffset(sCalendarWeekNumbering);
+
+					return UniversalDateUtils.getRange(0, "WEEK", oUniversalFirstDateOfWeek, false);
+				}
 				return UniversalDateUtils.getRange(0, "WEEK");
 			},
 
 			/**
+			 * @param {string} sCalendarWeekNumbering The kind of calendarWeekNumbering.
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of the first day of the current week
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
-			firstDayOfWeek: function () {
+			firstDayOfWeek: function (sCalendarWeekNumbering) {
+				var oUniversalFirstDateOfWeek;
+
+				if (sCalendarWeekNumbering) {
+					oUniversalFirstDateOfWeek = UniversalDateUtils._getDateFromWeekStartByDayOffset(sCalendarWeekNumbering);
+
+					return [
+						UniversalDateUtils.resetStartTime(oUniversalFirstDateOfWeek),
+						UniversalDateUtils.resetEndTime(oUniversalFirstDateOfWeek)
+					];
+				}
 				var oStartDate = UniversalDateUtils.getWeekStartDate();
+
 				return [
 					oStartDate,
 					UniversalDateUtils.resetEndTime(oStartDate)
@@ -449,12 +575,25 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			},
 
 			/**
+			 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of the last day of the current week
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
-			lastDayOfWeek: function () {
+			lastDayOfWeek: function (sCalendarWeekNumbering) {
+				var oLastDateOfWeekUniversalDate, iSixDays;
+
+				if (sCalendarWeekNumbering) {
+					iSixDays = 6;
+					oLastDateOfWeekUniversalDate = UniversalDateUtils._getDateFromWeekStartByDayOffset(sCalendarWeekNumbering, iSixDays);
+
+					return [
+						oLastDateOfWeekUniversalDate,
+						UniversalDateUtils.resetEndTime(oLastDateOfWeekUniversalDate)
+					];
+				}
 				var oEndDate = UniversalDateUtils.getWeekLastDate();
+
 				return [
 					oEndDate,
 					UniversalDateUtils.resetEndTime(oEndDate)
@@ -462,20 +601,36 @@ sap.ui.define(['sap/ui/core/date/UniversalDate', 'sap/ui/core/Locale', 'sap/ui/c
 			},
 
 			/**
+			 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of next week's
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
-			nextWeek: function () {
+			nextWeek: function (sCalendarWeekNumbering) {
+				var oFirstDateOfWeekUniversalDate;
+
+				if (sCalendarWeekNumbering) {
+					oFirstDateOfWeekUniversalDate = UniversalDateUtils._getDateFromWeekStartByDayOffset(sCalendarWeekNumbering);
+
+					return UniversalDateUtils.getRange(1, "WEEK", oFirstDateOfWeekUniversalDate, false);
+				}
 				return UniversalDateUtils.getRange(1, "WEEK");
 			},
 			/**
 			 * @param {int} iWeeks Number of weeks after the current week
+			 * @param {string} sCalendarWeekNumbering The type of calendar week numbering
 			 * @returns {sap.ui.core.date.UniversalDate[]} Array with start and end date of iWeeks after the current week
 			 * @private
 			 * @ui5-restricted sap.ui.comp, sap.ui.mdc
 			 */
-			nextWeeks: function (iWeeks) {
+			nextWeeks: function (iWeeks, sCalendarWeekNumbering) {
+				var oFirstDateOfWeekUniversalDate;
+
+				if (sCalendarWeekNumbering) {
+					oFirstDateOfWeekUniversalDate = UniversalDateUtils._getDateFromWeekStartByDayOffset(sCalendarWeekNumbering);
+
+					return UniversalDateUtils.getRange(iWeeks, "WEEK", oFirstDateOfWeekUniversalDate, false);
+				}
 				return UniversalDateUtils.getRange(iWeeks, "WEEK");
 			},
 

@@ -8,12 +8,14 @@ sap.ui.define([
 	'sap/ui/base/EventProvider',
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/unified/calendar/CalendarDate',
+	'sap/ui/core/date/UI5Date',
 	'sap/ui/unified/library'
 ],
 	function(
 		EventProvider,
 		CalendarUtils,
 		CalendarDate,
+		UI5Date,
 		unifiedLibrary
 	) {
 		"use strict";
@@ -35,7 +37,7 @@ sap.ui.define([
 				EventProvider.apply(this, arguments);
 
 				this._unit = Periods.Day;
-				this._start = new Date();
+				this._start = UI5Date.getInstance();
 				this._step = 1;
 				this._calendarWeekNumbering = undefined;
 			}

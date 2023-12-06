@@ -265,7 +265,7 @@ sap.ui.define([
 	 * @param {string} vParameters.alias the system alias which will be used as the origin
 	 * @param {string} vParameters.system the system id which will be used as the origin
 	 * @param {string} vParameters.client the system's client
-	 * @param {string} vParameters.force setting this flag to 'true' overrides the already existing origin
+	 * @param {boolean} vParameters.force setting this flag to <code>true</code> overrides the already existing origin
 	 *
 	 * @public
 	 * @since 1.30.7
@@ -533,12 +533,14 @@ sap.ui.define([
 				break;
 			case "Edm.Time":
 				if (typeof vValue === "object") {
+					// no need to use UI5Date.getInstance as only the UTC timestamp is used
 					sValue = oTimeFormat.format(new Date(vValue.ms), true);
 				} else {
 					sValue = "time'" + vValue + "'";
 				}
 				break;
 			case "Edm.DateTime":
+				// no need to use UI5Date.getInstance as only the UTC timestamp is used
 				oDate = vValue instanceof Date ? vValue : new Date(vValue);
 				if (oDate.getMilliseconds() > 0) {
 					sValue = oDateTimeFormatMs.format(oDate, true);
@@ -547,6 +549,7 @@ sap.ui.define([
 				}
 				break;
 			case "Edm.DateTimeOffset":
+				// no need to use UI5Date.getInstance as only the UTC timestamp is used
 				oDate = vValue instanceof Date ? vValue : new Date(vValue);
 				sValue = oDateTimeOffsetFormat.format(oDate, true);
 				break;
@@ -742,7 +745,7 @@ sap.ui.define([
 	 *   the first value to compare
 	 * @param {any} vValue2
 	 *   the second value to compare
-	 * @param {string} [bAsDecimal=false]
+	 * @param {boolean} [bAsDecimal=false]
 	 *   if <code>true</code>, the string values <code>vValue1</code> and <code>vValue2</code> are
 	 *   compared as a decimal number (only sign, integer and fraction digits; no exponential
 	 *   format). Otherwise they are recognized by looking at their types.

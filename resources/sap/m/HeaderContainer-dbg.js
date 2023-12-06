@@ -22,6 +22,7 @@ sap.ui.define([
 		"sap/ui/events/PseudoEvents",
 		"sap/ui/thirdparty/jquery",
 		"sap/ui/core/Configuration",
+		"sap/ui/core/Lib",
 		"sap/ui/dom/jquery/scrollLeftRTL", // jQuery Plugin "scrollLeftRTL"
 		"sap/ui/dom/jquery/scrollRightRTL", // jQuery Plugin "scrollRightRTL"
 		"sap/ui/dom/jquery/Selectors" // jQuery custom selectors ":sapTabbable"
@@ -44,7 +45,8 @@ sap.ui.define([
 		KeyCodes,
 		PseudoEvents,
 		jQuery,
-		Configuration
+		Configuration,
+		CoreLib
 	) {
 		"use strict";
 
@@ -124,7 +126,7 @@ sap.ui.define([
 		 * @since 1.44.0
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @public
 		 * @alias sap.m.HeaderContainer
@@ -203,8 +205,7 @@ sap.ui.define([
 					height: {type: "sap.ui.core.CSSSize", group: "Appearance"},
 					/**
 					* Enables grid layout in mobile view.
-                                        * @private
-                                        * @since 1.99
+        			* @since 1.99
 					* @experimental since 1.99
 					*/
 					gridLayout: {type: "boolean", defaultValue: false}
@@ -278,7 +279,7 @@ sap.ui.define([
 		HeaderContainer.prototype.init = function () {
 			this._aItemEnd = [];
 			this._bRtl = Configuration.getRTL();
-			this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			this._oRb = CoreLib.getResourceBundleFor("sap.m");
 			this._oScrollCntr = new ScrollContainer(this.getId() + "-scrl-cntnr", {
 				width: "100%",
 				height: "100%",
@@ -343,6 +344,12 @@ sap.ui.define([
 						this._oItemNavigation.setItemDomRefs(aDomRefs);
 						this._oItemNavigation.setTabIndex0();
 						this._oItemNavigation.setCycling(false);
+
+						//Respecting Global Shortcuts like alt+right/left, cmd+right/left which is used for browser navigation with keyboard
+	                    this._oItemNavigation.setDisabledModifiers({
+	                        sapnext: ["alt", "meta"],
+	                        sapprevious: ["alt", "meta"]
+                        });
 
 						this._handleMobileScrolling();
 					}
@@ -423,11 +430,11 @@ sap.ui.define([
 				Log.warning("No width provided", this);
 			}
 			if (Device.system.desktop) {
-				this._oArrowPrev.setProperty("icon", sIconPrev, true);
-				this._oArrowNext.setProperty("icon", sIconNext, true);
+				this._oArrowPrev.setIcon(sIconPrev);
+				this._oArrowNext.setIcon(sIconNext);
 			} else if (Device.system.phone || Device.system.tablet) {
-				this._oArrowPrev.setProperty("src", sIconPrev, true);
-				this._oArrowNext.setProperty("src", sIconNext, true);
+				this._oArrowPrev.setSrc(sIconPrev);
+				this._oArrowNext.setSrc(sIconNext);
 			}
 
 			// before rendering starts, content items need to be updated - see _callSuperMethod
@@ -871,7 +878,7 @@ sap.ui.define([
 
 
 		HeaderContainer.prototype._handleMobileScrolling = function () {
-			if (Core.isMobile()) {
+			if (Device.browser.mobile) {
 				var $scroll = this.$("scrl-cntnr-scroll"),
 					bIsHorizontal = this.getOrientation() === Orientation.Horizontal,
 					sProperty = bIsHorizontal ? "clientX" : "clientY",

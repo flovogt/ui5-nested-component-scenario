@@ -61,7 +61,7 @@ sap.ui.define([
 			 * @implements sap.ui.core.IFormContent
 			 *
 			 * @author SAP SE
-			 * @version 1.110.0
+			 * @version 1.120.1
 			 *
 			 * @constructor
 			 * @public
@@ -346,6 +346,7 @@ sap.ui.define([
 				// select new one
 				if (this.aRBs && this.aRBs[iSelectedIndex]) {
 					this.aRBs[iSelectedIndex].setSelected(true);
+					this.aRBs[iSelectedIndex].setTabIndex(0);
 				}
 
 				if (this._oItemNavigation) {

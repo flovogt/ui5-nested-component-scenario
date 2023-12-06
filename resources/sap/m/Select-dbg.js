@@ -5,11 +5,11 @@
  */
 
 sap.ui.define([
+	'sap/ui/core/Element',
 	'./Dialog',
 	'./Popover',
 	'./SelectList',
 	'./library',
-	'sap/ui/core/Core',
 	'sap/ui/core/Control',
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/LabelEnablement',
@@ -31,14 +31,15 @@ sap.ui.define([
 	'sap/m/SimpleFixFlex',
 	'sap/base/Log',
 	'sap/ui/core/ValueStateSupport',
-	"sap/ui/core/InvisibleMessage"
+	"sap/ui/core/InvisibleMessage",
+	"sap/ui/core/Lib"
 ],
 function(
+	Element,
 	Dialog,
 	Popover,
 	SelectList,
 	library,
-	Core,
 	Control,
 	EnabledPropagator,
 	LabelEnablement,
@@ -60,7 +61,8 @@ function(
 	SimpleFixFlex,
 	Log,
 	ValueStateSupport,
-	InvisibleMessage
+	InvisibleMessage,
+	Library
 ) {
 		"use strict";
 
@@ -106,7 +108,7 @@ function(
 		 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
@@ -535,10 +537,12 @@ function(
 		}
 
 		Select.prototype._attachHiddenSelectHandlers = function () {
-			var oSelect = this._getHiddenSelect();
+			var oSelect = this._getHiddenSelect(),
+				oInput = this._getHiddenInput();
 
 			oSelect.on("focus", this._addFocusClass.bind(this));
 			oSelect.on("blur", this._removeFocusClass.bind(this));
+			oInput.on("focus", this.focus.bind(this));
 		};
 
 		Select.prototype.focus = function() {
@@ -555,11 +559,16 @@ function(
 		};
 
 		Select.prototype._detachHiddenSelectHandlers = function () {
-			var oSelect = this._getHiddenSelect();
+			var oSelect = this._getHiddenSelect(),
+				oInput = this._getHiddenInput();
 
 			if (oSelect) {
 				oSelect.off("focus");
 				oSelect.off("blur");
+			}
+
+			if (oInput) {
+				oInput.off("focus");
 			}
 		};
 
@@ -588,7 +597,7 @@ function(
 					return "";
 				}
 
-				sValueStateTypeText = Core.getLibraryResourceBundle("sap.m").getText("INPUTBASE_VALUE_STATE_" + sValueState.toUpperCase());
+				sValueStateTypeText = Library.getResourceBundleFor("sap.m").getText("INPUTBASE_VALUE_STATE_" + sValueState.toUpperCase());
 				sValueStateText = sValueStateTypeText + " " + (this.getValueStateText() || ValueStateSupport.getAdditionalText(this));
 
 			return sValueStateText;
@@ -1167,7 +1176,7 @@ function(
 			if (sValueState === ValueState.None) {
 				sText = "";
 			} else {
-				oResourceBundle = Core.getLibraryResourceBundle("sap.ui.core");
+				oResourceBundle = Library.getResourceBundleFor("sap.ui.core");
 				sText = oResourceBundle.getText("VALUE_STATE_" + sValueState.toUpperCase());
 			}
 
@@ -1338,7 +1347,7 @@ function(
 				oResourceBundle;
 
 			if (!this.getAggregation("_pickerHeader")) {
-				oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+				oResourceBundle = Library.getResourceBundleFor("sap.m");
 				this.setAggregation("_pickerHeader", new Bar({
 					titleAlignment: library.TitleAlignment.Auto,
 					contentMiddle: new Title({
@@ -1422,9 +1431,11 @@ function(
 
 			this._bValueStateMessageOpened = false;
 
-			this._sAriaRoleDescription = Core.getLibraryResourceBundle("sap.m").getText("SELECT_ROLE_DESCRIPTION");
+			this._sAriaRoleDescription = Library.getResourceBundleFor("sap.m").getText("SELECT_ROLE_DESCRIPTION");
 
 			this._oInvisibleMessage = null;
+
+			this._referencingLabelsHandlers = [];
 		};
 
 		Select.prototype.onBeforeRendering = function() {
@@ -1456,6 +1467,8 @@ function(
 
 			this._setHiddenSelectValue();
 			this._attachHiddenSelectHandlers();
+			this._clearReferencingLabelsHandlers();
+			this._handleReferencingLabels();
 		};
 
 		Select.prototype.exit = function() {
@@ -2002,7 +2015,7 @@ function(
 				return;
 			}
 
-			var oControl = Core.byId(oEvent.relatedControlId),
+			var oControl = Element.registry.get(oEvent.relatedControlId),
 				oFocusDomRef = oControl && oControl.getFocusDomRef();
 
 			if (Device.system.desktop && containsOrEquals(oPicker.getFocusDomRef(), oFocusDomRef)) {
@@ -2061,7 +2074,7 @@ function(
 			this.setProperty("selectedItemId", (vItem instanceof Item) ? vItem.getId() : vItem, true);
 
 			if (typeof vItem === "string") {
-				vItem = Core.byId(vItem);
+				vItem = Element.registry.get(vItem);
 			}
 
 			sKey = vItem ? vItem.getKey() : "";
@@ -2599,6 +2612,43 @@ function(
 			}
 		};
 
+        /**
+         * Ensures clicking on external referencing labels will put the focus on the Select container.
+         * @private
+         */
+        Select.prototype._handleReferencingLabels = function () {
+            var aLabels = this.getLabels(),
+                oDelegate,
+                that = this;
+
+			aLabels.forEach(function (oLabel) {
+				if (!oLabel) {
+					return;
+				}
+				oDelegate = {
+					ontap: function () {
+						that.focus();
+					}
+				};
+				that._referencingLabelsHandlers.push({
+					oDelegate: oDelegate,
+					sLabelId: oLabel.getId()
+				});
+				oLabel.addEventDelegate(oDelegate);
+			});
+        };
+
+        Select.prototype._clearReferencingLabelsHandlers = function () {
+			var oLabel;
+            this._referencingLabelsHandlers.forEach(function (oHandler) {
+				oLabel = Element.registry.get(oHandler.sLabelId);
+				if (oLabel) {
+					oLabel.removeEventDelegate(oHandler.oDelegate);
+				}
+            });
+            this._referencingLabelsHandlers = [];
+        };
+
 		/**
 		 * Gets the labels referencing this control.
 		 *
@@ -2614,8 +2664,9 @@ function(
 				return aLabelIDs.indexOf(sId) === iIndex;
 			})
 			.map(function(sLabelID) {
-				return Core.byId(sLabelID);
-			});
+				return Element.registry.get(sLabelID);
+			})
+			.filter(Boolean);
 
 			return aLabelIDs;
 		};
@@ -2790,7 +2841,7 @@ function(
 
 			if (typeof vItem === "string") {
 				this.setAssociation("selectedItem", vItem, true);
-				vItem = Core.byId(vItem);
+				vItem = Element.registry.get(vItem);
 			}
 
 			if (!(vItem instanceof Item) && vItem !== null) {
@@ -2979,7 +3030,7 @@ function(
 		 */
 		Select.prototype.getSelectedItem = function() {
 			var vSelectedItem = this.getAssociation("selectedItem");
-			return (vSelectedItem === null) ? null : Core.byId(vSelectedItem) || null;
+			return (vSelectedItem === null) ? null : Element.registry.get(vSelectedItem) || null;
 		};
 
 		/**
@@ -3159,7 +3210,7 @@ function(
 		Select.prototype.getAccessibilityInfo = function() {
 			var aDescriptions = [],
 				sDescription = "",
-				oResourceBundle = Core.getLibraryResourceBundle("sap.m"),
+				oResourceBundle = Library.getResourceBundleFor("sap.m"),
 				bIconOnly = this._isIconOnly(),
 				oInfo = {
 					role: this.getRenderer().getAriaRole(this),

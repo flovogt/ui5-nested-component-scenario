@@ -52,7 +52,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.MenuItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -91,9 +91,13 @@ sap.ui.define([
 	MenuTextFieldItem.prototype.render = function(oRenderManager, oItem, oMenu, oInfo){
 		var rm = oRenderManager,
 			bIsEnabled = oMenu.checkEnabled(oItem),
-			itemId = oItem.getId();
+			itemId = oItem.getId(),
+			oIcon;
 
 		rm.openStart("li", oItem);
+		if (oItem.getVisible()) {
+			rm.attr("tabindex", "0");
+		}
 		rm.class("sapUiMnuItm").class("sapUiMnuTfItm");
 
 		if (oInfo.iItemNo == 1) {
@@ -108,15 +112,12 @@ sap.ui.define([
 			rm.class("sapUiMnuItmSepBefore");
 		}
 
-		if (!bIsEnabled) {
-			rm.attr("disabled", "disabled");
-		}
-
 		// ARIA
 		if (oInfo.bAccessible) {
 			rm.attr("role", "menuitem");
 			rm.attr("aria-posinset", oInfo.iItemNo);
 			rm.attr("aria-setsize", oInfo.iTotalItems);
+			rm.attr("aria-disabled", !bIsEnabled);
 		}
 
 		rm.openEnd();
@@ -127,7 +128,11 @@ sap.ui.define([
 		if (oItem.getIcon()) {
 			// icon/check column
 			rm.openStart("div").class("sapUiMnuItmIco").openEnd();
-			rm.icon(oItem.getIcon(), null, {title: null});
+
+			oIcon = oItem._getIcon(oItem);
+
+			rm.renderControl(oIcon);
+
 			rm.close("div");
 		}
 
@@ -139,6 +144,7 @@ sap.ui.define([
 		rm.openStart("div", itemId + "-str").class("sapUiMnuTfItmStretch").openEnd().close("div"); // Helper to strech the width if needed
 		rm.openStart("div").class("sapUiMnuTfItemWrppr").openEnd();
 		rm.voidStart("input", itemId + "-tf").attr("tabindex", "-1");
+		rm.attr("role", "textbox");
 		if (oItem.getValue()) {
 			rm.attr("value", oItem.getValue());
 		}
@@ -148,11 +154,9 @@ sap.ui.define([
 		}
 		if (oInfo.bAccessible) {
 			rm.accessibilityState(oItem, {
-				role: "textbox",
 				disabled: null, // Prevent aria-disabled as a disabled attribute is enough
-				multiline: false,
-				autocomplete: "none",
-				describedby: itemId + "-lbl " + oItem._fnInvisibleCountInformationFactory(oInfo).getId()
+				describedby: oItem._fnInvisibleDescriptionFactory(oInfo).getId(),
+				labelledby: itemId + "-lbl"
 			});
 		}
 		rm.voidEnd().close("div").close("div");
@@ -164,25 +168,25 @@ sap.ui.define([
 	};
 
 	MenuTextFieldItem.prototype.exit = function() {
-		if (this._invisibleCountInformation) {
-			this._fnInvisibleCountInformationFactory().destroy();
-			this._invisibleCountInformation = null;
+		if (this._invisibleDescription) {
+			this._fnInvisibleDescriptionFactory().destroy();
+			this._invisibleDescription = null;
 		}
 	};
 
 	MenuTextFieldItem.prototype.hover = function(bHovered, oMenu){
 		this.$().toggleClass("sapUiMnuItmHov", bHovered);
 
-		if (bHovered && oMenu.checkEnabled(this)) {
+		if (bHovered) {
 			oMenu.closeSubmenu(false, true);
 		}
 	};
 
 	MenuTextFieldItem.prototype.focus = function(oMenu){
-		if (this.getEnabled() && this.getVisible()) {
+		if (this.getVisible() && this.getEnabled()) {
 			this.$("tf").get(0).focus();
 		} else {
-			oMenu.focus();
+			this.$().trigger("focus");
 		}
 	};
 
@@ -241,7 +245,7 @@ sap.ui.define([
 
 	MenuTextFieldItem.prototype.onclick = function(oEvent){
 		this.getParent().closeSubmenu(false, true);
-		if (!Device.system.desktop && this.getParent().checkEnabled(this)) {
+		if (!Device.system.desktop) {
 			this.focus();
 		}
 		oEvent.stopPropagation();
@@ -271,6 +275,7 @@ sap.ui.define([
 	 * @name sap.ui.unified.MenuTextFieldItem#getSubmenu
 	 * @deprecated As of version 1.21, the aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
 	 * @function
+	 * @ui5-not-supported
 	 */
 
 	/**
@@ -280,6 +285,7 @@ sap.ui.define([
 	 * @public
 	 * @name sap.ui.unified.MenuTextFieldItem#destroySubmenu
 	 * @deprecated As of version 1.21, the aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
+	 * @ui5-not-supported
 	 * @function
 	 */
 
@@ -290,6 +296,7 @@ sap.ui.define([
 	 * @return {this} <code>this</code> to allow method chaining
 	 * @public
 	 * @deprecated As of version 1.21, the aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
+	 * @ui5-not-supported
 	 */
 	MenuTextFieldItem.prototype.setSubmenu = function(oMenu){
 		Log.warning("The aggregation 'submenu' is not supported for this type of menu item.", "", "sap.ui.unified.MenuTextFieldItem");
@@ -363,17 +370,19 @@ sap.ui.define([
 		return true;
 	};
 
-	MenuTextFieldItem.prototype._fnInvisibleCountInformationFactory = function(oInfo) {
-		if (!this._invisibleCountInformation) {
-			this._invisibleCountInformation = new InvisibleText({
-				text: Core.getLibraryResourceBundle("sap.ui.unified").getText("UNIFIED_MENU_ITEM_COUNT_TEXT", [
-					oInfo.iItemNo,
-					oInfo.iTotalItems
-				])
+	MenuTextFieldItem.prototype._fnInvisibleDescriptionFactory = function(oInfo) {
+		var sCountInfo, sTypeInfo, oUnifiedBundle;
+
+		if (!this._invisibleDescription) {
+			oUnifiedBundle = Core.getLibraryResourceBundle("sap.ui.unified");
+			sCountInfo = oUnifiedBundle.getText("UNIFIED_MENU_ITEM_COUNT_TEXT", [oInfo.iItemNo, oInfo.iTotalItems]);
+			sTypeInfo = oUnifiedBundle.getText("UNIFIED_MENU_ITEM_HINT_TEXT");
+			this._invisibleDescription = new InvisibleText({
+				text: sCountInfo + " " + sTypeInfo
 			}).toStatic();
 		}
 
-		return this._invisibleCountInformation;
+		return this._invisibleDescription;
 	};
 
 

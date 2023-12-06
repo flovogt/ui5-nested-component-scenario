@@ -20,13 +20,14 @@ sap.ui.define(['sap/ui/core/Element'],
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @alias sap.m.p13n.AbstractContainerItem
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 	 	 * @since 1.96
+	 	 * @private
 		 * @ui5-restricted
 		 */
 		var AbstractContainerItem = Element.extend("sap.m.p13n.AbstractContainerItem", {

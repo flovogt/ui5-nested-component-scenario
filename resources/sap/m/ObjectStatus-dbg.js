@@ -12,15 +12,14 @@ sap.ui.define([
 	'sap/ui/core/IndicationColorSupport',
 	'sap/ui/core/library',
 	'sap/ui/base/DataType',
-	'./ObjectStatusRenderer'
+	'./ObjectStatusRenderer',
+	'sap/m/ImageHelper',
+	'sap/ui/core/LabelEnablement',
+	'sap/ui/core/InvisibleText'
 ],
-	function(library, Control, ValueStateSupport, IndicationColorSupport, coreLibrary, DataType, ObjectStatusRenderer) {
+	function(library, Control, ValueStateSupport, IndicationColorSupport, coreLibrary, DataType, ObjectStatusRenderer, ImageHelper, LabelEnablement, InvisibleText) {
 	"use strict";
 
-
-
-	// shortcut for sap.m.ImageHelper
-	var ImageHelper = library.ImageHelper;
 
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
@@ -47,7 +46,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -133,7 +132,14 @@ sap.ui.define([
 				 *
 				 * <b>Note:</b> The additional description will take effect only if <code>active</code> property is set to <code>true</code>.
 				 */
-				ariaDescribedBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaDescribedBy"}
+				ariaDescribedBy : {type : "sap.ui.core.Control", multiple : true, singularName : "ariaDescribedBy"},
+
+				/**
+				 * Association to controls / ids which label this control (see WAI-ARIA attribute aria-labelledby).
+				 *
+				 * <b>Note:</b> The additional labelling text will take effect only if <code>active</code> property is set to <code>true</code>.
+				 */
+				ariaLabelledBy: {type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy"}
 			},
 			events : {
 
@@ -175,6 +181,10 @@ sap.ui.define([
 		if (this._oImageControl) {
 			this._oImageControl.destroy();
 			this._oImageControl = null;
+		}
+		if (this._oInvisibleStateText) {
+			this._oInvisibleStateText.destroy();
+			this._oInvisibleStateText = null;
 		}
 	};
 
@@ -313,11 +323,55 @@ sap.ui.define([
 		return { description: sDescription };
 	};
 
+	/**
+	 * Checks whether or not the control is labelled either via labels or its <code>ariaLabelledBy</code> association.
+	 * @returns {boolean}
+	 * @private
+	 */
+	 ObjectStatus.prototype._hasExternalLabelling = function() {
+		return this.getAriaLabelledBy().length > 0 || LabelEnablement.getReferencingLabels(this).length > 0;
+	};
+
+	/**
+	 * Generates a string containing all internal elements' IDs, which provide information to the screen reader user.
+	 * @returns {string}
+	 * @private
+	 */
+	 ObjectStatus.prototype._generateSelfLabellingIds = function() {
+		var sId = this.getId(),
+			sResult = "";
+
+		if (this.getTitle()) {
+			sResult += sId + "-title ";
+		}
+
+		if (this.getText()) {
+			sResult += sId + "-text ";
+		}
+
+		if (this.getIcon()) {
+			sResult += sId + "-statusIcon ";
+		}
+
+		return sResult.trim();
+	};
+
 	ObjectStatus.prototype._isClickable = function(oEvent) {
 		var sSourceId = oEvent.target.id;
 
 		//event should only be fired if the click is on the text, link or icon
 		return this._isActive() && (sSourceId === this.getId() + "-link" || sSourceId === this.getId() + "-text" || sSourceId === this.getId() + "-statusIcon" || sSourceId === this.getId() + "-icon");
+	};
+
+	ObjectStatus.prototype._fnInvisibleStateLabelFactory = function() {
+		if (!this._oInvisibleStateText) {
+			this._oInvisibleStateText = new InvisibleText({
+				id: this.getId() + "-state-text",
+				text: this._getStateText(this.getState())
+			}).toStatic();
+		}
+
+		return this._oInvisibleStateText;
 	};
 
 	return ObjectStatus;

@@ -8,7 +8,7 @@
 sap.ui.define([
 	"./WaiterBase",
 	"sap/ui/thirdparty/jquery"
-], function (WaiterBase, jQueryDOM) {
+], function (WaiterBase, jQuery) {
 	"use strict";
 
 	var STATE = {
@@ -19,6 +19,7 @@ sap.ui.define([
 
 	var ModuleWaiter = WaiterBase.extend("sap.ui.test.autowaiter._ModuleWaiter", {
 		constructor: function () {
+			WaiterBase.apply(this, arguments);
 			// (see sap.ui.performance.trace.Interaction)
 			/* As UI5 resources gets also loaded via script tags we need to
 			 * intercept this kind of loading as well. We assume that changing the
@@ -54,12 +55,10 @@ sap.ui.define([
 				},
 				get: mSrcDescriptor.get
 			});
-
-			WaiterBase.apply(this, arguments);
 		},
 		hasPending: function () {
 			var aPendingModules = this._aModules.filter(function (mModule) {
-				if (!jQueryDOM(mModule.script).length) {
+				if (!jQuery(mModule.script).length) {
 					this._oLogger.trace("Script with src '" + mModule.src + "' was removed");
 					return false;
 				}

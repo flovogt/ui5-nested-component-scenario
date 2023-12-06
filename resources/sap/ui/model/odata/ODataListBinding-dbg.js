@@ -40,6 +40,9 @@ sap.ui.define([
 	 * @param {Object<string,string>} [mParameters.custom] An optional map of custom query parameters. Custom parameters must not start with <code>$</code>
 	 * @param {sap.ui.model.odata.CountMode} [mParameters.countMode] Defines the count mode of this binding;
 	 *           if not specified, the default count mode of the <code>oModel</code> is applied
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *   <code>aFilters</code> together with other filters
 	 *
 	 * @public
 	 * @deprecated As of version 1.66, please use {@link sap.ui.model.odata.v2.ODataListBinding} instead.
@@ -66,7 +69,7 @@ sap.ui.define([
 			this.oCombinedFilter = null;
 
 			// check filter integrity
-			this.oModel.checkFilterOperation(this.aApplicationFilters);
+			this.oModel.checkFilter(this.aApplicationFilters);
 
 			// load the entity type for the collection only once and not e.g. every time when filtering
 			if (!this.oModel.getServiceMetadata()) {
@@ -103,6 +106,30 @@ sap.ui.define([
 			}
 		}
 	});
+
+	/**
+	 * Returns all current contexts of this list binding in no special order. Just like
+	 * {@link #getCurrentContexts}, this method does not request any data from a back end and does
+	 * not change the binding's state. In contrast to {@link #getCurrentContexts}, it does not only
+	 * return those contexts that were last requested by a control, but all contexts that are
+	 * currently available in the binding.
+	 *
+	 * @returns {sap.ui.model.odata.v2.Context[]}
+	 *   All current contexts of this list binding, in no special order
+	 *
+	 * @public
+	 * @since 1.98.0
+	 */
+	ODataListBinding.prototype.getAllCurrentContexts = function () {
+		var aContexts = [],
+			that = this;
+
+		this.aKeys.forEach(function (sKey) {
+			aContexts.push(that.oModel.getContext("/" + sKey));
+		});
+
+		return aContexts;
+	};
 
 	/**
 	 * Return contexts for the list
@@ -846,6 +873,9 @@ sap.ui.define([
 	 *   depending on whether the filtering has been done
 	 * @return {this}
 	 *   Returns <code>this</code> to facilitate method chaining or the success state
+	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
+	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *   <code>aFilters</code> together with other filters
 	 *
 	 * @public
 	 */
@@ -862,7 +892,7 @@ sap.ui.define([
 		}
 
 		// check filter integrity
-		this.oModel.checkFilterOperation(aFilters);
+		this.oModel.checkFilter(aFilters);
 
 		if (sFilterType == FilterType.Application) {
 			this.aApplicationFilters = aFilters;

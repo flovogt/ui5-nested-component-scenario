@@ -1853,12 +1853,18 @@ if ( eventCaptureSupported ) {
 	// and mouseup event which have delay reach on the underneath input.
 	// Thus the mousedown and mouseup events should also be suppressed.
 	//
-	// The mousedown, mouseup and click events are suppressed only when their
-	// coordinate is proximitely the same as the coordinate of recorded touch
-	// events and the mouse event's target is different than the target of the
-	// touch event.
+	// Moreover, mobile browsers, such as mobile Safari fires mouseover
+	// event with delay as well. This event may also be dispatched wrongly
+	// to the underneath element when the top element is removed in one of
+	// the touch* event handler.
+	//
+	// The mousedown, mouseup, mouseover and click events are suppressed
+	// only when their coordinate is proximately the same as the coordinate
+	// of recorded touch events and the mouse event's target is different
+	// than the target of the touch event.
 	document.addEventListener( "mousedown", suppressEvent, true );
 	document.addEventListener( "mouseup", suppressEvent, true );
+	document.addEventListener( "mouseover", suppressEvent, true );
 	document.addEventListener( "click", suppressEvent, true );
 }
 })( jQuery, window, document );
@@ -1890,7 +1896,9 @@ if ( eventCaptureSupported ) {
 		// MODIFIED BY SAP
 		// touchcancel has to be used because touchcancel is fired under some condition instead of
 		// touchend when runs on Windows 8 device.
-		touchStopEvent = supportTouch ? "touchend touchcancel" : "mouseup",
+		//
+		// dragstart is added because "mouseup" event isn't fired anymore once dragstart is fired
+		touchStopEvent = supportTouch ? "touchend touchcancel" : "mouseup dragstart",
 		touchMoveEvent = supportTouch ? "touchmove" : "mousemove";
 
 	function triggerCustomEvent( obj, eventType, event ) {
@@ -1995,6 +2003,9 @@ if ( eventCaptureSupported ) {
 				$this.off( "vclick", clickHandler )
 					.off( "vmouseup", clearTapTimer );
 				$document.off( "vmousecancel", clearTapHandlers )
+				// MODIFIED BY SAP: deregister the function of clearing handlers from 'dragstart' event
+				// on document
+					.off( "dragstart", clearTapHandlers )
 				// MODIFIED BY SAP: deregister the function of clearing handlers from 'mouseup' event
 				// on document
 					.off( "vmouseup", checkAndClearTapHandlers );
@@ -2044,6 +2055,9 @@ if ( eventCaptureSupported ) {
 				$this.on( "vmouseup", clearTapTimer )
 					.on( "vclick", clickHandler );
 				$document.on( "vmousecancel", clearTapHandlers )
+				// MODIFIED BY SAP: register the function of clearing handlers to 'dragstart' event
+				// on document, because no 'mouseup' and 'click' event is fired after 'dragstart'
+					.on( "dragstart", clearTapHandlers )
 				// MODIFIED BY SAP: register the function of clearing handlers to 'mouseup' event
 				// on document
 				// MODIFIED BY SAP: replace deprecated API .bind -> .on

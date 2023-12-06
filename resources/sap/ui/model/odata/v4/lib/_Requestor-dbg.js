@@ -13,10 +13,10 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/base/SyncPromise",
 	"sap/ui/core/cache/CacheManager",
-	"sap/ui/core/Configuration",
+	"sap/ui/security/Security",
 	"sap/ui/thirdparty/jquery"
 ], function (_Batch, _GroupLock, _Helper, asV2Requestor, Log, SyncPromise, CacheManager,
-		Configuration, jQuery) {
+		Security, jQuery) {
 	"use strict";
 
 	var mBatchHeaders = { // headers for the $batch request
@@ -76,12 +76,14 @@ sap.ui.define([
 	 *   {@link sap.ui.model.odata.v4.lib._Helper.buildQuery}; used only to request the CSRF token
 	 * @param {object} oModelInterface
 	 *   An interface allowing to call back to the owning model (see {@link .create})
+	 * @param {boolean} [bWithCredentials]
+	 *   Whether the XHR should be called with <code>withCredentials</code>
 	 *
 	 * @alias sap.ui.model.odata.v4.lib._Requestor
 	 * @constructor
 	 * @private
 	 */
-	function _Requestor(sServiceUrl, mHeaders, mQueryParams, oModelInterface) {
+	function _Requestor(sServiceUrl, mHeaders, mQueryParams, oModelInterface, bWithCredentials) {
 		this.mBatchQueue = {};
 		this.bBatchSent = false;
 		this.mHeaders = mHeaders || {};
@@ -94,6 +96,7 @@ sap.ui.define([
 		this.iSerialNumber = 0;
 		this.sServiceUrl = sServiceUrl;
 		this.vStatistics = mQueryParams && mQueryParams["sap-statistics"];
+		this.bWithCredentials = bWithCredentials;
 		this.processSecurityTokenHandlers(); // sets this.oSecurityTokenPromise
 	}
 
@@ -339,19 +342,22 @@ sap.ui.define([
 	 *
 	 * @param {string} sGroupId
 	 *   The group ID to be canceled
+	 * @param {boolean} [bResetInactive]
+	 *   Whether an edited inactive entity should be reset to its initial state instead of being
+	 *   removed.
 	 * @throws {Error}
 	 *   If change requests for the given group ID are running
 	 *
 	 * @public
 	 */
-	_Requestor.prototype.cancelChanges = function (sGroupId) {
+	_Requestor.prototype.cancelChanges = function (sGroupId, bResetInactive) {
 		if (this.mRunningChangeRequests[sGroupId]) {
 			throw new Error("Cannot cancel the changes for group '" + sGroupId
 				+ "', the batch request is running");
 		}
 		this.cancelChangesByFilter(function () {
 			return true;
-		}, sGroupId);
+		}, sGroupId, bResetInactive);
 		this.cancelGroupLocks(sGroupId);
 	};
 
@@ -367,12 +373,15 @@ sap.ui.define([
 	 * @param {string} [sGroupId]
 	 *   The ID of the group from which the requests shall be canceled; if not given all groups
 	 *   are processed
+	 * @param {boolean} [bResetInactive]
+	 *   Whether an edited inactive entity should be reset to its initial state instead of being
+	 *   removed.
 	 * @returns {boolean}
 	 *   Whether at least one request has been canceled
 	 *
 	 * @private
 	 */
-	_Requestor.prototype.cancelChangesByFilter = function (fnFilter, sGroupId) {
+	_Requestor.prototype.cancelChangesByFilter = function (fnFilter, sGroupId, bResetInactive) {
 		var bCanceled = false,
 			that = this;
 
@@ -390,13 +399,14 @@ sap.ui.define([
 					for (i = aChangeSet.length - 1; i >= 0; i -= 1) {
 						oChangeRequest = aChangeSet[i];
 						if (oChangeRequest.$cancel && fnFilter(oChangeRequest)) {
-							oChangeRequest.$cancel();
-							oError = new Error("Request canceled: " + oChangeRequest.method + " "
-								+ oChangeRequest.url + "; group: " + sGroupId0);
-							oError.canceled = true;
-							oChangeRequest.$reject(oError);
-							aChangeSet.splice(i, 1);
-							bCanceled = true;
+							if (!oChangeRequest.$cancel(bResetInactive)) {
+								oError = new Error("Request canceled: " + oChangeRequest.method
+									+ " " + oChangeRequest.url + "; group: " + sGroupId0);
+								oError.canceled = true;
+								oChangeRequest.$reject(oError);
+								aChangeSet.splice(i, 1);
+								bCanceled = true;
+							}
 						}
 					}
 				}
@@ -422,6 +432,8 @@ sap.ui.define([
 	 * @param {string} [sGroupId]
 	 *   The ID of the group from which the locks shall be canceled; if not given all groups are
 	 *   processed
+	 *
+	 * @private
 	 */
 	_Requestor.prototype.cancelGroupLocks = function (sGroupId) {
 		this.aLockedGroupLocks.forEach(function (oGroupLock) {
@@ -477,7 +489,7 @@ sap.ui.define([
 	_Requestor.prototype.checkForOpenRequests = function () {
 		var that = this;
 
-		if (Object.keys(this.mRunningChangeRequests).length // running change requests
+		if (!_Helper.isEmptyObject(this.mRunningChangeRequests) // running change requests
 			|| Object.keys(this.mBatchQueue).some(function (sGroupId) { // pending requests
 				return that.mBatchQueue[sGroupId].some(function (vRequest) {
 					return Array.isArray(vRequest) ? vRequest.length : true;
@@ -827,8 +839,10 @@ sap.ui.define([
 	 * @param {string} sMetaPath
 	 *   The meta path of the resource + navigation or key path (which may lead to an entity or
 	 *   complex type)
-	 * @returns {SyncPromise<object>}
+	 * @returns {sap.ui.base.SyncPromise<object>}
 	 *   A promise resolving with the type
+	 *
+	 * @public
 	 */
 	 _Requestor.prototype.fetchType = function (mTypeForMetaPath, sMetaPath) {
 		var that = this;
@@ -1192,6 +1206,7 @@ sap.ui.define([
 			return oRequest.$queryOptions && aResultingRequests.some(function (oCandidate) {
 				if (oCandidate.$queryOptions && oRequest.url === oCandidate.url
 						&& oRequest.$owner === oCandidate.$owner) {
+					oCandidate.$queryOptions = _Helper.clone(oCandidate.$queryOptions);
 					_Helper.aggregateExpandSelect(oCandidate.$queryOptions, oRequest.$queryOptions);
 					oRequest.$resolve(oCandidate.$promise);
 					if (oCandidate.$mergeRequests && oRequest.$mergeRequests) {
@@ -1294,7 +1309,7 @@ sap.ui.define([
 						"HTTP request was not processed because the previous request failed");
 					oError.cause = oCause;
 					oError.$reported = true; // do not create a message for this error
-					vRequest.$reject(oError);
+					reject(oError, vRequest); // Note: vRequest may well be a change set
 				} else if (vResponse.status >= 400) {
 					vResponse.getResponseHeader = getResponseHeader;
 					// Note: vRequest is an array in case a change set fails, hence url and
@@ -1450,20 +1465,30 @@ sap.ui.define([
 		if (!oOptimisticBatch) {
 			return;
 		}
-
+		fnOptimisticBatchEnabler = this.oModelInterface.getOptimisticBatchEnabler();
 		sKey = oOptimisticBatch.key;
 		this.oOptimisticBatch = null;
 		if (oOptimisticBatch.result) { // n+1 app start, consume optimistic batch result
 			if (_Requestor.matchesOptimisticBatch(aRequests, sGroupId,
 					oOptimisticBatch.firstBatch.requests, oOptimisticBatch.firstBatch.groupId)) {
+				if (fnOptimisticBatchEnabler) {
+					Promise.resolve(fnOptimisticBatchEnabler(sKey)).then(async (bEnabled) => {
+						if (!bEnabled) {
+							await CacheManager.del(sCachePrefix + sKey);
+							Log.info("optimistic batch: disabled, response deleted", sKey,
+								sClassName);
+						}
+					}).catch(that.oModelInterface.getReporter());
+				}
+
 				Log.info("optimistic batch: success, response consumed", sKey, sClassName);
 				return oOptimisticBatch.result;
 			}
-			CacheManager.del(sCachePrefix + sKey).catch(this.oModelInterface.getReporter());
-			Log.warning("optimistic batch: mismatch, response skipped", sKey, sClassName);
+			CacheManager.del(sCachePrefix + sKey).then(() => {
+				Log.warning("optimistic batch: mismatch, response skipped", sKey, sClassName);
+			}, this.oModelInterface.getReporter());
 		}
 
-		fnOptimisticBatchEnabler = this.oModelInterface.getOptimisticBatchEnabler();
 		if (fnOptimisticBatchEnabler) { // 1st app start, or optimistic batch payload did not match
 			bIsModifyingBatch = aRequests.some(function (oRequest) {
 					return Array.isArray(oRequest) || oRequest.method !== "GET";
@@ -1496,8 +1521,8 @@ sap.ui.define([
 
 	/**
 	 * Calls the security token handlers returned by
-	 * {@link sap.ui.core.Configuration#getSecurityTokenHandlers} one by one with the requestor's
-	 * service URL. The first handler not returning <code>undefined</code> but a
+	 * {@link module:sap/ui/security/Security.getSecurityTokenHandlers} one by one with the
+	 * requestor's service URL. The first handler not returning <code>undefined</code> but a
 	 * <code>Promise</code> is used to determine the required security tokens.
 	 *
 	 * @private
@@ -1507,7 +1532,7 @@ sap.ui.define([
 
 		this.oSecurityTokenPromise = null;
 
-		Configuration.getSecurityTokenHandlers().some(function (fnHandler) {
+		Security.getSecurityTokenHandlers().some(function (fnHandler) {
 			var oSecurityTokenPromise = fnHandler(that.sServiceUrl);
 
 			if (oSecurityTokenPromise !== undefined) {
@@ -1534,8 +1559,9 @@ sap.ui.define([
 	 * @param {string} [sOldSecurityToken]
 	 *   Security token that caused a 403. A new token is only fetched if the old one is still
 	 *   current.
-	 * @returns {Promise}
-	 *   A promise that will be resolved (with no result) once the CSRF token has been refreshed.
+	 * @returns {Promise<void>}
+	 *   A promise which is resolved without a defined result once the CSRF token has been
+	 *   refreshed.
 	 *
 	 * @public
 	 */
@@ -1733,10 +1759,11 @@ sap.ui.define([
 	 * @param {function} [fnSubmit]
 	 *   A function that is called when the request has been submitted, either immediately (when
 	 *   the group ID is "$direct") or via {@link #submitBatch}
-	 * @param {function} [fnCancel]
+	 * @param {function(boolean):boolean} [fnCancel]
 	 *   A function that is called for clean-up if the request is canceled while waiting in a batch
 	 *   queue, ignored for GET requests; {@link #cancelChanges} cancels this request only if this
-	 *   callback is given
+	 *   callback is given and a falsy value was returned. A boolean parameter is passed to the
+	 *   callback which indicates if inactive entities should be reset instead of being removed.
 	 * @param {string} [sMetaPath]
 	 *   The meta path corresponding to the resource path; needed in case V2 response does not
 	 *   contain <code>__metadata.type</code>, for example "2.2.7.2.4 RetrievePrimitiveProperty
@@ -1893,6 +1920,8 @@ sap.ui.define([
 	/**
 	 * Checks whether a first batch from an earlier app start was recorded and sends it immediately
 	 * out as optimistic batch in order to have its response at the earliest point in time.
+	 *
+	 * @public
 	 */
 	_Requestor.prototype.sendOptimisticBatch = function () {
 		var sKey = window.location.href,
@@ -1946,18 +1975,23 @@ sap.ui.define([
 
 		return new Promise(function (fnResolve, fnReject) {
 			function send(bIsFreshToken) {
+				const oAjaxSettings = {
+						contentType : mHeaders && mHeaders["Content-Type"],
+						data : sPayload,
+						headers : Object.assign({},
+							that.mPredefinedRequestHeaders,
+							that.mHeaders,
+							_Helper.resolveIfMatchHeader(mHeaders,
+								that.oModelInterface.isIgnoreETag())),
+						method : sMethod
+					};
 				var sOldCsrfToken = that.mHeaders["X-CSRF-Token"];
 
-				return jQuery.ajax(sRequestUrl, {
-					contentType : mHeaders && mHeaders["Content-Type"],
-					data : sPayload,
-					headers : Object.assign({},
-						that.mPredefinedRequestHeaders,
-						that.mHeaders,
-						_Helper.resolveIfMatchHeader(mHeaders,
-							that.oModelInterface.isIgnoreETag())),
-					method : sMethod
-				}).then(function (/*{object|string}*/vResponse, _sTextStatus, jqXHR) {
+				if (that.bWithCredentials) {
+					oAjaxSettings.xhrFields = {withCredentials : true};
+				}
+				return jQuery.ajax(sRequestUrl, oAjaxSettings)
+				.then(function (/*{object|string}*/vResponse, _sTextStatus, jqXHR) {
 					var sETag = jqXHR.getResponseHeader("ETag"),
 						sCsrfToken = jqXHR.getResponseHeader("X-CSRF-Token");
 
@@ -2143,7 +2177,7 @@ sap.ui.define([
 	 */
 	_Requestor.prototype.waitForBatchResponseReceived = function (sGroupId) {
 		// Note: this currently works only in case there is at least one change request already
-		return this.mBatchQueue[sGroupId][0][0].$promise;
+		return SyncPromise.resolve(this.mBatchQueue[sGroupId][0][0].$promise);
 	};
 
 	/**
@@ -2210,8 +2244,6 @@ sap.ui.define([
 	 * @param {function} oModelInterface.fetchMetadata
 	 *   A function that returns a SyncPromise which resolves with the metadata instance for a
 	 *   given meta path
-	 * @param {function} oModelInterface.fireMessageChange
-	 *   A function that fires the 'messageChange' event for the given messages
 	 * @param {function} oModelInterface.fireDataReceived
 	 *   A function that fires the 'dataReceived' event at the model with an optional parameter
 	 *   <code>oError</code>
@@ -2243,6 +2275,10 @@ sap.ui.define([
 	 *   A function to report OData state messages
 	 * @param {function} oModelInterface.reportTransitionMessages
 	 *   A function to report OData transition messages
+	 * @param {function(sap.ui.core.message.Message[],sap.ui.core.message.Message[]):void} oModelInterface.updateMessages
+	 *   A function to report messages to the MessageManager, expecting two arrays of
+	 *   {sap.ui.core.message.Message} as parameters. The first array should be the old messages and
+	 *   the second array the new messages.
 	 * @param {object} [mHeaders={}]
 	 *   Map of default headers; may be overridden with request-specific headers; certain
 	 *   OData V4 headers are predefined, but may be overridden by the default or
@@ -2262,12 +2298,15 @@ sap.ui.define([
 	 *   token
 	 * @param {string} [sODataVersion="4.0"]
 	 *   The version of the OData service. Supported values are "2.0" and "4.0".
+	 * @param {boolean} [bWithCredentials]
+	 *   Whether the XHR should be called with <code>withCredentials</code>
 	 * @returns {object}
 	 *   A new <code>_Requestor</code> instance
 	 */
 	_Requestor.create = function (sServiceUrl, oModelInterface, mHeaders, mQueryParams,
-			sODataVersion) {
-		var oRequestor = new _Requestor(sServiceUrl, mHeaders, mQueryParams, oModelInterface);
+			sODataVersion, bWithCredentials) {
+		var oRequestor = new _Requestor(sServiceUrl, mHeaders, mQueryParams, oModelInterface,
+			bWithCredentials);
 
 		if (sODataVersion === "2.0") {
 			asV2Requestor(oRequestor);

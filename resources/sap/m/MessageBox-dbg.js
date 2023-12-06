@@ -54,6 +54,9 @@ sap.ui.define([
 	// shortcut for sap.m.FlexAlignItems
 	var FlexAlignItems = library.FlexAlignItems;
 
+	// shortcut for sap.m.LinkAccessibleRole
+	var LinkAccessibleRole = library.LinkAccessibleRole;
+
 	// shortcut for sap.ui.core.MessageType
 	var MessageType = coreLibrary.MessageType;
 
@@ -64,17 +67,15 @@ sap.ui.define([
 	 * Provides easier methods to create sap.m.Dialog with type sap.m.DialogType.Message, such as standard alerts,
 	 * confirmation dialogs, or arbitrary message dialogs.
 	 *
-	 * Because the <code>MessageBox</code> is a static class, a <code>sap.ui.require("sap/m/MessageBox");</code> statement
-	 * must be explicitly executed prior using the class.
 	 * MessageBox provides several functions:
 	 * <ul>
 	 * <li><code>show()</code> - This is the generic way to open a message dialog. You can customize its contents through the <code>mOptions</code> parameter described below.</li>
 	 * <li><code>alert()</code>, <code>confirm()</code>, <code>error()</code>, <code>information()</code>, <code>success()</code> and <code>warning()</code> - predefined templates of message dialogs. Each value type is coming with action buttons and an icon that are corresponding to its semantic. Although the full set of <code>mOptions</code> (applicable to <code>show()</code>) are available to them, it is recommended to only use the documented options.</li>
 	 * </ul>
 	 *
-	 * <b>NOTE:</b> All options of show() are available for the other template functions as well, but it is recommended to use show() only in more specific scenarios.<br />
-	 * <b>NOTE:</b> Due to the static nature of the <code>MessageBox</code> class, you cannot expect data binding support from its helper functions. If this is required you can use the <code>sap.m.Dialog</code> instead.<br />
-	 * <b>NOTE:</b> When using the <code>MessageBox.Error</code> method, there is no emphasized action by design.
+	 * <b>Note:</b> All options of show() are available for the other template functions as well, but it is recommended to use show() only in more specific scenarios.<br />
+	 * <b>Note:</b> Due to the static nature of the <code>MessageBox</code> class, you cannot expect data binding support from its helper functions. If this is required you can use the <code>sap.m.Dialog</code> instead.<br />
+	 * <b>Note:</b> When using the <code>MessageBox.Error</code> method, there is no emphasized action by design.
 	 *
 	 * Example:
 	 * <pre>
@@ -292,6 +293,7 @@ sap.ui.define([
 		});
 
 		oViewDetails = new Link({
+			accessibleRole: LinkAccessibleRole.Button,
 			text: MessageBox._rb.getText("MSGBOX_LINK_TITLE"),
 			press: function () {
 				if (typeof mOptions.details === "function") {
@@ -304,6 +306,7 @@ sap.ui.define([
 
 		oTryAgain = new Link({
 			text: MessageBox._rb.getText("MSGBOX_DETAILS_RETRY_LOADING"),
+			accessibleRole: LinkAccessibleRole.Button,
 			press: function () {
 				oViewDetails.setVisible(true);
 				oErrorMessage.setVisible(false);
@@ -348,8 +351,7 @@ sap.ui.define([
 	 * Creates and displays an sap.m.Dialog with type sap.m.DialogType.Message with the given text and buttons, and optionally other parts.
 	 * After the user has tapped a button, the <code>onClose</code> function is invoked when given.
 	 *
-	 * The only mandatory parameter is <code>vMessage</code>. Either a string with the corresponding text or even
-	 * a layout control could be provided.
+	 * The only mandatory parameter is <code>vMessage</code>.
 	 *
 	 * <pre>
 	 * sap.m.MessageBox.show("This message should appear in the message box", {
@@ -395,11 +397,14 @@ sap.ui.define([
 	 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 	 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
 	 * @param {string|object|function():Promise<string|object>} [mOptions.details]
-	 *      Added since version 1.28.0. If 'details' is set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
+	 *      Added since version 1.28.0. If set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
 	 *      The initial visibility is not configurable and the details are hidden by default.<br>
-	 *      If object is given, it will be serialized using <code>JSON.stringify</code>.<br>
-	 *      Since version 1.103, a callback function can be used. It should return a promise, that resolves with a <code>string</code> value or a JSON object, which will be stringified,
-	 *      or rejects - in this case a default error message will be displayed.
+	 *      The following details can be used:
+	 *      <ul>
+	 *        <li><code>string</code> - text in HTML format. For full list of supported HTML tags see {@link sap.m.FormattedText}</li>
+	 *        <li><code>object</code> - JSON object that will be serialized using <code>JSON.stringify</code></li>
+	 *        <li><code>function</code> - since version 1.103, a callback function that fetches the details asynchronously. It should return a promise that resolves with a <code>string</code> value or an <code>object</code>, or rejects - in this case a default error message will be displayed</li>
+	 *      <ul>
 	 * @param {sap.ui.core.CSSSize} [mOptions.contentWidth] The width of the MessageBox
 	 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 	 * @public
@@ -634,11 +639,14 @@ sap.ui.define([
 	 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 	 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
 	 * @param {string|object|function():Promise<string|object>} [mOptions.details]
-	 *      Added since version 1.28.0. If 'details' is set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
+	 *      Added since version 1.28.0. If set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
 	 *      The initial visibility is not configurable and the details are hidden by default.<br>
-	 *      If object is given, it will be serialized using <code>JSON.stringify</code>.<br>
-	 *      Since version 1.103, a callback function can be used. It should return a promise, that resolves with a <code>string</code> value or a JSON object, which will be stringified,
-	 *      or rejects - in this case a default error message will be displayed.
+	 *      The following details can be used:
+	 *      <ul>
+	 *        <li><code>string</code> - text in HTML format. For full list of supported HTML tags see {@link sap.m.FormattedText}</li>
+	 *        <li><code>object</code> - JSON object that will be serialized using <code>JSON.stringify</code></li>
+	 *        <li><code>function</code> - since version 1.103, a callback function that fetches the details asynchronously. It should return a promise that resolves with a <code>string</code> value or an <code>object</code>, or rejects - in this case a default error message will be displayed</li>
+	 *      <ul>
 	 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 	 * @public
 	 * @static
@@ -725,11 +733,14 @@ sap.ui.define([
 	 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 	 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
 	 * @param {string|object|function():Promise<string|object>} [mOptions.details]
-	 *      Added since version 1.28.0. If 'details' is set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
+	 *      Added since version 1.28.0. If set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
 	 *      The initial visibility is not configurable and the details are hidden by default.<br>
-	 *      If object is given, it will be serialized using <code>JSON.stringify</code>.<br>
-	 *      Since version 1.103, a callback function can be used. It should return a promise, that resolves with a <code>string</code> value or a JSON object, which will be stringified,
-	 *      or rejects - in this case a default error message will be displayed.
+	 *      The following details can be used:
+	 *      <ul>
+	 *        <li><code>string</code> - text in HTML format. For full list of supported HTML tags see {@link sap.m.FormattedText}</li>
+	 *        <li><code>object</code> - JSON object that will be serialized using <code>JSON.stringify</code></li>
+	 *        <li><code>function</code> - since version 1.103, a callback function that fetches the details asynchronously. It should return a promise that resolves with a <code>string</code> value or an <code>object</code>, or rejects - in this case a default error message will be displayed</li>
+	 *      <ul>
 	 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 	 * @public
 	 * @static
@@ -810,11 +821,14 @@ sap.ui.define([
 	 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 	 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
 	 * @param {string|object|function():Promise<string|object>} [mOptions.details]
-	 *      Added since version 1.28.0. If 'details' is set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
+	 *      Added since version 1.28.0. If set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
 	 *      The initial visibility is not configurable and the details are hidden by default.<br>
-	 *      If object is given, it will be serialized using <code>JSON.stringify</code>.<br>
-	 *      Since version 1.103, a callback function can be used. It should return a promise, that resolves with a <code>string</code> value or a JSON object, which will be stringified,
-	 *      or rejects - in this case a default error message will be displayed.
+	 *      The following details can be used:
+	 *      <ul>
+	 *        <li><code>string</code> - text in HTML format. For full list of supported HTML tags see {@link sap.m.FormattedText}</li>
+	 *        <li><code>object</code> - JSON object that will be serialized using <code>JSON.stringify</code></li>
+	 *        <li><code>function</code> - since version 1.103, a callback function that fetches the details asynchronously. It should return a promise that resolves with a <code>string</code> value or an <code>object</code>, or rejects - in this case a default error message will be displayed</li>
+	 *      <ul>
 	 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 	 * @public
 	 * @since 1.30
@@ -880,11 +894,14 @@ sap.ui.define([
 	 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 	 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
 	 * @param {string|object|function():Promise<string|object>} [mOptions.details]
-	 *      Added since version 1.28.0. If 'details' is set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
+	 *      Added since version 1.28.0. If set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
 	 *      The initial visibility is not configurable and the details are hidden by default.<br>
-	 *      If object is given, it will be serialized using <code>JSON.stringify</code>.<br>
-	 *      Since version 1.103, a callback function can be used. It should return a promise, that resolves with a <code>string</code> value or a JSON object, which will be stringified,
-	 *      or rejects - in this case a default error message will be displayed.
+	 *      The following details can be used:
+	 *      <ul>
+	 *        <li><code>string</code> - text in HTML format. For full list of supported HTML tags see {@link sap.m.FormattedText}</li>
+	 *        <li><code>object</code> - JSON object that will be serialized using <code>JSON.stringify</code></li>
+	 *        <li><code>function</code> - since version 1.103, a callback function that fetches the details asynchronously. It should return a promise that resolves with a <code>string</code> value or an <code>object</code>, or rejects - in this case a default error message will be displayed</li>
+	 *      <ul>
 	 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 	 * @public
 	 * @since 1.30
@@ -950,11 +967,14 @@ sap.ui.define([
 	 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 	 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
 	 * @param {string|object|function():Promise<string|object>} [mOptions.details]
-	 *      Added since version 1.28.0. If 'details' is set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
+	 *      Added since version 1.28.0. If set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
 	 *      The initial visibility is not configurable and the details are hidden by default.<br>
-	 *      If object is given, it will be serialized using <code>JSON.stringify</code>.<br>
-	 *      Since version 1.103, a callback function can be used. It should return a promise, that resolves with a <code>string</code> value or a JSON object, which will be stringified,
-	 *      or rejects - in this case a default error message will be displayed.
+	 *      The following details can be used:
+	 *      <ul>
+	 *        <li><code>string</code> - text in HTML format. For full list of supported HTML tags see {@link sap.m.FormattedText}</li>
+	 *        <li><code>object</code> - JSON object that will be serialized using <code>JSON.stringify</code></li>
+	 *        <li><code>function</code> - since version 1.103, a callback function that fetches the details asynchronously. It should return a promise that resolves with a <code>string</code> value or an <code>object</code>, or rejects - in this case a default error message will be displayed</li>
+	 *      <ul>
 	 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 	 * @public
 	 * @since 1.30
@@ -1020,11 +1040,14 @@ sap.ui.define([
 	 * @param {boolean} [mOptions.verticalScrolling] verticalScrolling is deprecated since version 1.30.4. VerticalScrolling, this option indicates if the user can scroll vertically inside the MessageBox when the content is larger than the content area.
 	 * @param {boolean} [mOptions.horizontalScrolling] horizontalScrolling is deprecated since version 1.30.4. HorizontalScrolling, this option indicates if the user can scroll horizontally inside the MessageBox when the content is larger than the content area.
 	 * @param {string|object|function():Promise<string|object>} [mOptions.details]
-	 *      Added since version 1.28.0. If 'details' is set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
+	 *      Added since version 1.28.0. If set, a link to view details is added. When the user clicks the link, the text area containing 'details' information is displayed.
 	 *      The initial visibility is not configurable and the details are hidden by default.<br>
-	 *      If object is given, it will be serialized using <code>JSON.stringify</code>.<br>
-	 *      Since version 1.103, a callback function can be used. It should return a promise, that resolves with a <code>string</code> value or a JSON object, which will be stringified,
-	 *      or rejects - in this case a default error message will be displayed.
+	 *      The following details can be used:
+	 *      <ul>
+	 *        <li><code>string</code> - text in HTML format. For full list of supported HTML tags see {@link sap.m.FormattedText}</li>
+	 *        <li><code>object</code> - JSON object that will be serialized using <code>JSON.stringify</code></li>
+	 *        <li><code>function</code> - since version 1.103, a callback function that fetches the details asynchronously. It should return a promise that resolves with a <code>string</code> value or an <code>object</code>, or rejects - in this case a default error message will be displayed</li>
+	 *      <ul>
 	 * @param {boolean} [mOptions.closeOnNavigation=true] Added since version 1.72.0. Whether the MessageBox will be closed automatically when a routing navigation occurs.
 	 * @public
 	 * @since 1.30

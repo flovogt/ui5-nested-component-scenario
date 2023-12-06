@@ -14,17 +14,11 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes",
 	"sap/base/security/encodeXML",
 	"sap/ui/core/InvisibleText",
-	"sap/m/BusyIndicator"
+	"sap/m/BusyIndicator",
+	"sap/m/ImageHelper"
 ],
-	function(jQuery, library, Control, Device, PullToRefreshRenderer, KeyCodes, encodeXML, InvisibleText, BusyIndicator) {
+	function(jQuery, library, Control, Device, PullToRefreshRenderer, KeyCodes, encodeXML, InvisibleText, BusyIndicator, ImageHelper) {
 	"use strict";
-
-
-
-	// shortcut for sap.m.ImageHelper
-	var ImageHelper = library.ImageHelper;
-
-
 
 	/**
 	 * Constructor for a new PullToRefresh.
@@ -42,7 +36,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -290,12 +284,29 @@ sap.ui.define([
 	 * @param {jQuery.Event} event - the keyboard event.
 	 * @private
 	 */
+	 PullToRefresh.prototype.onkeyup = function(event) {
+		if (event.which === KeyCodes.SPACE && this._iState === 1) {
+			this.setState(2);
+			this.fireRefresh();
+		}
+	};
+	/**
+	 * Handle the key down event for F5, if focused.
+	 *
+	 * @param {jQuery.Event} event - the keyboard event.
+	 * @private
+	 */
 	PullToRefresh.prototype.onkeydown = function(event) {
 		if (event.which === KeyCodes.F5) {
 			this.onclick();
 			// do not refresh browser window
 			event.stopPropagation();
 			event.preventDefault();
+		} else if (event.which === KeyCodes.SHIFT) {
+			if (this._iState === 1) {
+				this.setState(0);
+				return;
+			}
 		}
 	};
 
@@ -322,8 +333,7 @@ sap.ui.define([
 		oEvent.preventDefault();
 
 		if (this._iState < 1) {
-			this.setState(2);
-			this.fireRefresh();
+			this.setState(1);
 		}
 	};
 

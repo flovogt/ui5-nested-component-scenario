@@ -8,28 +8,29 @@
 sap.ui.define([
 	'sap/ui/base/ManagedObjectMetadata',
 	'sap/ui/core/Manifest',
-	'sap/ui/core/Configuration',
 	'sap/base/Log',
 	'sap/base/util/extend',
 	'sap/base/util/deepExtend',
 	'sap/base/util/isPlainObject',
 	'sap/base/util/LoaderExtensions'
 ],
-	function(ManagedObjectMetadata, Manifest, Configuration, Log, extend, deepExtend, isPlainObject, LoaderExtensions) {
+	function(ManagedObjectMetadata, Manifest, Log, extend, deepExtend, isPlainObject, LoaderExtensions) {
 	"use strict";
 
-	var syncCallBehavior = Configuration.getSyncCallBehavior();
+	var syncCallBehavior = sap.ui.loader._.getSyncCallBehavior();
 
 	/**
 	 * Creates a new metadata object for a Component subclass.
 	 *
 	 * @param {string} sClassName Fully qualified name of the class that is described by this metadata object
 	 * @param {object} oClassInfo Static info to construct the metadata from
+	 * @param {sap.ui.core.Component.MetadataOptions} [oClassInfo.metadata]
+	 *  The metadata object describing the class
 	 *
 	 * @public
 	 * @class
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @since 1.9.2
 	 * @alias sap.ui.core.ComponentMetadata
 	 * @extends sap.ui.base.ManagedObjectMetadata
@@ -143,7 +144,7 @@ sap.ui.define([
 		// This could happen when the manifest is accessed (via #getManifestObject) while sap.ui.component is loading it.
 		// Then the async request wouldn't be cancelled and the manifest already loaded (sync) should not be be overridden.
 		if (this._oManifest) {
-			Log.warning("Can't apply manifest to ComponentMetadata as it has already been created.", this.getName(), "sap.ui.core.ComponentMetadata");
+			Log.info("Can't apply manifest to ComponentMetadata as it has already been created.", this.getName(), "sap.ui.core.ComponentMetadata");
 			return;
 		}
 

@@ -16,10 +16,11 @@ sap.ui.define([
 	"sap/base/security/sanitizeHTML",
 	"sap/m/Avatar",
 	"sap/m/AvatarShape",
-	"sap/m/AvatarSize"
+	"sap/m/AvatarSize",
+	"sap/ui/core/Lib"
 ],
 	function(library, Control, IconPool, TextArea, Button, FeedInputRenderer, jQuery, URLListValidator, sanitizeHTML0, Avatar,
-		AvatarShape, AvatarSize) {
+		AvatarShape, AvatarSize, CoreLib) {
 	"use strict";
 
 	// shortcut for sap.m.ButtonType
@@ -40,7 +41,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -137,7 +138,7 @@ sap.ui.define([
 				 *
 				 * Please be aware that this property is relevant only for images and not for icons.
 				 *
-				 * Deprecated as of version 1.88. Image is replaced by avatar.
+				 * @deprecated as of version 1.88. Image replaced by {@link sap.m.Avatar }
 				 */
 				iconDensityAware : {type : "boolean", group : "Appearance", defaultValue : true},
 
@@ -153,7 +154,7 @@ sap.ui.define([
 				/**
 				 * Text for Picture which will be read by screenreader.
 				 * If a new ariaLabelForPicture is set, any previously set ariaLabelForPicture is deactivated.
-				 * Deprecated as of version 1.88. This will not have any effect in code now.
+				 * @deprecated as of version 1.88. This will not have any effect in code now.
 				 */
 				ariaLabelForPicture : {type : "string", group : "Accessibility", defaultValue : null}
 			},
@@ -320,7 +321,7 @@ sap.ui.define([
 	 */
 	FeedInput.prototype.init = function () {
 		// override text defaults
-		var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oBundle = CoreLib.getResourceBundleFor("sap.m");
 		this.setProperty("placeholder", oBundle.getText("FEEDINPUT_PLACEHOLDER"), true);
 		this.setProperty("buttonTooltip", oBundle.getText("FEEDINPUT_SUBMIT"), true);
 	};
@@ -469,7 +470,7 @@ sap.ui.define([
 			this._oButton = new Button(this.getId() + "-button", {
 				enabled : false,
 				type : ButtonType.Default,
-				icon : "sap-icon://feeder-arrow",
+				icon : "sap-icon://paper-plane",
 				tooltip : this.getButtonTooltip(),
 				press : jQuery.proxy(function () {
 					this._oTextArea.focus();

@@ -3,7 +3,13 @@
  * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/util/now"], function(now) {
+sap.ui.define([
+	"sap/base/config",
+	"sap/base/util/now"
+], function(
+	BaseConfig,
+	now
+) {
 	"use strict";
 
 	/**
@@ -429,7 +435,7 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	 *   <code>logSupportInfo(true)</code>. To avoid negative effects regarding execution times and
 	 *   memory consumption, the returned object should be a simple immutable JSON object with mostly
 	 *   static and stable content.
-	 * @returns {object}
+	 * @returns {module:sap/base/Log.Entry}
 	 *   The log entry as an object or <code>undefined</code> if no entry was created
 	 * @private
 	 */
@@ -525,7 +531,7 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	 * <li>message {string} message text of the entry
 	 * </ul>
 	 * The default amount of stored log entries is limited to 3000 entries.
-	 * @returns {object[]} an array containing the recorded log entries
+	 * @returns {Array<module:sap/base/Log.Entry>} an array containing the recorded log entries
 	 * @public
 	 * @static
 	 */
@@ -565,11 +571,72 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	};
 
 	/**
-	 * Allows to add a new LogListener that will be notified for new log entries.
+	 * @typedef {object} module:sap/base/Log.Entry
+	 * @property {float} timestamp The number of milliseconds since the epoch
+	 * @property {string} time Time string in format HH:mm:ss:mmmnnn
+	 * @property {string} date Date string in format yyyy-MM-dd
+	 * @property {module:sap/base/Log.Level} level The level of the log entry, see {@link module:sap/base/Log.Level}
+	 * @property {string} message The message of the log entry
+	 * @property {string} details The detailed information of the log entry
+	 * @property {string} component The component that creates the log entry
+	 * @property {function():any} [supportInfo] Callback that returns an additional support object to be
+	 *   logged in support mode.
+	 * @public
+	 */
+
+	/**
+	 * Interface to be implemented by a log listener.
+	 *
+	 * Typically, a listener will at least implement the {@link #.onLogEntry} method,
+	 * but in general, all methods are optional.
+	 *
+	 * @interface
+	 * @name module:sap/base/Log.Listener
+	 * @public
+	 */
+
+	/**
+	 * The function that is called when a new log entry is created
+	 *
+	 * @param {module:sap/base/Log.Entry} oLogEntry The newly created log entry
+	 * @name module:sap/base/Log.Listener.onLogEntry?
+	 * @function
+	 * @public
+	 */
+
+	/**
+	 * The function that is called once the Listener is attached
+	 *
+	 * @param {module:sap/base/Log} oLog The Log instance where the listener is attached
+	 * @name module:sap/base/Log.Listener.onAttachToLog?
+	 * @function
+	 * @public
+	 */
+
+	/**
+	 * The function that is called once the Listener is detached
+	 *
+	 * @param {module:sap/base/Log} oLog The Log instance where the listener is detached
+	 * @name module:sap/base/Log.Listener.onDetachFromLog?
+	 * @function
+	 * @public
+	 */
+
+	/**
+	 * The function that is called once log entries are discarded due to the exceed of total log entry amount
+	 *
+	 * @param {Array<module:sap/base/Log.Entry>} aDiscardedEntries The discarded log entries
+	 * @name module:sap/base/Log.Listener.onDiscardLogEntries?
+	 * @function
+	 * @public
+	 */
+
+	/**
+	 * Allows to add a new listener that will be notified for new log entries.
 	 *
 	 * The given object must provide method <code>onLogEntry</code> and can also be informed
 	 * about <code>onDetachFromLog</code>, <code>onAttachToLog</code> and <code>onDiscardLogEntries</code>.
-	 * @param {object} oListener The new listener object that should be informed
+	 * @param {module:sap/base/Log.Listener} oListener The new listener object that should be informed
 	 * @public
 	 * @static
 	 */
@@ -579,7 +646,7 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 
 	/**
 	 * Allows to remove a registered LogListener.
-	 * @param {object} oListener The new listener object that should be removed
+	 * @param {module:sap/base/Log.Listener} oListener The listener object that should be removed
 	 * @public
 	 * @static
 	 */
@@ -588,7 +655,30 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	};
 
 	/**
-	 * @private
+	 * The logger comes with a subset of the API of the <code>sap/base/Log</code> module:
+	 * <ul>
+	 * <li><code>#fatal</code> - see:  {@link module:sap/base/Log.fatal}
+	 * <li><code>#error</code> - see:  {@link module:sap/base/Log.error}
+	 * <li><code>#warning</code> - see:  {@link module:sap/base/Log.warning}
+	 * <li><code>#info</code> - see:  {@link module:sap/base/Log.info}
+	 * <li><code>#debug</code> - see:  {@link module:sap/base/Log.debug}
+	 * <li><code>#trace</code> - see:  {@link module:sap/base/Log.trace}
+	 * <li><code>#setLevel</code> - see:  {@link module:sap/base/Log.setLevel}
+	 * <li><code>#getLevel</code> - see:  {@link module:sap/base/Log.getLevel}
+	 * <li><code>#isLoggable</code> - see:  {@link module:sap/base/Log.isLoggable}
+	 * </ul>
+	 * @interface
+	 * @borrows module:sap/base/Log.fatal as #fatal
+	 * @borrows module:sap/base/Log.error as #error
+	 * @borrows module:sap/base/Log.warning as #warning
+	 * @borrows module:sap/base/Log.info as #info
+	 * @borrows module:sap/base/Log.debug as #debug
+	 * @borrows module:sap/base/Log.trace as #trace
+	 * @borrows module:sap/base/Log.setLevel as #setLevel
+	 * @borrows module:sap/base/Log.getLevel as #getLevel
+	 * @borrows module:sap/base/Log.isLoggable as #isLoggable
+	 * @name module:sap/base/Log.Logger
+	 * @public
 	 */
 	function Logger(sComponent) {
 		this.fatal = function(msg,detail,comp,support) { Log.fatal(msg, detail, comp || sComponent, support); return this; };
@@ -603,7 +693,7 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	}
 
 	/**
-	 * Returns a dedicated logger for a component
+	 * Returns a dedicated logger for a component.
 	 *
 	 * The logger comes with the same API as the <code>sap/base/Log</code> module:
 	 * <ul>
@@ -620,7 +710,7 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 	 *
 	 * @param {string} sComponent Name of the component which should be logged
 	 * @param {module:sap/base/Log.Level} [iDefaultLogLevel] The default log level
-	 * @return {object} A logger with a specified component
+	 * @return {module:sap/base/Log.Logger} A logger with a specified component
 	 * @public
 	 * @static
 	 */
@@ -630,6 +720,20 @@ sap.ui.define(["sap/base/util/now"], function(now) {
 		}
 		return new Logger(sComponent);
 	};
+
+	// set LogLevel
+	const sLogLevel = BaseConfig.get({
+		name: "sapUiLogLevel",
+		type: BaseConfig.Type.String,
+		defaultValue: undefined,
+		external: true
+	});
+
+	if (sLogLevel) {
+		Log.setLevel(Log.Level[sLogLevel.toUpperCase()] || parseInt(sLogLevel));
+	} else if (!globalThis["sap-ui-optimized"]) {
+		Log.setLevel(Log.Level.DEBUG);
+	}
 
 	return Log;
 });

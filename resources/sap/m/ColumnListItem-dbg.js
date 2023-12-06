@@ -40,9 +40,10 @@ sap.ui.define([
 	 * The inherited <code>counter</code> property of <code>sap.m.ListItemBase</code> is not supported.
 	 *
 	 * @extends sap.m.ListItemBase
+	 * @implements sap.m.ITableItem
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -51,7 +52,9 @@ sap.ui.define([
 	 */
 	var ColumnListItem = ListItemBase.extend("sap.m.ColumnListItem", /** @lends sap.m.ColumnListItem.prototype */ {
 		metadata : {
-
+			interfaces : [
+				"sap.m.ITableItem"
+			],
 			library : "sap.m",
 			properties : {
 
@@ -85,8 +88,6 @@ sap.ui.define([
 			if (oEvent.isMarked() || ListItemBase.detectTextSelection(this.getDomRef())) {
 				return oEvent.stopImmediatePropagation(true);
 			}
-
-			// focus to the main row if there is nothing to focus in the popin
 			if (oEvent.srcControl === this || !jQuery(oEvent.target).is(":sapFocusable")) {
 				this.getParent().focus();
 			}
@@ -104,14 +105,16 @@ sap.ui.define([
 
 	ColumnListItem.prototype.onBeforeRendering = function() {
 		ListItemBase.prototype.onBeforeRendering.call(this);
+		this.aAriaOwns = [];
 		if (this._oPopin && this._oDomRef) {
 			this.$Popin().off();
 		}
 	};
 
 	ColumnListItem.prototype.onAfterRendering = function() {
-		if (this._oPopin && this.isActionable(true)) {
-			this.$Popin().on("mouseenter mouseleave", function(oEvent) {
+		if (this._oPopin) {
+			this.$().attr("aria-owns", this.aAriaOwns.join(" "));
+			this.isActionable(true) && this.$Popin().on("mouseenter mouseleave", function(oEvent) {
 				this.previousSibling.classList.toggle("sapMPopinHovered", oEvent.type == "mouseenter");
 			});
 		}
@@ -166,11 +169,10 @@ sap.ui.define([
 				ontap: this.ontap,
 				ontouchend: this.ontouchend,
 				ontouchcancel: this.ontouchcancel,
-				onsaptabnext: this.onsaptabnext,
-				onsaptabprevious: this.onsaptabprevious,
 				onsapup: this.onsapup,
 				onsapdown: this.onsapdown,
-				oncontextmenu: this.oncontextmenu
+				oncontextmenu: this.oncontextmenu,
+				onkeydown: this.onkeydown
 			}, this).setParent(this, null, true);
 		}
 
@@ -245,17 +247,11 @@ sap.ui.define([
 
 		var aOutput = [],
 			aCells = this.getCells(),
-			aColumns = oTable.getColumns(true);
+			aColumns = oTable.getRenderedColumns();
 
-		aColumns.sort(function(oCol1, oCol2) {
-			var iCol1Index = oCol1.getIndex(), iCol2Index = oCol2.getIndex(), iIndexDiff = iCol1Index - iCol2Index;
-			if (iIndexDiff == 0) { return 0; }
-		    if (iCol1Index < 0) { return 1; }
-		    if (iCol2Index < 0) { return -1; }
-		    return iIndexDiff;
-		}).forEach(function(oColumn) {
+		aColumns.forEach(function(oColumn) {
 			var oCell = aCells[oColumn.getInitialOrder()];
-			if (!oCell || !oColumn.getVisible() || (oColumn.isHidden() && !oColumn.isPopin())) {
+			if (!oCell) {
 				return;
 			}
 
@@ -274,9 +270,9 @@ sap.ui.define([
 	ColumnListItem.prototype.updateSelectedDOM = function(bSelected, $This) {
 		ListItemBase.prototype.updateSelectedDOM.apply(this, arguments);
 
-		// update popin as well
+		$This.find(".sapMTblCellFocusable").attr("aria-selected", bSelected);
 		if (this.hasPopin()) {
-			this.$Popin().attr("aria-selected", bSelected);
+			this.$("subcont").attr("aria-selected", bSelected);
 		}
 	};
 
@@ -292,12 +288,50 @@ sap.ui.define([
 		ListItemBase.prototype.onfocusin.apply(this, arguments);
 	};
 
+	ColumnListItem.prototype.onsapenter = ColumnListItem.prototype.onsapspace = function(oEvent) {
+		if (oEvent.isMarked()) {
+			return;
+		}
+
+		var sTargetId = oEvent.target.id;
+		var sEventHandler = "on" + oEvent.type;
+		if (sTargetId == this.getId() + "-ModeCell") {
+			oEvent.target = this.getDomRef();
+			sEventHandler = this.getMode() == "Delete" ? "onsapdelete" : "onsapspace";
+		} else if (sTargetId == this.getId() + "-TypeCell") {
+			oEvent.target = this.getDomRef();
+			if (this.getType() == "Navigation") {
+				sEventHandler = "onsapenter";
+			} else {
+				oEvent.code = "KeyE";
+				oEvent.ctrlKey = true;
+				sEventHandler = "onkeydown";
+			}
+		}
+
+		ListItemBase.prototype[sEventHandler].call(this, oEvent);
+	};
+
+	ColumnListItem.prototype.setType = function(sType) {
+		ListItemBase.prototype.setType.call(this, sType);
+		this._checkTypeColumn();
+		return this;
+	};
+
+	ColumnListItem.prototype.setParent = function() {
+		ListItemBase.prototype.setParent.apply(this, arguments);
+		this._checkTypeColumn();
+		return this;
+	};
+
 	// informs the table when item's type column requirement is changed
 	ColumnListItem.prototype._checkTypeColumn = function(bNeedsTypeColumn) {
+		if (!this.getParent()) {
+			return;
+		}
 		if (bNeedsTypeColumn == undefined) {
 			bNeedsTypeColumn = this._needsTypeColumn();
 		}
-
 		if (this._bNeedsTypeColumn != bNeedsTypeColumn) {
 			this._bNeedsTypeColumn = bNeedsTypeColumn;
 			this.informList("TypeColumnChange", bNeedsTypeColumn);

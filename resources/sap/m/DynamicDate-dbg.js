@@ -6,6 +6,7 @@
 
 sap.ui.define([
 	'sap/m/DynamicDateUtil',
+	'sap/ui/core/date/UI5Date',
 	'sap/ui/model/SimpleType',
 	'sap/ui/model/FormatException',
 	'sap/ui/model/ParseException',
@@ -14,6 +15,7 @@ sap.ui.define([
 ],
 	function(
 		DynamicDateUtil,
+		UI5Date,
 		SimpleType,
 		FormatException,
 		ParseException,
@@ -36,7 +38,7 @@ sap.ui.define([
 		 * @extends sap.ui.model.SimpleType
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
@@ -52,7 +54,6 @@ sap.ui.define([
 		 * @param {int} [oConstraints.maximum] Greatest resulting date allowed for this type. Must be provided as a timestamps.
 		 * @since 1.92
 		 * @alias sap.m.DynamicDate
-		 * @experimental Since 1.92. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 		 */
 		var DynamicDate = SimpleType.extend("sap.m.DynamicDate", /** @lends sap.m.DynamicDate.prototype  */ {
 
@@ -70,8 +71,8 @@ sap.ui.define([
 		 * Only formats the 'values' part of the given object. The dates are expected as 'timestamp' numbers
 		 * and are converted to Javascript Date objects. The numbers and strings are left untouched.
 		 *
-		 * @param {object} oValue The value to be formatted
-		 * @return {object} A value object in a similar form
+		 * @param {{operator: string, values: Array<number|string>}} oValue The value to be formatted
+		 * @return {{operator: string, values: Array<Date|number|string>}} A value object in a similar form
 		 *
 		 * @public
 		 */
@@ -105,8 +106,8 @@ sap.ui.define([
 		 * and are converted to timestamps. The numbers and strings are left untouched.
 		 * Special values with operator: "PARSEERROR" generate a parse exception.
 		 *
-		 * @param {object} oValue The value to be parsed
-		 * @return {object} A value object in a similar form
+		 * @param {{operator: string, values: Array<Date|number|string>}} oValue The value to be parsed
+		 * @return {{operator: string, values: Array<number|string|null>}} A value object in a similar form
 		 *
 		 * @public
 		 */
@@ -161,15 +162,15 @@ sap.ui.define([
 							case "minimum":
 								if (iTimestamp < iConstraintValue) {
 									aViolatedConstraints.push("minimum");
-									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [new Date(iTimestamp).toDateString()]));
-									aMessages.push(oBundle.getText("Date.Minimum", [new Date(iConstraintValue).toDateString()]));
+									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [UI5Date.getInstance(iTimestamp).toDateString()]));
+									aMessages.push(oBundle.getText("Date.Minimum", [UI5Date.getInstance(iConstraintValue).toDateString()]));
 								}
 								break;
 							case "maximum":
 								if (iTimestamp > iConstraintValue) {
 									aViolatedConstraints.push("maximum");
-									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [new Date(iTimestamp).toDateString()]));
-									aMessages.push(oBundle.getText("Date.Maximum", [new Date(iConstraintValue).toDateString()]));
+									aMessages.push(oMBundle.getText(sErrorGenericTextKey, [UI5Date.getInstance(iTimestamp).toDateString()]));
+									aMessages.push(oBundle.getText("Date.Maximum", [UI5Date.getInstance(iConstraintValue).toDateString()]));
 								}
 								break;
 						}
@@ -196,7 +197,7 @@ sap.ui.define([
 					oValue = parseInt(oValue);
 				}
 
-				oValue = new Date(oValue);
+				oValue = UI5Date.getInstance(oValue);
 				return oValue;
 			}
 		};

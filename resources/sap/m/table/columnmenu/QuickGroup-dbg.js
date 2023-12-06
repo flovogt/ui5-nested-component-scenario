@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.QuickActionBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @since 1.110
@@ -147,6 +147,10 @@ sap.ui.define([
 		for (var i = aItems.length; i < aContent.length; i++) {
 			aContent[i].destroy();
 		}
+	};
+
+	QuickGroup.prototype.getEffectiveQuickActions = function() {
+		return (this.getVisible() && this.getItems().length) ? [this] : [];
 	};
 
 	QuickGroup.prototype.onChange = function(oEvent, oItem) {

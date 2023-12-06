@@ -26,11 +26,10 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.QuickActionBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @since 1.110
-	 * @experimental
 	 *
 	 * @alias sap.m.table.columnmenu.QuickAction
 	 */
@@ -48,6 +47,7 @@ sap.ui.define([
 				 */
 				category: {type: "sap.m.table.columnmenu.Category", defaultValue: library.table.columnmenu.Category.Generic}
 			},
+			defaultAggregation : "content",
 			aggregations: {
 				/**
 				 * Defines the content that is shown for the quick action.

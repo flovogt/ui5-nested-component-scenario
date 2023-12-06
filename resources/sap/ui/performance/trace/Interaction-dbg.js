@@ -23,7 +23,7 @@ sap.ui.define([
 		INTERACTION = "INTERACTION",
 		isNavigation = false,
 		aInteractions = [],
-		oPendingInteraction = createMeasurement(),
+		oPendingInteraction,
 		mCompressedMimeTypes = {
 			"application/zip": true,
 			"application/vnd.rar": true,
@@ -34,6 +34,8 @@ sap.ui.define([
 			"application/pdf": true
 		},
 		sCompressedExtensions = "zip,rar,arj,z,gz,tar,lzh,cab,hqx,ace,jar,ear,war,jpg,jpeg,pdf,gzip";
+	let bInitialized = false,
+		iResetCurrentBrowserEventTimer;
 
 	function isCORSRequest(sUrl) {
 		var sHost = new URI(sUrl).host();
@@ -50,6 +52,52 @@ sap.ui.define([
 		return str.trim();
 	}
 
+	/**
+	 * The SAP Statistics for OData
+	 *
+	 * @typedef {object} module:sap/ui/performance/trace/Interaction.SAPStatistics
+	 * @public
+	 *
+	 * @property {string} url The url of the response
+	 * @property {string} statistics The response header under the key "sap-statistics"
+	 * @property {PerformanceResourceTiming} timing The last performance resource timing
+	 */
+
+	/**
+	 * Interaction Entry
+	 *
+	 * @typedef {object} module:sap/ui/performance/trace/Interaction.Entry
+	 * @public
+	 *
+	 * @property {string} event The event which triggered the interaction. The default value is "startup".
+	 * @property {string} trigger The control which triggered the interaction.
+	 * @property {string} component The identifier of the component or app that is associated with the
+	 *  interaction.
+	 * @property {string} appVersion The application version as from app descriptor
+	 * @property {float} start The start timestamp of the interaction which is initially set to the
+	 *  <code>fetchStart</code>
+	 * @property {float} end The end timestamp of the interaction
+	 * @property {float} navigation The sum over all navigation times
+	 * @property {float} roundtrip The time from first request sent to last received response end - without
+	 *  gaps and ignored overlap
+	 * @property {float} processing The client processing time
+	 * @property {float} duration The interaction duration
+	 * @property {Array<PerformanceResourceTiming>} requests The Performance API requests during interaction
+	 * @property {Array<module:sap/ui/performance/Measurement.Entry>} measurements The Performance
+	 *  measurements
+	 * @property {Array<module:sap/ui/performance/trace/Interaction.SAPStatistics>} sapStatistics The SAP
+	 *  Statistics for OData
+	 * @property {float} requestTime The sum over all requests in the interaction
+	 * @property {float} networkTime The request time minus server time from the header
+	 * @property {int} bytesSent The sum over all requests bytes
+	 * @property {int} bytesReceived The sum over all responses bytes
+	 * @property {"X"|""} requestCompression It's set with value "X" by default When compression does not
+	 *  match SAP rules, we report an empty string.
+	 * @property {float} busyDuration The sum of the global busy indicator duration during the interaction
+	 * @property {string} id The ID of the interaction
+	 * @property {string} passportAction The default PassportAction for startup
+	 */
+
 	function createMeasurement(iTime) {
 		return {
 			event: "startup", // event which triggered interaction - default is startup interaction
@@ -65,13 +113,13 @@ sap.ui.define([
 			requests: [], // Performance API requests during interaction
 			measurements: [], // Measurements
 			sapStatistics: [], // SAP Statistics for OData
-			requestTime: 0, // summ over all requests in the interaction (oPendingInteraction.requests[0].responseEnd-oPendingInteraction.requests[0].requestStart)
+			requestTime: 0, // sum over all requests in the interaction (oPendingInteraction.requests[0].responseEnd-oPendingInteraction.requests[0].requestStart)
 			networkTime: 0, // request time minus server time from the header
 			bytesSent: 0, // sum over all requests bytes
 			bytesReceived: 0, // sum over all response bytes
 			requestCompression: "X", // ok per default, if compression does not match SAP rules we report an empty string
 			busyDuration: 0, // summed GlobalBusyIndicator duration during this interaction
-			id: uid(), //Interaction id
+			id: uid(), //Interaction ID
 			passportAction: "undetermined_startup_0" //default PassportAction for startup
 		};
 	}
@@ -196,6 +244,7 @@ sap.ui.define([
 			isNavigation = false;
 			bMatched = false;
 			bPerfectMatch = false;
+			clearTimeout(iResetCurrentBrowserEventTimer);
 		}
 	}
 
@@ -226,7 +275,6 @@ sap.ui.define([
 	}
 
 	var bInteractionActive = false,
-		bInteractionProcessed = false,
 		oCurrentBrowserEvent,
 		oBrowserElement,
 		bMatched = false,
@@ -285,7 +333,7 @@ sap.ui.define([
 		});
 
 		// register the response handler for data collection
-		XHRInterceptor.register(INTERACTION, "open", function () {
+		XHRInterceptor.register(INTERACTION, "open", function (sMethod, sUrl, bAsync) {
 			var sEpp,
 				sAction,
 				sRootContextID;
@@ -297,8 +345,9 @@ sap.ui.define([
 			}
 			// we only need to take care of requests when we have a running interaction
 			if (oPendingInteraction) {
+				var bIsNoCorsRequest = !isCORSRequest(sUrl);
 				// only use Interaction for non CORS requests
-				if (!isCORSRequest(arguments[1])) {
+				if (bIsNoCorsRequest) {
 					//only track if FESR.clientID == EPP.Action && FESR.rootContextID == EPP.rootContextID
 					sEpp = Interaction.passportHeader.get(this);
 					if (sEpp && sEpp.length >= 370) {
@@ -310,6 +359,13 @@ sap.ui.define([
 					if (!sEpp || sAction && sRootContextID && oPendingInteraction.passportAction.endsWith(sAction)) {
 						this.addEventListener("readystatechange", handleResponse.bind(this,  oPendingInteraction.id));
 					}
+				}
+				// arguments at position 2 is indicatior whether request is async or not
+				// readystatechange must not be used for sync CORS request since it does not work properly
+				// this is especially necessary in case request was not started by LoaderExtension
+				// bAsync is by default true, therefore we need to check eplicitly for value 'false'
+				if (bIsNoCorsRequest || bAsync !== false) {
+					// notify async step for all XHRs (even CORS requests)
 					this.addEventListener("readystatechange", handleInteraction.bind(this, Interaction.notifyAsyncStep()));
 				}
 				// assign the current interaction to the xhr for later response header retrieval.
@@ -392,7 +448,7 @@ sap.ui.define([
 	 	 * Gets all interaction measurements.
 		 *
 		 * @param {boolean} bFinalize finalize the current pending interaction so that it is contained in the returned array
-		 * @return {object[]} all interaction measurements
+		 * @return {Array<module:sap/ui/performance/trace/Interaction.Entry>} all interaction measurements
 		 *
 		 * @static
 		 * @public
@@ -415,7 +471,7 @@ sap.ui.define([
 		 *     return InteractionMeasurement.duration > 0
 		 * }</code>
 		 * @param {function} fnFilter a filter function that returns true if the passed measurement should be added to the result
-		 * @return {object[]} all interaction measurements passing the filter function successfully
+		 * @return {Array<module:sap/ui/performance/trace/Interaction.Entry>} all interaction measurements passing the filter function successfully
 		 *
 		 * @static
 		 * @public
@@ -481,11 +537,10 @@ sap.ui.define([
 			var oComponentInfo = createOwnerComponentInfo(oSrcElement);
 
 			// setup new pending interaction
-			oPendingInteraction = createMeasurement(iTime);
+			oPendingInteraction = createMeasurement(bInitialized ? iTime : undefined);
 			oPendingInteraction.event = sType;
 			oPendingInteraction.component = oComponentInfo.id;
 			oPendingInteraction.appVersion = oComponentInfo.version;
-			oPendingInteraction.start = iTime;
 			if (oSrcElement && oSrcElement.getId) {
 				oPendingInteraction.trigger = oSrcElement.getId();
 				oPendingInteraction.semanticStepName = FESRHelper.getSemanticStepname(oSrcElement, sType);
@@ -548,13 +603,20 @@ sap.ui.define([
 		 * @since 1.76
 		 */
 		setActive : function(bActive) {
-			if (bActive && !bInteractionActive) {
-				registerXHROverrides();
-				interceptScripts();
-				//intercept resource loading from preloads
-				LoaderExtensions.notifyResourceLoading = Interaction.notifyAsyncStep;
-			}
 			bInteractionActive = bActive;
+			if (bActive) {
+				if (!bInitialized) {
+					registerXHROverrides();
+					interceptScripts();
+					//intercept resource loading from preloads
+					LoaderExtensions.notifyResourceLoading = Interaction.notifyAsyncStep;
+				}
+				Interaction.notifyStepStart("startup", "startup", true);
+				// The following line must happen after 'notifyStepStart' because we determine
+				// if we should intially use the performance timing API or afterwords the
+				// current timestamp
+				bInitialized = true;
+			}
 		},
 
 		/**
@@ -606,7 +668,7 @@ sap.ui.define([
 					elem,
 					sClosestSemanticStepName;
 
-				if ((!oPendingInteraction && oCurrentBrowserEvent && !bInteractionProcessed) || bForce) {
+				if ((!oPendingInteraction && oCurrentBrowserEvent) || bForce) {
 					if (bForce) {
 						sType = "startup";
 					} else {
@@ -653,13 +715,10 @@ sap.ui.define([
 						}
 					}
 					oCurrentBrowserEvent = null;
-					//only handle the first browser event within a call stack. Ignore virtual/harmonization events.
-					bInteractionProcessed = true;
 					isNavigation = false;
-					setTimeout(function() {
+					iResetCurrentBrowserEventTimer = setTimeout(function() {
 						//cleanup internal registry after actual call stack.
 						oCurrentBrowserEvent = null;
-						bInteractionProcessed = false;
 					}, 0);
 					bIdle = false;
 					Interaction.notifyStepEnd(true); // Start timer to end Interaction in case there is no timing relevant action e.g. rendering, request

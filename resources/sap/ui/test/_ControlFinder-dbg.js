@@ -5,14 +5,17 @@
  */
 
 sap.ui.define([
+	"sap/base/util/extend",
+	"sap/base/util/isEmptyObject",
 	"sap/ui/base/Object",
 	"sap/ui/core/Element",
+	"sap/ui/core/StaticArea",
 	"sap/ui/test/OpaPlugin",
 	"sap/ui/test/actions/Press",
 	"sap/ui/test/_LogCollector",
 	"sap/ui/test/_OpaLogger",
 	"sap/ui/thirdparty/jquery"
-], function(UI5Object, UI5Element, OpaPlugin, Press, _LogCollector, _OpaLogger, $) {
+], function(extend, isEmptyObject, UI5Object, UI5Element, StaticArea, OpaPlugin, Press, _LogCollector, _OpaLogger, $) {
 	"use strict";
 
 	var oPlugin = new OpaPlugin();
@@ -122,7 +125,7 @@ sap.ui.define([
 	 * @private
 	 */
 	_ControlFinder._getControlProperty = function (oControl, sProperty) {
-		var properties = $.extend({}, oControl.mProperties, {id: oControl.getId()});
+		var properties = extend({}, oControl.mProperties, {id: oControl.getId()});
 
 		return Object.keys(properties).indexOf(sProperty) > -1 ? properties[sProperty] : null;
 	};
@@ -181,7 +184,7 @@ sap.ui.define([
 	 * @private
 	 */
 	_ControlFinder._isControlInStaticArea = function (oControl) {
-		var oStaticArea = sap.ui.getCore().getStaticAreaRef();
+		var oStaticArea = StaticArea.getDomRef();
 		return $.contains(oStaticArea, oControl.getDomRef());
 	};
 
@@ -258,10 +261,10 @@ sap.ui.define([
 			}
 		}
 
-		if ($.isEmptyObject(oOptionsExpansion)) {
+		if (isEmptyObject(oOptionsExpansion)) {
 			return oOptions;
 		} else {
-			return $.extend({}, oOptions, {
+			return extend({}, oOptions, {
 				matchers: oOptionsExpansion
 			});
 		}

@@ -61,7 +61,7 @@ sap.ui.define([
 	 * See also {@link module:sap/ui/core/ComponentSupport}.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @alias sap.ui.core.ComponentContainer
@@ -93,7 +93,7 @@ sap.ui.define([
 				async : {type : "boolean", defaultValue : false},
 
 				/**
-				 * Enable/disable validation handling by MessageManager for this component.
+				 * Enable/disable validation handling by Messaging for this component.
 				 * The resulting Messages will be propagated to the controls.
 				 * This property can only be applied initially.
 				 */
@@ -219,7 +219,7 @@ sap.ui.define([
 	 */
 	function setContainerComponent(oComponentContainer, vComponent, bSuppressInvalidate, bDestroyOldComponent) {
 		// find the reference to the current component and to the old component
-		var oComponent = typeof vComponent === "string" ? Component.get(vComponent) : vComponent;
+		var oComponent = typeof vComponent === "string" ? Component.getComponentById(vComponent) : vComponent;
 		var oOldComponent = oComponentContainer.getComponentInstance();
 		// if there is no difference between the old and the new component just skip this setter
 		if (oOldComponent !== oComponent) {
@@ -251,7 +251,7 @@ sap.ui.define([
 	 */
 	ComponentContainer.prototype.getComponentInstance = function () {
 		var sComponentId = this.getComponent();
-		return sComponentId && Component.get(sComponentId);
+		return sComponentId && Component.getComponentById(sComponentId);
 	};
 
 	// Delegate registered by the ComponentContainer#showPlaceholder function
@@ -280,9 +280,10 @@ sap.ui.define([
 	 * @since 1.91
 	 */
 	ComponentContainer.prototype.showPlaceholder = function(mSettings) {
-		var pLoaded;
+		var pLoaded,
+			Placeholder = sap.ui.require("sap/ui/core/Placeholder");
 
-		if (!Configuration.getPlaceholder()) {
+		if (!Placeholder || !Placeholder.isEnabled()) {
 			return;
 		}
 

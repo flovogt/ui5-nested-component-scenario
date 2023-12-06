@@ -28,7 +28,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @private
@@ -335,7 +335,7 @@ sap.ui.define([
 		 * @param {jQuery.Event} oEvent Event object
 		 */
 		TimePickerSlider.prototype.onfocusin = function(oEvent) {
-			if (Device.system.desktop && !this.getIsExpanded()) {
+			if (!this.getIsExpanded()) {
 				this.setIsExpanded(true);
 			}
 		};
@@ -883,9 +883,6 @@ sap.ui.define([
 			if (!this.getIsExpanded()) {
 				this._selectionOffset = 0;
 			}
-
-			//WAI-ARIA region
-			this.$().attr('aria-expanded', this.getIsExpanded());
 
 			this.setSelectedValue(sSelectedValue);
 		};

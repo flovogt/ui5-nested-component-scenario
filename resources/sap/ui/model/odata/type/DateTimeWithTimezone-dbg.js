@@ -5,35 +5,17 @@
  */
 
 sap.ui.define([
+	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/_Helper",
 	"sap/ui/model/CompositeType",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException"
-], function (DateFormat, _Helper, CompositeType, FormatException, ParseException) {
+], function (UI5Date, DateFormat, _Helper, CompositeType, FormatException, ParseException) {
 	"use strict";
 
 	var sDateOrTimeRequired = "For type 'object', at least one of the format options 'showDate' or"
-			+ " 'showTime' must be enabled",
-		oDemoDateTime = new Date(Date.UTC(new Date().getFullYear(), 11, 31, 23, 59, 58));
-
-	/*
-	 * Returns the formatter. Creates it lazily.
-	 *
-	 * @param {sap.ui.model.odata.type.DateTimeWithTimezone} oType
-	 *   The type instance
-	 * @returns {sap.ui.core.format.DateFormat}
-	 *   The formatter
-	 */
-	function getFormatter(oType) {
-		var oFormatOptions;
-
-		if (!oType.oFormat) {
-			oFormatOptions = _Helper.extend({strictParsing : true}, oType.oFormatOptions);
-			oType.oFormat = DateFormat.getDateTimeWithTimezoneInstance(oFormatOptions);
-		}
-		return oType.oFormat;
-	}
+			+ " 'showTime' must be enabled";
 
 	/**
 	 * Constructor for a <code>DateTimeWithTimezone</code> composite type.
@@ -56,11 +38,14 @@ sap.ui.define([
 	 * part. For this, the timestamp part has to be provided in the UTC time zone. When using this
 	 * type with the {@link sap.ui.model.odata.v2.ODataModel}, you need to set the parameter
 	 * <code>useUndefinedIfUnresolved</code> for both parts.
+	 *
+	 * For more information and some examples how to use this class, see
+	 * {@link topic:6c9e61dc157a40c19460660ece8368bc Dates, Times, Timestamps, and Time Zones}.
 	 * @extends sap.ui.model.CompositeType
 	 * @public
 	 * @see {sap.ui.model.odata.v2.ODataModel#bindProperty}
 	 * @since 1.99.0
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 */
 	var DateTimeWithTimezone = CompositeType.extend("sap.ui.model.odata.type.DateTimeWithTimezone",
 		{
@@ -100,7 +85,9 @@ sap.ui.define([
 	 * @private
 	 */
 	DateTimeWithTimezone.prototype._getErrorMessage = function () {
-		var sMessageKey = !this.bShowDate && !this.bShowTime
+		// no need to use UI5Date.getInstance as only the UTC timestamp is used
+		var oDemoDateTime = new Date(Date.UTC(UI5Date.getInstance().getFullYear(), 11, 31, 23, 59, 58)),
+			sMessageKey = !this.bShowDate && !this.bShowTime
 				? "EnterDateTimeTimezone"
 				: "EnterDateTime";
 
@@ -168,11 +155,28 @@ sap.ui.define([
 
 				return oTimestamp;
 			case "string":
-				return getFormatter(this).format(oTimestamp, sTimezone);
+				return this.getFormat().format(oTimestamp, sTimezone);
 			default:
 				throw new FormatException("Don't know how to format " + this.getName() + " to "
 					+ sTargetType);
 		}
+	};
+
+	/**
+	 * Returns a format converting between the internal and external representation of a value for this type.
+	 *
+	 * @returns {sap.ui.core.format.DateFormat.DateTimeWithTimezone}
+	 *   A format converting between the internal and external representation
+	 *
+	 * @private
+	 */
+	DateTimeWithTimezone.prototype.getFormat = function () {
+		if (!this.oFormat) {
+			var oFormatOptions = _Helper.extend({strictParsing : true}, this.oFormatOptions);
+			this.oFormat = DateFormat.getDateTimeWithTimezoneInstance(oFormatOptions);
+		}
+
+		return this.oFormat;
 	};
 
 	/**
@@ -215,6 +219,19 @@ sap.ui.define([
 		}
 
 		return [];
+	};
+
+	/**
+	 * Returns a language-dependent placeholder text such as "e.g. <sample value>" where <sample value> is formatted
+	 * using this type.
+	 *
+	 * @returns {string|undefined}
+	 *   The language-dependent placeholder text or <code>undefined</code> if the type does not offer a placeholder
+	 *
+	 * @public
+	 */
+	DateTimeWithTimezone.prototype.getPlaceholderText = function () {
+		return this.getFormat().getPlaceholderText();
 	};
 
 	/**
@@ -286,7 +303,7 @@ sap.ui.define([
 				}
 
 				try {
-					aDateWithTimezone = getFormatter(this).parse(vValue, aCurrentValues[1]);
+					aDateWithTimezone = this.getFormat().parse(vValue, aCurrentValues[1]);
 				} catch (oError) { // wrap technical error to show the error at the control
 					throw new ParseException(oError.message);
 				}

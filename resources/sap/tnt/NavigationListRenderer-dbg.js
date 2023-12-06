@@ -33,7 +33,8 @@ sap.ui.define([
 			groups = control.getItems(),
 			expanded = control.getExpanded(),
 			visibleGroups = [],
-			hasGroupWithIcon = false;
+			hasGroupWithIcon = false,
+			overflowItem = control._getOverflowItem();
 
 		//Checking which groups should render
 		groups.forEach(function (group) {
@@ -81,6 +82,9 @@ sap.ui.define([
 			group.render(rm, control);
 		});
 
+		if (!expanded) {
+			overflowItem.render(rm, control);
+		}
 
 		rm.close("ul");
 	};

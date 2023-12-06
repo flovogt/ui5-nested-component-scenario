@@ -7,7 +7,7 @@ sap.ui.define([
 	"./WaiterBase",
 	"./_utils",
 	"sap/ui/thirdparty/jquery"
-], function (WaiterBase, _utils, jQueryDOM) {
+], function (WaiterBase, _utils, jQuery) {
 	"use strict";
 
 	var STATE = {
@@ -63,7 +63,7 @@ sap.ui.define([
 				}
 			}.bind(this));
 			var aPendingResources = this._aResources.filter(function (mResource) {
-				if (!jQueryDOM(mResource.element).length) {
+				if (!jQuery(mResource.element).length) {
 					this._oLogger.trace("Image with src '" + mResource.src + "' was removed");
 					return false;
 				}

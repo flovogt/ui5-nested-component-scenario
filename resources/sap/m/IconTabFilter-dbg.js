@@ -20,7 +20,8 @@ sap.ui.define([
 	"sap/m/Button",
 	"sap/m/ResponsivePopover",
 	"sap/m/IconTabBarSelectList",
-	"sap/m/BadgeEnabler"
+	"sap/m/BadgeEnabler",
+	"sap/m/ImageHelper"
 ], function (
 	library,
 	AccButton,
@@ -36,7 +37,8 @@ sap.ui.define([
 	Button,
 	ResponsivePopover,
 	IconTabBarSelectList,
-	BadgeEnabler
+	BadgeEnabler,
+	ImageHelper
 ) {
 	"use strict";
 
@@ -51,9 +53,6 @@ sap.ui.define([
 
 	// shortcut for sap.m.PlacementType
 	var PlacementType = library.PlacementType;
-
-	// shortcut for sap.m.ImageHelper
-	var ImageHelper = library.ImageHelper;
 
 	// shortcut for sap.m.IconTabFilterDesign
 	var IconTabFilterDesign = library.IconTabFilterDesign;
@@ -94,7 +93,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -240,7 +239,6 @@ sap.ui.define([
 	 * @private
 	 */
 	IconTabFilter.prototype.init = function () {
-
 		this._oDragEventDelegate = {
 			onlongdragover: this._handleOnLongDragOver,
 			ondragover: this._handleOnDragOver,
@@ -437,9 +435,10 @@ sap.ui.define([
 			bTextOnly = oIconTabHeader._bTextOnly,
 			bInLine = oIconTabHeader._bInLine || oIconTabHeader.isInlineMode(),
 			bShowAll = this.getShowAll(),
-			sTextDir = this.getTextDirection();
+			sTextDir = this.getTextDirection(),
+			bIsUnselectable = oIconTabHeader._isUnselectable(this);
 
-		if (this._isOverflow()){
+		if (this._isOverflow()) {
 			mAriaParams.role = "button";
 		}
 
@@ -504,7 +503,7 @@ sap.ui.define([
 			oRM.class("sapMITBFilter" + sIconColor);
 		}
 
-		if (oIconTabHeader._isUnselectable(this)) {
+		if (bIsUnselectable) {
 			oRM.class("sapMITHUnselectable");
 		}
 
@@ -526,7 +525,7 @@ sap.ui.define([
 			oRM.attr("title", sTooltip);
 		}
 
-		if (this._isOverflow() || this.getItems().length) {
+		if (this._isOverflow() || bIsUnselectable) {
 			oRM.attr("aria-haspopup", "menu");
 		}
 
@@ -616,7 +615,7 @@ sap.ui.define([
 				.text(oIconTabHeader._getDisplayText(this))
 				.close("span");
 
-			if (this._isOverflow() || this.getItems().length && oIconTabHeader._isUnselectable(this)) {
+			if (this._isOverflow() || this.getItems().length && bIsUnselectable) {
 				oRM.openStart("span", this.getId() + "-expandButton").class("sapMITHShowSubItemsIcon").openEnd();
 				oRM.icon(IconPool.getIconURI("slim-arrow-down"), null, {
 					"title": null,
@@ -635,8 +634,9 @@ sap.ui.define([
 		oRM.openStart("div").class("sapMITBContentArrow").openEnd().close("div");
 		oRM.close("div");
 
-		if (this.getItems().length && !oIconTabHeader._isUnselectable(this)) {
-			oRM.openStart("span")
+		if (this.getItems().length && !bIsUnselectable) {
+
+			oRM.openStart("span").class("sapMITBFilterExpandBtnSeparator")
 				.accessibilityState({ role: "separator" })
 				.openEnd()
 			.close("span");
@@ -689,7 +689,6 @@ sap.ui.define([
 		if (iIndexInSet !== undefined && iSetSize !== undefined) {
 			oRM.attr("aria-posinset", iIndexInSet + 1);
 			oRM.attr("aria-setsize", iSetSize);
-			oRM.attr("aria-level", this._getNestedLevel());
 		}
 
 		var sTooltip = this.getTooltip_AsString();
@@ -1361,7 +1360,7 @@ sap.ui.define([
 				oRbArgs = [sText, oRootTab.getText()];
 			} else {
 				sRbKey = "ICONTABFILTER_BADGE_MSG";
-				oRbArgs = sText;
+				oRbArgs = [sText];
 			}
 		}
 

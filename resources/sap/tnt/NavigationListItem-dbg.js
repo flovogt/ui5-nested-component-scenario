@@ -6,11 +6,11 @@
 
 // Provides control sap.tnt.NavigationListItem.
 sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap/ui/core/Item", 'sap/ui/core/Icon',
-		'./NavigationList', 'sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', 'sap/ui/core/IconPool', "sap/ui/events/KeyCodes", "sap/ui/core/library",
+		'sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', 'sap/ui/core/IconPool', "sap/ui/events/KeyCodes", "sap/ui/core/library",
 		// jQuery Plugin "addAriaLabelledBy"
 		"sap/ui/util/openWindow", "sap/ui/util/defaultLinkTypes", "sap/ui/dom/jquery/Aria"],
 	function(jQuery, library, Core, Item, Icon,
-			 NavigationList, InvisibleText, Renderer, IconPool, KeyCodes, coreLibrary, openWindow, defaultLinkTypes) {
+			 InvisibleText, Renderer, IconPool, KeyCodes, coreLibrary, openWindow, defaultLinkTypes) {
 		"use strict";
 
 
@@ -32,7 +32,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 		 * @extends sap.ui.core.Item
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @public
@@ -63,6 +63,15 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 					 * @since 1.52
 					 */
 					visible : {type : "boolean", group : "Appearance", defaultValue : true},
+
+					/**
+					 * Specifies if the item can be selected.
+					 *
+					 * @since 1.116
+					 * @experimental Since 1.116. Disclaimer: this property is in a beta state
+					 * - incompatible API changes may be done before its official public release.
+					 */
+					selectable : {type : "boolean", group : "Behavior", defaultValue : true},
 
 					/**
 					 * Defines the link target URI. Supports standard hyperlink behavior. If a JavaScript action should be triggered,
@@ -108,7 +117,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 
 		NavigationListItem.expandIcon = 'sap-icon://navigation-right-arrow';
 		NavigationListItem.collapseIcon = 'sap-icon://navigation-down-arrow';
-
+		NavigationListItem.selectionIndicatorIcon = 'sap-icon://circle-task-2';
 
 		NavigationListItem._getInvisibleText = function() {
 			if (!this._invisibleText) {
@@ -214,6 +223,22 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 		};
 
 		/**
+		 * Returns the DOM Element that should get the focus.
+		 *
+		 * @return {Element} Returns the DOM Element that should get the focus
+		 * @protected
+		 */
+		NavigationListItem.prototype.getFocusDomRef = function () {
+			var oFocusRef = this.getDomRef("focusable");
+
+			if (oFocusRef) {
+				return oFocusRef;
+			}
+
+			return this.getDomRef();
+		};
+
+		/**
 		 * Returns if the parent NavigationList control is expanded.
 		 * @private
 		 */
@@ -228,7 +253,6 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 		 * @private
 		 */
 		NavigationListItem.prototype.createPopupList = function () {
-
 			var newSubItems = [],
 				list = this.getNavigationList(),
 				selectedItem = list.getSelectedItem(),
@@ -247,6 +271,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 						text: subItem.getText(),
 						textDirection: subItem.getTextDirection(),
 						enabled: subItem.getEnabled(),
+						selectable: subItem.getSelectable(),
 						href: subItem.getHref(),
 						target: subItem.getTarget(),
 						tooltip: subItem.getTooltip()
@@ -264,6 +289,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 			var newGroup = new NavigationListItem({
 				expanded: true,
 				hasExpander: false,
+				selectable: this.getSelectable(),
 				key: this.getId(),
 				text: this.getText(),
 				enabled: this.getEnabled(),
@@ -274,7 +300,9 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 				items: newSubItems
 			});
 
-			var navList = new NavigationList({
+			var navigationListClass = list.getMetadata().getClass().prototype.constructor;
+
+			var navList = new navigationListClass({
 				itemSelect: this.onPopupItemSelect.bind(this),
 				items: [
 					newGroup
@@ -319,7 +347,9 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 
 			this.fireSelect(params);
 
-			navList._selectItem(params);
+			if (this.getSelectable()) {
+				navList._selectItem(params);
+			}
 
 			this._openUrl();
 		};
@@ -517,23 +547,31 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 				text = this.getText(),
 				href = this.getHref(),
 				target = this.getTarget(),
+				selectable = this.getSelectable(),
 				tooltip,
 				ariaProps = {
 					level: '1',
 					role: 'treeitem',
-					selected: false,
 					roledescription: this._resourceBundleTNTLib.getText("NAVIGATION_LIST_ITEM_ROLE_DESCRIPTION_TREE_ITEM")
-				};
+				},
+				expanderVisible = this.getItems().length > 0 && this.getHasExpander();
 
-			rm.openStart("div");
+			if (isListExpanded) {
+				rm.openStart("div", this.getId() + "-focusable");
+			} else {
+				rm.openStart("div");
+			}
 
 			rm.class("sapTntNavLIItem");
 			rm.class("sapTntNavLIGroup");
 
-			if (control._selectedItem === this) {
-				ariaProps.selected = true;
-
-				rm.class("sapTntNavLIItemSelected");
+			if (selectable) {
+				if (control._selectedItem === this) {
+					ariaProps.selected = true;
+					rm.class("sapTntNavLIItemSelected");
+				} else {
+					ariaProps.selected = false;
+				}
 			}
 
 			if (!this.getEnabled()) {
@@ -542,6 +580,10 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 
 			if (!isListExpanded && this._hasSelectedChild(control._selectedItem)) {
 				rm.class("sapTntNavLIItemSelected");
+			}
+
+			if (expanderVisible) {
+				rm.class("sapTntNavLIItemWithExpander");
 			}
 
 			// checking if there are items level 2 in the NavigationListItem
@@ -588,12 +630,14 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 
 			this._renderIcon(rm);
 
+			this._renderText(rm);
+
 			if (control.getExpanded()) {
 				var expandIconControl = this._getExpandIconControl();
-				expandIconControl.setVisible(this.getItems().length > 0 && this.getHasExpander());
+				expandIconControl.setVisible(expanderVisible);
 				expandIconControl.setSrc(this.getExpanded() ? NavigationListItem.collapseIcon : NavigationListItem.expandIcon);
 				expandIconControl.setTooltip(this._getExpandIconTooltip(!this.getExpanded()));
-				this._renderText(rm);
+				rm.icon(NavigationListItem.selectionIndicatorIcon, ["sapTntNavLISelectionIndicator"]);
 				rm.renderControl(expandIconControl);
 			}
 
@@ -613,9 +657,9 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 				expanded = this.getExpanded(),
 				isListExpanded = this._isListExpanded(),
 				tooltip,
+				selectable = this.getSelectable(),
 				ariaProps = {
-					role: 'menuitemradio',
-					checked: false,
+					role: selectable ? 'menuitemradio' : 'menuitem',
 					roledescription: this._resourceBundleTNTLib.getText("NAVIGATION_LIST_ITEM_ROLE_DESCRIPTION_MENUITEM")
 				};
 
@@ -640,8 +684,15 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 					ariaProps.haspopup = "tree";
 				}
 
-				if (control._selectedItem === this) {
-					ariaProps.checked = true;
+				if (this._isOverflow) {
+					rm.class("sapTnTNavLIOverflow");
+					rm.class("sapTnTNavLIHiddenItem");
+					rm.attr("tabindex", "-1");
+					ariaProps.haspopup = "menu";
+				}
+
+				if (selectable) {
+					ariaProps.checked = control._selectedItem === this;
 				}
 
 				// ARIA
@@ -684,14 +735,13 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 		 * @private
 		 */
 		NavigationListItem.prototype.renderSecondLevelNavItem = function (rm, control) {
-
 			var group = this.getParent(),
 				href = this.getHref(),
 				target = this.getTarget(),
+				selectable = this.getSelectable(),
 				ariaProps = {
 					role: 'treeitem',
 					level: '2',
-					selected: false,
 					roledescription: this._resourceBundleTNTLib.getText("NAVIGATION_LIST_ITEM_ROLE_DESCRIPTION_TREE_ITEM")
 				};
 
@@ -699,10 +749,13 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 			rm.class("sapTntNavLIItem");
 			rm.class("sapTntNavLIGroupItem");
 
-			if (control._selectedItem === this) {
-				ariaProps.selected = true;
-
-				rm.class("sapTntNavLIItemSelected");
+			if (selectable) {
+				if (control._selectedItem === this) {
+					ariaProps.selected = true;
+					rm.class("sapTntNavLIItemSelected");
+				} else {
+					ariaProps.selected = false;
+				}
 			}
 
 			if (!this.getEnabled() || !group.getEnabled()) {
@@ -738,8 +791,8 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 
 			rm.openEnd();
 
-
 			this._renderText(rm);
+			rm.icon("sap-icon://circle-task-2", ["sapTntNavLISelectionIndicator"]);
 
 			rm.close('a');
 
@@ -860,13 +913,12 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 
 				$this.attr('aria-selected', true);
 			} else {
-
 				$this.attr('aria-checked', true);
 
 				$this = $this.find('.sapTntNavLIGroup');
 
 				if (this.getParent().isA("sap.tnt.NavigationListItem")) {
-					this.getParent().$().find('.sapTntNavLIGroup').addClass('sapTntNavLIItemSelected');
+					this.getParent().$().find('.sapTntNavLIGroup').addClass('sapTntNavLIItemSelected sapTntNavLIItemNoHoverEffect');
 				}
 				navList._closePopover();
 			}
@@ -927,6 +979,15 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "./library", 'sap/ui/core/Core', "sap
 				event.preventDefault();
 			}
 		};
+
+		NavigationListItem.prototype.onfocusout = function() {
+			var groupItem = this.getDomRef() && this.getDomRef().querySelector(".sapTntNavLIGroup");
+			if (groupItem) {
+				groupItem.classList.remove("sapTntNavLIItemNoHoverEffect");
+			}
+		};
+
+		NavigationListItem.prototype.onmouseover = NavigationListItem.prototype.onfocusout;
 
 		NavigationListItem.prototype.onmousedown = function(event) {
 			// prevent focusin event to be fired on <a> element

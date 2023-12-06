@@ -78,7 +78,7 @@ function(
 	 * @implements sap.ui.core.Label, sap.ui.core.IShrinkable, sap.ui.core.IAccessKeySupport
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -228,7 +228,7 @@ function(
 		var oLabeledControl = Core.byId(sLabelForId);
 
 		if (oLabeledControl && oLabeledControl.isA("sap.m.Input") && oLabeledControl.getProperty("highlightAccKeysRef")) {
-			Core.byId(sLabelForId).setProperty("accesskey", (sText[0].toLowerCase()), true);
+			Core.byId(sLabelForId).setProperty("accesskey", (sText[0].toLowerCase()));
 		}
 	};
 

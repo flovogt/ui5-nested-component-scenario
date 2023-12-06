@@ -4,15 +4,12 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 // Provides control sap.m.TabStripItem.
-sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sap/ui/core/IconPool", "./AccButton"],
-	function(library, Item, ManagedObject, IconPool, AccButton) {
+sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sap/ui/core/IconPool", "./AccButton", "sap/m/ImageHelper"],
+	function(library, Item, ManagedObject, IconPool, AccButton, ImageHelper) {
 		"use strict";
 
 		// shortcut for sap.m.ButtonType
 		var ButtonType = library.ButtonType;
-
-		// shortcut for sap.m.ImageHelper
-		var ImageHelper = library.ImageHelper;
 
 		/**
 		 * Constructor for a new <code>TabStripItem</code>.
@@ -25,7 +22,7 @@ sap.ui.define(["./library", "sap/ui/core/Item", "sap/ui/base/ManagedObject", "sa
 		 * @extends sap.ui.core.Item
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @private

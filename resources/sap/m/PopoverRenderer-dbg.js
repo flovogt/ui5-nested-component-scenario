@@ -55,7 +55,9 @@ sap.ui.define([
 				.openEnd();
 
 			if (oControl.getResizable()) {
-				oRm.icon("sap-icon://resize-corner", ["sapMPopoverResizeHandle"], { "title" : ""});
+				oRm.icon("sap-icon://resize-corner", ["sapMPopoverResizeHandle"], {
+					"aria-hidden": true
+				});
 			}
 
 			this.renderContent(oRm, oControl);
@@ -99,6 +101,7 @@ sap.ui.define([
 				oRm.openStart("span", oControl.getId() + "-firstfe")
 					.class("sapMPopoverHiddenFocusable")
 					.attr("tabindex", "0")
+					.attr("role", "presentation")
 					.openEnd()
 					.close("span");
 			}
@@ -160,10 +163,6 @@ sap.ui.define([
 			oRm.openStart("div", oControl.getId() + "-scroll")
 				.class("sapMPopoverScroll");
 
-			if (!oControl.getHorizontalScrolling()) {
-				oRm.style(Configuration.getRTL() ? "margin-left" : "margin-right", getScrollbarSize().width + "px");
-			}
-
 			oRm.openEnd();
 
 			for (i = 0; i < contents.length; i++) {
@@ -215,6 +214,7 @@ sap.ui.define([
 				oRm.openStart("span", oControl.getId() + "-lastfe")
 					.class("sapMPopoverHiddenFocusable")
 					.attr("tabindex", "0")
+					.attr("role", "presentation")
 					.openEnd()
 					.close("span");
 			}

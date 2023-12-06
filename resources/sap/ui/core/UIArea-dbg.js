@@ -8,7 +8,6 @@
 sap.ui.define([
 	'sap/ui/base/ManagedObject',
 	'sap/ui/base/ManagedObjectRegistry',
-	'./Configuration',
 	'./Element',
 	'./RenderManager',
 	'./FocusHandler',
@@ -17,20 +16,20 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes",
 	"sap/base/Log",
 	"sap/base/assert",
+	"sap/base/config",
 	"sap/ui/performance/Measurement",
 	"sap/base/util/uid",
 	"sap/base/util/isEmptyObject",
 	"sap/ui/core/Rendering",
+	"sap/ui/core/util/_LocalizationHelper",
 	'sap/ui/events/jquery/EventExtension',
 	"sap/ui/events/ControlEvents",
 	"sap/ui/events/F6Navigation",
-	"sap/ui/dom/_ready",
 	"sap/ui/thirdparty/jquery"
 ],
 	function(
 		ManagedObject,
 		ManagedObjectRegistry,
-		Configuration,
 		Element,
 		RenderManager,
 		FocusHandler,
@@ -39,20 +38,18 @@ sap.ui.define([
 		KeyCodes,
 		Log,
 		assert,
+		BaseConfig,
 		Measurement,
 		uid,
 		isEmptyObject,
 		Rendering,
+		_LocalizationHelper,
 		EventExtension,
 		ControlEvents,
 		F6Navigation,
-		_ready,
 		jQuery
 	) {
 	"use strict";
-
-	// Id of the static UIArea
-	var STATIC_UIAREA_ID = "sap-ui-static";
 
 	var oRenderLog = Rendering.getLogger();
 
@@ -60,16 +57,6 @@ sap.ui.define([
 	var oRenderManager = new RenderManager();
 
 	var oCore;
-
-	/**
-	 * Whether the DOM is ready (document.ready)
-	 * @private
-	 */
-	var bDomReady = false;
-
-	_ready().then(function() {
-		bDomReady = true;
-	});
 
 	EventExtension.apply();
 
@@ -118,7 +105,7 @@ sap.ui.define([
 
 			for (n in mControls) {
 				// resolve oControl anew as it might have changed
-				oControl = Element.registry.get(n);
+				oControl = Element.getElementById(n);
 				/*eslint-disable no-nested-ternary */
 				mReport[n] = {
 					type: oControl ? oControl.getMetadata().getName() : (mControls[n].obj === that ? "UIArea" : "(no such control)"),
@@ -183,7 +170,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
 	 * @alias sap.ui.core.UIArea
@@ -210,6 +197,8 @@ sap.ui.define([
 				this.bNeedsRerendering = this.bNeedsRerendering && !document.getElementById(oRootNode.id + "-Init");
 			}
 			this.mInvalidatedControls = {};
+			this.mSuppressedControls = {};
+			this.iSuppressedControlsLength = 0;
 
 			if (!this.bNeedsRerendering) {
 				this.bRenderSelf = false;
@@ -256,16 +245,6 @@ sap.ui.define([
 			return this.destroyAggregation("dependents", true);
 		}
 	});
-
-	/**
-	 * Returns whether re-rendering is currently suppressed on this UIArea.
-	 *
-	 * @returns {boolean} Whether re-rendering is currently suppressed on this UIArea
-	 * @protected
-	 */
-	UIArea.prototype.isInvalidateSuppressed = function() {
-		return this.iSuppressInvalidate > 0;
-	};
 
 	/**
 	 * Returns this <code>UIArea</code>'s id (as determined from provided RootNode).
@@ -353,9 +332,6 @@ sap.ui.define([
 	 * relationship to this UIArea will be cut off). Then the parent relationship for the new
 	 * content control (if not empty) will be set to this UIArea and finally, the UIArea will
 	 * be marked for re-rendering.
-	 *
-	 * The real re-rendering happens whenever the re-rendering is called. Either implicitly
-	 * at the end of any control event or by calling sap.ui.getCore().applyChanges().
 	 *
 	 * @param {sap.ui.base.Interface | sap.ui.core.Control} oRootControl
 	 *            the Control that should be the Root for this <code>UIArea</code>.
@@ -494,6 +470,68 @@ sap.ui.define([
 	};
 
 	/**
+	 * Suppresses the invalidation for a given control and its descendants within the UIArea
+	 * until the {@link #resumeInvalidationFor} method is called for the same control.
+	 *
+	 * <b>Note:</b> This method is not intended to prevent the rendering of the control, but rather to suppress the invalidation process
+	 * which would start the rendering. For example, if the rendering process starts for a parent control, the control for which the
+	 * invalidation is suppressed, along with its descendants, may still be rendered together with the parent control.
+	 *
+	 * @param {sap.ui.core.Control} oControl The control for which the invalidation should be suppressed
+	 * @throws {TypeError} If the oControl parameter is not a type of sap.ui.core.Control
+	 * @returns {boolean} true if the invalidation was successfully suppressed, or false if invalidation was already suppressed and no action was taken.
+	 * @private
+	 * @ui5-restricted sap.ui.mdc
+	 * @since 1.118
+	 */
+	UIArea.prototype.suppressInvalidationFor = function (oControl) {
+		if (!oControl || !oControl.isA || !oControl.isA("sap.ui.core.Control")) {
+			throw new TypeError("Invalid parameter: oControl must be Control instance.");
+		}
+
+		var sId = oControl.getId();
+		if (!this.mSuppressedControls[sId]) {
+			this.mSuppressedControls[sId] = new Set();
+			this.iSuppressedControlsLength++;
+			return true;
+		}
+
+		return false;
+	};
+
+	/**
+	 * Resumes the invalidation for a given control and its descendants within the UIArea for which
+	 * the invalidation was suppressed with the {@link #suppressInvalidationFor} method.
+	 *
+	 * @param {sap.ui.core.Control} oControl The control for which the invalidation was suppressed
+	 * @throws {TypeError} If the oControl parameter is not a type of sap.ui.core.Control
+	 * @throws {Error} If the invalidation has not yet been suppressed for the given control
+	 * @private
+	 * @ui5-restricted sap.ui.mdc
+	 * @since 1.118
+	 */
+	UIArea.prototype.resumeInvalidationFor = function (oControl) {
+		if (!oControl || !oControl.isA || !oControl.isA("sap.ui.core.Control")) {
+			throw new TypeError("Invalid parameter: oControl must be Control instance.");
+		}
+
+		var sId = oControl.getId();
+		var mControlsSuppressedFromInvalidation = this.mSuppressedControls[sId];
+		if (!mControlsSuppressedFromInvalidation) {
+			throw new Error("The invalidation has not yet been suppressed for " + oControl);
+		}
+
+		this.iSuppressedControlsLength--;
+		delete this.mSuppressedControls[sId];
+		mControlsSuppressedFromInvalidation.forEach(function(sControlId) {
+			var oControl = Element.getElementById(sControlId);
+			if (oControl) {
+				this.addInvalidatedControl(oControl);
+			}
+		}, this);
+	};
+
+	/**
 	 * Provide getBindingContext, as UIArea can be parent of an element.
 	 *
 	 * @returns {null} Always returns null.
@@ -573,15 +611,24 @@ sap.ui.define([
 			this.mInvalidatedControls[sId] = fnDbgWrap(this);
 			return;
 		}
-		if (this.mInvalidatedControls[sId]) {
+		if ( this.mInvalidatedControls[sId] ) {
 			return;
 		}
-		if (!this.bRenderSelf) {
-			//add it to the list of controls
-			this.mInvalidatedControls[sId] = fnDbgWrap(oControl);
 
-			this.bNeedsRerendering = true;
+		//determine whether the control is a child of a control for which the invalidation is suppressed
+		if ( this.iSuppressedControlsLength ) {
+			for (var oCurrent = oControl; oCurrent; oCurrent = oCurrent.getParent()) {
+				var mControlsSuppressedFromInvalidation = this.mSuppressedControls[oCurrent.getId()];
+				if (mControlsSuppressedFromInvalidation) {
+					mControlsSuppressedFromInvalidation.add(sId);
+					return;
+				}
+			}
 		}
+
+		//add it to the list of invalidated controls
+		this.mInvalidatedControls[sId] = fnDbgWrap(oControl);
+		this.bNeedsRerendering = true;
 	};
 
 	/**
@@ -712,14 +759,46 @@ sap.ui.define([
 				}
 			};
 
+			var aControlsRenderedTogetherWithAncestor = [];
 			for (var n in mInvalidatedControls) {
-				var oControl = Element.registry.get(n);
+				var oControl = Element.getElementById(n);
 				// CSN 0000834961 2011: control may have been destroyed since invalidation happened -> check whether it still exists
-				if ( oControl && !isRenderedTogetherWithAncestor(oControl) ) {
-					oControl.rerender();
-					bUpdated = true;
+				if ( oControl ) {
+					if ( !isRenderedTogetherWithAncestor(oControl) ) {
+						oControl.rerender();
+						bUpdated = true;
+					} else {
+						aControlsRenderedTogetherWithAncestor.push(oControl);
+					}
 				}
 			}
+
+			/**
+			 * Let us suppose that A is the parent of B, and B is the parent of C. The controls A and C are invalidated, but B isn't.
+			 * Controls A and C will be added to the UIArea as invalidated controls. At the next tick, UIArea will be rendered again.
+			 * Thanks to the isRenderedTogetherWithAncestor method above, C.rerender will never be executed but only A.rerender.
+			 *
+			 * In apiVersion 1 or 2:
+			 * During the rendering of A, RM.renderControl(B) renders the control B, and during the rendering of B, RM.renderControl(C)
+			 * renders the control C. At the end of the UIArea re-rendering, there shall be no control remaining in an invalidated state.
+			 *
+			 * In apiVersion 4:
+			 * During the rendering of A when RM.renderControl(B) is called the RenderManager first checks whether control B is
+			 * invalidated. Since it was not invalidated the RenderManager skips the rendering of control B. Consequently, there will be
+			 * no RM.renderControl(C) call to render the control C, and it remains in an invalidated state.
+			 *
+			 * The implementation below re-renders the invalidated controls that are skipped and not rendered with their ancestor.
+			 * The re-rendering here is only required for controls that already have DOM output.
+			 */
+			aControlsRenderedTogetherWithAncestor.forEach(function(oControl) {
+				if (!oControl._bNeedsRendering || oControl.isDestroyed()) {
+					return;
+				}
+				if (oControl.bOutput == true && oControl.getDomRef() ||
+					oControl.bOutput == "invisible" && document.getElementById(RenderManager.createInvisiblePlaceholderId(oControl))) {
+					oControl.rerender();
+				}
+			});
 		}
 
 		// enrich the bookkeeping
@@ -749,6 +828,11 @@ sap.ui.define([
 		var sId = oControl.getId();
 		if ( this.mInvalidatedControls[sId] ) {
 			delete this.mInvalidatedControls[sId];
+		}
+		if ( this.iSuppressedControlsLength ) {
+			Object.values(this.mSuppressedControls).forEach(function(mControlsSuppressedFromInvalidation) {
+				mControlsSuppressedFromInvalidation.delete(sId);
+			});
 		}
 	};
 	/**
@@ -908,17 +992,20 @@ sap.ui.define([
 			fnPreprocessor(oEvent);
 		});
 
-		// forward the control event:
-		// if the control propagation has been stopped or the default should be
-		// prevented then do not forward the control event.
+		/**
+		 * forward the control event:
+		 * if the control propagation has been stopped or the default should be
+		 * prevented then do not forward the control event.
+		 * @deprecated Since 1.119
+		 */
 		if (oCore) {
 			oCore._handleControlEvent(oEvent, sId);
 		}
 
-		// if the UIArea or the Core is locked then we do not dispatch
+		// if the UIArea is locked then we do not dispatch
 		// any event to the control => but they will still be dispatched
 		// as control event afterwards!
-		if (this.bLocked || (oCore && oCore.isLocked())) {
+		if (this.bLocked) {
 			return;
 		}
 
@@ -1271,30 +1358,29 @@ sap.ui.define([
 	 * Creates a new {@link sap.ui.core.UIArea UIArea}.
 	 * Must only be used by sap.ui.core.Core or sap.ui.core.Control.
 	 *
-	 * @param {Element|string} oDomRef a DOM Element or ID string of the UIArea
+	 * @param {Element|string} vDomRef a DOM Element or ID string of the UIArea
 	 * @return {sap.ui.core.UIArea} a new UIArea
 	 * @private
 	 * @ui5-restricted sap.ui.core
 	 */
-	UIArea.create = function(oDomRef) {
-		assert(typeof oDomRef === "string" || typeof oDomRef === "object", "oDomRef must be a string or object");
+	UIArea.create = function(vDomRef) {
+		assert(typeof vDomRef === "string" || typeof vDomRef === "object", "vDomRef must be a string or object");
 
-		if (!oDomRef) {
-			throw new Error("oDomRef must not be null");
+		if (!vDomRef) {
+			throw new Error("vDomRef must not be null");
 		}
 
-		// oDomRef might be (and actually IS in most cases!) a string (the ID of a DOM element)
-		if (typeof (oDomRef) === "string") {
-			var id = oDomRef;
+		var oDomRef;
+		// vDomRef might be (and actually IS in most cases!) a string (the ID of a DOM element)
+		if (typeof (vDomRef) === "string") {
+			var id = vDomRef;
 
-			if (id == STATIC_UIAREA_ID) {
-				oDomRef = UIArea.getStaticAreaRef();
-			} else {
-				oDomRef = document.getElementById(oDomRef);
-				if (!oDomRef) {
-					throw new Error("DOM element with ID '" + id + "' not found in page, but application tries to insert content.");
+			oDomRef = document.getElementById(id);
+			if (!oDomRef) {
+				throw new Error("DOM element with ID '" + id + "' not found in page, but application tries to insert content.");
 				}
-			}
+		} else {
+			oDomRef = vDomRef;
 		}
 
 		// if the domref does not have an ID or empty ID => generate one
@@ -1324,63 +1410,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns the static, hidden area DOM element belonging to this core instance.
-	 *
-	 * It can be used e.g. for hiding elements like Popups, Shadow, Blocklayer etc.
-	 *
-	 * If it is not yet available, a DIV is created and appended to the body.
-	 *
-	 * @returns {Element} the static, hidden area DOM element belonging to this core instance.
-	 * @throws {Error} an Error if the document is not yet ready
-	 * @private
-	 * @ui5-restricted sap.ui.core
-	 */
-	UIArea.getStaticAreaRef = function() {
-		if (!bDomReady) {
-			throw new Error("DOM is not ready yet. Static UIArea cannot be created.");
-		}
-
-		var oStaticArea = document.getElementById(STATIC_UIAREA_ID),  oFirstFocusElement;
-
-		if (!oStaticArea) {
-
-			oStaticArea = document.createElement("div");
-			oFirstFocusElement = document.createElement("span");
-
-			oStaticArea.setAttribute("id", STATIC_UIAREA_ID);
-
-			Object.assign(oStaticArea.style, {
-				"height": "0",
-				"width": "0",
-				"overflow": "hidden",
-				"float":  Configuration.getRTL() ? "right" : "left"
-			});
-
-			oFirstFocusElement.setAttribute("id", STATIC_UIAREA_ID + "-firstfe");
-			oFirstFocusElement.setAttribute("tabindex", -1);
-			oFirstFocusElement.style.fontSize = 0;
-
-			oStaticArea.appendChild(oFirstFocusElement);
-
-			document.body.insertBefore(oStaticArea, document.body.firstChild);
-
-			UIArea.create(oStaticArea).bInitial = false;
-		}
-		return oStaticArea;
-	};
-
-	/**
-	 * Checks whether the given DOM element is the root of the static area.
-	 *
-	 * @param {Element} oDomRef DOM element to check
-	 * @returns {boolean} Whether the given DOM element is the root of the static area
-	 * @private
-	 */
-	UIArea.isStaticAreaRef = function(oDomRef) {
-		return !!(oDomRef && (oDomRef.id === STATIC_UIAREA_ID));
-	};
-
-	/**
 	 * Sets the Core instance in Core onInit
 	 * @param {sap.ui.core.Core} oCoreInstance the Core instance
 	 * @private
@@ -1388,7 +1417,12 @@ sap.ui.define([
 	UIArea.setCore = function(oCoreInstance) {
 		oCore = oCoreInstance;
 
-		var aUiAreas = Configuration.getValue("areas");
+		var aUiAreas = BaseConfig.get({
+			name: "sapUiAreas",
+			type: BaseConfig.Type.StringArray,
+			defaultValue: null,
+			freeze: true
+		});
 		// create any pre-configured UIAreas
 		if ( aUiAreas ) {
 			for (var i = 0, l = aUiAreas.length; i < l; i++) {
@@ -1516,6 +1550,8 @@ sap.ui.define([
 	 * @function
 	 * @public
 	 */
+
+	_LocalizationHelper.registerForUpdate("UIAreas", UIArea.registry.all);
 
 	return UIArea;
 });

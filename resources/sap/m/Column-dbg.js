@@ -6,17 +6,16 @@
 
 // Provides control sap.m.Column.
 sap.ui.define([
-	'./library',
-	'sap/ui/core/Element',
-	'sap/ui/core/Renderer',
-	'sap/ui/core/library',
-	'sap/ui/Device',
-	"sap/ui/thirdparty/jquery",
+	"./library",
+	"sap/ui/core/Core",
+	"sap/ui/core/Element",
+	"sap/ui/core/Renderer",
+	"sap/ui/core/library",
+	"sap/ui/Device",
 	"sap/ui/core/InvisibleText"
 ],
-	function(library, Element, Renderer, coreLibrary, Device, jQuery, InvisibleText) {
+	function(library, Core, Element, Renderer, coreLibrary, Device, InvisibleText) {
 	"use strict";
-
 
 
 	// shortcut for sap.m.PopinDisplay
@@ -47,7 +46,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -212,9 +211,6 @@ sap.ui.define([
 	// default index
 	Column.prototype._index = -1;
 
-	// predefined screen size
-	Column.prototype._screen = "";
-
 	// default media value
 	Column.prototype._media = null;
 
@@ -270,13 +266,19 @@ sap.ui.define([
 
 	Column.prototype.onsapenter = Column.prototype.onsapspace;
 
+	Column.prototype.oncontextmenu = function (oEvent) {
+		var oMenu = this.getHeaderMenuInstance();
+		if (oMenu) {
+			oMenu.openBy(this);
+			oEvent.preventDefault();
+		}
+	};
+
 	Column.prototype.invalidate = function() {
 		var oParent = this.getParent();
-		if (!oParent || !oParent.bOutput) {
-			return;
+		if (oParent && oParent.bOutput) {
+			Element.prototype.invalidate.apply(this, arguments);
 		}
-
-		Element.prototype.invalidate.apply(this, arguments);
 	};
 
 	Column.prototype._clearMedia = function() {
@@ -300,8 +302,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Notify parent to re-render
-	 * Also fire media event for listeners
+	 * Notify table to re-render
 	 *
 	 * @private
 	 */
@@ -315,15 +316,9 @@ sap.ui.define([
 		this._media = oMedia;
 		this._media.matches = !!oMedia.from;
 
-		// inform parent delayed
-		setTimeout(function() {
-			// make sure that the column is visible
-			if (!this.getVisible()) {
-				return;
-			}
-			this.fireEvent("media", this);
+		if (this.getVisible()) {
 			this.informTable("Resize");
-		}.bind(this), 0);
+		}
 	};
 
 	Column.prototype._validateMinWidth = function(sWidth) {
@@ -338,35 +333,6 @@ sap.ui.define([
 		}
 		if (!/^\d+(\.\d+)?(px|em|rem)$/i.test(sWidth)) {
 			throw new Error('invalid CSS size("px", "em", "rem" required) or sap.m.ScreenSize enumeration for property "minScreenWidth" of ' + this);
-		}
-	};
-
-
-	// Checks the given width(px or em), if it is a predefined screen value
-	Column.prototype._isWidthPredefined = function(sWidth) {
-		var that = this,
-			unit = sWidth.replace(/[^a-z]/ig, ""),
-			baseFontSize = parseFloat(library.BaseFontSize) || 16;
-
-		jQuery.each(library.ScreenSizes, function(screen, size) {
-			if (unit != "px") {
-				size /= baseFontSize;
-			}
-			if (size + unit == sWidth) {
-				that._minWidth = this + "px";
-				that._screen = screen;
-				return false;
-			}
-		});
-
-		if (this._minWidth) {
-			return true;
-		}
-
-		if (unit == "px") {
-			this._minWidth = sWidth;
-		} else {
-			this._minWidth = parseFloat(sWidth) * baseFontSize + "px";
 		}
 	};
 
@@ -386,21 +352,6 @@ sap.ui.define([
 		}
 
 		return sAlign.toLowerCase();
-	};
-
-
-	// Returns styleClass property with extra responsive class if second parameter is set true
-	Column.prototype.getStyleClass = function(bResponsive) {
-		var cls = this.getProperty("styleClass");
-		if (!bResponsive) {
-			return cls;
-		}
-		if (this._screen && (!this.getDemandPopin() || !window.matchMedia)) {
-			cls += " sapMSize-" + this._screen;
-		} else if (this._media && !this._media.matches) {
-			cls += " sapMListTblNone";
-		}
-		return cls.trim();
 	};
 
 	/**
@@ -474,83 +425,27 @@ sap.ui.define([
 		return oTable.indexOfColumn(this);
 	};
 
-	/**
-	 * Display or hide the column from given table
-	 * This does not set the visibility property of the column
-	 *
-	 * @param {Element} oTableDomRef Table DOM reference
-	 * @param {boolean} [bDisplay] whether visible or not
-	 * @protected
-	 */
-	Column.prototype.setDisplay = function(oTableDomRef, bDisplay) {
-		if (!oTableDomRef || this._index < 0) {
-			return;
-		}
-
-		// go with native we need speed
-		var i = this._index + 1,
-			parent =  this.getParent(),
-			display = bDisplay && !this.isHidden() ? "table-cell" : "none",
-			header = oTableDomRef.querySelector("tr > th:nth-child(" + i + ")"),
-			cells = oTableDomRef.querySelectorAll("tr > td:nth-child(" + i + ")"),
-			length = cells.length;
-
-		// set display and aria
-		header.style.display = display;
-		header.setAttribute("aria-hidden", !bDisplay);
-		for (i = 0; i < length; i++) {
-			cells[i].style.display = display;
-			cells[i].setAttribute("aria-hidden", !bDisplay);
-		}
-
-		// let the parent know the visibility change
-		if (parent && parent.setTableHeaderVisibility) {
-			// make it sure rendering phase is done with timeout
-			setTimeout(function() {
-				parent.setTableHeaderVisibility(bDisplay);
-			}, 0);
-		}
-	};
-
-	Column.prototype.setVisible = function(bVisible) {
-		if (bVisible == this.getVisible()) {
-			return this;
-		}
-
-		var oParent = this.getParent(),
-			oTableDomRef = oParent && oParent.getTableDomRef && oParent.getTableDomRef(),
-			bSupressInvalidate = oTableDomRef && this._index >= 0 && !oParent.getAutoPopinMode() && !this._bForcedColumn;
-
-		if (bSupressInvalidate) {
-			this.setProperty("visible", bVisible, bSupressInvalidate);
-			this.setDisplay(oTableDomRef, bVisible);
-		} else {
-			this.setProperty("visible", bVisible);
-		}
-
-		return this;
-	};
-
 	// sets the internals for the minScreenWidth property
 	Column.prototype._setMinScreenWidth = function(sWidth) {
 		// initialize
 		this._clearMedia();
 		this._minWidth = 0;
-		this._screen = "";
 
 		if (sWidth) {
 			// check given width is known screen-size
 			sWidth = sWidth.toLowerCase();
-			var width = library.ScreenSizes[sWidth];
-			if (width) {
-				this._screen = sWidth;
-				this._minWidth = width + "px";
+			var sPredefinedWidth = library.ScreenSizes[sWidth];
+			if (sPredefinedWidth) {
+				this._minWidth = sPredefinedWidth + "px";
+			} else if (sWidth.endsWith("px")) {
+				this._minWidth = sWidth;
 			} else {
-				this._isWidthPredefined(sWidth);
+				var fBaseFontSize = parseFloat(library.BaseFontSize);
+				this._minWidth = parseFloat(sWidth) * fBaseFontSize + "px";
 			}
 
-			var parent = this.getTable();
-			if (parent && parent.isActive()) {
+			var oTable = this.getTable();
+			if (oTable && oTable.isActive()) {
 				this._addMedia();
 			} else {
 				this._bShouldAddMedia = true;
@@ -579,25 +474,6 @@ sap.ui.define([
 		return this.setProperty("minScreenWidth", sWidth);
 	};
 
-	/*
-	 * Decides if we need media query or not according to given settings
-	 * if pop-in is demanded then we always need JS media queries
-	 * if not demanded but if screen size is known CSS media query can handle
-	 */
-	Column.prototype.setDemandPopin = function(bValue) {
-		// check if setting the old value
-		if (bValue == this.getDemandPopin()) {
-			return this;
-		}
-
-		// minimum width should have been set
-		if (!this.getMinScreenWidth()) {
-			return this.setProperty("demandPopin", bValue, true);
-		}
-
-		return this.setProperty("demandPopin", bValue);
-	};
-
 	Column.prototype.setSortIndicator = function(sSortIndicator) {
 		this.setProperty("sortIndicator", sSortIndicator, true);
 		this.$().attr("aria-sort", this.getSortIndicator().toLowerCase());
@@ -605,7 +481,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Determines whether the column will be shown as pop-in or not
+	 * Determines whether the column is shown as pop-in or not
 	 *
 	 * @protected
 	 */
@@ -617,35 +493,22 @@ sap.ui.define([
 		var oTable = this.getTable();
 		if (oTable) {
 			var aHiddenInPopin = oTable.getHiddenInPopin() || [];
-			var bHideColumn = aHiddenInPopin.some(function(sImportance) {
-				return this.getImportance() === sImportance;
-			}, this);
-
+			var bHideColumn = aHiddenInPopin.includes(this.getImportance());
 			if (bHideColumn) {
 				return false;
 			}
 		}
 
-		if (this._media) {
-			return !this._media.matches;
-		}
-		return false;
+		return this.isHidden();
 	};
 
 	/**
-	 * Determines whether the column will be hidden via media queries or not
+	 * Determines whether the column is hidden without being in the popin area
 	 *
 	 * @protected
 	 */
 	Column.prototype.isHidden = function() {
-		if (this._media) {
-			return !this._media.matches;
-		}
-
-		if (this._screen && this._minWidth) {
-			return parseFloat(this._minWidth) > window.innerWidth;
-		}
-		return false;
+		return (this._media) ? !this._media.matches : false;
 	};
 
 	/**
@@ -657,9 +520,7 @@ sap.ui.define([
 	 * @protected
 	 */
 	Column.prototype.setLastValue = function(value) {
-		if (this.getMergeDuplicates()) {
-			this._lastValue = value;
-		}
+		this._lastValue = value;
 		return this;
 	};
 
@@ -694,17 +555,11 @@ sap.ui.define([
 		this.clearLastValue();
 	};
 
-	// when the popover opens and later closed, the focus is lost
-	// hence overwriting the getFocusDomRef to restore the focus on the active column header
-	Column.prototype.getFocusDomRef = function() {
-		var oParent = this.getParent();
-		if (oParent && (oParent.bActiveHeaders || oParent.bFocusableHeaders || this.getAssociation("headerMenu"))) {
-			var oColumnDomRef = this.getDomRef();
-			if (oColumnDomRef) {
-				return oColumnDomRef.firstChild;
-			}
+	Column.prototype.onTableRendering = function() {
+		this.clearLastValue();
+		if (this._bShouldAddMedia) {
+			this._addMedia();
 		}
-		return Element.prototype.getFocusDomRef.apply(this, arguments);
 	};
 
 	// returns the minScreenWidth property in pixel as integer
@@ -728,8 +583,8 @@ sap.ui.define([
 	 * @returns {sap.ui.core.IColumnHeaderMenu | undefined} The column header menu instance
 	 * @private
 	 */
-	Column.prototype._getHeaderMenuInstance = function () {
-		return sap.ui.getCore().byId(this.getAssociation("headerMenu"));
+	Column.prototype.getHeaderMenuInstance = function () {
+		return Core.byId(this.getHeaderMenu());
 	};
 
 	Column.prototype.setHeader = function (oControl) {
@@ -755,8 +610,8 @@ sap.ui.define([
 			return;
 		}
 
-		if (this.getTable().bActiveHeaders || this._getHeaderMenuInstance()) {
-			this.$("ah")[oEvent.getSource().getRequired() ? "addAriaDescribedBy" : "removeAriaDescribedBy"](InvisibleText.getStaticId("sap.m", "CONTROL_IN_COLUMN_REQUIRED"));
+		if (this.getTable().bActiveHeaders || this.getHeaderMenuInstance()) {
+			this.$()[oEvent.getSource().getRequired() ? "addAriaDescribedBy" : "removeAriaDescribedBy"](InvisibleText.getStaticId("sap.m", "CONTROL_IN_COLUMN_REQUIRED"));
 		}
 	};
 

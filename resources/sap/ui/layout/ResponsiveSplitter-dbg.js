@@ -70,7 +70,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -499,8 +499,8 @@ sap.ui.define([
 		aPages[iPageIndex] && aPages[iPageIndex].setVisible(true);
 		$OldSelectedButton.removeClass("sapUiResponsiveSplitterPaginatorSelectedButton");
 		$PaginatorButtons.eq(iPageIndex).addClass("sapUiResponsiveSplitterPaginatorSelectedButton");
-		$OldSelectedButton.attr("aria-checked", false);
-		$PaginatorButtons.eq(iPageIndex).attr("aria-checked", true);
+		$OldSelectedButton.attr("aria-selected", false);
+		$PaginatorButtons.eq(iPageIndex).attr("aria-selected", true);
 	};
 
 	/**

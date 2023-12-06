@@ -24,6 +24,7 @@ sap.ui.define([
 	"./Link",
 	"./MessageItem",
 	"./GroupHeaderListItem",
+	'sap/ui/core/InvisibleText',
 	"sap/ui/core/library",
 	"sap/ui/base/ManagedObject",
 	"./MessageViewRenderer",
@@ -51,6 +52,7 @@ sap.ui.define([
 	Link,
 	MessageItem,
 	GroupHeaderListItem,
+	InvisibleText,
 	coreLibrary,
 	ManagedObject,
 	MessageViewRenderer,
@@ -112,7 +114,7 @@ sap.ui.define([
 	 * The responsiveness of the <code>MessageView</code> is determined by the container in which it is embedded. For that reason the control could not be visualized if the
 	 * container’s sizes are not defined.
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -368,25 +370,13 @@ sap.ui.define([
 	 * @private
 	 */
 	MessageView.prototype._setItemType = function (oListItem) {
-		var sSelector,
-			bActiveTitle = oListItem.getActiveTitle();
+		var oItemTitleRef = oListItem.getTitleRef();
 
-		if (!oListItem.getTitle() || !oListItem.getDescription()) {
-			if (bActiveTitle) {
-				sSelector = ".sapMSLITitleOnly a";
-			} else {
-				sSelector = ".sapMSLITitleOnly";
-			}
-		} else if (bActiveTitle) {
-			sSelector = ".sapMSLITitle a";
-		} else {
-			sSelector = ".sapMSLITitle";
-		}
+		if (oItemTitleRef &&  (oItemTitleRef.offsetWidth < oItemTitleRef.scrollWidth)) {
 
-		var oItemDomRef = oListItem.getDomRef().querySelector(sSelector);
-
-		if (oItemDomRef.offsetWidth < oItemDomRef.scrollWidth) {
+			// if title's text overflows, make the item type Navigation
 			oListItem.setType(ListType.Navigation);
+
 			if (this.getItems().length === 1) {
 				this._fnHandleForwardNavigation(oListItem, "show");
 			}
@@ -430,6 +420,8 @@ sap.ui.define([
 
 			// TODO: adopt this to NavContainer's public API once a parameter for back navigation transition name is available
 			this._navContainer._pageStack[this._navContainer._pageStack.length - 1].transition = "slide";
+		} else if (aListItems.length === 0) {
+			this._navContainer.backToTop();
 		}
 
 		// Bind automatically to the MessageModel if no items are bound
@@ -610,13 +602,16 @@ sap.ui.define([
 			content: "<span id=\"" + sCloseBtnDescrId + "\" class=\"sapMMsgViewHiddenContainer\">" + sCloseBtnDescr + "</span>"
 		});
 
-		var sHeadingDescr = this._oResourceBundle.getText("MESSAGEPOPOVER_ARIA_HEADING");
-		var sHeadingDescrId = this.getId() + "-HeadingDescr";
-		var oHeadingARIAHiddenDescr = new HTML(sHeadingDescrId, {
+		var sHeadingDescr = this._oResourceBundle.getText("MESSAGEPOPOVER_ARIA_HEADING"),
+		sHeadingDescrId = this.getId() + "-HeadingDescr",
+		sSegmentedBtnDescrId = InvisibleText.getStaticId("sap.m", "MESSAGEVIEW_SEGMENTED_BTN_DESCRIPTION"),
+		oHeadingARIAHiddenDescr = new HTML(sHeadingDescrId, {
 			content: "<span id=\"" + sHeadingDescrId + "\" class=\"sapMMsgViewHiddenContainer\" role=\"heading\">" + sHeadingDescr + "</span>"
 		});
 
-		this._oSegmentedButton = new SegmentedButton(this.getId() + "-segmented", {}).addStyleClass("sapMSegmentedButtonNoAutoWidth");
+		this._oSegmentedButton = new SegmentedButton(this.getId() + "-segmented", {
+			ariaLabelledBy: sSegmentedBtnDescrId
+		}).addStyleClass("sapMSegmentedButtonNoAutoWidth");
 
 		this._oListHeader = new Toolbar({
 			content: [this._oSegmentedButton, new ToolbarSpacer(), oCloseBtnARIAHiddenDescr, oHeadingARIAHiddenDescr]
@@ -791,7 +786,7 @@ sap.ui.define([
 				counter: oMessageItem.getCounter(),
 				icon: this._mapIcon(sType),
 				infoState: this._mapInfoState(sType),
-				info: "\r", // There should be a content in the info property in order to use the info states
+				info: "",
 				type: listItemType,
 				messageType: oMessageItem.getType(),
 				activeTitle: oMessageItem.getActiveTitle(),
@@ -901,7 +896,7 @@ sap.ui.define([
 			if (iCount > 0) {
 				oButton = new Button(this.getId() + "-" + sListName, {
 					text: sListName == "all" ? this._oResourceBundle.getText(sBundleText) : iCount,
-					tooltip: this._oResourceBundle.getText(sBundleText),
+					tooltip: sListName === "all" ? "" : this._oResourceBundle.getText(sBundleText),
 					icon: ICONS[sListName],
 					press: pressClosure(sListName)
 				}).addStyleClass(CSS_CLASS + "Btn" + sListName.charAt(0).toUpperCase() + sListName.slice(1));

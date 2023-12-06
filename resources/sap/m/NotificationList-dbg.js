@@ -27,7 +27,7 @@ function(
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -43,8 +43,6 @@ function(
 	});
 
 	NotificationList.prototype.onItemFocusIn = function() { };
-
-	NotificationList.prototype.setItemFocusable  = function() { };
 
 	NotificationList.prototype._startItemNavigation = function () {
 		ListBase.prototype._startItemNavigation.call(this);

@@ -4,8 +4,8 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/ui/core/Control", 	"sap/ui/fl/variants/VariantManagement", "sap/ui/fl/apply/api/ControlVariantApplyAPI", "sap/m/p13n/enum/PersistenceMode", "sap/ui/layout/VerticalLayout"
-], function(CoreControl, VariantManagement, ControlVariantApplyAPI, mode, VerticalLayout) {
+	"sap/ui/core/Control", 	"sap/m/p13n/enum/PersistenceMode"
+], function(CoreControl, mode) {
 	"use strict";
 
 	/**
@@ -15,6 +15,7 @@ sap.ui.define([
 	 * For example, this controller can be used for <code>sap.ui.mdc</code> controls.
 	 *
 	 * @class
+	 * @private
 	 * @ui5-restricted sap.ui.mdc, sap.fe
 	 *
 	 * @since 1.104
@@ -22,7 +23,7 @@ sap.ui.define([
 	var PersistenceProvider = CoreControl.extend("sap.m.p13n.PersistenceProvider", /** @lends sap.ui.mdc.p13n.PersistenceProvider.prototype */ {
 		metadata: {
 			library: "sap.m",
-			designtime: "sap/ui/mdc/designtime/p13n/PersistenceProvider.designtime",
+			designtime: "sap/m/designtime/PersistenceProvider.designtime",
 			properties:  {
 				/**
 				 * Provides the mode setting for the <code>PersistenceProvider</code>.
@@ -54,71 +55,9 @@ sap.ui.define([
 		}
 	});
 
-	PersistenceProvider.prototype.init = function () {
-		CoreControl.prototype.init.apply(this, arguments);
-		this.attachModelContextChange(this._setModel, this);
-
-		this._oModelPromise = new Promise(function (resolve, reject) {
-			this._fnResolveModel = resolve;
-		}.bind(this));
-	};
-
-	PersistenceProvider.prototype._setModel = function () {
-
-		var oModel = this.getModel(ControlVariantApplyAPI.getVariantModelName());
-		if (oModel) {
-			this.reinitialize();
-			this._fnResolveModel(oModel);
-		}
-	};
-
 	PersistenceProvider.prototype.applySettings = function () {
 		CoreControl.prototype.applySettings.apply(this, arguments);
 		this._bmodeLocked = true;
-
-		if (this.getMode() === mode.Transient) {
-			var oVM = new VariantManagement(this.getId() + "--vm", {"for": this.getAssociation("for")});
-			this._oModelPromise.then(function (oModel) {
-				oVM.setModel(oModel, ControlVariantApplyAPI.getVariantModelName());
-			});
-			this._oWrapper = new VerticalLayout(this.getId() + "--accWrapper", {
-				visible: true,
-				content: [
-					oVM
-				]
-			});
-
-			this._oWrapper.onAfterRendering = function() {
-				VerticalLayout.prototype.onAfterRendering.apply(this, arguments);
-				this.getDomRef().setAttribute("aria-hidden", true);
-			};
-
-			var oStatic = sap.ui.getCore().getUIArea(sap.ui.getCore().getStaticAreaRef());
-			oStatic.addContent(this._oWrapper);
-		}
-
-		return this;
-	};
-
-	PersistenceProvider.prototype.addFor = function (sControlId) {
-		this.addAssociation("for", sControlId);
-
-		var oVM = sap.ui.getCore().byId(this.getId() + "--vm");
-		if (this.getMode() === mode.Transient && oVM) {
-			oVM.addFor(sControlId);
-		}
-
-		return this;
-	};
-
-	PersistenceProvider.prototype.removeFor = function (sControlId) {
-		this.removeAssociation("for", sControlId);
-
-		var oVM = sap.ui.getCore().byId(this.getId() + "--vm");
-		if (this.getMode() === mode.Transient && oVM) {
-			oVM.removeFor(sControlId);
-		}
-
 		return this;
 	};
 
@@ -141,32 +80,7 @@ sap.ui.define([
 		return this;
 	};
 
-	/**
-	 * This method reinitializes the inner <code>VariantManagement</code> control be providing the
-	 * variant model and triggering a reinitialize on the inner VM in the static area
-	 *
-	 * @ui5-restricted sap.m.p13n
-	 */
-	PersistenceProvider.prototype.reinitialize = function () {
-		var oVM = sap.ui.getCore().byId(this.getId() + "--vm");
-		if (this.getMode() === mode.Transient && oVM) {
-			var oVariantModel = this.getModel(ControlVariantApplyAPI.getVariantModelName());
-			oVM.setModel(oVariantModel, ControlVariantApplyAPI.getVariantModelName());
-			oVM.reinitialize();
-		}
-	};
-
 	PersistenceProvider.prototype.exit = function () {
-		if (this._oWrapper) {
-			var oStatic = sap.ui.getCore().getUIArea(sap.ui.getCore().getStaticAreaRef());
-			oStatic.removeContent(this._oWrapper);
-
-			this._oWrapper.destroy();
-			this._oWrapper = null;
-		}
-
-		this._oModelPromise = null;
-		this._fnResolveModel = null;
 		this._bmodeLocked = null;
 
 		CoreControl.prototype.exit.apply(this, arguments);

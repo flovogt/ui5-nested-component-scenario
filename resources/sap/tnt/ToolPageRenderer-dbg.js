@@ -41,9 +41,13 @@ sap.ui.define([
 
 		if (oHeader || oSubHeader) {
 			oRM.openStart("div")
-				.class("sapTntToolPageHeaderWrapper")
-				.openEnd();
+				.class("sapTntToolPageHeaderWrapper");
 
+			if (oHeader && oSubHeader && oSubHeader.getVisible()) {
+				oRM.class("sapTntToolPageHeaderWithSubHeaderWrapper");
+			}
+
+			oRM.openEnd();
 			oRM.openStart("header").openEnd();
 		}
 
@@ -123,7 +127,10 @@ sap.ui.define([
 			return;
 		}
 
-		oRM.openStart("div", oControl.getId() + "-main").class("sapTntToolPageMain").openEnd();
+		oRM.openStart("div", oControl.getId() + "-main")
+			.class("sapTntToolPageMain")
+			.class("sapTntToolPageMainBackground-" + oControl.getContentBackgroundDesign())
+			.openEnd();
 
 			oRM.openStart("div").class("sapTntToolPageMainContent").openEnd();
 

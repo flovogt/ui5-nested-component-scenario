@@ -3,8 +3,8 @@
 /* Base theme                       */
 /* ================================ */
 
-@_sap_m_SuggestionsPopover_ItemHeight: 2.5rem;
-@_sap_m_SuggestionsPopover_ItemHeightCompact: 2rem;
+@_sap_m_SuggestionsPopover_ItemMinHeight: 2.5rem;
+@_sap_m_SuggestionsPopover_ItemMinHeightCompact: 2rem;
 @_sap_m_SuggestionsPopover_GroupItemHeight: 2.75rem;
 @_sap_m_SuggestionsPopover_GroupItemHeightCompact: 2.75rem;
 
@@ -14,8 +14,12 @@
 @_sap_m_SuggestionsPopover_TabularGroupItemHeightCompact: 2rem;
 
 .sapMSuggestionsPopover {
-	.sapMListUl > .sapMLIB {
-		height: @_sap_m_SuggestionsPopover_ItemHeight;
+	.sapMListUl > .sapMLIB.sapMSLIWrapping {
+		min-height: @_sap_m_SuggestionsPopover_ItemMinHeight;
+	}
+
+	.sapMSLIWrapping > .sapMLIBContent > .sapMSLIDiv {
+		padding: 0.25rem 0rem;
 	}
 
 	.sapMListUl > .sapMLIB.sapMGHLI {
@@ -43,18 +47,28 @@ div.sapMSuggestionsPopover {
 	box-shadow: @sapUiContentShadow1;
 }
 
-.sapMSuggestionsPopover.sapMPopover {
-	max-width: ~"calc(100% - 2rem)";
-	margin-left: 1rem;
-	margin-right: 1rem;
+.sapMSuggestionsPopover.sapMPopover.sapMSuggestionPopoverDefaultWidth {
+	max-width: 40rem;
+}
+
+.sapMSuggestionsPopover.sapMPopover:not(.sapMSuggestionPopoverDefaultWidth):not(.sapMSuggestionPopoverInputWidth) {
+	max-width: ~"calc(100% - 2rem)" !important;
+}
+
+.sapMSuggestionsPopover.sapMPopover .sapMPopoverCont {
+	max-width: 100% !important;
 }
 
 .sapUiSizeCompact {
 	.sapMSuggestionsPopover,
 	&.sapMSuggestionsPopover {
 
-		.sapMListUl > .sapMLIB {
-			height: @_sap_m_SuggestionsPopover_ItemHeightCompact;
+		.sapMListUl > .sapMLIB.sapMSLIWrapping {
+			min-height: @_sap_m_SuggestionsPopover_ItemMinHeightCompact;
+		}
+
+		.sapMSLIWrapping > .sapMLIBContent > .sapMSLIDiv {
+			padding: 0.25rem 0;
 		}
 
 		.sapMListUl > .sapMLIB.sapMGHLI {

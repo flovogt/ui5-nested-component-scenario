@@ -43,7 +43,7 @@ sap.ui.define([
 	 *
 	 * @param {boolean} [bDefault=true] Value that should be used as default value for the enhancement of the control.
 	 * @param {boolean} [bLegacy=false] Whether the introduced property should use the old name <code>Enabled</code>.
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @public
 	 * @class
 	 * @alias sap.ui.core.EnabledPropagator
@@ -106,6 +106,21 @@ sap.ui.define([
 	};
 
 	/**
+	 * Invalidates the descendants of the provided root element that are implementing the EnabledPropagator mixin
+	 *
+	 * @param {sap.ui.core.Element} oRootElement The root element instance
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 */
+	EnabledPropagator.updateDescendants = function(oRootElement) {
+		oRootElement.isActive() && oRootElement.findElements(true, function(oElement) {
+			if (oElement._bUseEnabledPropagator && oElement.bOutput == true) {
+				oElement.invalidate();
+			}
+		});
+	};
+
+	/**
 	 * Determines whether an ancestor of the provided control implements getEnabled method and that returns false
 	 *
 	 * @param {sap.ui.core.Control} oControl A control instance
@@ -113,7 +128,8 @@ sap.ui.define([
 	 * @private
 	 */
 	function hasDisabledAncestor(oControl) {
-		for (var oParent = oControl.getParent(); oParent && !oParent.getEnabled && oParent.getParent; oParent = oParent.getParent()) {/* empty */}
+		let oParent;
+		for (oParent = oControl.getParent(); oParent && !oParent.getEnabled && oParent.getParent; oParent = oParent.getParent()) {/* empty */}
 		return oParent && oParent.getEnabled && !oParent.getEnabled();
 	}
 

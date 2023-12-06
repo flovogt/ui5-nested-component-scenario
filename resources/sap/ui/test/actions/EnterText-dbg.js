@@ -5,11 +5,12 @@
  */
 
 sap.ui.define([
+	"sap/base/util/extend",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/test/actions/Action",
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery"
-], function (ManagedObject, Action, KeyCodes, jQueryDOM) {
+], function (extend, ManagedObject, Action, KeyCodes, jQuery) {
 	"use strict";
 
 	/**
@@ -87,7 +88,7 @@ sap.ui.define([
 
 		init: function () {
 			Action.prototype.init.apply(this, arguments);
-			this.controlAdapters = jQueryDOM.extend(this.controlAdapters, EnterText.controlAdapters);
+			this.controlAdapters = extend(this.controlAdapters, EnterText.controlAdapters);
 		},
 
 		/**
@@ -117,6 +118,10 @@ sap.ui.define([
 				this.oLogger.debug("Cannot enter text in control " + oControl + ": control is not enabled!");
 				return;
 			}
+			if (this.getText().length && oActionDomRef.selectionStart === undefined && oActionDomRef.selectionEnd === undefined) {
+				this.oLogger.debug("Cannot enter text in control " + oControl + ": The control's DOM element does not have the expected API of the html elements that accept text input: selectionStart and selectionEnd properties undefined.");
+				return;
+			}
 
 			var oUtils = this.getUtils();
 
@@ -136,10 +141,28 @@ sap.ui.define([
 				}
 			}
 
+			var sTypedInText = $ActionDomRef.val();
+
+			if (($ActionDomRef[0].selectionStart !== $ActionDomRef[0].selectionEnd) &&
+				($ActionDomRef[0].selectionStart !== sTypedInText.length)) {
+				// get non selected value only
+				sTypedInText = sTypedInText.slice(0, $ActionDomRef[0].selectionStart);
+				// remove selection as a new value will be typed there
+				$ActionDomRef[0].setSelectionRange($ActionDomRef[0].selectionStart, $ActionDomRef[0].selectionStart);
+			}
+
 			// Trigger events for every keystroke - livechange controls
-			var sValueBuffer = this.getClearTextFirst() ? "" : $ActionDomRef.val();
+			var sValueBuffer = this.getClearTextFirst() ? "" : sTypedInText;
+			var iCursorPosition = oActionDomRef.selectionStart;
 			this.getText().split("").forEach(function (sChar) {
-				sValueBuffer += sChar;
+
+				if (iCursorPosition === 0 || iCursorPosition === null) {
+					sValueBuffer += sChar;
+				} else {
+					var sLeftPart = sValueBuffer.slice(0, iCursorPosition);
+					var sRightPart = sValueBuffer.slice(iCursorPosition);
+					sValueBuffer = sLeftPart + sChar + sRightPart;
+				}
 				// Change the domref and fire the mock 'keypress' and 'input' events
 				this.triggerCharacterInput(oActionDomRef, sChar, sValueBuffer, oControl);
 				oUtils.triggerEvent("input", oActionDomRef);

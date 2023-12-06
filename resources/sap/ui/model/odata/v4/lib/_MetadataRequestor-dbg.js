@@ -21,14 +21,20 @@ sap.ui.define([
 		 *   A map of headers
 		 * @param {string} sODataVersion
 		 *   The version of the OData service. Supported values are "2.0" and "4.0".
+		 * @param {boolean} [bIgnoreAnnotationsFromMetadata]
+		 *   Whether to ignore all annotations from metadata documents. Only annotations from
+		 *   additional annotation files are loaded.
 		 * @param {object} [mQueryParams={}]
 		 *   A map of query parameters as described in
 		 *   {@link sap.ui.model.odata.v4.lib._Helper.buildQuery}. Note that "sap-context-token"
 		 *   is deleted(!) after the first <code>read</code> for a metadata document.
+		 * @param {boolean} [bWithCredentials]
+		 *   Whether the XHR should be called with <code>withCredentials</code>
 		 * @returns {object}
 		 *   A new MetadataRequestor object
 		 */
-		create : function (mHeaders, sODataVersion, mQueryParams) {
+		create : function (mHeaders, sODataVersion, bIgnoreAnnotationsFromMetadata, mQueryParams,
+			bWithCredentials) {
 			var mUrl2Promise = {},
 				sQuery = _Helper.buildQuery(mQueryParams);
 
@@ -63,10 +69,12 @@ sap.ui.define([
 						var Converter = sODataVersion === "4.0" || bAnnotations
 								? _V4MetadataConverter
 								: _V2MetadataConverter,
-							oData = oJSON.$XML;
+							oData = oJSON.$XML,
+							bIgnoreAnnotations = bIgnoreAnnotationsFromMetadata && !bAnnotations;
 
 						delete oJSON.$XML; // be nice to the garbage collector
-						return Object.assign(new Converter().convertXMLMetadata(oData, sUrl),
+						return Object.assign(
+							new Converter().convertXMLMetadata(oData, sUrl, bIgnoreAnnotations),
 							oJSON);
 					}
 
@@ -78,10 +86,16 @@ sap.ui.define([
 						delete mUrl2Promise[sUrl];
 					} else {
 						oPromise = new Promise(function (fnResolve, fnReject) {
-							jQuery.ajax(bAnnotations ? sUrl : sUrl + sQuery, {
-								method : "GET",
-								headers : mHeaders
-							}).then(function (oData, _sTextStatus, jqXHR) {
+							const oAjaxSettings = {
+									method : "GET",
+									headers : mHeaders
+								};
+							if (bWithCredentials) {
+								oAjaxSettings.xhrFields = {withCredentials : true};
+							}
+
+							jQuery.ajax(bAnnotations ? sUrl : sUrl + sQuery, oAjaxSettings)
+							.then(function (oData, _sTextStatus, jqXHR) {
 								var sDate = jqXHR.getResponseHeader("Date"),
 									sETag = jqXHR.getResponseHeader("ETag"),
 									oJSON = {$XML : oData},

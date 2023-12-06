@@ -13,6 +13,7 @@ sap.ui.define([
 	'sap/ui/core/LabelEnablement',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/library',
+	'sap/ui/core/StaticArea',
 	'sap/ui/Device',
 	'./FileUploaderRenderer',
 	'sap/ui/dom/containsOrEquals',
@@ -21,6 +22,7 @@ sap.ui.define([
 	'sap/base/security/encodeXML',
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Configuration",
+	"./FileUploaderHelper",
 	// jQuery Plugin "addAriaDescribedBy"
 	'sap/ui/dom/jquery/Aria'
 ], function(
@@ -29,6 +31,7 @@ sap.ui.define([
 	LabelEnablement,
 	InvisibleText,
 	coreLibrary,
+	StaticArea,
 	Device,
 	FileUploaderRenderer,
 	containsOrEquals,
@@ -36,7 +39,8 @@ sap.ui.define([
 	Log,
 	encodeXML,
 	jQuery,
-	Configuration
+	Configuration,
+	FileUploaderHelper
 ) {
 
 
@@ -65,7 +69,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.unified.IProcessableBlobs
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -600,15 +604,16 @@ sap.ui.define([
 	 */
 	FileUploader.prototype.init = function(){
 		var that = this;
+		this.oFileUploaderHelper = FileUploaderHelper.getHelper();
 		// load the respective UI-Elements from the FileUploaderHelper
-		this.oFilePath = library.FileUploaderHelper.createTextField(this.getId() + "-fu_input").addEventDelegate({
+		this.oFilePath = this.oFileUploaderHelper.createTextField(this.getId() + "-fu_input").addEventDelegate({
 			onAfterRendering: function () {
 				if (that.getWidth()) {
 					that._resizeDomElements();
 				}
 			}
 		});
-		this.oBrowse = library.FileUploaderHelper.createButton(this.getId() + "-fu_button");
+		this.oBrowse = this.oFileUploaderHelper.createButton(this.getId() + "-fu_button");
 		this.oFilePath.setParent(this);
 		this.oBrowse.setParent(this);
 
@@ -869,7 +874,7 @@ sap.ui.define([
 		// remove the IFRAME
 		if (this.oIFrameRef) {
 			jQuery(this.oIFrameRef).off();
-			sap.ui.getCore().getStaticAreaRef().removeChild(this.oIFrameRef);
+			StaticArea.getDomRef().removeChild(this.oIFrameRef);
 			this.oIFrameRef = null;
 		}
 
@@ -898,7 +903,7 @@ sap.ui.define([
 	 */
 	FileUploader.prototype.onBeforeRendering = function() {
 		// store the file uploader outside in the static area
-		var oStaticArea = sap.ui.getCore().getStaticAreaRef();
+		var oStaticArea = StaticArea.getDomRef();
 		jQuery(this.oFileUpload).appendTo(oStaticArea);
 
 		if (!this.getName()) {
@@ -1192,6 +1197,34 @@ sap.ui.define([
 		}
 		//clear the value, don't fire change event, and suppress the refocusing of the file input field
 		return this.setValue("", false, true);
+	};
+
+	/**
+	 * Programmatically opens the file picker dialog.
+	 *
+	 * @since 1.112
+	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @private
+	 * @ui5-restricted sap.suite.ui.commons.CloudFilePicker
+	 */
+	FileUploader.prototype.openFilePicker = function () {
+		if (this.oFileUpload) {
+			this.oFileUpload.click();
+		}
+
+		return this;
+	};
+
+	/**
+	 * Provides a reference to the type "file" input field of the control.
+	 *
+	 * @since 1.112
+	 * @returns {HTMLElement|null} The input type "file" DOM representation.
+	 * @private
+	 * @ui5-restricted sap.suite.ui.commons.CloudFilePicker
+	 */
+	FileUploader.prototype.getInputReference = function () {
+		return this.oFileUpload;
 	};
 
 	FileUploader.prototype.onmousedown = function(oEvent) {
@@ -1914,7 +1947,7 @@ sap.ui.define([
 			oIFrameRef.style.display = "none";
 			/*eslint-enable no-script-url */
 			oIFrameRef.id = this.getId() + "-frame";
-			sap.ui.getCore().getStaticAreaRef().appendChild(oIFrameRef);
+			StaticArea.getDomRef().appendChild(oIFrameRef);
 			oIFrameRef.contentWindow.name = this.getId() + "-frame";
 
 			// sink the load event of the upload iframe
@@ -2044,11 +2077,40 @@ sap.ui.define([
 		if (this.oBrowse &&  this.oBrowse.$().length) {
 			$browse = this.oBrowse.$();
 			$browse.attr("type', 'button"); // The default type of button is submit that's why on click of label there are submit of the form. This way we are avoiding the submit of form.
-			$browse.off("click").on("click", function(oEvent) {
+
+			$browse.off("click").on("click", (oEvent) => {
 				oEvent.preventDefault();
 				oEvent.stopPropagation();
 				this.FUEl.click(); // The default behaviour on click on label is to open "open file" dialog. The only way to attach click event that is transferred from the label to the button is this way. AttachPress and attachTap don't work in this case.
-			}.bind(this));
+			});
+
+			// The event propagation needs to be stopped so composing controls, which also react on
+			// drag and drop events like the sap.m.UploadCollection or sap.m.upload.UploadSet aren't affected.
+			$browse.off("dragover").on("dragover", (oEvent) => {
+				oEvent.preventDefault();
+				oEvent.stopPropagation();
+			});
+			$browse.off("dragenter").on("dragenter", (oEvent) => {
+				oEvent.preventDefault();
+				oEvent.stopPropagation();
+			});
+			$browse.off("drop").on("drop", (oEvent) => {
+				oEvent.preventDefault();
+				oEvent.stopPropagation();
+				var aFileList = oEvent.originalEvent.dataTransfer.files;
+				// TODO: enable directory drag and drop
+				if ((!this.getMultiple() && aFileList.length > 1) || this.getDirectory()) {
+					return;
+				}
+
+				this.oFileUpload.files = aFileList;
+				var oChangeEvent = {
+					target: {
+						files: aFileList
+					}
+				};
+				this.handlechange(oChangeEvent);
+			});
 		}
 	};
 

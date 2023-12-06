@@ -8,13 +8,28 @@ sap.ui.define([
 	'./LRUPersistentCache',
 	'./CacheManagerNOP',
 	'sap/ui/Device',
+	"sap/base/config",
 	"sap/base/Log",
 	"sap/ui/performance/Measurement",
-	'sap/ui/performance/trace/Interaction',
-	"sap/ui/core/Configuration"
+	'sap/ui/performance/trace/Interaction'
 ],
-	function(LRUPersistentCache, CacheManagerNOP, Device, Log, Measurement, Interaction, Configuration) {
+	function(LRUPersistentCache, CacheManagerNOP, Device, BaseConfig, Log, Measurement, Interaction) {
 		"use strict";
+
+		var oWritableConfig = BaseConfig.getWritableInstance();
+
+		function isUI5CacheOn() {
+			return oWritableConfig.get({
+				name: "sapUiXxCacheUse",
+				type: BaseConfig.Type.Boolean,
+				defaultValue: true,
+				external: true
+			});
+		}
+
+		function setUI5CacheOn(bActive) {
+			oWritableConfig.set("sapUiXxCacheUse", bActive);
+		}
 
 		/**
 		 * @classdesc
@@ -24,7 +39,7 @@ sap.ui.define([
 		 *  <li>Google Chrome(version >=49) for desktop</li>
 		 *  <li>Internet Explorer(version >=11) for desktop.</li>
 		 * </ul>
-		 * For all other environments a dummy (NOP) implementation will be loaded (@see sap.ui.core.cache.CacheManagerNOP).
+		 * For all other environments, a dummy (NOP) implementation will be loaded, see {@link sap.ui.core.cache.CacheManagerNOP}.
 		 *
 		 * This object is not meant for application developer's use, but for core UI5 framework purposes.
 		 *
@@ -47,14 +62,6 @@ sap.ui.define([
 		 *       }
 		 *    });
 		 * </pre>
-		 * CacheManager can be configured to work in a certain way:
-		 * <ul>
-		 *     <li> {@link sap.ui.core.Configuration#setUI5CacheOn} and {@link sap.ui.core.Configuration#getUI5CacheOn}
-		 *     allows for switching-off the implementation and replacing it with a dummy (NOP) one</li>
-		 *     <li>{@link sap.ui.core.Configuration#getUI5CacheExcludedKeys} and {@link sap.ui.core.Configuration#setUI5CacheExcludedKeys}
-		 *     allows a dummy implementation only for keys containing certain string.</li>
-		 * </ul>
-		 * @see sap.ui.core.Configuration
 		 * @private
 		 * @ui5-restricted sap.ui.core
 		 * @since 1.40.0
@@ -144,7 +151,7 @@ sap.ui.define([
 
 			/**
 			 * Retrieves a value for given key.
-			 * @param key the key to retrieve a value for
+			 * @param {string|number} key the key to retrieve a value for
 			 * @returns {Promise<any|undefined>} a promise that would be resolved in case of successful operation or rejected with
 			 * value of the error message if the operation fails. It resolves with a value that is either:
 			 * <ul>
@@ -278,7 +285,7 @@ sap.ui.define([
 				var that = this;
 				return Promise.resolve().then(function () {
 					safeClearInstance(that);
-					Configuration.setUI5CacheOn(false);
+					setUI5CacheOn(false);
 				});
 			},
 
@@ -291,10 +298,9 @@ sap.ui.define([
 			_switchOn: function () {
 				var that = this;
 				return Promise.resolve().then(function () {
-					var oCfg = Configuration;
-					if (!oCfg.isUI5CacheOn()) {
+					if (!isUI5CacheOn()) {
 						safeClearInstance(that);
-						Configuration.setUI5CacheOn(true);
+						setUI5CacheOn(true);
 					}
 					return Promise.resolve();
 				});
@@ -392,7 +398,7 @@ sap.ui.define([
 			iMsrCounter = 0;
 
 		function isSwitchedOn() {
-			return Configuration.isUI5CacheOn();
+			return isUI5CacheOn();
 		}
 
 		function safeClearInstance(cm) {

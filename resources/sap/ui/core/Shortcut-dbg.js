@@ -5,9 +5,11 @@
  */
 
 sap.ui.define([
+	"sap/ui/core/StaticArea",
 	"sap/ui/core/util/ShortcutHelper",
 	'sap/base/assert'
 ], function(
+		StaticArea,
 		ShortcutHelper,
 		assert
 	) {
@@ -94,7 +96,8 @@ sap.ui.define([
 			function wrapCallback() {
 				var oFocusedElement = document.activeElement,
 					oSpan = document.createElement("span"),
-					oStaticUiAreaDomRef = sap.ui.getCore().getStaticAreaRef();
+					oStaticAreaDomRef = StaticArea.getDomRef(),
+					args = arguments;
 
 				oSpan.setAttribute("tabindex", 0);
 				oSpan.setAttribute("id", "sap-ui-shortcut-focus");
@@ -105,20 +108,21 @@ sap.ui.define([
 				oSpan.style.right = "50%";
 
 				// add span to static-ui-area
-				oStaticUiAreaDomRef.appendChild(oSpan);
+				oStaticAreaDomRef.appendChild(oSpan);
 
 				// set focus on span to enforce blur - e.g. data of input field needs to get peristed
 				oSpan.focus();
+				// setting back the focus async ensures that also a fieldGroupChange happens
+				setTimeout(function() {
+					// restore old focus
+					oFocusedElement.focus();
 
-				// restore old focus
-				oFocusedElement.focus();
+					// cleanup DOM
+					oStaticAreaDomRef.removeChild(oSpan);
 
-				// cleanup DOM
-				oStaticUiAreaDomRef.removeChild(oSpan);
-
-				// trigger callback
-				fnCallback.apply(null, arguments);
-
+					// trigger callback
+					fnCallback.apply(null, args);
+				});
 			}
 
 			var oDelegate = {};

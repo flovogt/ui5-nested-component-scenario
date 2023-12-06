@@ -10,13 +10,14 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/library',
 	'sap/m/Text',
+	'sap/ui/core/Element',
 	'sap/ui/events/KeyCodes',
 	'./ObjectAttributeRenderer',
 	'sap/base/Log',
 	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/core/Core'
 ],
-function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer, Log, ManagedObjectObserver, oCore) {
+function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttributeRenderer, Log, ManagedObjectObserver, oCore) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TextDirection
@@ -42,7 +43,7 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 	 * <code>text</code> property is styled and acts as a link. In this case the <code>text</code>
 	 * property must also be set, as otherwise there will be no link displayed for the user.
 	 * @extends sap.ui.core.Control
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -200,11 +201,11 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 
 		if (this._bEmptyIndicatorMode) {
 			//inner text control is used in order to display properly the empty indicator
-			this.getAggregation('_textControl').setProperty("emptyIndicatorMode", EmptyIndicatorMode.On, true);
+			this.getAggregation('_textControl').setEmptyIndicatorMode(EmptyIndicatorMode.On);
 		}
 
-		oAttrAggregation.setProperty('text', sResult, true);
-		oAttrAggregation.setProperty('textDirection', sTextDir, true);
+		oAttrAggregation.setText(sResult);
+		oAttrAggregation.setTextDirection(sTextDir);
 
 		//if attribute is used inside responsive ObjectHeader or in ObjectListItem - only 1 line
 		if (oParent && oParent.isA("sap.m.ObjectListItem")) {
@@ -231,10 +232,10 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 	 */
 	ObjectAttribute.prototype._setControlWrapping = function(oAttrAggregation, bWrap, iMaxLines) {
 		if (oAttrAggregation.isA("sap.m.Link")) {
-			oAttrAggregation.setProperty('wrapping', bWrap, true);
+			oAttrAggregation.setWrapping(bWrap);
 		}
 		if (oAttrAggregation.isA("sap.m.Text")) {
-			oAttrAggregation.setProperty('maxLines', iMaxLines, true);
+			oAttrAggregation.setMaxLines(iMaxLines);
 		}
 	};
 
@@ -317,6 +318,26 @@ function(library, Control, coreLibrary, Text, KeyCodes, ObjectAttributeRenderer,
 	 */
 	ObjectAttribute.prototype.getPopupAnchorDomRef = function() {
 		return this.getDomRef("text");
+	};
+
+	/**
+	 * @see sap.ui.core.Element.prototype.getFocusDomRef
+	 * @protected
+	 * @override
+	 * @returns {Element|null} Returns the DOM Element that should get the focus or <code>null</code>
+	 */
+	ObjectAttribute.prototype.getFocusDomRef = function() {
+		var oDomRef = this.getDomRef();
+
+		if (oDomRef) {
+			if (this._isSimulatedLink()) {
+				return oDomRef.querySelector(".sapMObjectAttributeText");
+			} else if (this._isClickable()) {
+				return this.getAggregation("customContent").getDomRef();
+			}
+		}
+
+		return Element.prototype.getFocusDomRef.apply(this, arguments);
 	};
 
 	ObjectAttribute.prototype._isSimulatedLink = function () {

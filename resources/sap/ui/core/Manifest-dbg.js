@@ -17,7 +17,9 @@ sap.ui.define([
 	'sap/base/util/merge',
 	'sap/base/util/isPlainObject',
 	'sap/base/util/LoaderExtensions',
+	'sap/base/config',
 	'sap/ui/core/Configuration',
+	'sap/ui/core/Supportability',
 	'sap/ui/core/Lib',
 	'./_UrlResolver'
 ],
@@ -33,7 +35,9 @@ sap.ui.define([
 		merge,
 		isPlainObject,
 		LoaderExtensions,
+		BaseConfig,
 		Configuration,
+		Supportability,
 		Library,
 		_UrlResolver
 	) {
@@ -70,7 +74,7 @@ sap.ui.define([
 				sPathSegment = aPaths[i];
 
 				// Prevent access to native properties
-				oObject = oObject.hasOwnProperty(sPathSegment) ? oObject[sPathSegment] : undefined;
+				oObject = Object.hasOwn(oObject, sPathSegment) ? oObject[sPathSegment] : undefined;
 
 				// Only continue with lookup if the value is an object.
 				// Accessing properties of other types is not allowed!
@@ -105,7 +109,7 @@ sap.ui.define([
 		if (oObject && typeof oObject === 'object' && !Object.isFrozen(oObject)) {
 			Object.freeze(oObject);
 			for (var sKey in oObject) {
-				if (oObject.hasOwnProperty(sKey)) {
+				if (Object.hasOwn(oObject, sKey)) {
 					deepFreeze(oObject[sKey]);
 				}
 			}
@@ -143,7 +147,7 @@ sap.ui.define([
 	 * @class The Manifest class.
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @alias sap.ui.core.Manifest
 	 * @since 1.33.0
 	 */
@@ -388,7 +392,7 @@ sap.ui.define([
 			var sMinUI5Version = this.getEntry("/sap.ui5/dependencies/minUI5Version");
 			if (sMinUI5Version &&
 				Log.isLoggable(Log.Level.WARNING) &&
-				Configuration.getDebug()) {
+				Supportability.isDebugModeEnabled()) {
 				VersionInfo.load().then(function(oVersionInfo) {
 					var oMinVersion = getVersionWithoutSuffix(sMinUI5Version);
 					var oVersion = getVersionWithoutSuffix(oVersionInfo && oVersionInfo.version);
@@ -572,12 +576,12 @@ sap.ui.define([
 						var sControllerModule = sName.replace(/\./g, "/") + "/Component";
 						var iModuleState = sap.ui.loader._.getModuleState(sControllerModule + ".js");
 						if (iModuleState === -1 /* PRELOADED */) {
-							sap.ui.requireSync(sControllerModule);
+							sap.ui.requireSync(sControllerModule); // legacy-relevant: Sync path
 						} else if (iModuleState === 0 /* INITIAL */) {
 							Log.info("Component \"" + sComponentName + "\" is loading component: \"" + sName + ".Component\"");
 							// requireSync needed because of cyclic dependency
-							sap.ui.requireSync("sap/ui/core/Component");
-							sap.ui.component.load({
+							sap.ui.requireSync("sap/ui/core/Component"); // legacy-relevant: Sync path
+							sap.ui.component.load({ // legacy-relevant: Sync path
 								name: sName
 							});
 						}
@@ -771,7 +775,7 @@ sap.ui.define([
 	 * The order of the given active terminologies is significant. The {@link module:sap/base/i18n/ResourceBundle ResourceBundle} API
 	 * documentation describes the processing behavior in more detail.
 	 * Please have a look at this dev-guide chapter for general usage instructions: {@link topic:eba8d25a31ef416ead876e091e67824e Text Verticalization}.
-	 * @return {sap.ui.core.Manifest|Promise} Manifest object or for asynchronous calls an ECMA Script 6 Promise object will be returned.
+	 * @return {sap.ui.core.Manifest|Promise<sap.ui.core.Manifest>} Manifest object or for asynchronous calls an ECMA Script 6 Promise object will be returned.
 	 * @protected
 	 */
 	Manifest.load = function(mOptions) {
@@ -787,14 +791,18 @@ sap.ui.define([
 		// If the language or the client is already provided it won't be overridden
 		// as this is expected to be only done by intension.
 		var oManifestUrl = new URI(sManifestUrl);
-		["sap-language", "sap-client"].forEach(function(sName) {
-			if (!oManifestUrl.hasQuery(sName)) {
-				var sValue = Configuration.getSAPParam(sName);
-				if (sValue) {
-					oManifestUrl.addQuery(sName, sValue);
-				}
+		if (!oManifestUrl.hasQuery("sap-language")) {
+			var sValue = Configuration.getSAPLogonLanguage();
+			if (sValue) {
+				oManifestUrl.addQuery("sap-language", sValue);
 			}
-		});
+		}
+		if (!oManifestUrl.hasQuery("sap-client")) {
+			var sValue = BaseConfig.get({name: "sapClient", type:BaseConfig.Type.String, external: true});
+			if (sValue) {
+				oManifestUrl.addQuery("sap-client", sValue);
+			}
+		}
 		sManifestUrl = oManifestUrl.toString();
 
 		Log.info("Loading manifest via URL: " + sManifestUrl);
@@ -855,7 +863,7 @@ sap.ui.define([
 	 */
 	Manifest.processObject = function (oObject, fnCallback) {
 		for (var sKey in oObject) {
-			if (!oObject.hasOwnProperty(sKey)) {
+			if (!Object.hasOwn(oObject, sKey)) {
 				continue;
 			}
 			var vValue = oObject[sKey];

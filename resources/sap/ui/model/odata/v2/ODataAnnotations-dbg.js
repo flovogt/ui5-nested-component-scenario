@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class Annotation loader for OData V2 services
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @public
 	 * @since 1.37.0
@@ -412,9 +412,10 @@ sap.ui.define([
 	 * Parameters of the <code>loaded</code> event.
 	 *
 	 * @typedef {object} sap.ui.model.odata.v2.ODataAnnotations.loadedParameters
-	 * @property {sap.ui.model.odata.v2.ODataAnnotations.Source[]|Error[]|any} result An array of results and Errors
-	 *           (@see sap.ui.model.v2.ODataAnnotations#success and @see sap.ui.model.v2.ODataAnnotations#error) that
-	 *           occurred while loading a group of annotations
+	 * @property {sap.ui.model.odata.v2.ODataAnnotations.Source[]|Error[]|any} result
+	 *         An array of results and Errors (see {@link sap.ui.model.v2.ODataAnnotations#success}
+	 *         and {@link sap.ui.model.v2.ODataAnnotations#error}) that occurred while loading
+	 *         a group of annotations
 	 * @public
 	 */
 
@@ -741,6 +742,7 @@ sap.ui.define([
 				mSource.xml = oXHR.responseText;
 
 				if (oXHR.getResponseHeader("Last-Modified")) {
+					// no need to use UI5Date.getInstance as only the UTC timestamp is relevant
 					mSource.lastModified = new Date(oXHR.getResponseHeader("Last-Modified"));
 				}
 

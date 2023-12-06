@@ -14,7 +14,8 @@ sap.ui.define([
 	"sap/ui/core/Locale",
 	"./library",
 	"./Button",
-	'./TimePickerInternalsRenderer',
+	"sap/ui/core/date/UI5Date",
+	"./TimePickerInternalsRenderer",
 	"sap/ui/core/Configuration"
 ],
 	function(
@@ -27,6 +28,7 @@ sap.ui.define([
 		Locale,
 		library,
 		Button,
+        UI5Date,
 		TimePickerInternalsRenderer,
 		Configuration
 	) {
@@ -47,7 +49,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.110.0
+		 * @version 1.120.1
 		 *
 		 * @constructor
 		 * @private
@@ -430,36 +432,6 @@ sap.ui.define([
 		};
 
 		/**
-		 * Returns an array of separators between separate parts of the display format.
-		 * @returns {array} array of separators
-		 * @private
-		 */
-		TimePickerInternals.prototype._getTimeSeparators = function (sDisplayFormat) {
-			var aFormatParts = DateFormat.getInstance({ pattern: sDisplayFormat }).aFormatArray,
-				aSeparators = [],
-				bPreviousWasEntity,
-				iIndex;
-
-				for (iIndex = 0; iIndex < aFormatParts.length; iIndex++) {
-					if (aFormatParts[iIndex].type !== "text") {
-						if (bPreviousWasEntity) {
-							// there was previous non-separator entity, and this one is the same too, so add empty separator
-							aSeparators.push("");
-						} else {
-							// this is non-separator entity, set the entity flag
-							bPreviousWasEntity = true;
-						}
-					} else {
-						// add separator and clear non-separator entity flag
-						aSeparators.push(aFormatParts[iIndex].value);
-						bPreviousWasEntity = false;
-					}
-				}
-
-				return aSeparators;
-		};
-
-		/**
 		 * Returns if the displayFormatPattern is HH or H (24 hours format with or without leading zero).
 		 * @returns {boolean} Is the displayFormatPattern is HH or H (24 hours format with or without leading zero).
 		 * @private
@@ -608,7 +580,7 @@ sap.ui.define([
 					type: ButtonType.Transparent,
 					visible: false,
 					press: function () {
-						this._setTimeValues(new Date());
+						this._setTimeValues(UI5Date.getInstance());
 					}.bind(this)
 				}).addStyleClass("sapMTPNow");
 			}

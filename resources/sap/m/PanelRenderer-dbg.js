@@ -38,15 +38,24 @@ sap.ui.define(["sap/m/library", "sap/ui/Device"],
 
 	PanelRenderer.startPanel = function (oRm, oControl) {
 		var bIsExpandable = oControl.getExpandable(),
+			bIsStickyPanel = oControl.getStickyHeader(),
 			oAccAttributes = {
 				role: oControl.getAccessibleRole().toLowerCase()
-			};
+			},
+			bExpanded = oControl.getExpanded();
 
 		oRm.openStart("div", oControl);
 		oRm.class("sapMPanel");
+		if (bIsStickyPanel) {
+			oRm.class("sapMPanelHasStickyHeader");
+		}
 
 		if (bIsExpandable) {
 			oRm.class("sapMPanelExpandable");
+		}
+
+		if (bExpanded) {
+			oRm.class("sapMPanelExpanded");
 		}
 
 		oRm.style("width", oControl.getWidth());
@@ -67,14 +76,28 @@ sap.ui.define(["sap/m/library", "sap/ui/Device"],
 	PanelRenderer.renderHeader = function (oRm, oControl) {
 		var bIsExpandable = oControl.getExpandable(),
 			bIsExpanded = oControl.getExpanded(),
+			bIsStickyPanel = oControl.getStickyHeader(),
 			oHeaderTBar = oControl.getHeaderToolbar(),
-			sHeaderClass,
-			sHeaderElement = oHeaderTBar ? "header" : "div";
+			sHeaderClass;
+
+		oRm.openStart("div");
+		oRm.class("sapMPanelHeadingDiv");
+
+		if (bIsStickyPanel) {
+			oRm.class("sapMPanelStickyHeadingDiv");
+		}
+
+		if (!oHeaderTBar) {
+			oRm.attr('role', 'heading');
+			oRm.attr('aria-level', '2');
+		}
+
+		oRm.openEnd();
 
 		if (bIsExpandable) {
 			// we need a wrapping div around button and header
 			// otherwise the border needed for both do not exact align
-			oRm.openStart(sHeaderElement);
+			oRm.openStart("div");
 			if (oHeaderTBar) {
 				sHeaderClass = "sapMPanelWrappingDivTb";
 			} else {
@@ -103,16 +126,18 @@ sap.ui.define(["sap/m/library", "sap/ui/Device"],
 			oRm.renderControl(oHeaderTBar);
 
 		} else if (sHeaderText || bIsExpandable) {
-			oRm.openStart("h2", oControl.getId() + "-header");
+			oRm.openStart("div", oControl.getId() + "-header");
 			oRm.class("sapMPanelHdr");
 			oRm.openEnd();
 			oRm.text(sHeaderText);
-			oRm.close("h2");
+			oRm.close("div");
 		}
 
 		if (bIsExpandable) {
-			oRm.close(sHeaderElement);
+			oRm.close("div");
 		}
+
+		oRm.close("div");
 
 		var oInfoTBar = oControl.getInfoToolbar();
 

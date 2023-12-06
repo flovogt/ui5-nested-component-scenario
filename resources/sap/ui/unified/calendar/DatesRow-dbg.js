@@ -13,8 +13,9 @@ sap.ui.define([
 	"./DatesRowRenderer",
 	"sap/ui/thirdparty/jquery",
 	'sap/ui/core/format/DateFormat',
-	'sap/ui/core/Locale'
-], function(CalendarUtils, CalendarDate, Month, library, DatesRowRenderer, jQuery, DateFormat, Locale) {
+	'sap/ui/core/Locale',
+	'sap/ui/core/date/UI5Date'
+], function(CalendarUtils, CalendarDate, Month, library, DatesRowRenderer, jQuery, DateFormat, Locale, UI5Date) {
 	"use strict";
 
 	/*
@@ -34,7 +35,7 @@ sap.ui.define([
 	 * If used inside the calendar the properties and aggregation are directly taken from the parent
 	 * (To not duplicate and sync DateRanges and so on...)
 	 * @extends sap.ui.unified.calendar.Month
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -103,9 +104,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets a start date.
-	 * @param {Date} oStartDate A JavaScript date
+	 * Sets start date of the row.
+	 *
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oStartDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
+	 * @public
 	 */
 	DatesRow.prototype.setStartDate = function(oStartDate){
 
@@ -138,7 +141,7 @@ sap.ui.define([
 	DatesRow.prototype._getStartDate = function(){
 
 		if (!this._oStartDate) {
-			this._oStartDate = CalendarDate.fromLocalJSDate(new Date(), this.getPrimaryCalendarType());
+			this._oStartDate = CalendarDate.fromLocalJSDate(UI5Date.getInstance(), this.getPrimaryCalendarType());
 		}
 
 		return this._oStartDate;
@@ -151,7 +154,7 @@ sap.ui.define([
 	 * beginning with <code>startDate</code> and <code>days</code> days
 	 * So set this properties before setting the date.
 	 *
-	 * @param {Date} oDate JavaScript date object for start date.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate date instance for start date.
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -169,13 +172,13 @@ sap.ui.define([
 	};
 
 	/**
-	 * displays the a given date without setting the focus
+	 * Displays the given date without setting the focus
 	 *
 	 * Property <code>date</code> date to be focused or displayed. It must be in the displayed date range
 	 * beginning with <code>startDate</code> and <code>days</code> days
 	 * So set this properties before setting the date.
 	 *
-	 * @param {Date} oDate JavaScript date object for focused date.
+	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate date instance for focused date.
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -269,6 +272,7 @@ sap.ui.define([
 
 	/**
 	 * Checks if given date is focusable.
+	 *
 	 * @param {Date} oDate JavaScript (local) date.
 	 * @returns {boolean} true if the date is focusable, false otherwise.
 	 */
@@ -342,6 +346,7 @@ sap.ui.define([
 
 	/**
 	 * Returns the weeks with their length and number for the displayed dates.
+	 *
 	 * @returns {Array} Array with objects containing info about the weeks. Example: [{ len: 3, number: 12 }, { len: 7, number: 13 }, ...]
 	 * @private
 	 */

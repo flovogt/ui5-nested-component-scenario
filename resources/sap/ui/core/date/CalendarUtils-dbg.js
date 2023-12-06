@@ -9,27 +9,8 @@ sap.ui.define([
 	"sap/ui/core/date/CalendarWeekNumbering",
 	"sap/ui/core/Configuration",
 	"sap/ui/core/LocaleData"
-], function(
-	CalendarWeekNumbering,
-	Configuration,
-	LocaleData
-) {
+], function(CalendarWeekNumbering, Configuration, LocaleData) {
 	"use strict";
-
-	var mWeekNumberingConfiguration = {
-			ISO_8601 : {
-				firstDayOfWeek : 1,
-				minimalDaysInFirstWeek : 4
-			},
-			MiddleEastern : {
-				firstDayOfWeek : 6,
-				minimalDaysInFirstWeek : 1
-			},
-			WesternTraditional : {
-				firstDayOfWeek : 0,
-				minimalDaysInFirstWeek : 1
-			}
-		};
 
 	/**
 	 * Provides calendar-related utilities.
@@ -52,8 +33,11 @@ sap.ui.define([
 		 *   which define the first calendar week</li>
 		 * </ul>
 		 *
-		 * @param {sap.ui.core.date.CalendarWeekNumbering} [sCalendarWeekNumbering=Default]
-		 *   The calendar week numbering; if omitted, <code>Default</code> is used.
+		 * @param {sap.ui.core.date.CalendarWeekNumbering} [sCalendarWeekNumbering]
+		 *   The calendar week numbering; if omitted, the calendar week numbering of the Configuration
+		 *   is used; see {@link sap.ui.core.Configuration#getCalendarWeekNumbering}. If this value is
+		 *   <code>Default</code> the returned calendar week configuration is derived from the given
+		 *   <code>oLocale</code>.
 		 * @param {sap.ui.core.Locale} [oLocale]
 		 *   The locale to use; if not provided, this falls back to the format locale from the
 		 *   Configuration; see {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale}.
@@ -65,12 +49,16 @@ sap.ui.define([
 		 * @since 1.108.0
 		 */
 		getWeekConfigurationValues : function (sCalendarWeekNumbering, oLocale) {
-			var oLocaleData;
+			var oLocaleData, oWeekConfigurationValues;
 
-			if (mWeekNumberingConfiguration.hasOwnProperty(sCalendarWeekNumbering)) {
-				return mWeekNumberingConfiguration[sCalendarWeekNumbering];
+			if (!sCalendarWeekNumbering) {
+				return CalendarUtils.getWeekConfigurationValues(Configuration.getCalendarWeekNumbering(), oLocale);
 			}
-			sCalendarWeekNumbering = sCalendarWeekNumbering || CalendarWeekNumbering.Default;
+
+			oWeekConfigurationValues = CalendarWeekNumbering.getWeekConfigurationValues(sCalendarWeekNumbering);
+			if (oWeekConfigurationValues) {
+				return oWeekConfigurationValues;
+			}
 			if (sCalendarWeekNumbering === CalendarWeekNumbering.Default) {
 				oLocale = oLocale || Configuration.getFormatSettings().getFormatLocale();
 				oLocaleData = LocaleData.getInstance(oLocale);

@@ -137,6 +137,9 @@ sap.ui.define([
 
 		oRM.openStart("div")
 			.class("sapMLightBoxTitleSection")
+			.accessibilityState({
+				hidden: true
+			})
 			.openEnd();
 
 		if (oTitle) {

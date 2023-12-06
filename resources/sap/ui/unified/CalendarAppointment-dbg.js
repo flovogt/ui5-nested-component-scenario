@@ -5,8 +5,30 @@
  */
 
 // Provides control sap.ui.unified.CalendarAppointment.
-sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/format/NumberFormat', 'sap/ui/core/format/TimezoneUtil', 'sap/ui/core/Core', './calendar/CalendarUtils', './library', "sap/base/Log", "sap/ui/core/Configuration"],
-	function(DateTypeRange, DateFormat, NumberFormat, TimezoneUtil, Core, CalendarUtils, library, Log, Configuration) {
+sap.ui.define([
+	'./DateTypeRange',
+	'sap/ui/core/format/DateFormat',
+	'sap/ui/core/format/NumberFormat',
+	'sap/ui/core/format/TimezoneUtil',
+	'sap/ui/core/Core',
+	'./calendar/CalendarUtils',
+	'./library',
+	"sap/base/Log",
+	"sap/ui/core/Configuration",
+	"sap/ui/core/date/UI5Date"
+],
+	function(
+		DateTypeRange,
+		DateFormat,
+		NumberFormat,
+		TimezoneUtil,
+		Core,
+		CalendarUtils,
+		library,
+		Log,
+		Configuration,
+		UI5Date
+		) {
 	"use strict";
 
 	/**
@@ -21,7 +43,7 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 	 *
 	 * Applications could inherit from this element to add own fields.
 	 * @extends sap.ui.unified.DateTypeRange
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -124,12 +146,12 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 	 * @private
 	 */
 	CalendarAppointment.prototype._getDateRangeIntersectionText = function (oCurrentlyDisplayedDate) {
-		var oStartDate = this._getStartDateWithTimezoneAdaptation(),
-			oEndDate = this._getEndDateWithTimezoneAdaptation() ? this._getEndDateWithTimezoneAdaptation() : new Date(864000000000000), //in case of emergency call this number
+		var oStartDate = this.getStartDate(),
+			oEndDate = this.getEndDate() ? this.getEndDate() : UI5Date.getInstance(864000000000000), //in case of emergency call this number
 			sFirstLineText,
 			sSecondLineText,
-			oCurrentDayStart = new Date(oCurrentlyDisplayedDate.getFullYear(), oCurrentlyDisplayedDate.getMonth(), oCurrentlyDisplayedDate.getDate(), 0, 0, 0),
-			oNextDayStart = new Date(oCurrentDayStart.getFullYear(), oCurrentDayStart.getMonth(), oCurrentDayStart.getDate() + 1),
+			oCurrentDayStart = UI5Date.getInstance(oCurrentlyDisplayedDate.getFullYear(), oCurrentlyDisplayedDate.getMonth(), oCurrentlyDisplayedDate.getDate(), 0, 0, 0),
+			oNextDayStart = UI5Date.getInstance(oCurrentDayStart.getFullYear(), oCurrentDayStart.getMonth(), oCurrentDayStart.getDate() + 1),
 			oTimeFormat = DateFormat.getTimeInstance({pattern: "HH:mm"}),
 			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
 			oHourFormat = NumberFormat.getUnitInstance({
@@ -141,7 +163,7 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 			iHour, iMinute, sHour, sMinute;
 
 		//have no intersection with the given day
-		if (oStartDate.getTime() >= oNextDayStart.getTime() || oEndDate.getTime() <= oCurrentDayStart.getTime()) {
+		if (oStartDate.getTime() > oNextDayStart.getTime() || oEndDate.getTime() < oCurrentDayStart.getTime()) {
 			sFirstLineText = "";
 		} else if (oStartDate.getTime() <= oCurrentDayStart.getTime() && oEndDate.getTime() >= oNextDayStart.getTime()) {
 			sFirstLineText = oResourceBundle.getText("PLANNINGCALENDAR_ALLDAY");
@@ -180,14 +202,14 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 	 */
 	CalendarAppointment._getComparer = function(oDate) {
 		var ONE_DAY = 24 * 60 * 60 * 1000,
-			iCurrentDayStartTime = new Date(oDate.getFullYear(), oDate.getMonth(), oDate.getDate(), 0, 0, 0).getTime(),
+			iCurrentDayStartTime = UI5Date.getInstance(oDate.getFullYear(), oDate.getMonth(), oDate.getDate(), 0, 0, 0).getTime(),
 			iNextDayStart = iCurrentDayStartTime + ONE_DAY;
 
 		return function(oAppInfo1, oAppInfo2) {
-			var iStartDateTime1 = oAppInfo1.appointment._getStartDateWithTimezoneAdaptation().getTime(),
-				iStartDateTime2 = oAppInfo2.appointment._getStartDateWithTimezoneAdaptation().getTime(),
-				iEndDateTime1 = oAppInfo1.appointment._getEndDateWithTimezoneAdaptation() ? oAppInfo1.appointment._getEndDateWithTimezoneAdaptation().getTime() : 864000000000000, //this is max date in case of no max date
-				iEndDateTime2 = oAppInfo2.appointment._getEndDateWithTimezoneAdaptation() ? oAppInfo2.appointment._getEndDateWithTimezoneAdaptation().getTime() : 864000000000000,
+			var iStartDateTime1 = oAppInfo1.appointment.getStartDate().getTime(),
+				iStartDateTime2 = oAppInfo2.appointment.getStartDate().getTime(),
+				iEndDateTime1 = oAppInfo1.appointment.getEndDate() ? oAppInfo1.appointment.getEndDate().getTime() : 864000000000000, //this is max date in case of no max date
+				iEndDateTime2 = oAppInfo2.appointment.getEndDate() ? oAppInfo2.appointment.getEndDate().getTime() : 864000000000000,
 				bWholeDay1 = iStartDateTime1 <= iCurrentDayStartTime && iEndDateTime1 >= iNextDayStart,
 				bWholeDay2 = iStartDateTime2 <= iCurrentDayStartTime && iEndDateTime2 >= iNextDayStart,
 				iResult;
@@ -248,44 +270,8 @@ sap.ui.define(['./DateTypeRange', 'sap/ui/core/format/DateFormat', 'sap/ui/core/
 			return document.getElementById(sSuffix ? this.getId() + "-" + this._sAppointmentPartSuffix + "-" + sSuffix : this.getId() + "-" + this._sAppointmentPartSuffix);
 		}
 
-		var oAppointmentParts = document.querySelectorAll(".sapUiCalendarRowApps[id^='" + this. getId() + "']");
+		var oAppointmentParts = document.querySelectorAll(".sapUiCalendarRowApps[id^='" + this. getId() + "-']");
 		return oAppointmentParts.length > 0 ? oAppointmentParts[0] : null;
-	};
-
-	CalendarAppointment.prototype._getEndDateWithTimezoneAdaptation = function() {
-		if (!this.getProperty("endDate")) {
-			return null;
-		}
-
-		var oEndDate = this._convertToTimezone(this.getEndDate());
-
-		return oEndDate;
-	};
-
-	CalendarAppointment.prototype._getStartDateWithTimezoneAdaptation = function() {
-		if (!this.getProperty("startDate")) {
-			return null;
-		}
-
-		var oStartDate = this._convertToTimezone(this.getStartDate());
-
-		return oStartDate;
-	};
-
-	/**
-	 * Aligns a date to the timezone from the configuration.
-	 *
-	 * @returns {Object} <code>oNewDate</code> aligned to the configured timezone.
-	 * @private
-	 */
-	CalendarAppointment.prototype._convertToTimezone = function(oDate) {
-		var sConfigTimezone = Core.getConfiguration().getTimezone();
-		var sLocalTimezone = TimezoneUtil.getLocalTimezone();
-
-		var iConfigOffsetMillis = TimezoneUtil.calculateOffset(oDate, sConfigTimezone) * 1000;
-		var iLocalOffsetMillis = TimezoneUtil.calculateOffset(oDate, sLocalTimezone) * 1000;
-
-		return new Date(oDate.getTime() - iConfigOffsetMillis + iLocalOffsetMillis);
 	};
 
 	return CalendarAppointment;

@@ -77,7 +77,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 *
 	 * @constructor
 	 * @public
@@ -581,7 +581,7 @@ sap.ui.define([
 			} else {
 				//change the content aria-labelled by the newly selected tab;
 				if (bIsParentIconTabBar) {
-					oParent.$("content").attr('aria-labelledby', oItem.sId);
+					oParent.$("content").attr('aria-labelledby', oItem._getRootTab().getId());
 				}
 
 				// set new item
@@ -1288,6 +1288,19 @@ sap.ui.define([
 		return iWidth + iMargins;
 	};
 
+	IconTabHeader.prototype._hasSubItems = function () {
+		var aTabFilters = this.getTabFilters(),
+			i;
+
+		for (i = 0; i < aTabFilters.length; i++) {
+			if (aTabFilters[i].getItems().length > 0) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+
 	/**
 	 * Handles the activation of the tabs and arrows.
 	 * @private
@@ -1751,6 +1764,8 @@ sap.ui.define([
 
 		var oTab = oEvent.srcControl,
 			iTabStripEnd = this.indexOfItem(this._getItemsInStrip().pop());
+
+		oEvent.preventDefault();
 
 		this._moveTab(oTab, oEvent.keyCode, iTabStripEnd);
 		oTab.$().trigger("focus");

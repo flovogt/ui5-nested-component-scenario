@@ -8,6 +8,7 @@
  * Initialization Code and shared classes of library sap.m.
  */
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/Device",
 	"sap/ui/base/DataType",
 	"sap/ui/base/EventProvider",
@@ -36,6 +37,7 @@ sap.ui.define([
 	"./Support" // referenced here to enable the Support feature
 ],
 	function(
+	Library,
 	Device,
 	DataType,
 	EventProvider,
@@ -70,13 +72,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.110.0
+	 * @version 1.120.1
 	 * @since 1.4
 	 * @public
 	 */
-	var thisLib = sap.ui.getCore().initLibrary({
+	var thisLib = Library.init({
 		name : "sap.m",
-		version: "1.110.0",
+		version: "1.120.1",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
 		types: [
@@ -89,7 +91,9 @@ sap.ui.define([
 			"sap.m.BadgeState",
 			"sap.m.BadgeAnimationType",
 			"sap.m.BarDesign",
+			"sap.m.BorderDesign",
 			"sap.m.BreadcrumbsSeparatorStyle",
+			"sap.m.ButtonAccessibleRole",
 			"sap.m.ButtonType",
 			"sap.m.CarouselArrowsPlacement",
 			"sap.m.DateTimeInputType",
@@ -97,8 +101,11 @@ sap.ui.define([
 			"sap.m.DialogRoleType",
 			"sap.m.DialogType",
 			"sap.m.DraftIndicatorState",
+			"sap.m.DynamicDateRangeGroups",
+			"sap.m.EmptyIndicatorMode",
 			"sap.m.FacetFilterListDataType",
 			"sap.m.FacetFilterType",
+			"sap.m.FilterPanelField",
 			"sap.m.FlexAlignContent",
 			"sap.m.FlexAlignItems",
 			"sap.m.FlexAlignSelf",
@@ -174,19 +181,23 @@ sap.ui.define([
 			"sap.m.ToolbarDesign",
 			"sap.m.ToolbarStyle",
 			"sap.m.UploadState",
+			"sap.m.UploadType",
 			"sap.m.ValueColor",
 			"sap.m.ValueCSSColor",
 			"sap.m.VerticalPlacementType",
 			"sap.m.WrappingType",
 			"sap.m.WizardRenderMode",
+			"sap.m.plugins.CopyPreference",
 			"sap.m.semantic.SemanticRuleSetType",
 			"sap.m.table.columnmenu.Category",
-			"sap.m.upload.UploaderHttpRequestMethod"
+			"sap.m.upload.UploaderHttpRequestMethod",
+			"sap.m.UploadSetwithTableActionPlaceHolder"
 		],
 		interfaces: [
 			"sap.m.IBar",
 			"sap.m.IBadge",
 			"sap.m.IBreadcrumbs",
+			"sap.m.ITableItem",
 			"sap.m.p13n.IContent",
 			"sap.m.IconTab",
 			"sap.m.IScale",
@@ -374,6 +385,8 @@ sap.ui.define([
 			"sap.m.UploadCollectionToolbarPlaceholder",
 			"sap.m.upload.UploadSet",
 			"sap.m.upload.UploadSetToolbarPlaceholder",
+			"sap.m.upload.UploadSetwithTable",
+			"sap.m.upload.UploadSetwithTableItem",
 			"sap.m.VariantManagement",
 			"sap.m.VBox",
 			"sap.m.ViewSettingsDialog",
@@ -398,19 +411,21 @@ sap.ui.define([
 		],
 		elements: [
 			"sap.m.BadgeCustomData",
+			"sap.m.CarouselLayout",
 			"sap.m.Column",
 			"sap.m.ColumnPopoverActionItem",
 			"sap.m.ColumnPopoverCustomItem",
 			"sap.m.ColumnPopoverItem",
 			"sap.m.ColumnPopoverSortItem",
-			"sap.m.CustomDynamicDateOption",
 			"sap.m.DynamicDateOption",
 			"sap.m.DynamicDateValueHelpUIType",
 			"sap.m.FlexItemData",
 			"sap.m.FeedListItemAction",
 			"sap.m.IconTabFilter",
 			"sap.m.IconTabSeparator",
+			"sap.m.ImageCustomData",
 			"sap.m.LightBoxItem",
+			"sap.m.LinkTileContent",
 			"sap.m.OverflowToolbarLayoutData",
 			"sap.m.MaskInputRule",
 			"sap.m.MenuItem",
@@ -443,8 +458,11 @@ sap.ui.define([
 			"sap.m.ToolbarLayoutData",
 			"sap.m.UploadCollectionItem",
 			"sap.m.UploadCollectionParameter",
+			"sap.m.upload.FilePreviewDialog",
 			"sap.m.upload.Uploader",
+			"sap.m.upload.UploaderTableItem",
 			"sap.m.upload.UploadSetItem",
+			"sap.m.upload.FilePreviewDialog",
 			"sap.m.VariantItem",
 			"sap.m.ViewSettingsCustomItem",
 			"sap.m.ViewSettingsCustomTab",
@@ -604,7 +622,11 @@ sap.ui.define([
 					"hideControl": "default",
 					"unhideControl": "default",
 					"moveControls": "default"
-				}
+				},
+				"sap.m.ObjectHeader": {
+					"moveControls": "default"
+				},
+				"sap.m.upload.UploadSetwithTable":"sap/m/upload/p13n/flexibility/UploadSetwithTable"
 			},
 			//Configuration used for rule loading of Support Assistant
 			"sap.ui.support": {
@@ -647,6 +669,36 @@ sap.ui.define([
 		Translucent : "Translucent"
 
 	};
+
+	/**
+	*  Defines the placeholder type for the control to be replaced.
+	*
+	* @enum {string}
+	* @public
+	* @since 1.120
+	*/
+	thisLib.UploadSetwithTableActionPlaceHolder = {
+	   /**
+		* Placeholder for variant management.
+		* @public
+		*/
+	   VariantManagementPlaceholder: "VariantManagementPlaceholder",
+	   /**
+		* Placeholder for personalization settings button.
+		* @public
+		*/
+	   PersonalizationSettingsPlaceholder: "PersonalizationSettingsPlaceholder",
+	   /**
+		* Placeholder for upload button control.
+		* @public
+		*/
+	   UploadButtonPlaceholder : "UploadButtonPlaceholder",
+	   /**
+		* Placeholder for cloud file picker button.
+		* @public
+	   */
+	   CloudFilePickerButtonPlaceholder : "CloudFilePickerButtonPlaceholder"
+   };
 
 	/**
 	 * Types of state of {@link sap.m.BadgeEnabler} to expose its current state.
@@ -791,6 +843,27 @@ sap.ui.define([
 		 */
 		Footer : "Footer"
 
+	};
+
+	/**
+	 * Available Border Design.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.BorderDesign = {
+
+		/**
+		 * A solid border color dependent on the theme.
+		 * @public
+		 */
+		Solid : "Solid",
+
+		/**
+		 * Specifies no border.
+		 * @public
+		 */
+		None : "None"
 	};
 
 	/**
@@ -1202,6 +1275,23 @@ sap.ui.define([
 		Saved: "Saved"
 
 	};
+
+	/**
+	 * @typedef {object} sap.m.DynamicDateRangeValue
+	 * @description Defines the <code>value</code> property of the DynamicDateRange control.
+	 * 		The object has two properties:
+	 * 			'operator' - a string, the key of a DynamicDateOption
+	 * 			'values' - an array of parameters for the same option
+	 * see {@link sap.m.DynamicDateRange}
+	 *
+	 * @property {string} operator
+	 * 		The key of a DynamicDateOption.
+	 * @property {Array<Date|int|string|any>} values
+	 * 		An array of parameters for the same option.
+	 *
+	 * @public
+	 * @since 1.111
+	 */
 
 
 	/**
@@ -1698,6 +1788,28 @@ sap.ui.define([
 	};
 
 	/**
+	 * Enumeration for possible Button accessibility roles.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.114.0
+	 */
+	 thisLib.ButtonAccessibleRole = {
+
+		/**
+		 * Default mode.
+		 * @public
+		 */
+		Default: "Default",
+
+		/**
+		 * Button will receive <code>role="Link"</code> attibute.
+		 * @public
+		 */
+		Link: "Link"
+	};
+
+	/**
 	 * Defines how the input display text should be formatted.
 	 *
 	 * @enum {string}
@@ -2025,6 +2137,16 @@ sap.ui.define([
 
 	/**
 	 *
+	 * Common interface for sap.m.ColumnListItem and sap.m.GroupHeaderListItem
+	 *
+	 * @since 1.119
+	 * @name sap.m.ITableItem
+	 * @interface
+	 * @public
+	 */
+
+	/**
+	 *
 	 * Interface for controls which are suitable as a Scale for the Slider/RangeSlider.
 	 * Implementation of this interface should implement the following methods:
 	 * <ul>
@@ -2043,7 +2165,6 @@ sap.ui.define([
 	/**
 	 * Returns the number of tickmarks, which should be placed between labels.
 	 *
-	 * @param {object} mOptions The option array
 	 * @returns {int} The number of tickmarks
 	 *
 	 * @function
@@ -2486,6 +2607,28 @@ sap.ui.define([
 	}, DataType.getType("string"));
 
 	/**
+	 * Defines the control that will receive the initial focus in the
+	 * <code>sap.m.SelectDialog</code> or <code>sap.m.TableSelectDialog</code>.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.117.0
+	 */
+	thisLib.SelectDialogInitialFocus = {
+		/**
+		 * Content list.
+		 * @public
+		 */
+		List: "List",
+
+		/**
+		 * SearchField control
+		 * @public
+		 */
+		SearchField: "SearchField"
+	};
+
+	/**
 	 * A subset of input types that fits to a simple API returning one string.
 	 *
 	 * Not available on purpose: button, checkbox, hidden, image, password, radio, range, reset, search, submit.
@@ -2686,21 +2829,22 @@ sap.ui.define([
 	thisLib.ListKeyboardMode = {
 
 		/**
-		 * This default mode is suitable if the number of items is unlimited or if there is no editable field
-		 * within the item.
+		 * This default mode is suitable if the List or Table contains editable and/or non-editable fields.
 		 *
-		 * While the last/first interactive element within an item has the focus, pressing tab/shift+tab moves
-		 * the focus to the next/previous element in the tab chain after/before the <code>sap.m.List</code>
-		 * or <code>sap.m.Table</code>.
+		 * In this mode, the first focus goes to the first item.
+		 * If the focus is on the item, or cell, pressing tab/shift+tab moves the focus to the next/previous element in the tab chain after/before
+		 * the <code>sap.m.List</code> or <code>sap.m.Table</code> control.
+		 * If the focus is on the interactive element, pressing tab/shift+tab moves the focus to the next/previous element in the tab chain after/before
+		 * the focused interactive element.
 		 * @public
 		 */
 		Navigation : "Navigation",
 
 		/**
-		 * This mode is suitable if the number of items is limited and if there are editable fields within the item.
+		 * This mode is suitable if there are only editable fields within the item.
 		 *
-		 * While the last/first interactive element within an item has the focus, pressing tab/shift+tab moves
-		 * the focus to the next/previous element in the tab chain after/before the item </code>.
+		 * In this mode, the first focus goes to the first interactive element within the first item and this is the only difference between the <code>Edit</code>
+		 * and <code>Navigation</code> mode.
 		 * @public
 		 */
 		Edit : "Edit"
@@ -2828,6 +2972,52 @@ sap.ui.define([
 	};
 
 	/**
+	 * Defines the groups in {@link sap.m.DynamicDateRange}.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.118
+	 */
+	 thisLib.DynamicDateRangeGroups = {
+
+		/**
+		 * Group of options that provide selection of single dates.
+		 * @public
+		 */
+		SingleDates: "SingleDates",
+
+		/**
+		 * Group of options that provide selection of date ranges.
+		 * @public
+		 */
+		DateRanges: "DateRanges",
+
+		/**
+		 * Group of options that provide selection of week related ranges.
+		 * @public
+		 */
+		Weeks: "Weeks",
+
+		/**
+		 * Group of options that provide selection of month related ranges.
+		 * @public
+		 */
+		Month: "Month",
+
+		/**
+		 * Group of options that provide selection of quarter related ranges.
+		 * @public
+		 */
+		Quarters: "Quarters",
+
+		/**
+		 * Group of options that provide selection of year related ranges.
+		 * @public
+		 */
+		Years: "Years"
+	};
+
+	/**
 	 * Enumeration of possible load statuses.
 	 *
 	 * @enum {string}
@@ -2871,14 +3061,14 @@ sap.ui.define([
 	thisLib.MenuButtonMode = {
 
 		/**
-		 * Default regular type (Menu button appears as a regular button, pressing opens a menu)
+		 * Default Regular type - MenuButton appears as a regular button, pressing it opens a menu.
 		 * @public
 		 */
 		Regular: "Regular",
 
 		/**
-		 * Split type (Menu button appears as a split button, pressing fires the default action a menu,
-		 * pressing the arrow part opens a menu)
+		 * Split type - MenuButton appears as a split button separated into two areas: the text and the arrow button. Pressing the
+		 * text area fires the default (or last) action, pressing the arrow part opens a menu.
 		 * @public
 		 */
 		Split: "Split"
@@ -2974,6 +3164,29 @@ sap.ui.define([
 	 * @since 1.110
 	 */
 
+	 /**
+	 * The object contains accessibility state for a control.
+	 *
+	 * @typedef {object} sap.m.InputBaseAccessibilityState
+	 *
+	 * @property {string} [role]
+	 * 	The WAI-ARIA role which is implemented by the control.
+	 * @property {boolean} [invalid]
+	 * 	Whether the control is invalid.
+	 * @property {string} [errormessage]
+	 * 	The errormessage property.
+	 * @property {{value: string, append: boolean}} [labelledby]
+	 * 	The labelledby property.
+	 * @property {{value: string, append: boolean}} [describedby]
+	 * 	The describedby property.
+	 * @property {boolean | null} [disabled]
+	 * 	Whether the control is disabled. If not relevant, it shouldn`t be set or set as <code>null</code>.
+	 * @property {boolean | null} [readonly]
+	 * 	Whether the control is readonly. If not relevant, it shouldn`t be set or set as <code>null</code>.
+	 * @protected
+	 * @since 1.111
+	 */
+
 	/**
 	 * Marker interface for controls which are suitable as items for the ObjectHeader.
 	 *
@@ -3057,15 +3270,22 @@ sap.ui.define([
 	 *
 	 * Interface for P13nPopup which are suitable as content for the <code>sap.m.p13n.Popup</code>.
 	 * Implementation of this interface should include the following methods:
+	 *
 	 * <ul>
 	 * <li><code>getTitle</code></li>
+	 * </ul>
+	 *
+	 * Implementation of this interface can optionally provide the following methods:
+	 *
+	 * <ul>
+	 * <li><code>getVerticalScrolling</code></li>
+	 * <li><code>onReset</code></li>
 	 * </ul>
 	 *
 	 * @since 1.97
 	 * @name sap.m.p13n.IContent
 	 * @interface
 	 * @public
-	 * @experimental
 	 */
 
 	/**
@@ -3076,7 +3296,25 @@ sap.ui.define([
 	 * @function
 	 * @name sap.m.p13n.IContent.getTitle
 	 * @public
-	 * @experimental
+	 */
+
+	/**
+	 * Optionally returns the enablement of the contents vertical scrolling in case only one panel is used to determine if the content provides its own
+	 * scrolling capabilites.
+	 *
+	 * @returns {boolean} The enablement of the vertical scrolling enablement for the <code>sap.m.p13n.Popup</code>.
+	 *
+	 * @function
+	 * @name sap.m.p13n.IContent.getVerticalScrolling?
+	 * @public
+	 */
+
+	/**
+	 * Optional hook that will be executed when the panel is used by a <code>sap.m.p13n.Popup</code> that may trigger a reset on the panel
+	 *
+	 * @function
+	 * @name sap.m.p13n.IContent.onReset?
+	 * @public
 	 */
 
 	/**
@@ -3401,7 +3639,6 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @enum {string}
-	 * @experimental Since 1.92. These keys are experimental. The API might be changed in future.
 	 */
 	thisLib.StandardDynamicDateRangeKeys = {
 
@@ -3532,6 +3769,18 @@ sap.ui.define([
 		DATETOYEAR : "DATETOYEAR",
 
 		/**
+		 * The range will contain the last X minutes. The count of the minutes is selected from a StepInput.
+		 * @public
+		 */
+		LASTMINUTES : "LASTMINUTES",
+
+		/**
+		 * The range will contain the last X hours. The count of the hours is selected from a StepInput.
+		 * @public
+		 */
+		 LASTHOURS : "LASTHOURS",
+
+		/**
 		 * The range will contain the last X days. The count of the days is selected from a StepInput.
 		 * @public
 		 */
@@ -3560,6 +3809,18 @@ sap.ui.define([
 		 * @public
 		 */
 		LASTYEARS : "LASTYEARS",
+
+		/**
+		 * The range will contain the next X minutes. The count of the minutes is selected from a StepInput.
+		 * @public
+		 */
+		NEXTMINUTES : "NEXTMINUTES",
+
+		/**
+		 * The range will contain the next X hours. The count of the hours is selected from a StepInput.
+		 * @public
+		 */
+		NEXTHOURS : "NEXTHOURS",
 
 		/**
 		 * The range will contain the next X days. The count of the days is selected from a StepInput.
@@ -4596,6 +4857,25 @@ sap.ui.define([
 	};
 
 	/**
+	 * Type of the upload {@link sap.m.UploadSetItem}.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.UploadType = {
+		/**
+		 * The file has been uploaded from cloud.
+		 * @public
+		 */
+		Cloud: "Cloud",
+		/**
+		 * The file has been uploaded from your system.
+		 * @public
+		 */
+		Native: "Native"
+	};
+
+	/**
 	 * Available wrapping types for text controls that can be wrapped that enable you
 	 * to display the text as hyphenated.
 	 *
@@ -4619,6 +4899,27 @@ sap.ui.define([
 		 * @public
 		 */
 		Hyphenated : "Hyphenated"
+	};
+
+	/**
+	 * Available selection modes for the {@link sap.m.SinglePlanningCalendar}
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.113
+	 */
+	thisLib.SinglePlanningCalendarSelectionMode = {
+		/**
+		 * Single date selection.
+		 * @public
+		 */
+		SingleSelect: "SingleSelect",
+
+		/**
+		 * Мore than one date will be available to selection.
+		 * @public
+		 */
+		MultiSelect: "MultiSelect"
 	};
 
 	/**
@@ -4769,24 +5070,52 @@ sap.ui.define([
 	thisLib.MultiSelectMode = {
 
 		/**
-		 * Renders the <code>selectAll</code> checkbox (default behavior).
+		 * The Select All functionality is available (default behavior).
+		 * For a <code>sap.m.Table</code>, a Select All checkbox is rendered.
 		 * @public
 		 */
 		Default: "Default",
 
 		/**
-		 * Renders the <code>clearAll</code> icon.
+		 * The Select All functionality is not available. Instead, it is only possible to remove the selection of all items.
+		 * For a <code>sap.m.Table</code>, a Deselect All icon is rendered.
 		 * @public
 		 */
 		ClearAll: "ClearAll",
 
 		/**
-		 * Renders the <code>selectAll</code> checkbox with warning popover.
-		 * Available only for sap.m.Table control
+		 * The Select All functionality is available.
+		 * For a <code>sap.m.Table</code>, a Select All checkbox
+		 * with a warning popover is rendered if not all items could be selected (for example, because of growing).
+		 *
 		 * @public
 		 * @since 1.109
 		 */
 		SelectAll: "SelectAll"
+	};
+
+	thisLib.plugins = thisLib.plugins || {};
+
+	/**
+	 * Enumeration of the <code>copyPreference</code> in <code>CopyProvider</code>. Determines what is copied during a copy operation.
+	 * @enum {string}
+	 * @public
+	 * @since 1.119
+	 */
+	thisLib.plugins.CopyPreference = {
+		/**
+		 * The entire selected scope is copied, including both row and cell selection.
+		 * @public
+		 */
+		Full: "Full",
+
+		/**
+		 * If cells are selected, only the content of the selected cells is copied,
+		 * regardless of any other rows or elements that might also be selected. If no cells are selected,
+		 * the copy operation will default to copying the selected rows.
+		 * @public
+		 */
+		Cells: "Cells"
 	};
 
 	/**
@@ -5275,7 +5604,7 @@ sap.ui.define([
 			 * @public
 			 */
 			triggerEmail: function(sEmail, sSubject, sBody, sCC, sBCC, bNewWindow) {
-				var bNewWindow = bNewWindow || false;
+				bNewWindow = bNewWindow || false;
 				this.redirect(this.normalizeEmail.apply(0, [sEmail, sSubject, sBody, sCC, sBCC]), bNewWindow);
 			},
 
@@ -5394,92 +5723,6 @@ sap.ui.define([
 			rm.close("div");
 		}
 	};
-
-	/**
-	 * Helper for Images.
-	 *
-	 * @namespace
-	 * @since 1.12
-	 * @protected
-	 */
-	thisLib.ImageHelper = (function() {
-
-		/**
-		 * Checks if value is not undefined, in which case the
-		 * setter function for a given property is called.
-		 * Returns true if value is set, false otherwise.
-		 *
-		 * @private
-		 */
-		function checkAndSetProperty(oControl, property, value) {
-			if (value !== undefined) {
-				var fSetter = oControl["set" + capitalize(property)];
-				if (typeof (fSetter) === "function") {
-					fSetter.call(oControl, value);
-					return true;
-				}
-			}
-			return false;
-		}
-		/** @lends sap.m.ImageHelper */
-		var oImageHelper = {
-			/**
-			 * Creates or updates an image control.
-			 *
-			 * @param {string} sImgId UD of the image to be dealt with.
-			 * @param {sap.m.Image} oImage The image to update. If undefined, a new image will be created.
-			 * @param {sap.ui.core.Control} oParent oImageControl's parentControl.
-			 * @param {object} mProperties Settings for the image control; the <code>src</code> property
-			 * MUST be contained; the keys of the object must be valid names of image settings
-			 * @param {string[]} aCssClassesToAdd Array of CSS classes which will be added if the image needs to be created.
-			 * @param {string[]} aCssClassesToRemove All CSS classes that oImageControl has and which are contained in this array
-			 * are removed before adding the CSS classes listed in aCssClassesToAdd.
-			 * @returns {sap.m.Image|sap.ui.core.Icon} The new or updated image control or icon
-			 *
-			 * @protected
-			 */
-			getImageControl: function(sImgId, oImage, oParent, mProperties, aCssClassesToAdd, aCssClassesToRemove) {
-				assert( mProperties.src , "sap.m.ImageHelper.getImageControl: mProperties do not contain 'src'");
-
-				// make sure, image is rerendered if icon source has changed
-				if (oImage && (oImage.getSrc() != mProperties.src)) {
-					oImage.destroy();
-					oImage = undefined;
-				}
-				// update or create image control
-				if (oImage && (oImage instanceof sap.m.Image || oImage instanceof sap.ui.core.Icon)) {
-					//Iterate through properties
-					for (var key in mProperties) {
-						checkAndSetProperty(oImage, key,  mProperties[key]);
-					}
-				} else {
-					//add 'id' to properties. This is required by utility method 'createControlByURI'
-					var mSettings = Object.assign({}, mProperties, {id: sImgId});
-					oImage = sap.ui.core.IconPool.createControlByURI(mSettings, sap.m.Image);
-					//Set the parent so the image gets re-rendered, when the parent is
-					oImage.setParent(oParent, null, true);
-				}
-
-				//Remove existing style classes which are contained in aCssClassesToRemove
-				//(the list of CSS classes allowed for deletion) to have them updated later on
-				//Unfortunately, there is no other way to do this but remove
-				//each class individually
-				if (aCssClassesToRemove) {
-					for (var l = 0, removeLen = aCssClassesToRemove.length; l !== removeLen; l++) {
-						oImage.removeStyleClass(aCssClassesToRemove[l]);
-					}
-				}
-				//Add style classes if necessary
-				if (aCssClassesToAdd) {
-					for (var k = 0, len = aCssClassesToAdd.length; k !== len; k++) {
-						oImage.addStyleClass(aCssClassesToAdd[k]);
-					}
-				}
-				return oImage;
-			}
-		};
-		return oImageHelper;
-	}());
 
 	/**
 	 * Helper for Popups.
@@ -5751,111 +5994,11 @@ sap.ui.define([
 		return oInputODataSuggestProvider;
 	}());
 
-	// implement Form helper factory with m controls
-	// possible is set before layout lib is loaded.
-	ObjectPath.set("sap.ui.layout.form.FormHelper", {
-		createLabel: function(sText, sId){
-			return new sap.m.Label(sId, {text: sText});
-		},
-		createButton: function(sId, fnPressFunction, fnCallback){
-			var oButton = new sap.m.Button(sId, {type: thisLib.ButtonType.Transparent});
-			oButton.attachEvent("press", fnPressFunction, this); // attach event this way to have the right this-reference in handler
-			fnCallback.call(this, oButton);
-		},
-		setButtonContent: function(oButton, sText, sTooltip, sIcon, sIconHovered){
-			oButton.setText(sText);
-			oButton.setTooltip(sTooltip);
-			oButton.setIcon(sIcon);
-			oButton.setActiveIcon(sIconHovered);
-		},
-		addFormClass: function(){ return "sapUiFormM"; },
-		setToolbar: function(oToolbar){
-			var oOldToolbar = this.getToolbar();
-			if (oOldToolbar && oOldToolbar.setDesign) {
-				// check for setDesign because we don't know what kind of custom toolbars might be used.
-				oOldToolbar.setDesign(oOldToolbar.getDesign(), true);
-			}
-			if (oToolbar && oToolbar.setDesign) {
-				oToolbar.setDesign(sap.m.ToolbarDesign.Transparent, true);
-			}
-			return oToolbar;
-		},
-		getToolbarTitle: function(oToolbar) {
-			// determine Title to point aria-label on this. As Fallback use the whole Toolbar
-			if (oToolbar) {
-				var aContent = oToolbar.getContent();
-				for (var i = 0; i < aContent.length; i++) {
-					var oContent = aContent[i];
-					if (oContent.isA("sap.m.Title")) {
-						return oContent.getId();
-					}
-				}
-				return oToolbar.getId(); // fallback
-			}
-		},
-		createDelimiter: function(sDelimiter, sId){
-			return new sap.m.Text(sId, {text: sDelimiter, textAlign: CoreLibrary.TextAlign.Center});
-		},
-		createSemanticDisplayControl: function(sText, sId){
-			return new sap.m.Text(sId, {text: sText});
-		},
-		updateDelimiter: function(oText, sDelimiter){
-			oText.setText(sDelimiter);
-		},
-		updateSemanticDisplayControl: function(oText, sText){
-			oText.setText(sText);
-		},
-		bArrowKeySupport: false, /* disables the keyboard support for arrow keys */
-		bFinal: true
-	});
-
-	//implement FileUploader helper factory with m controls
-	ObjectPath.set("sap.ui.unified.FileUploaderHelper", {
-		createTextField: function(sId){
-			var oTextField = new sap.m.Input(sId);
-			return oTextField;
-		},
-		setTextFieldContent: function(oTextField, sWidth){
-			oTextField.setWidth(sWidth);
-		},
-		createButton: function(sId){
-			var oButton = new sap.m.Button(sId);
-			return oButton;
-		},
-		addFormClass: function(){ return "sapUiFUM"; },
-		bFinal: true
-	});
-
-	// implements ColorPicker helper factory with common controls
-	ObjectPath.set("sap.ui.unified.ColorPickerHelper", {
-		isResponsive: function () {
-			return true;
-		},
-		factory: {
-			createLabel: function (mConfig) {
-				return new sap.m.Label(mConfig);
-			},
-			createInput: function (sId, mConfig) {
-				return new sap.m.InputBase(sId, mConfig);
-			},
-			createSlider: function (sId, mConfig) {
-				return new sap.m.Slider(sId, mConfig);
-			},
-			createRadioButtonGroup: function (mConfig) {
-				return new sap.m.RadioButtonGroup(mConfig);
-			},
-			createRadioButtonItem: function (mConfig) {
-				return new sap.m.RadioButton(mConfig);
-			},
-			createButton: function (sId, mConfig) {
-				return new sap.m.Button(sId, mConfig);
-			}
-		},
-		bFinal: true
-	});
-
 	//implement table helper factory with m controls
 	//possible is set before layout lib is loaded.
+	/**
+	 * @deprecated As of version 1.118
+	 */
 	ObjectPath.set("sap.ui.table.TableHelper", {
 		createLabel: function(mConfig){
 			return new sap.m.Label(mConfig);
@@ -5867,12 +6010,31 @@ sap.ui.define([
 		bFinal: true /* This table helper wins, even when commons helper was set before */
 	});
 
+	/**
+	 * @deprecated As of version 1.120
+	 */
 	ObjectPath.set("sap.ui.layout.GridHelper", {
 		getLibrarySpecificClass: function () {
 			return "";
 		},
 		bFinal: true
 	});
+
+	/**
+	 * An object type that represents sap.m.upload.FilterPanel fields properties.
+	 * @typedef {object}
+	 * @public
+	 * @property {string} label field name.
+	 * @property {string} path model path.
+	 */
+	thisLib.FilterPanelField = DataType.createType("sap.m.FilterPanelField", {
+		isValid: function (oValue) {
+			var aValueKeys = Object.keys(oValue);
+			return ["label", "path"].every(function (sKey) {
+				return aValueKeys.indexOf(sKey) !== -1;
+			});
+		}
+	}, "object");
 
 	/* Android browsers do not scroll a focused input into the view correctly after resize */
 	if (Device.os.android) {

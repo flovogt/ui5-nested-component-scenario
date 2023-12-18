@@ -29,7 +29,7 @@
     "my-lib-sample-products-component": "^0.0.1"
   },
   "devDependencies": {
-   "eslint": "^8.55.0",
+   "eslint": "^8.56.0",
     "@ui5/cli": "^3.8.0",
     "local-web-server": "^5.3.0",
     "karma": "^6.4.2",

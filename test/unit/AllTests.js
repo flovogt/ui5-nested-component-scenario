@@ -1,2 +1,2 @@
-sap.ui.define(["./base/BaseController"],function(){"use strict"});
+sap.ui.define(["./base/BaseController"],()=>{"use strict"});
 //# sourceMappingURL=AllTests.js.map

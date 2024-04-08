@@ -1,2 +1,2 @@
-sap.ui.define(["sap/ui/test/Opa5"],function(e){"use strict";var i="Home",s="homePage";e.createPageObjects({onTheHomePage:{viewName:i,actions:{},assertions:{iShouldSeeTheScreen:function(){return this.waitFor({id:s,success:function(){e.assert.ok(true,"The page with id '"+s+"' is displayed.")},errorMessage:"The page with id '"+s+"' can not be found."})}}}})});
+sap.ui.define(["sap/ui/test/Opa5"],e=>{"use strict";const s="homePage",a="Home";e.createPageObjects({onTheHomePage:{viewName:a,actions:{},assertions:{iShouldSeeTheScreen(){return this.waitFor({id:s,success(){e.assert.ok(true,`The page with id '${s}' is displayed.`)},errorMessage:`The page with id '${s}' can not be found.`})}}}})});
 //# sourceMappingURL=Home.js.map

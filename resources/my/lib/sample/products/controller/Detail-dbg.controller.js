@@ -1,80 +1,81 @@
 sap.ui.define([
 	"my/lib/sample/base/BaseController",
 	"sap/base/Log"
-], function(BaseController, Log) {
+], (BaseController, Log) => {
 	"use strict";
 	return BaseController.extend("my.lib.sample.products.controller.Detail", {
 
-		onInit: function() {
-			BaseController.prototype.onInit.apply(this, arguments);
+		onInit(...args) {
+			BaseController.prototype.onInit.apply(this, args);
 			this.getOwnerComponent().getRouter().getRoute("detailRoute").attachPatternMatched(this._onMatched, this);
 		},
 
-		_onMatched: function(oEvent) {
+		_onMatched(oEvent) {
 			Log.info(this.getView().getControllerName(), "_onMatched");
-			var oArgs = oEvent.getParameter("arguments");
+			const oArgs = oEvent.getParameter("arguments");
 			this.getOwnerComponent().getModel().metadataLoaded().then(this._bindData.bind(this, oArgs.id));
 		},
 
-		_bindData: function(id) {
+		_bindData(id) {
 			Log.info(this.getView().getControllerName(), "_bindData");
 
-			var sObjectPath = this.getOwnerComponent().getModel().createKey("Products", { ProductID: id });
+			const sObjectPath = this.getOwnerComponent().getModel().createKey("Products", { ProductID: id }),
+			 that = this;
 
 			this.getView().bindElement({
-				path: "/" + sObjectPath,
+				path: "/"+ sObjectPath,
 				parameters: {
 					expand: "Supplier,Category"
 				},
 				events: {
-					change: function() {
-						Log.info(this.getView().getControllerName(), "_bindData change");
-						this.getView().setBusy(false);
-					}.bind(this),
-					dataRequested: function() {
-						Log.info(this.getView().getControllerName(), "_bindData dataRequested");
-						this.getView().setBusy(true);
-					}.bind(this),
-					dataReceived: function() {
-						Log.info(this.getView().getControllerName(), "_bindData dataReceived");
-						this.getView().setBusy(false);
-						if (this.getView().getBindingContext() === null) {
-							this.getOwnerComponent().getRouter().getTargets().display("notFound");
+					change() {
+						Log.info(that.getView().getControllerName(), "_bindData change");
+						that.getView().setBusy(false);
+					},
+					dataRequested() {
+						Log.info(that.getView().getControllerName(), "_bindData dataRequested");
+						that.getView().setBusy(true);
+					},
+					dataReceived() {
+						Log.info(that.getView().getControllerName(), "_bindData dataReceived");
+						that.getView().setBusy(false);
+						if (that.getView().getBindingContext() === null) {
+							that.getOwnerComponent().getRouter().getTargets().display("notFound");
 						}
-					}.bind(this)
+					}
 				}
 			});
 		},
 
-		onPressSupplier: function(oEvent) {
-			Log.info(this.getView().getControllerName(), "onPressSupplier " + oEvent.getSource().getBindingContext().getObject().SupplierID);
+		onPressSupplier(oEvent) {
+			Log.info(this.getView().getControllerName(), `onPressSupplier ${  oEvent.getSource().getBindingContext().getObject().SupplierID}`);
 
-			var oOwnerComponent = this.getOwnerComponent();
-			var oModel = oOwnerComponent.getModel();
-			var oBindingContext = oEvent.getSource().getBindingContext();
-			var sSupplierID = oBindingContext.getProperty("SupplierID");
+			const oOwnerComponent = this.getOwnerComponent(),
+			 oModel = oOwnerComponent.getModel(),
+			 oBindingContext = oEvent.getSource().getBindingContext(),
+			 sSupplierID = oBindingContext.getProperty("SupplierID");
 
 			oOwnerComponent.fireEvent("toSupplier", {
 				supplierID: sSupplierID,
-				supplierKey: encodeURIComponent("/" + oModel.createKey("Suppliers", {
+				supplierKey: encodeURIComponent(`/${  oModel.createKey("Suppliers", {
 					SupplierID: sSupplierID
-				}))
+				})}`)
 			});
 		},
 
-		onPressCategory: function(oEvent) {
-			Log.info(this.getView().getControllerName(), "onPressCategory " + oEvent.getSource().getBindingContext().getObject().CategoryID);
+		onPressCategory(oEvent) {
+			Log.info(this.getView().getControllerName(), `onPressCategory ${  oEvent.getSource().getBindingContext().getObject().CategoryID}`);
 
-			var oOwnerComponent = this.getOwnerComponent();
-			var oModel = oOwnerComponent.getModel();
-			var oBindingContext = oEvent.getSource().getBindingContext();
-			var sCategoryID = oBindingContext.getProperty("CategoryID");
+			const oOwnerComponent = this.getOwnerComponent(),
+			 oModel = oOwnerComponent.getModel(),
+			 oBindingContext = oEvent.getSource().getBindingContext(),
+			 sCategoryID = oBindingContext.getProperty("CategoryID");
 
 			oOwnerComponent.fireEvent("toCategory", {
 				categoryID: sCategoryID,
-				categoryKey: encodeURIComponent("/" + oModel.createKey("Categories", {
+				categoryKey: encodeURIComponent(`/${  oModel.createKey("Categories", {
 					CategoryID: sCategoryID
-				}))
+				})}`)
 			});
 		}
 	});

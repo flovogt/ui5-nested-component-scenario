@@ -1,2 +1,2 @@
-sap.ui.define(["sap/ui/core/mvc/Controller","sap/base/Log"],function(e,n){"use strict";return e.extend("my.lib.sample.base.BaseController",{onInit:function(){n.info(this.getView().getControllerName(),"onInit")},base64StringToImage:function(e){return e?"data:image/bmp;base64,"+e:null}})});
+sap.ui.define(["sap/ui/core/mvc/Controller","sap/base/Log"],(e,t)=>{"use strict";return e.extend("my.lib.sample.base.BaseController",{base64StringToImage(e){return e?`data:image/bmp;base64,${e}`:null},onInit(){t.info(this.getView().getControllerName(),"onInit")}})});
 //# sourceMappingURL=BaseController.js.map

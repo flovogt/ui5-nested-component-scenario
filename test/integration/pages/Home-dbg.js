@@ -1,10 +1,10 @@
 sap.ui.define([
 	"sap/ui/test/Opa5"
-], function(Opa5) {
+], (Opa5) => {
 	"use strict";
 
-	var sViewName = "Home",
-		sPageId = "homePage";
+	const sPageId = "homePage",
+		sViewName = "Home";
 
 	Opa5.createPageObjects({
 		onTheHomePage : {
@@ -14,13 +14,13 @@ sap.ui.define([
 
 			assertions : {
 
-				iShouldSeeTheScreen : function () {
+				iShouldSeeTheScreen () {
 					return this.waitFor({
 						id : sPageId,
-						success : function () {
-							Opa5.assert.ok(true, "The page with id '" + sPageId + "' is displayed.");
+						success () {
+							Opa5.assert.ok(true, `The page with id '${  sPageId  }' is displayed.`);
 						},
-						errorMessage : "The page with id '" + sPageId + "' can not be found."
+						errorMessage : `The page with id '${  sPageId  }' can not be found.`
 					});
 				}
 

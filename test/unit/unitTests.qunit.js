@@ -1,2 +1,2 @@
-QUnit.config.autostart=false;sap.ui.getCore().attachInit(function(){"use strict";sap.ui.require(["my/lib/sample/root/test/unit/AllTests"],function(){QUnit.start()})});
+QUnit.config.autostart=false;sap.ui.getCore().attachInit(()=>{"use strict";sap.ui.require(["my/lib/sample/root/test/unit/AllTests"],()=>{QUnit.start()})});
 //# sourceMappingURL=unitTests.qunit.js.map

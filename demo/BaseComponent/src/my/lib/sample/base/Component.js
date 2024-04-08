@@ -1,14 +1,14 @@
 sap.ui.define([
 	"sap/ui/core/UIComponent",
 	"sap/base/util/deepClone"
-], function(UIComponent, deepClone) {
+], (UIComponent, deepClone) => {
 	"use strict";
 
 	return UIComponent.extend("my.lib.sample.base.Component", {
-		init: function() {
-			UIComponent.prototype.init.apply(this, arguments);
+		init(...args) {
+			UIComponent.prototype.init.apply(this, args);
 
-			var oRouter = this.getRouter();
+			const oRouter = this.getRouter();
 			oRouter.getViews().attachCreated(this._processEventMappingOnTargetCreated, this);
 			oRouter.initialize();
 		},
@@ -32,55 +32,57 @@ sap.ui.define([
 		 * @param {object} oEvent The event object which is provided by the 'created' event from
 		 *   router's target cache
 		 */
-		_processEventMappingOnTargetCreated: function(oEvent) {
+		_processEventMappingOnTargetCreated(oEvent) {
 			if (!this.eventMappings) {
 				return;
 			}
 
-			var sType = oEvent.getParameter("type");
-			var oObject = oEvent.getParameter("object");
-			var oOptions = oEvent.getParameter("options");
-			var that = this;
-			var aEvents;
-
-			function processComponentTargetInfo(oComponentTargetInfo, oEvent) {
-				Object.keys(oComponentTargetInfo).forEach(function(sTargetName) {
-					var oInfo = oComponentTargetInfo[sTargetName];
+			const sType = oEvent.getParameter("type"),
+			 oObject = oEvent.getParameter("object"),
+			 oOptions = oEvent.getParameter("options"),
+			 that = this,
+			 processComponentTargetInfo = (oComponentTargetInfo, oEv) => {
+				Object.keys(oComponentTargetInfo).forEach((sTargetName) => {
+					const oInfo = oComponentTargetInfo[sTargetName];
 
 					if (oInfo.parameters) {
-						Object.keys(oInfo.parameters).forEach(function(sName) {
-							var sParamName = oInfo.parameters[sName];
-							var sEventValue = oEvent.getParameter(sParamName);
+						Object.keys(oInfo.parameters).forEach((sName) => {
+							const sParamName = oInfo.parameters[sName],
+							 sEventValue = oEv.getParameter(sParamName);
 
-							// expand the parameter mapping with the parameter value from
-							// the event
+							/*
+							 * Expand the parameter mapping with the parameter value from
+							 * the event
+							 */
 							oInfo.parameters[sName] = sEventValue;
 						});
 					}
 
 					if (oInfo.componentTargetInfo) {
-						processComponentTargetInfo(oInfo.componentTargetInfo, oEvent);
+						processComponentTargetInfo(oInfo.componentTargetInfo, oEv);
 					}
 				});
-			}
+			};
 
 			if (sType === "Component") {
-				aEvents = this.eventMappings[oOptions.usage];
+				const aEvents = this.eventMappings[oOptions.usage];
 				if (Array.isArray(aEvents)) {
-					aEvents.forEach(function(oEventMapping) {
-						oObject.attachEvent(oEventMapping.name, function(oEvent) {
-							var oComponentTargetInfo;
-							if (oEventMapping.route) { // route information defined, call 'navTo'
+					aEvents.forEach((oEventMapping) => {
+						oObject.attachEvent(oEventMapping.name, (oEv) => {
+							let oComponentTargetInfo = {};
+							if (oEventMapping.route) { // Route information defined, call 'navTo'
 								if (oEventMapping.componentTargetInfo) {
-									// if there's information for component target defined, replace the
-									// event parameter mapping with the value from the event object
+									/*
+									 * If there's information for component target defined, replace the
+									 * event parameter mapping with the value from the event object
+									 */
 									oComponentTargetInfo = deepClone(oEventMapping.componentTargetInfo);
-									processComponentTargetInfo(oComponentTargetInfo, oEvent);
+									processComponentTargetInfo(oComponentTargetInfo, oEv);
 								}
 
 								that.getRouter().navTo(oEventMapping.route, {}, oComponentTargetInfo);
-							} else if (oEventMapping.forward) { // event should be forwarded with the same parameters
-								that.fireEvent(oEventMapping.forward, oEvent.getParameters());
+							} else if (oEventMapping.forward) { // Event should be forwarded with the same parameters
+								that.fireEvent(oEventMapping.forward, oEv.getParameters());
 							}
 						});
 					});

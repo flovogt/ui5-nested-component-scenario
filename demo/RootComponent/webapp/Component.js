@@ -1,6 +1,6 @@
 sap.ui.define([
 	"my/lib/sample/base/Component"
-], function(Component) {
+], (Component) => {
 		"use strict";
 
 		return Component.extend("my.lib.sample.root.Component", {
@@ -10,13 +10,15 @@ sap.ui.define([
 					"sap.ui.core.IAsyncContentCreation"
 				]
 			},
-			// define the events which are fired from the reuse components
-			//
-			// this component registers handler to those events and navigates
-			// to the other reuse components
-			//
-			// see the implementation in Component for processing the event
-			// mapping
+			/*
+			 * Define the events which are fired from the reuse components
+			 * 
+			 * this component registers handler to those events and navigates
+			 * to the other reuse components
+			 * 
+			 * see the implementation in Component for processing the event
+			 * mapping
+			 */
 			eventMappings: {
 				suppliersComponent: [{
 					name: "toProduct",
@@ -93,10 +95,10 @@ sap.ui.define([
 					}
 				}]
 			},
-			init: function() {
-				// call the init function of the parent
-				Component.prototype.init.apply(this, arguments);
-			}
+			init(...args) {
+				// Call the init function of the parent
+				Component.prototype.init.apply(this, args);
+			},
 		});
 	}
 );

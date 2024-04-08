@@ -1,4 +1,4 @@
-sap.ui.define(["my/lib/sample/base/Component"], function(Component) {
+sap.ui.define(["my/lib/sample/base/Component"], (Component) => {
 	"use strict";
 
 	return Component.extend("my.lib.sample.suppliers.Component", {

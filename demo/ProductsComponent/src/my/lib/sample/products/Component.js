@@ -1,7 +1,7 @@
 sap.ui.define([
 	"my/lib/sample/base/Component",
 	"sap/ui/core/Component"
-], function(BaseComponent, Component) {
+], (BaseComponent, Component) => {
 	"use strict";
 	return BaseComponent.extend("my.lib.sample.products.Component", {
 		metadata: {
@@ -10,17 +10,19 @@ sap.ui.define([
 				"sap.ui.core.IAsyncContentCreation"
 			]
 		},
-		init: function() {
-			BaseComponent.prototype.init.apply(this, arguments);
+		init(...args) {
+			BaseComponent.prototype.init.apply(this, args);
 
-			var oParentComponent = Component.getOwnerComponentFor(this);
+			const oParentComponent = Component.getOwnerComponentFor(this);
 
-			// if this component runs standalone instead of embedded to another component,
-			// it should handle the navigation to detail page by itself. It attaches to
-			// its own "toProduct" event and navigates to the detail page
+			/*
+			 * If this component runs standalone instead of embedded to another component,
+			 * it should handle the navigation to detail page by itself. It attaches to
+			 * its own "toProduct" event and navigates to the detail page
+			 */
 			if (!oParentComponent) {
-				this.attachEvent("toProduct", function(oEvent) {
-					var sProductID = oEvent.getParameter("productID");
+				this.attachEvent("toProduct", (oEvent) => {
+					const sProductID = oEvent.getParameter("productID");
 					this.getRouter().navTo("detailRoute", {
 						id: sProductID
 					});

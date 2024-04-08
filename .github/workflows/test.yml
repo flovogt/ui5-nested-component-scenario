@@ -18,6 +18,9 @@ jobs:
     - name: Install the Dependencies
       run: npm ci
       working-directory: ./demo
+    - name: Run ESLint Checks
+      run: npm run lint
+      working-directory: ./demo
     - name: Test the Application
       run: npm run test
       working-directory: ./demo/RootComponent

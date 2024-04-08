@@ -4,12 +4,12 @@ sap.ui.define([
 	"sap/ui/test/opaQunit",
 	"./pages/App",
 	"./pages/Home"
-], function (opaTest) {
+], (opaTest) => {
 	"use strict";
 
 	QUnit.module("Navigation Journey");
 
-	opaTest("Should navigate to the different pages", function (Given, When, Then) {
+	opaTest("Should navigate to the different pages", (Given, When, Then) => {
         
         // Arrangements
 		Given.iStartMyApp();
@@ -33,7 +33,7 @@ sap.ui.define([
 		Then.iTeardownMyApp();
 	});
 
-	opaTest("Should navigate to unknown site", function (Given, When, Then) {
+	opaTest("Should navigate to unknown site", (Given, When, Then) => {
         
         // Arrangements
 		Given.iStartMyApp({hash: "coool"});

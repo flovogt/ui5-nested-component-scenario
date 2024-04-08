@@ -5,7 +5,7 @@
   "description": "This is the base component",
   "scripts": {
     "start": "ui5 serve",
-    "test": "npm run lint && rimraf coverage && npm run karma-ci",
+    "test": "rimraf coverage && npm run karma-ci",
     "lint": "eslint src",
     "karma": "karma start",
     "karma-ci": "karma start karma-ci.conf.js"

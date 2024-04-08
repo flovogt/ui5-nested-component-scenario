@@ -5,8 +5,7 @@
   "description": "ui5-nested-component-scenario demo",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "npm run lint --workspaces --if-present",
-    "lint:fix": "npm run lint:fix --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present"
   },
   "workspaces": [
     "BaseComponent",
@@ -15,7 +14,6 @@
     "SuppliersComponent",
     "RootComponent"
   ],
-
   "author": "Jiawei Cao, Florian Vogt",
   "license": "Apache-2.0"
 }

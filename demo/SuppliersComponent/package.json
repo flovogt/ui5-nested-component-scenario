@@ -8,7 +8,7 @@
     "build": "ui5 build -a --clean-dest",
     "serve": "ws --compress -d dist",
     "test": "npm run lint && rimraf coverage && npm run karma-ci",
-    "lint": "eslint webapp",
+    "lint": "eslint src",
     "karma": "karma start",
     "karma-ci": "karma start karma-ci.conf.js"
   },

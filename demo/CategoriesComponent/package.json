@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "eslint": "^9.5.0",
-    "@ui5/cli": "^3.10.3",
+    "@ui5/cli": "^3.11.0",
     "local-web-server": "^5.3.3",
     "karma": "^6.4.3",
     "karma-coverage": "^2.2.1",

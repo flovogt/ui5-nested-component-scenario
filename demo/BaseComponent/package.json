@@ -23,7 +23,7 @@
     "ui5-component"
   ],
   "devDependencies": {
-    "eslint": "^9.9.0",
+    "eslint": "^9.9.1",
     "@ui5/cli": "^4.0.4",
     "local-web-server": "^5.4.0",
     "karma": "^6.4.4",

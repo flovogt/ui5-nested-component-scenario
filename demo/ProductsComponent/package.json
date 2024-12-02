@@ -28,7 +28,7 @@
     "my-lib-sample-base-component": "^0.0.1"
   },
   "devDependencies": {
-    "eslint": "^9.15.0",
+    "eslint": "^9.16.0",
     "@ui5/cli": "^4.0.10",
     "local-web-server": "^5.4.0",
     "karma": "^6.4.4",

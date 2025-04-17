@@ -1,0 +1,57 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": [
+		"github>ui5/renovate-config:lts#v1.1.1"
+	],
+	"lockFileMaintenance": {
+		"enabled": true,
+		"automerge": true,
+		"commitMessagePrefix": "build:",
+		"commitMessageAction": "In-range update of npm dependencies",
+		"schedule": [
+			"* 5-6 * * 1"
+		]
+	},
+	"packageRules": [
+		{
+			"matchDepNames": [
+				"*"
+			],
+			"automerge": true,
+			"commitMessagePrefix": "build(deps-dev):",
+			"commitMessageAction": "Bump",
+			"schedule": [
+				"* 7-8 * * 1"
+			]
+		},
+		{
+			"matchManagers": [
+				"github-actions"
+			],
+			"automerge": true,
+			"commitMessagePrefix": "build(github-actions):",
+			"commitMessageAction": "Bump",
+			"schedule": [
+				"* 7-8 * * 1"
+			]
+		},
+		{
+			"matchPackageNames": [
+				"node",
+				"npm"
+			],
+			"enabled": false
+		},
+		{
+			"matchDepNames": [
+				"openui5_lts"
+			],
+			"automerge": false,
+			"commitMessagePrefix": "deps:",
+			"commitMessageAction": "Update",
+			"schedule": [
+				"* 7-8 * * 1"
+			]
+		}
+	]
+}

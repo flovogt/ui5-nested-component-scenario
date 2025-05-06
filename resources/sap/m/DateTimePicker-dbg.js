@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -176,7 +176,7 @@ sap.ui.define([
 	 * mobile devices, it opens in full screen.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -887,7 +887,11 @@ sap.ui.define([
 	DateTimePicker.prototype._parseValue = function(sValue, bDisplayFormat, sTimezone) {
 
 		if (this._isTimezoneBinding()) {
-			return this._getFormatterWithTimezoneInstance().parse(sValue, sTimezone || this._getTimezone(true))[0];
+			var aParsedDate = this._getFormatterWithTimezoneInstance().parse(sValue, sTimezone || this._getTimezone(true));
+			if (aParsedDate) {
+				return aParsedDate[0];
+			}
+			return null;
 		}
 
 		return DatePicker.prototype._parseValue.apply(this, arguments);
@@ -968,7 +972,7 @@ sap.ui.define([
 
 			if (Device.system.phone) {
 				sLabelId = this.$("inner").attr("aria-labelledby");
-				sLabel = sLabelId ? document.getElementById(sLabelId).textContent : "";
+				sLabel = sLabelId ? document.getElementById(sLabelId)?.textContent : "";
 				this._oPopup.setTitle(sLabel);
 				this._oPopup.setShowHeader(true);
 				this._oPopup.setShowCloseButton(true);

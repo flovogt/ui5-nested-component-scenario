@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,6 +14,7 @@ sap.ui.define([
 	'sap/ui/core/mvc/ControllerExtension',
 	'sap/ui/core/mvc/ControllerExtensionProvider',
 	'sap/ui/core/mvc/OverrideExecution',
+	'sap/ui/util/_enforceNoReturnValue',
 	"sap/base/Log"
 ], function(
 	ObjectPath,
@@ -24,6 +25,7 @@ sap.ui.define([
 	ControllerExtension,
 	ControllerExtensionProvider,
 	OverrideExecution,
+	_enforceNoReturnValue,
 	Log
 ) {
 	"use strict";
@@ -54,12 +56,14 @@ sap.ui.define([
 				stereotype: "controller",
 				methods: {
 					"byId": 				{"public": true, "final": true},
-					"getView" : 			{"public": true, "final": true},
 					"getInterface" : 		{"public": false, "final": true},
-					"onInit": 				{"public": false, "final": false, "overrideExecution": OverrideExecution.After},
+					"getMetadata" : 		{"public": true, "final": true},
+					"getView" : 			{"public": true, "final": true},
+					"isA" : 				{"public": true, "final": true},
 					"onExit":				{"public": false, "final": false, "overrideExecution": OverrideExecution.Before},
-					"onBeforeRendering":	{"public": false, "final": false, "overrideExecution": OverrideExecution.Before},
-					"onAfterRendering":		{"public": false, "final": false, "overrideExecution": OverrideExecution.After}
+					"onInit": 				{"public": false, "final": false, "overrideExecution": OverrideExecution.After},
+					"onAfterRendering":		{"public": false, "final": false, "overrideExecution": OverrideExecution.After},
+					"onBeforeRendering":	{"public": false, "final": false, "overrideExecution": OverrideExecution.Before}
 				}
 			},
 			constructor : function(sName) {
@@ -156,7 +160,7 @@ sap.ui.define([
 					if (!oOrigExtensionMetadata.isMethodFinal(sOverrideMember)) {
 						ControllerExtension.overrideMethod(sOverrideMember, oExtension, oStaticOverrides, oExtension, oOrigExtensionMetadata.getOverrideExecution(sOverrideMember));
 					}  else {
-						Log.error("Method '" + sOverrideMember + "' of extension '" + sNamespace + "' is flagged final and cannot be overridden by calling 'override'");
+						Log.error("[FUTURE FATAL] Method '" + sOverrideMember + "' of extension '" + sNamespace + "' is flagged final and cannot be overridden by calling 'override'");
 					}
 				}
 				//handle 'normal' overrides
@@ -175,13 +179,13 @@ sap.ui.define([
 									if (!oOrigExtensionMetadata.isMethodFinal(sExtensionOverride)) {
 										ControllerExtension.overrideMethod(sExtensionOverride, fnOriginal, vMember, oExtension, oOrigExtensionMetadata.getOverrideExecution(sExtensionOverride));
 									}  else {
-										Log.error("Method '" + sExtensionOverride + "' of extension '" + oOrigExtensionInfo.namespace + "' is flagged final and cannot be overridden by extension '" + sNamespace + "'");
+										Log.error("[FUTURE FATAL] Method '" + sExtensionOverride + "' of extension '" + oOrigExtensionInfo.namespace + "' is flagged final and cannot be overridden by extension '" + sNamespace + "'");
 									}
 								}
 							} else if (!oControllerMetadata.isMethodFinal(sOverrideMember)) {
 								ControllerExtension.overrideMethod(sOverrideMember, oController, oOverrides, oExtension, oControllerMetadata.getOverrideExecution(sOverrideMember));
 							} else {
-								Log.error("Method '" + sOverrideMember + "' of controller '" + oController.getMetadata().getName() + "' is flagged final and cannot be overridden by extension '" + sNamespace + "'");
+								Log.error("[FUTURE FATAL] Method '" + sOverrideMember + "' of controller '" + oController.getMetadata().getName() + "' is flagged final and cannot be overridden by extension '" + sNamespace + "'");
 							}
 						} else if (sOverrideMember in mLifecycleConfig) {
 							//apply lifecycle hooks even if they don't exist on controller
@@ -192,7 +196,7 @@ sap.ui.define([
 						} else if (sOverrideMember.startsWith("extHook") && oController[sOverrideMember] === null) {
 							ControllerExtension.overrideMethod(sOverrideMember, oController, oOverrides, oExtension);
 						} else {
-							Log.error("Method '" + sOverrideMember + "' does not exist in controller " + oController.getMetadata().getName() + " and cannot be overridden");
+							Log.error("[FUTURE FATAL] Method '" + sOverrideMember + "' does not exist in controller " + oController.getMetadata().getName() + " and cannot be overridden");
 						}
 					}
 					oExtensionInfo.reloadNeeded = true;
@@ -212,7 +216,7 @@ sap.ui.define([
 								//override Extension so 'this' is working for overrides
 								ControllerExtension.overrideMethod(sExtensionOverride, oOrigExtension, oExtensionOverrides, oExtension, oOrigExtensionMetadata.getOverrideExecution(sExtensionOverride));
 							} else {
-								Log.error("Method '" + sExtensionOverride + "' of extension '" + sExtensionNamespace + "' is flagged final and cannot be overridden by extension '" + sNamespace + "'");
+								Log.error("[FUTURE FATAL] Method '" + sExtensionOverride + "' of extension '" + sExtensionNamespace + "' is flagged final and cannot be overridden by extension '" + sNamespace + "'");
 							}
 						}
 					}
@@ -395,7 +399,7 @@ sap.ui.define([
 						oExtControllerDef = mRegistry[sControllerName] || oExtControllerDef;
 						if (oExtControllerDef !== undefined) {
 							if (oExtControllerDef.getMetadata && oExtControllerDef.getMetadata().isA("sap.ui.core.mvc.Controller")) {
-								Log.warning("Attempt to load Extension Controller " + sControllerName + " was not successful", "Controller extension should be a plain object.", null, function() {
+								Log.fatal("[FUTURE-FATAL] Attempt to load Extension Controller " + sControllerName + " was not successful", "Controller extension should be a plain object.", null, function() {
 									return {
 										type: "ControllerExtension",
 										name: sControllerName
@@ -406,7 +410,7 @@ sap.ui.define([
 						}
 
 					}, function(err) {
-						Log.error("Attempt to load Extension Controller " + sControllerName + " was not successful - is the Controller correctly defined in its file?");
+						Log.error("[FUTURE FATAL] Attempt to load Extension Controller " + sControllerName + " was not successful - is the Controller correctly defined in its file?");
 					});
 				} else {
 					// sync load Controller extension if necessary
@@ -452,7 +456,7 @@ sap.ui.define([
 							return oController;
 						});
 					}, function(err){
-						Log.error("Controller Extension Provider: Error '" + err + "' thrown in " + Controller._sExtensionProvider + "; extension provider ignored.");
+						Log.error("[FUTURE FATAL] Controller Extension Provider: Error '" + err + "' thrown in " + Controller._sExtensionProvider + "; extension provider ignored.");
 						return oController;
 					});
 			} else {
@@ -616,7 +620,7 @@ sap.ui.define([
 		 */
 		Controller.prototype._getDestroyables = function() {
 			if (!this._aDestroyables) {
-				Log.error("Mandatory super constructor not called for Controller: '" + this.getMetadata().getName() + "'.",
+				Log.error("[FUTURE FATAL] Mandatory super constructor not called for Controller: '" + this.getMetadata().getName() + "'.",
 					null,
 					"sap.ui.support",
 					function() {
@@ -724,24 +728,29 @@ sap.ui.define([
 			}
 		};
 
-
 		Controller.prototype.connectToView = function(oView) {
 			this.oView = oView;
+			const sControllerName = this.oView.getControllerName?.() || "sap.ui.core.mvc.Controller";
 
 			if (this.onInit) {
-				oView.attachAfterInit(this.onInit, this);
+				const fnInit = function() { _enforceNoReturnValue(this.onInit.apply(this, arguments), /*mLogInfo=*/{ name: "onInit", component: sControllerName }); };
+				oView.attachAfterInit(fnInit, this);
 			}
 			if (this.onExit) {
-				oView.attachBeforeExit(this.onExit, this);
+				const fnExit = function() { _enforceNoReturnValue(this.onExit.apply(this, arguments), /*mLogInfo=*/{ name: "onExit", component: sControllerName}); };
+				oView.attachBeforeExit(fnExit, this);
 			}
 			if (oView.bControllerIsViewManaged) {
-				oView.attachBeforeExit(this.destroyFragments, this);
+				const fnBeforeExit = function() { _enforceNoReturnValue(this.destroyFragments.apply(this, arguments), /*mLogInfo=*/{name: "destroyFragments", component: sControllerName}); };
+				oView.attachBeforeExit(fnBeforeExit, this);
 			}
 			if (this.onAfterRendering) {
-				oView.attachAfterRendering(this.onAfterRendering, this);
+				const fnAfterRendering = function() { _enforceNoReturnValue(this.onAfterRendering.apply(this, arguments), /*mLogInfo=*/{ name: "onAfterRendering", component: sControllerName }); };
+				oView.attachAfterRendering(fnAfterRendering, this);
 			}
 			if (this.onBeforeRendering) {
-				oView.attachBeforeRendering(this.onBeforeRendering, this);
+				const fnBeforeRendering = function() { _enforceNoReturnValue(this.onBeforeRendering.apply(this, arguments), /*mLogInfo=*/{name: "onBeforeRendering", component: sControllerName}); };
+				oView.attachBeforeRendering(fnBeforeRendering, this);
 			}
 		};
 
@@ -969,6 +978,13 @@ sap.ui.define([
 		 * @name sap.ui.core.mvc.Controller.prototype.onInit
 		 * @abstract
 		 * @protected
+		 * @returns {void|undefined} This lifecycle hook must not have a return value. Return value <code>void</code> is deprecated since 1.120, as it does not force functions to <b>not</b> return something.
+		 * 	This implies that, for instance, no async function returning a Promise should be used.
+		 *
+		 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
+		 * 	implementation of this hook must not return anything but undefined. Any other
+		 * 	return value will cause an error log in this version of UI5 and will fail in future
+		 * 	major versions of UI5.
 		 */
 
 		/**
@@ -982,6 +998,13 @@ sap.ui.define([
 		 * @name sap.ui.core.mvc.Controller.prototype.onExit
 		 * @abstract
 		 * @protected
+		 * @returns {void|undefined} This lifecycle hook must not have a return value. Return value <code>void</code> is deprecated since 1.120, as it does not force functions to <b>not</b> return something.
+		 * 	This implies that, for instance, no async function returning a Promise should be used.
+		 *
+		 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
+		 * 	implementation of this hook must not return anything but undefined. Any other
+		 * 	return value will cause an error log in this version of UI5 and will fail in future
+		 * 	major versions of UI5.
 		 */
 
 		/**
@@ -996,6 +1019,13 @@ sap.ui.define([
 		 * @name sap.ui.core.mvc.Controller.prototype.onBeforeRendering
 		 * @abstract
 		 * @protected
+		 * @returns {void|undefined} This lifecycle hook must not have a return value. Return value <code>void</code> is deprecated since 1.120, as it does not force functions to <b>not</b> return something.
+		 * 	This implies that, for instance, no async function returning a Promise should be used.
+		 *
+		 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
+		 * 	implementation of this hook must not return anything but undefined. Any other
+		 * 	return value will cause an error log in this version of UI5 and will fail in future
+		 * 	major versions of UI5.
 		 */
 
 		/**
@@ -1010,6 +1040,13 @@ sap.ui.define([
 		 * @name sap.ui.core.mvc.Controller.prototype.onAfterRendering
 		 * @abstract
 		 * @protected
+		 * @returns {void|undefined} This lifecycle hook must not have a return value. Return value <code>void</code> is deprecated since 1.120, as it does not force functions to <b>not</b> return something.
+		 * 	This implies that, for instance, no async function returning a Promise should be used.
+		 *
+		 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
+		 * 	implementation of this hook must not return anything but undefined. Any other
+		 * 	return value will cause an error log in this version of UI5 and will fail in future
+		 * 	major versions of UI5.
 		 */
 	return Controller;
 

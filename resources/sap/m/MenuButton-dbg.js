@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @public
@@ -90,7 +90,6 @@ sap.ui.define([
 
 					/**
 					 * Defines the width of the <code>MenuButton</code>.
-					 * <br/><b>Note:</b>As per visual design this width can be maximum of 12rem (192px).
 					 */
 					width : {type : "sap.ui.core.CSSSize", group : "Misc", defaultValue : null},
 

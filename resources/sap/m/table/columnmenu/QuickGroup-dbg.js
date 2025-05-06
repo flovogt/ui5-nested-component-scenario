@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.QuickActionBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @public
 	 * @since 1.110
@@ -144,8 +144,8 @@ sap.ui.define([
 			oButton.setPressed(oItem.getGrouped());
 		}
 
-		for (var i = aItems.length; i < aContent.length; i++) {
-			aContent[i].destroy();
+		for (var j = aItems.length; j < aContent.length; j++) {
+			aContent[j].destroy();
 		}
 	};
 

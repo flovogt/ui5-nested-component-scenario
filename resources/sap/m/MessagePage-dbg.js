@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -72,7 +72,7 @@ sap.ui.define([
 		 * @see {@link fiori:https://experience.sap.com/fiori-design-web/message-page/ Message Page}
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @public
@@ -332,7 +332,7 @@ sap.ui.define([
 				height: "8rem",
 				width: "8rem",
 				useIconTooltip: true,
-				decorative: false,
+				decorative: true,
 				alt: this.getIconAlt()
 			}, Image).addStyleClass("sapMMessagePageIcon");
 

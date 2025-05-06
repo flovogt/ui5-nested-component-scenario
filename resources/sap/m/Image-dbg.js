@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,11 +13,12 @@ sap.ui.define([
 	'./ImageRenderer',
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery",
+	"sap/ui/thirdparty/URI",
 	"sap/base/security/encodeCSS",
 	"sap/ui/Device",
 	"sap/ui/core/library"
 ],
-	function(library, Control, DataType, URLListValidator, ImageRenderer, KeyCodes, jQuery, encodeCSS, Device, coreLibrary) {
+	function(library, Control, DataType, URLListValidator, ImageRenderer, KeyCodes, jQuery, URI, encodeCSS, Device, coreLibrary) {
 	"use strict";
 
 
@@ -59,7 +60,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @public
 	 * @alias sap.m.Image
@@ -683,6 +684,21 @@ sap.ui.define([
 	*/
 	Image.prototype._isHrefValid = function (sURL) {
 		return URLListValidator.validate(sURL);
+	};
+
+	/**
+	* Converts an url to absolute url from the origin of the base url
+	* @param {string} sUrl - The url to be converted
+	* @param {string} oBaseUrl - The base url
+	* @returns {string} The absolute url
+	* @private
+	*/
+	Image.prototype._toAbsoluteUrl = function (sUrl, oBaseUrl) {
+		var oUrl = URI(sUrl);
+		if (oUrl.is("relative")) {
+			oUrl = oUrl.absoluteTo(oBaseUrl);
+		}
+		return oUrl.toString();
 	};
 
 	/**

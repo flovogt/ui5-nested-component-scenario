@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -108,7 +108,7 @@ function(
 		 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
 		 *
 		 * @author SAP SE
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @public
@@ -121,7 +121,8 @@ function(
 					"sap.m.IOverflowToolbarContent",
 					"sap.m.IToolbarInteractiveControl",
 					"sap.f.IShellBar",
-					"sap.ui.core.ISemanticFormContent"
+					"sap.ui.core.ISemanticFormContent",
+					"sap.ui.core.ILabelable"
 				],
 				library: "sap.m",
 				properties: {
@@ -1653,6 +1654,9 @@ function(
 			}
 
 			this.toggleOpenState();
+			if (!this.getSelectedItem()) {
+				this.selectNextSelectableItem();
+			}
 		};
 
 		/**
@@ -1796,11 +1800,7 @@ function(
 			// note: prevent document scrolling when arrow keys are pressed
 			oEvent.preventDefault();
 
-			var oNextSelectableItem,
-				aSelectableItems = this.getSelectableItems();
-
-			oNextSelectableItem = aSelectableItems[aSelectableItems.indexOf(this.getSelectedItem()) + 1];
-			fnHandleKeyboardNavigation.call(this, oNextSelectableItem);
+			this.selectNextSelectableItem();
 		};
 
 		/**
@@ -3258,15 +3258,29 @@ function(
 		};
 
 		/**
-		 * Returns the DOMNode Id to be used for the "labelFor" attribute of the label.
+		 * Returns the DOMNode Id of the labelable HTML element for the <code>sap.m.Select</code>.
 		 *
-		 * By default, this is the Id of the control itself.
-		 *
-		 * @return {string} Id to be used for the <code>labelFor</code>
+		 * @return {string} Id of the labelable HTML element
 		 * @public
 		 */
-		Select.prototype.getIdForLabel = function () {
+		Select.prototype.hasLabelableHTMLElement = function () {
 			return this.getId() + "-hiddenSelect";
+		};
+
+		/**
+		 * Select next selectable item in the select list
+		 *
+		 * @returns {sap.ui.core.Item} item to be selected
+		 * @public
+		 */
+
+		Select.prototype.selectNextSelectableItem = function () {
+			var oNextSelectableItem,
+				aSelectableItems = this.getSelectableItems();
+
+				oNextSelectableItem = aSelectableItems[aSelectableItems.indexOf(this.getSelectedItem()) + 1];
+				fnHandleKeyboardNavigation.call(this, oNextSelectableItem);
+				return oNextSelectableItem;
 		};
 
 		return Select;

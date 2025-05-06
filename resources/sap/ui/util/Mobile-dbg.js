@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -150,10 +150,13 @@ sap.ui.define(['sap/ui/Device', 'sap/base/Log', 'sap/base/util/extend', 'sap/ui/
 					content: sMeta
 				});
 
-				// Update Device API resize info, which is necessary in some scenarios after setting the viewport info
-				if ((iInnerHeightBefore !== window.innerHeight || iInnerWidthBefore !== window.innerWidth) && Device.resize._update){
-					Device.resize._update();
-				}
+				// Mobile browsers update the window dimension with a delay after the 'viewport' meta tag is set
+				setTimeout(() => {
+					// Update Device API resize info, which is necessary in some scenarios after setting the viewport info
+					if ((iInnerHeightBefore !== window.innerHeight || iInnerWidthBefore !== window.innerWidth) && Device.resize._update){
+						Device.resize._update();
+					}
+				}, 50);
 			}
 
 			if (options.useFullScreenHeight) {

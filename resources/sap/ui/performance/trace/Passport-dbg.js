@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -188,7 +188,7 @@ sap.ui.define(["sap/ui/performance/XHRInterceptor", "sap/ui/thirdparty/URI"], fu
 	};
 
 	function isCORSRequest(sUrl) {
-		var sHost = new URI(sUrl).host();
+		var sHost = new URI(sUrl.toString()).host();
 		// url is relative or with same host
 		return sHost && sHost !== HOST;
 	}

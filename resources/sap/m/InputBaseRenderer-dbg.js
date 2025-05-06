@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -326,16 +326,16 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 		}
 
 		var oFormattedValueStateText = oControl.getAggregation("_invisibleFormattedValueStateText");
-		var sValueStateTypeText;
-
-
-		sValueStateTypeText = Library.getResourceBundleFor("sap.m").getText("INPUTBASE_VALUE_STATE_" + sValueState.toUpperCase());
+		var sValueStateTypeText = Library.getResourceBundleFor("sap.m").getText("INPUTBASE_VALUE_STATE_" + sValueState.toUpperCase());
 
 		oRm.openStart("div", oControl.getValueStateMessageId() + "-sr")
 			.class("sapUiPseudoInvisibleText");
 
-		oRm.openEnd()
-			.text(sValueStateTypeText).text(" ");
+		oRm.openEnd();
+
+		if (sValueState !== ValueState.Error) {
+			oRm.text(sValueStateTypeText).text(" ");
+		}
 
 		if (oFormattedValueStateText) {
 			oRm.renderControl(oFormattedValueStateText);
@@ -344,7 +344,10 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 			// semantic renderer's DOM patching and update the live region
 			oRm.text(oControl.getValueStateText() || ValueStateSupport.getAdditionalText(oControl));
 		}
+
 		oRm.close("div");
+
+		this.renderValueStateLinksAcc(oRm, oControl);
 	};
 
 	/**
@@ -370,7 +373,7 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 			mAccessibilityState.invalid = true;
 			mAccessibilityState.errormessage = sValueStateAccNodeId;
 		} else if (oControl.getValueState() !== ValueState.None && oControl.getEditable() && oControl.getEnabled()) {
-			sAriaDescribedBy = sAriaDescribedBy ? sValueStateAccNodeId + " " + sAriaDescribedBy : sValueStateAccNodeId;
+			sAriaDescribedBy = sAriaDescribedBy ? `${sValueStateAccNodeId} ${sAriaDescribedBy}` : sValueStateAccNodeId;
 		}
 
 		if (sAriaLabelledBy) {
@@ -466,6 +469,18 @@ sap.ui.define(['sap/ui/core/Renderer', 'sap/ui/core/library', 'sap/ui/core/Value
 	 * @param {sap.m.InputBase} oControl An object representation of the control that should be rendered.
 	 */
 	InputBaseRenderer.addOuterStyles = function(oRm, oControl) {};
+
+	InputBaseRenderer.renderValueStateLinksAcc = function(oRm, oControl) {
+		const aLinks = oControl.getValueStateLinksForAcc();
+
+		if (aLinks.length) {
+			oRm.openStart("span", oControl.getValueStateLinksShortcutsId())
+				.class("sapUiPseudoInvisibleText")
+				.openEnd();
+			oRm.text(oControl.getValueStateLinksShortcutsTextAcc());
+			oRm.close("span");
+		}
+	};
 
 	/**
 	 * This method is reserved for derived class to set width inline style

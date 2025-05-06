@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,9 +9,9 @@ sap.ui.define([
 	"sap/ui/base/Object",
 	"sap/ui/test/generic/Utils",
 	"sap/ui/dom/includeStylesheet",
-	"sap/ui/core/Element",
+	"sap/ui/core/ElementRegistry",
 	"require"
-], function(BaseObject, Utils, includeStylesheet, Element, require) {
+], function(BaseObject, Utils, includeStylesheet, ElementRegistry, require) {
 	"use strict";
 
 	var globalSetOfUndestroyableIDs = new Set();
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @since 1.100
 	 */
 	return BaseObject.extend("sap.ui.test.generic.TestBase", {
@@ -132,7 +132,7 @@ sap.ui.define([
 			}).then(function(aClassInfo) {
 				QUnit.module(this.getMetadata().getName() + " Tests - " + this._sLibName, {
 					afterEach: function(assert) {
-						Element.registry.forEach(function(oElement, sId) {
+						ElementRegistry.forEach(function(oElement, sId) {
 							try {
 								oElement.destroy();
 							} catch (error) {

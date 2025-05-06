@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -86,7 +86,7 @@ function(
 	 * @implements sap.ui.core.IShrinkable, sap.ui.core.IFormContent, sap.ui.core.ITitleContent, sap.ui.core.IAccessKeySupport
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -308,13 +308,16 @@ function(
 	Link.prototype.onAfterRendering = function() {
 		if (Device.system.phone || Device.system.tablet) {
 			var oAnchorElement = this.getDomRef();
+
 			// TODO: Adjust sap.m.internal.ObjectMarkerCustomLink rendering part of the sap.m.ObjectMarker implementation
 			if (!oAnchorElement) {
 				return;
 			}
-			oAnchorElement.removeEventListener("click", this._onClick);
-			if (oAnchorElement.getAttribute("href") == "#") {
-				oAnchorElement.addEventListener("click", this._onClick);
+
+			oAnchorElement.removeEventListener("touchstart", this._onTouchStart);
+
+			if (oAnchorElement.getAttribute("href") === "#") {
+				oAnchorElement.addEventListener("touchstart", this._onTouchStart);
 			}
 		}
 	};
@@ -322,14 +325,16 @@ function(
 	Link.prototype.exit = function() {
 		if (Device.system.phone || Device.system.tablet) {
 			var oAnchorElement = this.getDomRef();
+
 			if (!oAnchorElement) {
 				return;
 			}
-			oAnchorElement.removeEventListener("click", this._onClick);
+
+			oAnchorElement.removeEventListener("touchstart", this._onTouchStart);
 		}
 	};
 
-	Link.prototype._onClick = function(oEvent) {
+	Link.prototype._onTouchStart = function(oEvent) {
 		oEvent.preventDefault();
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -46,7 +46,7 @@ function(
 		 * @class
 		 * The FormattedText control allows the usage of a limited set of tags for inline display of formatted text in HTML format.
 		 * @extends sap.ui.core.Control
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @public
@@ -143,7 +143,12 @@ function(
 					 *
 					 * @since 1.86.0
 					 */
-					textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin}
+					textAlign : {type : "sap.ui.core.TextAlign", group : "Appearance", defaultValue : TextAlign.Begin},
+
+					/**
+					 * Disables rendering of the <code>style</code> attribute in the <code>FormattedText</code>.
+					 */
+					disableStyleAttribute : {type : "boolean", group : "Appearance", defaultValue : false}
 				},
 				aggregations: {
 
@@ -373,9 +378,13 @@ function(
 					oDomRef,
 					NodeFilter.SHOW_ELEMENT
 				),
-				oCurrentNode = oWalker.nextNode();
+				oCurrentNode = oWalker.nextNode(),
+				bDisableStyle = this.getDisableStyleAttribute();
 
 			while (oCurrentNode) {
+				if (bDisableStyle) {
+					oCurrentNode.removeAttribute("style");
+				}
 				oCurrentNode.style.setProperty("position", "static", "important");
 				oCurrentNode = oWalker.nextNode();
 			}

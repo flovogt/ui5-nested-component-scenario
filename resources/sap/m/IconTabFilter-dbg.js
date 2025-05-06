@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -93,7 +93,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -516,6 +516,7 @@ sap.ui.define([
 				.attr("aria-disabled", true);
 		}
 
+		oRM.attr("tabindex", "-1");
 		if (!this._isOverflow()) {
 			oRM.attr("aria-selected", false);
 		}

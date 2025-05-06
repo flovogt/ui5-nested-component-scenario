@@ -98,6 +98,7 @@
 		"ckb_alt-menu": "Cwrdeg Sorani",
 		"ckb_alt-variant": "Cwrdeg Sorani",
 		"clc": "Chilcotin",
+		"cnr": "Montenegrin",
 		"co": "Corseg",
 		"cop": "Copteg",
 		"cr": "Cri",
@@ -1195,7 +1196,10 @@
 					"Ion",
 					"Chwef",
 					"Maw",
-					"Ebr",
+					[
+						"Ebr",
+						"Ebrill"
+					],
 					"Mai",
 					"Meh",
 					"Gorff",
@@ -2244,7 +2248,10 @@
 					"Ion",
 					"Chwef",
 					"Maw",
-					"Ebr",
+					[
+						"Ebr",
+						"Ebrill"
+					],
 					"Mai",
 					"Meh",
 					"Gorff",
@@ -3294,7 +3301,10 @@
 					"Ion",
 					"Chwef",
 					"Maw",
-					"Ebr",
+					[
+						"Ebr",
+						"Ebrill"
+					],
 					"Mai",
 					"Meh",
 					"Gorff",

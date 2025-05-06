@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,10 +9,11 @@ sap.ui.define([
 	"../base/EventProvider",
 	"../base/Object",
 	"sap/base/Log",
+	"sap/ui/core/UIAreaRegistry",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/dom/_ready"
 ],
-	function(EventProvider, BaseObject, Log, jQuery, _ready) {
+	function (EventProvider, BaseObject, Log, UIAreaRegistry, jQuery, _ready) {
 	"use strict";
 
 		// Element, UIArea module references, lazily probed when needed
@@ -397,7 +398,7 @@ sap.ui.define([
 					var oControlUIArea = oControl.getUIArea();
 					var oUIArea = null;
 					if (oControlUIArea) {
-						oUIArea = UIArea.registry.get(oControlUIArea.getId());
+						oUIArea = oControlUIArea;
 					} else {
 						StaticArea = StaticArea || sap.ui.require("sap/ui/core/StaticArea");
 						if (StaticArea) {

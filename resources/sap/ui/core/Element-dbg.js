@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,7 +9,6 @@ sap.ui.define([
 	'../base/DataType',
 	'../base/Object',
 	'../base/ManagedObject',
-	'../base/ManagedObjectRegistry',
 	'./ElementMetadata',
 	'../Device',
 	"sap/ui/performance/trace/Interaction",
@@ -17,9 +16,11 @@ sap.ui.define([
 	"sap/base/assert",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/events/F6Navigation",
+	"sap/ui/util/_enforceNoReturnValue",
 	"./RenderManager",
 	"./Configuration",
 	"./EnabledPropagator",
+	"./ElementRegistry",
 	"./Theming",
 	"sap/ui/core/util/_LocalizationHelper"
 ],
@@ -27,7 +28,6 @@ sap.ui.define([
 		DataType,
 		BaseObject,
 		ManagedObject,
-		ManagedObjectRegistry,
 		ElementMetadata,
 		Device,
 		Interaction,
@@ -35,9 +35,11 @@ sap.ui.define([
 		assert,
 		jQuery,
 		F6Navigation,
+		_enforceNoReturnValue,
 		RenderManager,
 		Configuration,
 		EnabledPropagator,
+		ElementRegistry,
 		Theming,
 		_LocalizationHelper
 	) {
@@ -134,7 +136,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @public
 	 * @alias sap.ui.core.Element
 	 */
@@ -212,27 +214,7 @@ sap.ui.define([
 
 	}, /* Metadata constructor */ ElementMetadata);
 
-	// apply the registry mixin
-	ManagedObjectRegistry.apply(Element, {
-		onDuplicate: function(sId, oldElement, newElement) {
-			if ( oldElement._sapui_candidateForDestroy ) {
-				Log.debug("destroying dangling template " + oldElement + " when creating new object with same ID");
-				oldElement.destroy();
-			} else {
-				var sMsg = "adding element with duplicate id '" + sId + "'";
-				/**
-				 * duplicate ID detected => fail or at least log a warning
-				 * @deprecated As of Version 1.120.
-				 */
-				if (!Configuration.getNoDuplicateIds()) {
-					Log.warning(sMsg);
-					return;
-				}
-				Log.error(sMsg);
-				throw new Error("Error: " + sMsg);
-			}
-		}
-	});
+	ElementRegistry.init(Element);
 
 	/**
 	 * Creates metadata for a UI Element by extending the Object Metadata.
@@ -358,14 +340,20 @@ sap.ui.define([
 		}
 
 		each(this.aBeforeDelegates);
+
 		if ( oEvent.isImmediateHandlerPropagationStopped() ) {
 			return;
 		}
 		if ( this[sHandlerName] ) {
-			this[sHandlerName](oEvent);
+			if (oEvent._bNoReturnValue) {
+				// fatal throw if listener isn't allowed to have a return value
+				_enforceNoReturnValue(this[sHandlerName](oEvent), /*mLogInfo=*/{ name: sHandlerName, component: this.getId() });
+			} else {
+				this[sHandlerName](oEvent);
+			}
 		}
-		each(this.aDelegates);
 
+		each(this.aDelegates);
 	};
 
 
@@ -377,11 +365,19 @@ sap.ui.define([
 	 *
 	 * Subclasses of Element should override this hook to implement any necessary initialization.
 	 *
+	 * @returns {void|undefined} This hook method must not have a return value. Return value <code>void</code> is deprecated since 1.120, as it does not force functions to <b>not</b> return something.
+	 * 	This implies that, for instance, no async function returning a Promise should be used.
+	 *
+	 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
+	 * 	implementation of this hook must not return anything but undefined. Any other
+	 * 	return value will cause an error log in this version of UI5 and will fail in future
+	 * 	major versions of UI5.
 	 * @protected
 	 */
 	Element.prototype.init = function() {
 		// Before adding any implementation, please remember that this method was first implemented in release 1.54.
 		// Therefore, many subclasses will not call this method at all.
+		return undefined;
 	};
 
 	/**
@@ -406,11 +402,19 @@ sap.ui.define([
 	 * For a more detailed description how to to use the exit hook, see Section
 	 * {@link topic:d4ac0edbc467483585d0c53a282505a5 exit() Method} in the documentation.
 	 *
+	 * @returns {void|undefined} This hook method must not have a return value. Return value <code>void</code> is deprecated since 1.120, as it does not force functions to <b>not</b> return something.
+	 * 	This implies that, for instance, no async function returning a Promise should be used.
+	 *
+	 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
+	 * 	implementation of this hook must not return anything but undefined. Any other
+	 * 	return value will cause an error log in this version of UI5 and will fail in future
+	 * 	major versions of UI5.
 	 * @protected
 	 */
 	Element.prototype.exit = function() {
 		// Before adding any implementation, please remember that this method was first implemented in release 1.54.
 		// Therefore, many subclasses will not call this method at all.
+		return undefined;
 	};
 
 	/**
@@ -568,6 +572,14 @@ sap.ui.define([
 	/**
 	 * This triggers immediate rerendering of its parent and thus of itself and its children.
 	 *
+	 * @deprecated As of 1.70, using this method is no longer recommended, but still works. Synchronous DOM
+	 *   updates via this method have several drawbacks: they only work when the control has been rendered
+	 *   before (no initial rendering possible), multiple state changes won't be combined automatically into
+	 *   a single re-rendering, they might cause additional layout trashing, standard invalidation might
+	 *   cause another async re-rendering.
+	 *
+	 *   The recommended alternative is to rely on invalidation and standard re-rendering.
+	 *
 	 * As <code>sap.ui.core.Element</code> "bubbles up" the rerender, changes to
 	 * child-<code>Elements</code> will also result in immediate rerendering of the whole sub tree.
 	 * @protected
@@ -577,7 +589,6 @@ sap.ui.define([
 			this.oParent.rerender();
 		}
 	};
-
 
 	/**
 	 * Returns the UI area of this element, if any.
@@ -1261,7 +1272,7 @@ sap.ui.define([
 		var value = this.getValue();
 
 		function error(reason) {
-			Log.error("CustomData with key " + key + " should be written to HTML of " + oRelated + " but " + reason);
+			Log.error("[FUTURE FATAL] CustomData with key " + key + " should be written to HTML of " + oRelated + " but " + reason);
 			return null;
 		}
 
@@ -1485,7 +1496,7 @@ sap.ui.define([
 		var argLength = arguments.length;
 		if ( argLength === 1 && arguments[0] !== null && typeof arguments[0] == "object"
 			 || argLength > 1 && argLength < 4 && arguments[1] !== null ) {
-			Log.error("Cannot create custom data on an already destroyed element '" + this + "'");
+			Log.error("[FUTURE FATAL] Cannot create custom data on an already destroyed element '" + this + "'");
 			return this;
 		}
 		return Element.prototype.data.apply(this, arguments);
@@ -1889,11 +1900,15 @@ sap.ui.define([
 
 		if (typeof vParam === "string") {
 			oDomRef = document.querySelector(vParam);
-		} else if (vParam instanceof window.Element){
+		} else if (typeof vParam === "object"
+			&& vParam.nodeType === Node.ELEMENT_NODE
+			&& typeof vParam.nodeName === "string") {
+			// can't use 'instanceof window.Element' because DOM node may be
+			// created by using the constructor in another frame in Chrome/Edge.
 			oDomRef = vParam;
 		} else if (vParam.jquery) {
 			oDomRef = vParam[0];
-			Log.error("[FUTURE] Do not call Element.closestTo() with jQuery object as parameter. \
+			Log.error("[FUTURE FATAL] Do not call Element.closestTo() with jQuery object as parameter. \
 				The function should be called with either a DOM Element or a CSS selector. \
 				(future error, ignored for now)");
 		} else {
@@ -1933,7 +1948,7 @@ sap.ui.define([
 	 * @function
 	 * @since 1.119
 	 */
-	Element.getElementById = Element.registry.get;
+	Element.getElementById = ElementRegistry.get;
 
 	/**
 	 * Returns the element currently in focus.
@@ -1959,128 +1974,26 @@ sap.ui.define([
 	 * @namespace sap.ui.core.Element.registry
 	 * @public
 	 * @since 1.67
+	 * @deprecated As of version 1.120. Use {@link module:sap/ui/core/ElementRegistry} instead.
+	 * @borrows module:sap/ui/core/ElementRegistry.size as size
+	 * @borrows module:sap/ui/core/ElementRegistry.all as all
+	 * @borrows module:sap/ui/core/ElementRegistry.get as get
+	 * @borrows module:sap/ui/core/ElementRegistry.forEach as forEach
+	 * @borrows module:sap/ui/core/ElementRegistry.filter as filter
 	 */
-
-	/**
-	 * Number of existing elements.
-	 *
-	 * @type {int}
-	 * @readonly
-	 * @name sap.ui.core.Element.registry.size
-	 * @public
-	 */
-
-	/**
-	 * Return an object with all instances of <code>sap.ui.core.Element</code>,
-	 * keyed by their ID.
-	 *
-	 * Each call creates a new snapshot object. Depending on the size of the UI,
-	 * this operation therefore might be expensive. Consider to use the <code>forEach</code>
-	 * or <code>filter</code> method instead of executing similar operations on the returned
-	 * object.
-	 *
-	 * <b>Note</b>: The returned object is created by a call to <code>Object.create(null)</code>,
-	 * and therefore lacks all methods of <code>Object.prototype</code>, e.g. <code>toString</code> etc.
-	 *
-	 * @returns {Object<sap.ui.core.ID,sap.ui.core.Element>} Object with all elements, keyed by their ID
-	 * @name sap.ui.core.Element.registry.all
-	 * @function
-	 * @public
-	 */
-
-	/**
-	 * Retrieves an Element by its ID.
-	 *
-	 * When the ID is <code>null</code> or <code>undefined</code> or when there's no element with
-	 * the given ID, then <code>undefined</code> is returned.
-	 *
-	 * @param {sap.ui.core.ID} id ID of the element to retrieve
-	 * @returns {sap.ui.core.Element|undefined} Element with the given ID or <code>undefined</code>
-	 * @name sap.ui.core.Element.getElementById
-	 * @function
-	 * @public
-	 */
-
-	/**
-	 * Calls the given <code>callback</code> for each element.
-	 *
-	 * The expected signature of the callback is
-	 * <pre>
-	 *    function callback(oElement, sID)
-	 * </pre>
-	 * where <code>oElement</code> is the currently visited element instance and <code>sID</code>
-	 * is the ID of that instance.
-	 *
-	 * The order in which the callback is called for elements is not specified and might change between
-	 * calls (over time and across different versions of UI5).
-	 *
-	 * If elements are created or destroyed within the <code>callback</code>, then the behavior is
-	 * not specified. Newly added objects might or might not be visited. When an element is destroyed during
-	 * the filtering and was not visited yet, it might or might not be visited. As the behavior for such
-	 * concurrent modifications is not specified, it may change in newer releases.
-	 *
-	 * If a <code>thisArg</code> is given, it will be provided as <code>this</code> context when calling
-	 * <code>callback</code>. The <code>this</code> value that the implementation of <code>callback</code>
-	 * sees, depends on the usual resolution mechanism. E.g. when <code>callback</code> was bound to some
-	 * context object, that object wins over the given <code>thisArg</code>.
-	 *
-	 * @param {function(sap.ui.core.Element,sap.ui.core.ID)} callback
-	 *        Function to call for each element
-	 * @param {Object} [thisArg=undefined]
-	 *        Context object to provide as <code>this</code> in each call of <code>callback</code>
-	 * @throws {TypeError} If <code>callback</code> is not a function
-	 * @name sap.ui.core.Element.registry.forEach
-	 * @function
-	 * @public
-	 */
-
-	/**
-	 * Returns an array with elements for which the given <code>callback</code> returns a value that coerces
-	 * to <code>true</code>.
-	 *
-	 * The expected signature of the callback is
-	 * <pre>
-	 *    function callback(oElement, sID)
-	 * </pre>
-	 * where <code>oElement</code> is the currently visited element instance and <code>sID</code>
-	 * is the ID of that instance.
-	 *
-	 * If elements are created or destroyed within the <code>callback</code>, then the behavior is
-	 * not specified. Newly added objects might or might not be visited. When an element is destroyed during
-	 * the filtering and was not visited yet, it might or might not be visited. As the behavior for such
-	 * concurrent modifications is not specified, it may change in newer releases.
-	 *
-	 * If a <code>thisArg</code> is given, it will be provided as <code>this</code> context when calling
-	 * <code>callback</code>. The <code>this</code> value that the implementation of <code>callback</code>
-	 * sees, depends on the usual resolution mechanism. E.g. when <code>callback</code> was bound to some
-	 * context object, that object wins over the given <code>thisArg</code>.
-	 *
-	 * This function returns an array with all elements matching the given predicate. The order of the
-	 * elements in the array is not specified and might change between calls (over time and across different
-	 * versions of UI5).
-	 *
-	 * @param {function(sap.ui.core.Element,sap.ui.core.ID):boolean} callback
-	 *        predicate against which each element is tested
-	 * @param {Object} [thisArg=undefined]
-	 *        context object to provide as <code>this</code> in each call of <code>callback</code>
-	 * @returns {sap.ui.core.Element[]}
-	 *        Array of elements matching the predicate; order is undefined and might change in newer versions of UI5
-	 * @throws {TypeError} If <code>callback</code> is not a function
-	 * @name sap.ui.core.Element.registry.filter
-	 * @function
-	 * @public
-	 */
+	Element.registry = ElementRegistry;
 
 	Theming.attachApplied(function(oEvent) {
 		// notify all elements/controls via a pseudo browser event
 		var oJQueryEvent = jQuery.Event("ThemeChanged");
 		oJQueryEvent.theme = oEvent.theme;
-		Element.registry.forEach(function(oElement) {
+		ElementRegistry.forEach(function(oElement) {
+			oJQueryEvent._bNoReturnValue = true; // themeChanged handler aren't allowed to have any retun value. Mark for future fatal throw.
 			oElement._handleEvent(oJQueryEvent);
 		});
 	});
 
-	_LocalizationHelper.registerForUpdate("Elements", Element.registry.all);
+	_LocalizationHelper.registerForUpdate("Elements", ElementRegistry.all);
 
 	return Element;
 

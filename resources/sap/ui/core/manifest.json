@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.120.1"
+      "version": "1.120.30"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -275,6 +275,7 @@
           "ar",
           "bg",
           "ca",
+          "cnr",
           "cs",
           "cy",
           "da",
@@ -314,6 +315,7 @@
           "sh",
           "sk",
           "sl",
+          "sr",
           "sv",
           "th",
           "tr",
@@ -416,6 +418,7 @@
         "interfaces": [
           "sap.ui.core.IShrinkable",
           "sap.ui.core.Label",
+          "sap.ui.core.ILabelable",
           "sap.ui.core.PopupInterface",
           "sap.ui.core.Toolbar",
           "sap.ui.core.IContextMenu",

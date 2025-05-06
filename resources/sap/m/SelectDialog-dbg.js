@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -126,7 +126,7 @@ function(
 	 * @extends sap.m.SelectDialogBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -578,15 +578,12 @@ function(
 	* Is called after renderer is finished to show the busy state
 	* @override
 	* @protected
-	* @returns {this} <code>this</code> pointer for chaining
 	*/
 	SelectDialog.prototype.onAfterRendering = function () {
 		if (this._bInitBusy && this._bFirstRender) {
 			this._setBusy(true);
 			this._bInitBusy = false;
 		}
-
-		return this;
 	};
 
 	/**

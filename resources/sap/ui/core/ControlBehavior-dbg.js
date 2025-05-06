@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 		/**
 		 * The theme scoping change Event.
 		 *
-		 * @typedef {Object<string,string>} module:sap/ui/core/ControlBehavior$ChangeEvent
+		 * @typedef {object} module:sap/ui/core/ControlBehavior$ChangeEvent
 		 * @property {string} animationMode Whether the animation mode should be active or not.
 		 * @private
 		 * @ui5-restricted sap.ui.core.theming.ThemeManager

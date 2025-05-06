@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/Core'],
-	function(ComboBoxBaseRenderer, ComboBoxTextFieldRenderer, Renderer, Core) {
+sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/Core', 'sap/ui/core/library'],
+	function(ComboBoxBaseRenderer, ComboBoxTextFieldRenderer, Renderer, Core, coreLibrary) {
 	"use strict";
+
+	var ValueState = coreLibrary.ValueState;
 
 	/**
 	 * MultiComboBox renderer.
@@ -45,7 +47,13 @@ sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/c
 			oTokenizer = oControl.getAggregation("tokenizer"),
 			oInvisibleTextId = oTokenizer && oTokenizer.getTokensInfoId();
 
-		return (sAriaDescribedBy || "") + " " + oInvisibleTextId;
+		if (oControl.getValueState() !== ValueState.Error && oControl.getValueStateLinksForAcc().length ){
+			sAriaDescribedBy = sAriaDescribedBy
+				? `${sAriaDescribedBy} ${oControl.getValueStateLinksShortcutsId()}`
+				: oControl.getValueStateLinksShortcutsId();
+		}
+
+		return (sAriaDescribedBy ? sAriaDescribedBy + " " : "") + oInvisibleTextId;
 	};
 
 	/**
@@ -59,6 +67,12 @@ sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/c
 			oResourceBundle = Core.getLibraryResourceBundle("sap.m");
 
 		mAccessibilityState.roledescription = oResourceBundle.getText("MULTICOMBOBOX_ARIA_ROLE_DESCRIPTION");
+
+		if (oControl.getValueState() === ValueState.Error && oControl.getValueStateLinksForAcc().length) {
+			mAccessibilityState.errormessage = mAccessibilityState.errormessage
+			? `${mAccessibilityState.errormessage} ${oControl.getValueStateLinksShortcutsId()}`
+			: oControl.getValueStateLinksShortcutsId();
+		}
 
 		return mAccessibilityState;
 	};

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -60,7 +60,7 @@ sap.ui.define([
 		}
 
 		if (!oHashChanger) {
-			Log.error("sap.ui.core.routing.History constructor was called and it did not get a hashChanger as parameter");
+			Log.error("[FUTURE FATAL] sap.ui.core.routing.History constructor was called and it did not get a hashChanger as parameter");
 		}
 
 		this._setHashChanger(oHashChanger);

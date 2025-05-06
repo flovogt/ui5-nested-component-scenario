@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -69,7 +69,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	* @implements sap.ui.core.IFormContent
 	* @author SAP SE
-	* @version 1.120.1
+	* @version 1.120.30
 	*
 	* @constructor
 	* @public
@@ -902,7 +902,7 @@ sap.ui.define([
 		if (iNumItems === 1) {
 			sAriaText = oRb.getText("INPUT_SUGGESTIONS_ONE_HIT");
 		} else if (iNumItems > 1) {
-			sAriaText = oRb.getText("INPUT_SUGGESTIONS_MORE_HITS", iNumItems);
+			sAriaText = oRb.getText("INPUT_SUGGESTIONS_MORE_HITS", [iNumItems]);
 		} else {
 			sAriaText = oRb.getText("INPUT_SUGGESTIONS_NO_HIT");
 		}

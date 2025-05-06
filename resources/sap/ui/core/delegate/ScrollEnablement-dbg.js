@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,7 +18,8 @@ sap.ui.define([
 	'sap/ui/core/IntervalTrigger',
 	'sap/ui/core/ResizeHandler',
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/events/KeyCodes"
+	"sap/ui/events/KeyCodes",
+	'sap/ui/core/Element'
 ],
 	function(
 		Localization,
@@ -27,7 +28,8 @@ sap.ui.define([
 		IntervalTrigger,
 		ResizeHandler,
 		jQuery,
-		KeyCodes
+		KeyCodes,
+		Element
 	) {
 	"use strict";
 
@@ -50,15 +52,16 @@ sap.ui.define([
 		 * @param {object} oConfig the configuration of the scroll delegate
 		 * @param {boolean} [oConfig.horizontal=false] Whether the element should be scrollable horizontally
 		 * @param {boolean} [oConfig.vertical=false] Whether the element should be scrollable vertically
-		 * @param {boolean} [oConfig.zynga=false] @deprecated since 1.42, the parameter has no effect
-		 * @param {boolean} [oConfig.iscroll=false] @deprecated since 1.42, the parameter has no effect
-		 * @param {boolean} [oConfig.preventDefault=false] @deprecated since 1.42, the parameter has no effect
+		 * @param {boolean} [oConfig.zynga=false] Deprecated since 1.42, the parameter has no effect
+		 * @param {boolean} [oConfig.iscroll=false] Deprecated since 1.42, the parameter has no effect
+		 * @param {boolean} [oConfig.preventDefault=false] Deprecated since 1.42, the parameter has no effect
 		 * @param {boolean} [oConfig.nonTouchScrolling=false] If true, the delegate will also be active to allow touch like scrolling with the mouse on non-touch platforms.
 		 * @param {string} [oConfig.scrollContainerId=""] Native scrolling does not need content wrapper. In this case, ID of the container element should be provided.
+		 * @param {boolean} [oConfig.callBefore=false] if true, the delegate event listeners are called before the event listeners of the element; default is "false".
 		 *
 		 * @protected
 		 * @alias sap.ui.core.delegate.ScrollEnablement
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 * @author SAP SE
 		 */
 		var ScrollEnablement = BaseObject.extend("sap.ui.core.delegate.ScrollEnablement", /** @lends sap.ui.core.delegate.ScrollEnablement.prototype */ {
@@ -68,7 +71,7 @@ sap.ui.define([
 				BaseObject.apply(this);
 
 				this._oControl = oControl;
-				this._oControl.addDelegate(this);
+				this._oControl.addDelegate(this, oConfig.callBefore);
 				this._sContentId = sScrollContentDom;
 				this._sContainerId = oConfig.scrollContainerId;
 				this._bHorizontal = !!oConfig.horizontal;
@@ -437,8 +440,8 @@ sap.ui.define([
 
 			_customScrollTo : function(left, top, oEvent) {
 				var sNodeName = oEvent.target.nodeName;
-				// do not prevent events coming from input controls
-				if (sNodeName != "INPUT" && sNodeName != "TEXTAREA") {
+				// do not prevent events coming from input controls or sap.m.Select
+				if (sNodeName != "INPUT" && sNodeName != "TEXTAREA" && !Element.closestTo(oEvent.target)?.isA("sap.m.Select")) {
 					oEvent.preventDefault();
 					oEvent.setMarked();
 

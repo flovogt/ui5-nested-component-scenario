@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -895,10 +895,10 @@ sap.ui.define([
 
 	/**
 	 * Calculates the index range to be read for the given start, length and prefetch length.
-	 * Checks if <code>aElements</code> entries are available for half the prefetch length left and
-	 * right to it. If not, the full prefetch length is added to this side.
+	 * Checks if <code>aElements</code> entries are available for at least half the prefetch length
+	 * left and right to it. If not, the full prefetch length is added to this side.
 	 *
-	 * @param {object[]} aElements
+	 * @param {any[]} aElements
 	 *   The array of available elements
 	 * @param {number} iStart
 	 *   The start index for the data request
@@ -907,29 +907,35 @@ sap.ui.define([
 	 * @param {number} iPrefetchLength
 	 *   The number of entries to prefetch before and after the given range; <code>Infinity</code>
 	 *   is supported
+	 * @param {function(any):boolean} [fnIsMissing]
+	 *   A function determining whether the given element is missing although it is not <code>undefined</code>
 	 * @returns {object}
 	 *   An object with a member <code>start</code> for the start index for the next read and
 	 *   <code>length</code> for the number of entries to be read
 	 *
 	 * @private
 	 */
-	ODataUtils._getReadRange = function (aElements, iStart, iLength, iPrefetchLength) {
-		// Checks whether aElements contains at least one <code>undefined</code> entry within the
-		// given start (inclusive) and end (exclusive).
+	ODataUtils._getReadRange = function (aElements, iStart, iLength, iPrefetchLength, fnIsMissing) {
+		// Checks whether aElements contains at least one missing entry within the given start
+		// (inclusive) and end (exclusive).
 		function isDataMissing(iStart, iEnd) {
 			var i;
 			for (i = iStart; i < iEnd; i += 1) {
-				if (aElements[i] === undefined) {
+				if (aElements[i] === undefined || fnIsMissing?.(aElements[i])) {
 					return true;
 				}
 			}
 			return false;
 		}
 
-		if (isDataMissing(iStart + iLength, iStart + iLength + iPrefetchLength / 2)) {
+		// Make sure that "half the prefetch length" is an integer. Round it up so that at least the
+		// half is checked on both sides. (With a prefetch of 5 for example, 3 elements are checked
+		// both to the left and to the right.)
+		const iHalfPrefetchLength = Math.ceil(iPrefetchLength / 2);
+		if (isDataMissing(iStart + iLength, iStart + iLength + iHalfPrefetchLength)) {
 			iLength += iPrefetchLength;
 		}
-		if (isDataMissing(Math.max(iStart - iPrefetchLength / 2, 0), iStart)) {
+		if (isDataMissing(Math.max(iStart - iHalfPrefetchLength, 0), iStart)) {
 			iLength += iPrefetchLength;
 			iStart -= iPrefetchLength;
 			if (iStart < 0) {

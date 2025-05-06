@@ -1,7 +1,7 @@
 //@ui5-bundle sap/ui/core/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -35,7 +35,7 @@ sap.ui.predefine("sap/ui/core/library.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -544,7 +544,7 @@ sap.ui.predefine("sap/ui/core/rules/App.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1069,7 +1069,7 @@ sap.ui.predefine("sap/ui/core/rules/Config.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1155,19 +1155,19 @@ sap.ui.predefine("sap/ui/core/rules/CoreHelper.support", ["sap/ui/core/Element",
 	}, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines miscellaneous support rules.
  */
 sap.ui.predefine("sap/ui/core/rules/Misc.support", [
-	"sap/ui/core/Component",
+	"sap/ui/core/ComponentRegistry",
 	"sap/ui/support/library",
 	"./CoreHelper.support",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/dom/jquery/control" // jQuery Plugin "control"
-], function(Component, SupportLib, CoreHelper, jQuery) {
+], function(ComponentRegistry, SupportLib, CoreHelper, jQuery) {
 	"use strict";
 
 	// support rules can get loaded within a ui5 version which does not have module "sap/base/Log" yet
@@ -1308,7 +1308,7 @@ sap.ui.predefine("sap/ui/core/rules/Misc.support", [
 
 			for (sComponentName in oRegisteredComponents) {
 				if (Object.hasOwn(oRegisteredComponents, sComponentName)) {
-					var aComponents = Component.registry.filter(filterComponents(sComponentName));
+					var aComponents = ComponentRegistry.filter(filterComponents(sComponentName));
 					aComponents.forEach(createIssue(oRegisteredComponents[sComponentName]));
 				}
 			}
@@ -1323,7 +1323,7 @@ sap.ui.predefine("sap/ui/core/rules/Misc.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1570,7 +1570,7 @@ sap.ui.predefine("sap/ui/core/rules/Model.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1637,7 +1637,7 @@ sap.ui.predefine("sap/ui/core/rules/Rendering.support", [
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -1821,7 +1821,7 @@ sap.ui.predefine("sap/ui/core/rules/Theming.support", ["sap/ui/core/Element", "s
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**

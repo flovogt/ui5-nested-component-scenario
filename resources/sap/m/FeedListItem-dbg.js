@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -60,7 +60,7 @@ function(
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -178,7 +178,12 @@ function(
 				/**
 				 * The expand and collapse feature is set by default and uses 300 characters on mobile devices and 500 characters on desktops as limits. Based on these values, the text of the FeedListItem is collapsed once text reaches these limits. In this case, only the specified number of characters is displayed. By clicking on the text link More, the entire text can be displayed. The text link Less collapses the text. The application is able to set the value to its needs.
 				 */
-				maxCharacters: {type: "int", group: "Behavior", defaultValue: null}
+				maxCharacters: {type: "int", group: "Behavior", defaultValue: null},
+
+				/**
+				 * Disables rendering of the <code>style</code> attribute in the <code>FormattedText</code>.
+				 */
+				disableStyleAttribute : {type : "boolean", group : "Appearance", defaultValue : false}
 			},
 			defaultAggregation: "actions",
 			aggregations: {
@@ -359,6 +364,7 @@ function(
 		this.$("realtext").find('a[target="_blank"]').off("click");
 
 		var oFormattedText = this.getAggregation("_text");
+		oFormattedText.setProperty("disableStyleAttribute", this.getDisableStyleAttribute(), true);
 		oFormattedText.setProperty("convertLinksToAnchorTags", this.getConvertLinksToAnchorTags(), true);
 		oFormattedText.setProperty("convertedLinksDefaultTarget", this.getConvertedLinksDefaultTarget(), true);
 		if (this.getConvertLinksToAnchorTags() === LinkConversion.None) {

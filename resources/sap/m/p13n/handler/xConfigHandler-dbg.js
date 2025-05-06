@@ -1,30 +1,30 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-    'sap/m/p13n/Engine',
-    'sap/m/p13n/modules/xConfigAPI'
-], function(Engine, xConfigAPI) {
+	'sap/m/p13n/Engine',
+	'sap/m/p13n/modules/xConfigAPI'
+], (Engine, xConfigAPI) => {
 	"use strict";
 
 	/**
 	 * @class Utility class for generic mdc xConfig handling by utilizing the
-     * <code>sap.m.p13n.Engine</code> and its <code>Modificationhandler</code>.
-     * This class should be used to handle property changes that should be persisted
-     * as flex changes for MDC control while enabling preprocessing via customdata.
+	 * <code>sap.m.p13n.Engine</code> and its <code>Modificationhandler</code>.
+	 * This class should be used to handle property changes that should be persisted
+	 * as flex changes for MDC control while enabling preprocessing via customdata.
 	 *
 	 * @author SAP SE
 	 * @private
 	 * @alias sap.m.p13n.handler.xConfigHandler
 	 */
-    var xConfigHandler = {};
+	const xConfigHandler = {};
 
-    var fnQueueChange = function(oControl, fTask) {
-		var fCleanupPromiseQueue = function(pOriginalPromise) {
-			if (oControl._pQueue === pOriginalPromise){
+	const fnQueueChange = (oControl, fTask) => {
+		const fCleanupPromiseQueue = (pOriginalPromise) => {
+			if (oControl._pQueue === pOriginalPromise) {
 				delete oControl._pQueue;
 			}
 		};
@@ -47,8 +47,8 @@ sap.ui.define([
 			});
 
 			if (!oControl._pPendingModification) {
-				oControl._pPendingModification = Engine.getInstance().waitForChanges(oControl).then(function() {
-                    Engine.getInstance().fireStateChange(oControl);
+				oControl._pPendingModification = Engine.getInstance().waitForChanges(oControl).then(() => {
+					Engine.getInstance().fireStateChange(oControl);
 					Engine.getInstance().clearTrace(oControl);
 					delete oControl._pPendingModification;
 				});
@@ -56,150 +56,181 @@ sap.ui.define([
 		}
 	}
 
-    function getOperationType(sChangeType) {
-        const aChangeTypes = ["add", "remove", "move", "set"];
+	function getOperationType(sChangeType) {
+		const aChangeTypes = ["add", "remove", "move", "set"];
 
-        return aChangeTypes.find((sType) => {
-            return sChangeType.indexOf(sType) === 0;
-        });
+		return aChangeTypes.find((sType) => {
+			return sChangeType.indexOf(sType) === 0;
+		});
 
-    }
+	}
 
-    /**
-     * Creates a changehandler specific to the provided aggregation and property name,
-     * to enhance the xConfig object for a given mdc control instance.
-     *
-     * The enhanced object can be accesed using <code>Engine#readAggregationConfig</code>.
-     *
-     * @param {object} mMetaConfig A map describing the metadata structure that is affected by this changehandler
-     * @param {boolean} mMetaConfig.aggregationBased Defines whether the aggregation space or the property space should be used in the xConfig object
-     * @param {string} mMetaConfig.property The property name (such as <code>width</code> or <code>label</code>)
-     * @param {string} mMetaConfig.operation The operation to be executed by the handler (add, remove, move, set)
-     *
-     * @returns {object} The created changehandler object
-     */
-    xConfigHandler.createHandler = function(mMetaConfig) {
+	function getRevertOperationType(sChangeType) {
+		const mOppositeType = {
+			add: "remove",
+			remove: "add",
+			move: "move",
+			set: "set"
+		};
+		const sType = getOperationType(sChangeType);
+		return mOppositeType[sType];
+	}
 
-        if (!mMetaConfig || !mMetaConfig.hasOwnProperty("property")) {
-            throw new Error("Please provide a map containing the affected aggregation and property name!");
-        }
+	/**
+	 * Creates a changehandler specific to the provided aggregation and property name,
+	 * to enhance the xConfig object for a given mdc control instance.
+	 *
+	 * The enhanced object can be accessed using <code>Engine#readAggregationConfig</code>.
+	 *
+	 * @param {object} mMetaConfig A map describing the metadata structure that is affected by this changehandler
+	 * @param {boolean} mMetaConfig.aggregationBased Defines whether the aggregation space or the property space should be used in the xConfig object
+	 * @param {string} mMetaConfig.property The property name (such as <code>width</code> or <code>label</code>)
+	 * @param {string} mMetaConfig.operation The operation to be executed by the handler (add, remove, move, set)
+	 * @param {string[]} mMetaConfig.additionalProperties Property names of the change content that are added to the revert data
+	 *
+	 * @returns {object} The created changehandler object
+	 */
+	xConfigHandler.createHandler = (mMetaConfig) => {
 
-        var sAffectedProperty = mMetaConfig.property;
-        var sAffectedAggregation;
+		if (!mMetaConfig || !mMetaConfig.hasOwnProperty("property")) {
+			throw new Error("Please provide a map containing the affected aggregation and property name!");
+		}
 
-        return {
-            "changeHandler": {
-                applyChange: function (oChange, oControl, mPropertyBag) {
+		const sAffectedProperty = mMetaConfig.property;
+		let sAffectedAggregation;
 
-                    return fnQueueChange(oControl, function(){
-                        return Engine.getInstance().readXConfig(oControl, {
-                            propertyBag: mPropertyBag
-                        })
-                        .then(function(oPriorAggregationConfig) {
+		return {
+			"changeHandler": {
+				applyChange: function(oChange, oControl, mPropertyBag) {
+					const sChangePersistenceIdentifier = oChange.getContent().persistenceIdentifier;
+					const oController = Engine.getInstance().getController(oControl, oChange.getChangeType(), sChangePersistenceIdentifier);
+					if (sChangePersistenceIdentifier && oController.getPersistenceIdentifier() !== sChangePersistenceIdentifier) {
+						return Promise.resolve(false);
+					}
 
-                            var sOperation = getOperationType(oChange.getChangeType());
+					return fnQueueChange(oControl, () => {
+						return Engine.getInstance().readXConfig(oControl, {
+								propertyBag: mPropertyBag
+							})
+							.then(async (oPriorAggregationConfig) => {
+								const oChangeContent = oChange.getContent();
+								const sOperation = getOperationType(oChange.getChangeType());
+								sAffectedAggregation = oChange.getContent().targetAggregation;
 
-                            sAffectedAggregation = oChange.getContent().targetAggregation;
+								const oRevertData = {
+									key: oChange.getContent().key
+								};
 
-                            var oRevertData = {
-                                key: oChange.getContent().key
-                            };
+								mMetaConfig.additionalProperties?.forEach((vProperty) => {
+									if (typeof vProperty === "string" && oChangeContent[vProperty] !== undefined) {
+										oRevertData[vProperty] = oChangeContent[vProperty];
+									}
+								});
 
-                            if (sOperation !== "set") {
-                                //In case there is a add/remove operation, flag the revert data as the opposite of the current action (add will be removed as revert and vice versa)
-                                oRevertData.value = sOperation !== "add";
-                            } else {
-                                oRevertData.value = null;
-                            }
+								if (sChangePersistenceIdentifier) {
+									oRevertData.persistenceIdentifier = sChangePersistenceIdentifier;
+								}
 
-                            var aCurrentState;
-                            if (sOperation === "move") {
-                                aCurrentState = Engine.getInstance().getController(oControl, oChange.getChangeType()).getCurrentState();
-                                var oFound = aCurrentState.find(function(oItem, iIndex){
-                                    if (oItem.key === oChange.getContent().key) {
-                                        return oItem;
-                                    }
-                                });
-                                oRevertData.targetAggregation = oChange.getContent().targetAggregation;
-                                oRevertData.index = aCurrentState.indexOf(oFound);
-                            }
+								if (sOperation !== "set") {
+									//In case there is a add/remove operation, flag the revert data as the opposite of the current action (add will be removed as revert and vice versa)
+									oRevertData.value = sOperation !== "add";
+								} else {
+									oRevertData.value = null;
+								}
 
-                            if (oPriorAggregationConfig
-                                && oPriorAggregationConfig.aggregations
-                                && oPriorAggregationConfig.aggregations[sAffectedAggregation]
-                                && oPriorAggregationConfig.aggregations[sAffectedAggregation][oChange.getContent().key]
-                                && oPriorAggregationConfig.aggregations[sAffectedAggregation][oChange.getContent().key][sAffectedProperty]
-                                ){
-                                    oRevertData.value = oPriorAggregationConfig.aggregations[sAffectedAggregation][oChange.getContent().key][sAffectedProperty];
-                            }
+								if ((!oPriorAggregationConfig || !(oPriorAggregationConfig?.aggregations?.[sAffectedAggregation]?.length > 0)) && typeof mMetaConfig.getCurrentState == "function") {
+									const aCurrentState = await mMetaConfig.getCurrentState?.(oControl, oPriorAggregationConfig, sAffectedAggregation, oChange, mPropertyBag);
+									if (aCurrentState) {
+										const oStateItem = aCurrentState.find((oItem, iIndex) => {
+											return oItem.key === oChange.getContent().key;
+										});
+										oRevertData.index = aCurrentState.indexOf(oStateItem);
+									}
+								}
 
-                            oChange.setRevertData(oRevertData);
+								oRevertData.targetAggregation = oChange.getContent().targetAggregation;
 
-                            var oConfig = {
-                                property: sAffectedProperty,
-                                key: oChange.getContent().key,
-                                value: oChange.getContent(),
-                                operation: sOperation,
-                                changeType: oChange.getChangeType(),
-                                propertyBag: mPropertyBag,
-                                markAsModified: true
-                            };
+								const oAffectedItem = oPriorAggregationConfig?.aggregations?.[sAffectedAggregation]?.[oChange.getContent().key];
+								if (oAffectedItem) {
+									if (oAffectedItem?.[sAffectedProperty]) {
+										oRevertData.value = oPriorAggregationConfig.aggregations[sAffectedAggregation][oChange.getContent().key][sAffectedProperty];
+									}
+									oRevertData.index = oPriorAggregationConfig.aggregations[sAffectedAggregation][oChange.getContent().key].position !== undefined ? oPriorAggregationConfig.aggregations[sAffectedAggregation][oChange.getContent().key].position : oRevertData.index;
+								}
 
-                            if (mMetaConfig.aggregationBased) {
-                                oConfig.controlMeta = {
-                                    aggregation: sAffectedAggregation
-                                };
-                            }
+								oChange.setRevertData(oRevertData);
 
-                            return Engine.getInstance().enhanceXConfig(oControl, oConfig);
-                        })
-                        .then(function(){
-                            fConfigModified(oControl, oChange);
-                        });
-                    });
+								const oConfig = {
+									property: sAffectedProperty,
+									key: oChange.getContent().key,
+									value: oChange.getContent(),
+									operation: sOperation,
+									changeType: oChange.getChangeType(),
+									propertyBag: mPropertyBag,
+									markAsModified: true
+								};
 
-                },
-                completeChangeContent: function (oChange, mChangeSpecificInfo, mPropertyBag) {
-                    // Not used, but needs to be there
-                },
-                revertChange: function (oChange, oControl, mPropertyBag) {
+								if (mMetaConfig.aggregationBased) {
+									oConfig.controlMeta = {
+										aggregation: sAffectedAggregation
+									};
+								}
 
-                    var sOperation = getOperationType(oChange.getChangeType());
+								return Engine.getInstance().enhanceXConfig(oControl, oConfig);
+							})
+							.then((bConfigModified) => {
+								if (!bConfigModified) {
+									return;
+								}
+								fConfigModified(oControl, oChange);
+							});
+					});
 
-                    sAffectedAggregation = oChange.getContent().targetAggregation;
+				},
+				completeChangeContent: function(oChange, mChangeSpecificInfo, mPropertyBag) {
+					// Not used, but needs to be there
+				},
+				revertChange: function(oChange, oControl, mPropertyBag) {
 
-                    var oConfig = {
-                        controlMeta: {
-                            aggregation: sAffectedAggregation,
-                            property: sAffectedProperty
-                        },
-                        property: sAffectedProperty,
-                        operation: sOperation,
-                        changeType: oChange.getChangeType(),
-                        key: oChange.getRevertData().key,
-                        value: oChange.getRevertData(),
-                        propertyBag: mPropertyBag
-                    };
+					const sOperation = getRevertOperationType(oChange.getChangeType());
 
-                    if (mMetaConfig.aggregationBased) {
-                        oConfig.controlMeta = {
-                            aggregation: sAffectedAggregation
-                        };
-                    }
+					sAffectedAggregation = oChange.getContent().targetAggregation;
 
-                    return Engine.getInstance().enhanceXConfig(oControl, oConfig)
-                    .then(function() {
-                        oChange.resetRevertData();
-                        fConfigModified(oControl, oChange);
-                    });
-                }
-            },
-            "layers": {
-                "USER": true
-            }
-        };
-    };
+					const oConfig = {
+						controlMeta: {
+							aggregation: sAffectedAggregation,
+							property: sAffectedProperty
+						},
+						property: sAffectedProperty,
+						operation: sOperation,
+						changeType: oChange.getChangeType(),
+						key: oChange.getRevertData().key,
+						value: oChange.getRevertData(),
+						propertyBag: mPropertyBag
+					};
 
-    return xConfigHandler;
+					if (mMetaConfig.aggregationBased) {
+						oConfig.controlMeta = {
+							aggregation: sAffectedAggregation
+						};
+					}
+
+					return Engine.getInstance().enhanceXConfig(oControl, oConfig)
+						.then((bConfigModified) => {
+							if (!bConfigModified) {
+								return;
+							}
+							oChange.resetRevertData();
+							fConfigModified(oControl, oChange);
+						});
+				}
+			},
+			"layers": {
+				"USER": true
+			}
+		};
+	};
+
+	return xConfigHandler;
 
 });

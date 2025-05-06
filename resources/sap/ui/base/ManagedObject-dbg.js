@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,6 +12,7 @@ sap.ui.define([
 	"./Object",
 	"./BindingInfo",
 	"sap/ui/util/ActivityDetection",
+	"sap/ui/util/_enforceNoReturnValue",
 	"sap/base/util/ObjectPath",
 	"sap/base/Log",
 	"sap/base/assert",
@@ -27,6 +28,7 @@ sap.ui.define([
 	BaseObject,
 	BindingInfo,
 	ActivityDetection,
+	_enforceNoReturnValue,
 	ObjectPath,
 	Log,
 	assert,
@@ -260,7 +262,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -526,7 +528,7 @@ sap.ui.define([
 
 					// Call init method here instead of specific Controls constructor.
 					if (that.init) {
-						that.init();
+						_enforceNoReturnValue(that.init(), /*mLogInfo=*/{ name: "init", component: that.getId()}); // 'init' hook isn't allowed to return any values.
 					}
 
 					// apply the settings
@@ -1345,7 +1347,7 @@ sap.ui.define([
 						if (Array.isArray(oValue)){
 							// assumption: we have an extensionPoint here which is always an array, even if it contains a single control
 							if (oValue.length > 1){
-								Log.error("Tried to add an array of controls to a single aggregation");
+								Log.error("[FUTURE FATAL] Tried to add an array of controls to a single aggregation");
 							}
 							oValue = oValue[0];
 						}
@@ -1923,7 +1925,7 @@ sap.ui.define([
 
 		if (typeof (vObject) == "number") { // "object" is the index now
 			if (vObject < 0 || vObject >= aIds.length) {
-				Log.warning("ManagedObject.removeAssociation called with invalid index: " + sAssociationName + ", " + vObject);
+				Log.warning("[FUTURE FATAL] ManagedObject.removeAssociation called with invalid index: " + sAssociationName + ", " + vObject);
 			} else {
 				sId = aIds[vObject];
 				aIds.splice(vObject, 1);
@@ -2306,7 +2308,7 @@ sap.ui.define([
 			i = iIndex;
 		}
 		if (i !== iIndex) {
-			Log.warning("ManagedObject.insertAggregation: index '" + iIndex + "' out of range [0," + aChildren.length + "], forced to " + i);
+			Log.warning("[FUTURE FATAL] ManagedObject.insertAggregation: index '" + iIndex + "' out of range [0," + aChildren.length + "], forced to " + i);
 		}
 		aChildren.splice(i, 0, oObject);
 		oObject.setParent(this, sAggregationName, bSuppressInvalidate);
@@ -2425,7 +2427,7 @@ sap.ui.define([
 
 		if (typeof (vObject) == "number") { // "vObject" is the index now
 			if (vObject < 0 || vObject >= aChildren.length) {
-				Log.warning("ManagedObject.removeAggregation called with invalid index: " + sAggregationName + ", " + vObject);
+				Log.warning("[FUTURE FATAL] ManagedObject.removeAggregation called with invalid index: " + sAggregationName + ", " + vObject);
 
 			} else {
 				oChild = aChildren[vObject];
@@ -2651,7 +2653,7 @@ sap.ui.define([
 	ManagedObject.prototype._removeChild = function(oChild, sAggregationName, bSuppressInvalidate) {
 		if (!sAggregationName) {
 			// an aggregation name has to be specified!
-			Log.error("Cannot remove aggregated child without aggregation name.", null, this);
+			Log.error("[FUTURE FATAL] Cannot remove aggregated child without aggregation name.", null, this);
 		} else {
 			// set suppress invalidate flag
 			if (bSuppressInvalidate) {
@@ -2998,7 +3000,7 @@ sap.ui.define([
 		}
 
 		if (this.exit) {
-			this.exit();
+			_enforceNoReturnValue(this.exit(), /*mLogInfo=*/{ name: "exit", component: this.getId() }); // 'exit' hook isn't allowed to return any values.
 		}
 
 		// TODO: generic concept for exit hooks?
@@ -3250,7 +3252,7 @@ sap.ui.define([
 	};
 
 	function logError(sFunctionName) {
-		Log.error("Unexpected call of '" + sFunctionName + "'.");
+		Log.error("[FUTURE FATAL] Unexpected call of '" + sFunctionName + "'.");
 	}
 
 	/**
@@ -3713,7 +3715,7 @@ sap.ui.define([
 			throw new Error("Aggregation \"" + sName + "\" does not exist in " + this);
 		}
 		if (!oAggregationInfo.multiple) {
-			Log.error("Binding of single aggregation \"" + sName + "\" of " + this + " is not supported!");
+			Log.error("[FUTURE FATAL] Binding of single aggregation \"" + sName + "\" of " + this + " is not supported!");
 		}
 
 		// Old API compatibility (sName, sPath, oTemplate, oSorter, aFilters)
@@ -3903,7 +3905,7 @@ sap.ui.define([
 	* @since 1.28
 	*/
 	ManagedObject.prototype.propagateMessages = function(sName, aMessages) {
-		Log.warning("Message for " + this + ", Property " + sName);
+		Log.warning("[FUTURE FATAL] ]Message for " + this + ", Property " + sName);
 	};
 
 	/**

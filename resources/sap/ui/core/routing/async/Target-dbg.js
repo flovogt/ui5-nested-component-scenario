@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -679,12 +679,12 @@ sap.ui.define([
 				sLogMessage = "";
 
 			if (!bHasTargetControl) {
-				sLogMessage = "The target " + oOptions._name + " has no controlId set and no parent so the target cannot be displayed.";
+				sLogMessage = "[FUTURE FATAL] The target " + oOptions._name + " has no controlId set and no parent so the target cannot be displayed.";
 				bIsValid = false;
 			}
 
 			if (!oOptions.controlAggregation) {
-				sLogMessage = "The target " + oOptions._name + " has a control id or a parent but no 'controlAggregation' was set, so the target could not be displayed.";
+				sLogMessage = "[FUTURE FATAL] The target " + oOptions._name + " has a control id or a parent but no 'controlAggregation' was set, so the target could not be displayed.";
 				bIsValid = false;
 			}
 

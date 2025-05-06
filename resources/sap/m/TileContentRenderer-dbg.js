@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,6 +47,9 @@ sap.ui.define(["./library", "sap/base/security/encodeCSS", "sap/m/GenericTile"],
 		}
 		if (sTooltip.trim()) { // trim check needed since IE11 renders white spaces
 			oRm.attr("title", sTooltip);
+		}
+		if (oControl.getFooter()) {
+			oRm.class("sapMTileFooterPresent");
 		}
 		oRm.openEnd();
 		if (oControl.getState() == "Loading") {

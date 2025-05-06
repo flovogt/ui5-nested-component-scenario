@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -65,7 +65,7 @@ sap.ui.define([
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -605,7 +605,7 @@ sap.ui.define([
 			return oBindingType.getOutputPattern();
 		}
 
-		if (oBindingType instanceof ODataType) {
+		if (oBindingType instanceof ODataType && oBindingType.getFormat) {
 			return oBindingType.getFormat().oFormatOptions.pattern;
 		}
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -118,7 +118,7 @@ sap.ui.define([
 			oMetadata = JSON.parse(sMetadataJSON);
 			mLibThemeMetadata[sLibName] = oMetadata;
 		} catch (ex) {
-			Log.error("Could not parse theme metadata for library " + sLibName + ".");
+			Log.error("[FUTURE FATAL] Could not parse theme metadata for library " + sLibName + ".");
 		}
 		return oMetadata;
 	};
@@ -160,7 +160,7 @@ sap.ui.define([
 
 			} catch (e) {
 				if (bLog) {
-					Log.error("ThemeHelper: " + sId + ": Error during check styles '" + sId + "'", e);
+					Log.error("[FUTURE FATAL] ThemeHelper: " + sId + ": Error during check styles '" + sId + "'", e);
 				}
 			}
 

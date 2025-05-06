@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -107,7 +107,6 @@ sap.ui.define([
 
 		this.renderEmphasizedInfoElement(oRm, oON);
 		this.renderHiddenARIAElement(oRm, oON);
-		this.renderRoleDescriptionInfo(oRm, oON);
 
 		oRm.close("div");
 	};
@@ -183,14 +182,6 @@ sap.ui.define([
 		oRm.class("sapUiPseudoInvisibleText");
 		oRm.openEnd();
 		oRm.text(oON._getStateText());
-		oRm.close("span");
-	};
-
-	ObjectNumberRenderer.renderRoleDescriptionInfo = function(oRm, oON) {
-		oRm.openStart("span", oON.getId() + "-roledescription");
-		oRm.class("sapUiPseudoInvisibleText");
-		oRm.openEnd();
-		oRm.text(oCore.getLibraryResourceBundle("sap.m").getText("OBJECTNUMBER_NAME"));
 		oRm.close("span");
 	};
 

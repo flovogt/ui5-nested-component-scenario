@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -72,6 +72,7 @@ sap.ui.define([
 		MessageType = coreLibrary.MessageType,
 		mMessageType2Severity = {},
 		aRequestSideEffectsParametersAllowList = ["groupId", "urlParameters"];
+	const rCacheBusterSegment = /\/~[\w\-]+~[A-Z0-9]?/;
 
 	mMessageType2Severity[MessageType.Error] = 0;
 	mMessageType2Severity[MessageType.Warning] = 1;
@@ -218,7 +219,7 @@ sap.ui.define([
 	 * This model is not prepared to be inherited from.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel
@@ -3863,16 +3864,17 @@ sap.ui.define([
 		var sUrl, oRequest,
 		oChangeHeader = {},
 		oPayload = {},
-		bCancelOnClose = true;
+		sCancelOnClose = "true";
 
 		oPayload.__batchRequests = aBatchRequests;
 
 
 		// If one requests leads to data changes at the back-end side, the canceling of the batch request must be prevented.
 		for (var sIndex in aBatchRequests) {
-			if (aBatchRequests[sIndex] && aBatchRequests[sIndex].__changeRequests ||
-				aBatchRequests[sIndex] && aBatchRequests[sIndex].headers && !aBatchRequests[sIndex].headers['sap-cancel-on-close']) {
-				bCancelOnClose = false;
+			if (aBatchRequests[sIndex] && aBatchRequests[sIndex].__changeRequests
+				|| aBatchRequests[sIndex] && aBatchRequests[sIndex].headers
+					&& aBatchRequests[sIndex].headers['sap-cancel-on-close'] !== "true") {
+				sCancelOnClose = "false";
 				break;
 			}
 		}
@@ -3891,7 +3893,7 @@ sap.ui.define([
 		// reset
 		delete oChangeHeader["Content-Type"];
 
-		oChangeHeader['sap-cancel-on-close'] = bCancelOnClose;
+		oChangeHeader['sap-cancel-on-close'] = sCancelOnClose;
 
 		oRequest = {
 				headers : oChangeHeader,
@@ -4107,10 +4109,12 @@ sap.ui.define([
 	 * @param {string} sGroupId ID of a request group; requests belonging to the same group will be bundled in one batch request
 	 * @param {function} fnSuccess Success callback function
 	 * @param {function} fnError Error callback function
+	 * @param {string} [mChangeHeaders]
+	 *   The map of headers to add to each change request within the $batch requests created
 	 * @returns {object|array} oRequestHandle The request handle: array if multiple requests are sent
 	 * @private
 	 */
-	ODataModel.prototype._processRequestQueue = function(mRequests, sGroupId, fnSuccess, fnError){
+	ODataModel.prototype._processRequestQueue = function(mRequests, sGroupId, fnSuccess, fnError, mChangeHeaders){
 		var that = this, sPath,
 			aRequestHandles = [];
 
@@ -4171,6 +4175,7 @@ sap.ui.define([
 							aChanges = [];
 							for (i = 0; i < aChangeSet.length; i++) {
 								oCurrentRequest = aChangeSet[i].request;
+								_Helper.extend(oCurrentRequest.headers, mChangeHeaders);
 								//increase laundering
 								sPath = '/' + that.getKey(oCurrentRequest.data);
 								that.increaseLaundering(sPath, oCurrentRequest.data);
@@ -6226,7 +6231,47 @@ sap.ui.define([
 	 * @public
 	 */
 	ODataModel.prototype.submitChanges = function(mParameters) {
-		var mChangedEntities, fnError, sGroupId, sMethod, oRequestHandle, vRequestHandleInternal,
+		return this.submitChangesWithChangeHeaders(mParameters && {
+			batchGroupId : mParameters.batchGroupId,
+			error : mParameters.error,
+			groupId : mParameters.groupId,
+			merge : mParameters.merge,
+			success : mParameters.success
+		});
+	};
+
+	/**
+	 * Submits all deferred requests just like {@link #submitChanges} but in addition adds the given headers to
+	 * all requests in the $batch request(s).
+	 *
+	 * @param {object} [mParameters]
+	 *   A map of parameters
+	 * @param {Object<string,string>} [mParameters.changeHeaders]
+	 *   The map of headers to add to each change (i.e. non-GET) request within the $batch; ignored if $batch is not
+	 *   used
+	 * @param {function} [mParameters.error]
+	 *   A callback function which is called when the request failed
+	 * @param {string} [mParameters.groupId]
+	 *   The group to be submitted; if not given, all deferred groups are submitted
+	 * @param {function} [mParameters.success]
+	 *   A callback function which is called when the request has been successful
+	 * @param {string} [mParameters.batchGroupId]
+	 *   <b>Deprecated</b>, use <code>groupId</code> instead
+	 * @param {boolean} [mParameters.merge]
+	 *   <b>Deprecated</b> since 1.38.0; whether the update method <code>sap.ui.model.odata.UpdateMethod.Merge</code>
+	 *   is used
+	 * @returns {object}
+	 *   An object which has an <code>abort</code> function
+	 * @throws {Error}
+	 *   If the given headers contain one of the following private headers managed by the ODataModel:
+	 *   accept, accept-language, maxdataserviceversion, dataserviceversion, x-csrf-token, sap-contextid-accept,
+	 *   sap-contextid
+	 *
+	 * @private
+	 * @ui5-restricted sap.suite.ui.generic
+	 */
+	ODataModel.prototype.submitChangesWithChangeHeaders = function(mParameters) {
+		var mChangedEntities, fnError, sGroupId, sMethod, sPrivateHeader, oRequestHandle, vRequestHandleInternal,
 			fnSuccess,
 			bAborted = false,
 			bRefreshAfterChange = this.bRefreshAfterChange,
@@ -6239,6 +6284,12 @@ sap.ui.define([
 		// ensure merge parameter backwards compatibility
 		if (mParameters.merge !== undefined) {
 			sMethod =  mParameters.merge ? "MERGE" : "PUT";
+		}
+		sPrivateHeader = Object.keys(mParameters.changeHeaders || {}).find(function (sHeader) {
+			return that._isHeaderPrivate(sHeader);
+		});
+		if (sPrivateHeader) {
+			throw new Error("Must not use private header: " + sPrivateHeader);
 		}
 
 		this.getBindings().forEach(function (oBinding) {
@@ -6312,7 +6363,8 @@ sap.ui.define([
 				}
 			}
 
-			vRequestHandleInternal = that._processRequestQueue(that.mDeferredRequests, sGroupId, fnSuccess, fnError);
+			vRequestHandleInternal = that._processRequestQueue(that.mDeferredRequests, sGroupId, fnSuccess, fnError,
+				mParameters.changeHeaders);
 			if (bAborted) {
 				oRequestHandle.abort();
 			}
@@ -6820,8 +6872,10 @@ sap.ui.define([
 				}
 			});
 		}
-		//The 'sap-cancel-on-close' header marks the OData request as cancelable. This helps to save resources at the back-end.
-		return extend({'sap-cancel-on-close': !!bCancelOnClose}, this.mCustomHeaders, mCheckedHeaders, this.oHeaders);
+		// The 'sap-cancel-on-close' header marks the OData request as cancelable. This helps to save resources at the
+		// back-end.
+		return extend({'sap-cancel-on-close': String(!!bCancelOnClose)}, this.mCustomHeaders, mCheckedHeaders,
+			this.oHeaders);
 	};
 
 	/**
@@ -7017,10 +7071,6 @@ sap.ui.define([
 	 *   <li><code>properties</code> could be an object which includes the desired properties and
 	 *     the corresponding values which should be used for the created entry. </li>
 	 * </ul>
-	 * If <code>properties</code> is not specified, all properties in the entity type will be
-	 * included in the created entry.
-	 *
-	 * If there are no values specified, the properties will have <code>undefined</code> values.
 	 *
 	 * The <code>properties</code> can be modified via property bindings relative to the returned
 	 * context instance.
@@ -7379,7 +7429,8 @@ sap.ui.define([
 			vProperties = mParameters.properties;
 			sGroupId = mParameters.groupId || mParameters.batchGroupId;
 			sChangeSetId = mParameters.changeSetId;
-			oContext  = mParameters.context;
+			// ignore context if path is absolute
+			oContext  = sPath.startsWith("/") ? undefined : mParameters.context;
 			fnSuccess = mParameters.success;
 			fnError   = mParameters.error;
 			fnCreated = mParameters.created;
@@ -7775,11 +7826,11 @@ sap.ui.define([
 	};
 
 	/**
-	 * Sets the <code>MessageParser</code> that is invoked upon every back-end request.
+	 * Sets the {@link sap.ui.core.message.MessageParser} that is invoked upon every back-end request.
 	 *
-	 * This message parser analyzes the response and notifies the <code>Messaging</code> about added and deleted messages.
+	 * This message parser analyzes the response and notifies {@link sap.ui.core.Messaging} about added and deleted messages.
 	 *
-	 * @param {object|null} [oParser] The <code>MessageParser</code> instance that parses the responses and adds messages to the <code>MessageManager</code>
+	 * @param {object|null} [oParser] The {@link sap.ui.core.message.MessageParser} instance that parses the responses and adds messages to {@link sap.ui.core.Messaging}
 	 * @return {this} Model instance for method chaining
 	 */
 	ODataModel.prototype.setMessageParser = function(oParser) {
@@ -8165,25 +8216,14 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataModel.prototype._cacheSupported = function(sMetadataUrl) {
-		var cacheBusterToken = /\/~[\w\-]+~[A-Z0-9]?/;
-		var aUrls = [sMetadataUrl];
-		//check urls for sap-context-token and cachebuster token
-		if (this.sAnnotationURI) {
-			if (!Array.isArray(this.sAnnotationURI)) {
-				this.sAnnotationURI = [this.sAnnotationURI];
-			}
-			aUrls = aUrls.concat(this.sAnnotationURI);
+		const bCacheMetadata = sMetadataUrl.includes("sap-context-token");
+		if (this.sAnnotationURI && !Array.isArray(this.sAnnotationURI)) {
+			this.sAnnotationURI = [this.sAnnotationURI];
 		}
+		const aAnnotationURIs = this.sAnnotationURI ?? [];
 
-		// check for context-token
-		aUrls = aUrls.filter(function(sUrl) {
-			return sUrl.indexOf("sap-context-token") === -1;
-		});
-		// check for cache buster token
-		aUrls = aUrls.filter(function(sUrl) {
-			return !cacheBusterToken.test(sUrl);
-		});
-		return aUrls.length === 0 ? true : false;
+		return bCacheMetadata
+			&& aAnnotationURIs.every((sUrl) => sUrl.includes("sap-context-token") || rCacheBusterSegment.test(sUrl));
 	};
 
 	/**

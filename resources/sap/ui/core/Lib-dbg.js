@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -411,7 +411,7 @@ sap.ui.define([
 						vValueToSet = vValue;
 					} else if ( sKey != "name" ) {
 						// ignore other values (silently ignore "name")
-						Log.warning("library info setting ignored: " + sKey + "=" + vValue);
+						Log.warning("[FUTURE FATAL] library info setting ignored: " + sKey + "=" + vValue);
 					}
 
 					if (vValueToSet !== undefined) {
@@ -479,10 +479,10 @@ sap.ui.define([
 		 */
 		preload: function(mOptions) {
 			if (mOptions && (mOptions.hasOwnProperty("async") || mOptions.hasOwnProperty("sync"))) {
-				Log.error("The 'preload' function of class sap/ui/core/Lib only support preloading a library asynchronously. The given 'async' or 'sync' setting is ignored.");
+				Log.error("[FUTURE FATAL] The 'preload' function of class sap/ui/core/Lib only support preloading a library asynchronously. The given 'async' or 'sync' setting is ignored.");
 			}
 			if (mOptions && mOptions.hasOwnProperty("json")) {
-				Log.error("The 'preload' function of class sap/ui/core/Lib only support preloading in JS Format. The given 'json' setting is ignored.");
+				Log.error("[FUTURE FATAL] The 'preload' function of class sap/ui/core/Lib only support preloading in JS Format. The given 'json' setting is ignored.");
 			}
 
 			return this._preload(["url", "lazy"].reduce(function(acc, sProperty) {
@@ -1229,6 +1229,8 @@ sap.ui.define([
 							// note: namespace already contains a trailing dot '.'
 							const sNamespacePrefix = mSubNamespaces.get(target);
 							DataType.registerEnum(`${sNamespacePrefix}${prop}`, value);
+
+							Log.debug(`[Library API-Version 2] If you intend to use API-Version 2 in your library, make sure to call 'sap/ui/base/DataType.registerEnum' for ${sNamespacePrefix}${prop}.`);
 						} else {
 							const firstChar = prop.charAt(0);
 							if (firstChar === firstChar.toLowerCase() && firstChar !== firstChar.toUpperCase()) {
@@ -1335,9 +1337,16 @@ sap.ui.define([
 	 * provided in <code>mSettings</code> and will evaluate the descriptor file instead. Library developers therefore
 	 * must keep the information in both files in sync if the <code>manifest.json</code> file is maintained manually.
 	 *
+	 *
+	 * <h3>Library API-Version 2</h3>
+	 *
+	 * The Library API Version 2 has been introduced to avoid access to the global namespace when retrieving enum types.
+	 * With Library API Version 2 a library must declare its enum types via {@link module:sap/ui/base/DataType.registerEnum DataType.registerEnum}.
+	 *
 	 * @param {object} mSettings Info object for the library
 	 * @param {string} mSettings.name Name of the library; It must match the name by which the library has been loaded
 	 * @param {string} [mSettings.version] Version of the library
+	 * @param {int} [mSettings.apiVersion=1] The library's API version; supported values are 1, 2 and <code>undefined</code> (defaults to 1).
 	 * @param {string[]} [mSettings.dependencies=[]] List of libraries that this library depends on; names are in dot
 	 *  notation (e.g. "sap.ui.core")
 	 * @param {string[]} [mSettings.types=[]] List of names of types that this library provides; names are in dot
@@ -1422,10 +1431,10 @@ sap.ui.define([
 			if ( !/^(any|boolean|float|int|string|object|void)$/.test(oLib.types[i]) ) {
 				// register a wrapper module that logs a deprecation warning
 				const sTypeName = oLib.types[i];
-				sap.ui.predefine(sTypeName.replace(/\./g, "/"), [], function(sTypeName) {
-					Log.error(`Deprecation: Import the type '${sTypeName}' as a module is deprecated. Please require the corresponding 'library.js' containing the type directly. You can then reference the type via the library's module export.`);
-					return ObjectPath.get(sTypeName);
-				}.bind(null, sTypeName));
+				const sLibraryJsPath = oLib.name.replace(/\./g, "/") + "/library";
+				sap.ui.loader._.declareModule(sTypeName.replace(/\./g, "/") + ".js",
+					`Deprecation: Importing the type '${sTypeName}' as a pseudo module is deprecated. Please import the type from the module '${sLibraryJsPath}'. You can then reference this type via the library's module export. ` +
+					`For more information, see documentation under 'Best Practices for Loading Modules'.`);
 
 				// ensure parent namespace of the type
 				var sNamespacePrefix = sTypeName.substring(0, sTypeName.lastIndexOf("."));

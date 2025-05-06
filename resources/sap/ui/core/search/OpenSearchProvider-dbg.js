@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,8 +27,8 @@ sap.ui.define([
 	 * @class
 	 * A SearchProvider which uses the OpenSearch protocol (either JSON or XML).
 	 * @extends sap.ui.core.search.SearchProvider
-	 * @version 1.120.1
-	 * @deprecated since 1.120
+	 * @version 1.120.30
+	 * @deprecated as of version 1.120. There is no API replacement.
 	 *
 	 * @public
 	 * @alias sap.ui.core.search.OpenSearchProvider

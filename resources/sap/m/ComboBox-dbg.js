@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -106,7 +106,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -1577,9 +1577,10 @@ sap.ui.define([
 			ComboBoxBase.prototype.open.call(this);
 
 			var oSelectedItem = ListHelpers.getListItem(this.getSelectedItem());
+			const oSuggestionPopover = this._getSuggestionsPopover();
 
-			if (!this._bInputFired) {
-				this._getSuggestionsPopover() && this._getSuggestionsPopover().updateFocus(this, oSelectedItem);
+			if (!this._bInputFired && oSuggestionPopover) {
+				oSuggestionPopover.updateFocus(this, oSelectedItem);
 			}
 
 			this._bInputFired = false;
@@ -1910,21 +1911,6 @@ sap.ui.define([
 			this.loadItems(fnLoadItemsListener);
 		};
 
-		/**
-		 * Gets <code>sap.m.FormattedText</code> aggregation based on its current parent.
-		 * If the SuggestionPopover is open that is the <code>sap.m.ValueStateHeader</code>, otherwise is the InputBase itself.
-		 *
-		 * @private
-		 * @returns {sap.m.FormattedText} Aggregation used for value state message that can contain links.
-		 * @since 1.78
-		 */
-		ComboBox.prototype._getFormattedValueStateText = function() {
-			if (this.isOpen()) {
-				return this._getSuggestionsPopover()._getValueStateHeader().getFormattedText();
-			} else {
-				return ComboBoxTextField.prototype.getFormattedValueStateText.call(this);
-			}
-		};
 
 		/**
 		 * Handles the clear icon press.

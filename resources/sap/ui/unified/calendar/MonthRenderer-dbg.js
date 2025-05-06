@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -241,8 +241,7 @@ sap.ui.define([
 			}
 			oRm.accessibilityState(null, {
 				role: "columnheader",
-				label: aWeekDaysWide[(i + iStartDay) % 7],
-				hidden: true
+				label: aWeekDaysWide[(i + iStartDay) % 7]
 			});
 			oRm.openEnd(); // div element
 			oRm.text(aWeekDays[(i + iStartDay) % 7]);
@@ -399,8 +398,7 @@ sap.ui.define([
 			},
 			bBeforeFirstYear = oDay._bBeforeFirstYear,
 			sAriaType = "",
-			oLegend = oHelper.oLegend,
-			sNonWorkingDayText;
+			oLegend = oHelper.oLegend;
 
 		var sYyyymmdd = oMonth._oFormatYyyymmdd.format(oDay.toUTCJSDate(), true);
 		var iWeekDay = oDay.getDay();
@@ -410,15 +408,13 @@ sap.ui.define([
 		var bEnabled = oMonth._checkDateEnabled(oDay);
 		var i = 0;
 		var bShouldBeMarkedAsSpecialDate = oMonth._isSpecialDateMarkerEnabled(oDay);
+
+		const sNonWorkingDayText = oMonth._oUnifiedRB.getText("LEGEND_NON_WORKING_DAY");
+		const aTooltipTexts = [];
+
 		// Days before 0001.01.01 should be disabled.
 		if (bBeforeFirstYear) {
 			bEnabled = false;
-		}
-
-		if (!bDayName) {
-			mAccProps["describedby"] = iNumber < 0
-				? oHelper.sId + "-WH" + iWeekDay
-				: oHelper.sId + "-WH" + iNumber;
 		}
 
 		oRm.openStart("div", oHelper.sId + "-" + sYyyymmdd);
@@ -436,7 +432,7 @@ sap.ui.define([
 		}
 		if (oDay.isSame(oHelper.oToday)) {
 			oRm.class("sapUiCalItemNow");
-			mAccProps["label"] = oHelper.sToday + " ";
+			aTooltipTexts.push(oMonth._oUnifiedRB.getText("LEGEND_TODAY"));
 		}
 
 		if (iSelected > 0) {
@@ -468,8 +464,8 @@ sap.ui.define([
 			aDayTypes.forEach(function(oDayType) {
 				if (oDayType.type !== CalendarDayType.None) {
 					if (oDayType.type === CalendarDayType.NonWorking) {
+						aTooltipTexts.push(sNonWorkingDayText);
 						oRm.class("sapUiCalItemWeekEnd");
-						sNonWorkingDayText = this._addNonWorkingDayText(mAccProps);
 						return;
 					}
 
@@ -477,26 +473,28 @@ sap.ui.define([
 						oRm.class("sapUiCalItem" + oDayType.type);
 						sAriaType = oDayType.type;
 						if (oDayType.tooltip) {
-							oRm.attr('title', oDayType.tooltip);
+							aTooltipTexts.push(oDayType.tooltip);
 						}
 					}
 				}
-			}.bind(this));
+			});
 		}
 
 
-		if (!sNonWorkingDayText) { // if sNonWorkingDayText exists, it is already included above as specialDate of type NonWorking
-			if (oHelper.aNonWorkingDays) { // check if there are nonWorkingDays passed and add text to them
-				oHelper.aNonWorkingDays.forEach(function (iNonWorkingDay) {
-					if (oDay.getDay() === iNonWorkingDay) {
-						this._addNonWorkingDayText(mAccProps);
-					}
-				}.bind(this));
-			} else if (oDay.getDay() === oHelper.iWeekendStart || oDay.getDay() === oHelper.iWeekendEnd) { // otherwise add the text to the NonWorkigDays from the locale
-				this._addNonWorkingDayText(mAccProps);
-			}
+		if (oHelper.aNonWorkingDays) { // check if there are nonWorkingDays passed and add text to them
+			oHelper.aNonWorkingDays.forEach(function (iNonWorkingDay) {
+				if (oDay.getDay() === iNonWorkingDay) {
+					aTooltipTexts.push(sNonWorkingDayText);
+				}
+			});
+		} else if ((oDay.getDay() === oHelper.iWeekendStart || oDay.getDay() === oHelper.iWeekendEnd)) { // otherwise add the text to the NonWorkigDays from the locale
+			aTooltipTexts.push(sNonWorkingDayText);
 		}
 
+		if (aTooltipTexts.length) {
+			const aTooltips = aTooltipTexts.filter((sText, iPos) => aTooltipTexts.indexOf(sText) === iPos );
+			oRm.attr('title', aTooltips.join(" "));
+		}
 
 		//oMonth.getDate() is a public date object, so it is always considered local timezones.
 		if (((oMonth.getParent() && oMonth.getParent().getMetadata().getName() === "sap.ui.unified.CalendarOneMonthInterval")
@@ -582,18 +580,6 @@ sap.ui.define([
 
 		oRm.close("div");
 
-	};
-
-	/**
-	 * Includes additional text to the DOM indicating that the day is non-working
-	 *
-	 * @param {Object} mAccProps The accessibility properties for the day to be rendered.
-	 * @returns {string} sText The text for the non-working day from the bundle
-	 */
-	MonthRenderer._addNonWorkingDayText = function (mAccProps) {
-		var sText = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("LEGEND_NON_WORKING_DAY") + " ";
-		mAccProps["label"] += sText;
-		return sText;
 	};
 
 	MonthRenderer._renderWeekNumber = function(oRm, oDay, oHelper, oMonth) {

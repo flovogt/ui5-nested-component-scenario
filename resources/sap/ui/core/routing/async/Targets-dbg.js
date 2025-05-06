@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/Log"], function(Log) {
@@ -119,7 +119,7 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 				}
 				return oTarget._display(vData, oSequencePromise, oTargetCreateInfo);
 			} else {
-				var sErrorMessage = "The target with the name \"" + sName + "\" does not exist!";
+				var sErrorMessage = "[FUTURE FATAL] The target with the name \"" + sName + "\" does not exist!";
 				Log.error(sErrorMessage, this);
 				return Promise.resolve({
 					name: sName,

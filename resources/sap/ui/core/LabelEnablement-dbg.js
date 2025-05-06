@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -130,6 +130,10 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 			return true;
 		}
 
+		if (oControl.isA("sap.ui.core.ILabelable")) {
+			return oControl.hasLabelableHTMLElement();
+		}
+
 		var sName = oControl.getMetadata().getName();
 		return NON_LABELABLE_CONTROLS.indexOf(sName) < 0;
 	}
@@ -140,7 +144,7 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 	 * @see sap.ui.core.LabelEnablement#enrich
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @protected
 	 * @alias sap.ui.core.LabelEnablement
 	 * @namespace
@@ -310,7 +314,10 @@ sap.ui.define(['../base/ManagedObject', "sap/base/assert"],
 
 			Element = Element ? Element : sap.ui.require("sap/ui/core/Element");
 
-			if (oControl && oControl.getIdForLabel && oControl.getIdForLabel()) {
+			if (oControl &&
+				!oControl.isA("sap.ui.core.ILabelable") &&
+				oControl.getIdForLabel
+				&& oControl.getIdForLabel()) {
 				oLabelForControl = Element.getElementById(oControl.getIdForLabel());
 				if (oLabelForControl) {
 					oControl = oLabelForControl;

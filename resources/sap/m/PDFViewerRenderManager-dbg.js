@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -117,9 +117,9 @@ sap.ui.define([
 				}
 			};
 
-			PDFViewer.prototype._initPlaceholderIllustratedMessageControl = function () {
+			PDFViewer.prototype._initErrorPlaceholderIllustratedMessageControl = function () {
 				var that = this,
-				sPlaceholderIllustratedMessageFactoryFunctionName = "getPlaceholderIllustratedMessageControl";
+				sPlaceholderIllustratedMessageFactoryFunctionName = "getErrorPlaceholderIllustratedMessageControl";
 
 				this._objectsRegister[sPlaceholderIllustratedMessageFactoryFunctionName] = function () {
 					var oIllustratedMessage = new IllustratedMessage({
@@ -237,6 +237,22 @@ sap.ui.define([
 				};
 
 			};
+
+			PDFViewer.prototype._getNonTrustedSourceIllustratedMessage = function () {
+				var oButtonContent = this._objectsRegister.getPopupDownloadButtonControl(),
+					oIllustratedMessage = this.getAggregation("_nonTrustedIllustratedMessage");
+				if (!oIllustratedMessage) {
+					oIllustratedMessage = new IllustratedMessage({
+						title: this._getLibraryResourceBundle().getText("PDF_VIEWER_NONTRUSTEDSOURCEMESSAGE_TITLE"),
+						illustrationType: "tnt-ExternalLink",
+						enableDefaultTitleAndDescription: false,
+						additionalContent: [oButtonContent]
+					});
+					this.setAggregation("_nonTrustedIllustratedMessage", oIllustratedMessage);
+				}
+				return oIllustratedMessage;
+			};
+
 		}
 	};
 

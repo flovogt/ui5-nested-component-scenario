@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -48,7 +48,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions]
@@ -136,6 +136,10 @@ sap.ui.define([
 			oFormatOptionsMerged = extend({}, this.oFormatOptions, oFormatArgs);
 		}
 
+		if (this.iScale >= 0) {
+			// ensures that amount scale wins over the decimals for the unit
+			oFormatOptionsMerged = extend({}, {maxFractionDigits: this.iScale}, oFormatOptionsMerged);
+		}
 		// Only subclasses of the Unit type use a NumberFormat instance cache.
 		// By default a new NumberFormat instance is created everytime.
 		if (this.getMetadata().getClass() !== Unit) {
@@ -242,6 +246,26 @@ sap.ui.define([
 	};
 
 	/**
+	 * Gets the indices of the binding parts of this composite type in order to determine those parts
+	 * whose types are required for formatting.
+	 * If for example the type of the amount part is a {@link sap.ui.model.odata.type.Decimal} with a
+	 * <code>scale</scale> constraint less than the unit part's decimal places, then the amount's scale is
+	 * used.
+	 *
+	 * @returns {int[]}
+	 *   The indices of the parts with a relevant type for this composite type, or an empty array if
+	 *   the format option <code>showNumber</code> is <code>false</code>
+	 *
+	 * @override sap.ui.model.CompositeType#getPartsListeningToTypeChanges
+	 * @see #processPartTypes
+	 */
+	Unit.prototype.getPartsListeningToTypeChanges = function () {
+		// Only the first part is of interest because it may have a type with another scale than the
+		// decimal places for the unit part
+		return this.bShowNumber ? [0] : [];
+	};
+
+	/**
 	 * Parse a string value to an array containing measure and unit. Parsing of other
 	 * internal types than 'string' is not supported by the Unit type.
 	 * In case a source format has been defined, after parsing the Unit is formatted
@@ -281,6 +305,23 @@ sap.ui.define([
 			vResult = this.oInputFormat.format(vResult);
 		}
 		return vResult;
+	};
+
+	/**
+	 * Processes the types of this composite type's parts. Remembers the <code>scale</code>
+	 * constraint of the amount part's type to consider it while formatting.
+	 *
+	 * @param {sap.ui.model.SimpleType[]} aPartTypes The types of the composite binding parts
+	 *
+	 * @override sap.ui.model.CompositeType#processPartTypes
+	 * @protected
+	 * @since 1.120.0
+	 */
+	Unit.prototype.processPartTypes = function (aPartTypes) {
+		const oQuantityType = aPartTypes[0];
+		if (oQuantityType?.isA("sap.ui.model.odata.type.Decimal")) {
+			this.iScale = oQuantityType.oConstraints?.scale || 0;
+		}
 	};
 
 	Unit.prototype.validateValue = function(vValue) {

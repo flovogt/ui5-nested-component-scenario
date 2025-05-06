@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -38,7 +38,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @public
@@ -85,6 +85,7 @@ sap.ui.define([
 					fixedItem: {type: 'sap.tnt.NavigationList', multiple: false},
 					/**
 					 * Defines the content inside the footer.
+					 * @deprecated Since version 1.120. Use the aggregation <code>fixedItem</code> instead.
 					 */
 					footer: {type: 'sap.tnt.NavigationList', multiple: false}
 				},

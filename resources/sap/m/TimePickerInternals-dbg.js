@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -49,7 +49,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @private
@@ -513,11 +513,24 @@ sap.ui.define([
 		TimePickerInternals._replaceZeroHoursWith24 = function (sValue, iIndexOfHH, iIndexOfH) {
 			var iHoursDigits = 2,
 				iSubStringIndex = iIndexOfHH;
+			var oSignificantNumbers = /[1-9]/g;
+
+			if (iIndexOfH === -1) {
+				return sValue;
+			}
 
 			if (iIndexOfHH === -1) {
 				iHoursDigits = 1;
 				iSubStringIndex = iIndexOfH;
 			}
+
+			var sValueWithoutHours = sValue.substr(0, iSubStringIndex) + sValue.substr(iSubStringIndex + iHoursDigits);
+
+			if (oSignificantNumbers.test(sValueWithoutHours)) {
+				return sValue;
+			}
+
+			sValue = sValue.replace(/[0-9]/g, "0");
 
 			return sValue.substr(0, iSubStringIndex) + "24" + sValue.substr(iSubStringIndex + iHoursDigits);
 		};

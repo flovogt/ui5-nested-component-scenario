@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -768,8 +768,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Removes all control messages for this binding from the MessageManager in addition to the
-	 * standard clean-up tasks.
+	 * Removes all control messages for this binding from {@link sap.ui.core.Messaging} in addition
+	 * to the standard clean-up tasks.
 	 * @see sap.ui.base.EventProvider#destroy
 	 *
 	 * @public

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -81,6 +81,7 @@ sap.ui.define([
 			}
 			// notify Elements via a pseudo browser event (onLocalizationChanged)
 			if (oObject.isA("sap.ui.core.Element")) {
+				oBrowserEvent._bNoReturnValue = true; // localizationChanged handler aren't allowed to return any value, mark for future fatal throw.
 				oObject._handleEvent(oBrowserEvent);
 			}
 		}

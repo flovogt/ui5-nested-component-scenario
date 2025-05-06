@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -176,7 +176,7 @@ function(
 		 * @extends sap.m.DateTimeField
 		 *
 		 * @author SAP SE
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @public
@@ -624,6 +624,18 @@ function(
 		};
 
 		/**
+		 * Onmouseup handler assures moving of the cursor at the beginning of the input field
+		 * if there is mask set and there is no entry in the input field.
+		 *
+		 * @private
+		 */
+		TimePicker.prototype.onmouseup = function() {
+			if (this._isMaskEnabled() && this._isValueEmpty()) {
+				this._positionCaret();
+			}
+		};
+
+		/**
 		 * Returns whether the icon for opening the clock picker is clicked or not.
 		 *
 		 * @private
@@ -755,9 +767,10 @@ function(
 				sThatValue,
 				bThatValue2400,
 				bEnabled2400,
-				sFormat = this.getValueFormat() || (this._sValueFormat && this._sValueFormat.oFormatOptions.pattern),
+				sFormat = this.getDisplayFormat() || this.getValueFormat() || (this._sValueFormat && this._sValueFormat.oFormatOptions.pattern),
 				iIndexOfHH,
-				iIndexOfH;
+				iIndexOfH,
+				bContains24;
 
 			sFormat = sFormat ? sFormat : "";
 			iIndexOfHH = sFormat.indexOf("HH");
@@ -766,7 +779,8 @@ function(
 			sValue = sValue || this._$input.val();
 			sThatValue = sValue;
 			bThatValue2400 = TimePickerInternals._isHoursValue24(sThatValue, iIndexOfHH, iIndexOfH);
-			bEnabled2400 = this.getSupport2400() && bThatValue2400;
+			bContains24 = sValue.substr(iIndexOfH, 2) === "24";
+			bEnabled2400 = this.getSupport2400() && bThatValue2400 && bContains24;
 			this._bValid = true;
 			if (sValue !== "") {
 				//keep the oDate not changed by the 24 hrs
@@ -779,7 +793,7 @@ function(
 					this._bValid = false;
 				} else {
 					// check if Formatter changed the value (it corrects some wrong inputs or known patterns)
-					sValue = this._formatValue(oDate);
+					sValue = this._formatValue(oDate, false, true);
 					// reset the mask as the value might be changed without firing focus out event,
 					// which is unexpected behavior in regards to the MaskEnabler temporary value storage
 					if (this.getMaskMode() && this.getMask()) {
@@ -793,7 +807,7 @@ function(
 
 			if (oDate) {
 				// get the value in valueFormat
-				sThatValue = sValue = this._formatValue(oDate, true);
+				sThatValue = sValue = this._formatValue(oDate, true, true);
 				if (bEnabled2400 && oDate && oDate.getHours() === 0) {
 					// put back 24 as hour if needed
 					sThatValue = sValue = TimePickerInternals._replaceZeroHoursWith24(sValue, iIndexOfHH, iIndexOfH);
@@ -1716,7 +1730,7 @@ function(
 
 			this._isClockPicker = true;
 			this._isNumericPicker = false;
-			sValue = this._formatValue(oDate);
+			sValue = this._formatValue(oDate, false, true);
 
 			this.updateDomValue(sValue);
 			this._handleInputChange();
@@ -1803,10 +1817,11 @@ function(
 		 *
 		 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
 		 * @param {boolean} bValueFormat Defines whether the result is in <code>valueFormat</code> or <code>displayFormat</code>
+		 * @param {boolean} bNotReplace00with24 Defines whether 00 will be replaced with 24 in the resulting string
 		 * @returns {string} Formatted value
 		 * @private
 		 */
-		TimePicker.prototype._formatValue = function(oDate, bValueFormat) {
+		TimePicker.prototype._formatValue = function(oDate, bValueFormat, bNotReplace00with24) {
 			var sValue = DateTimeField.prototype._formatValue.apply(this, arguments),
 				sFormat = this.getValueFormat() || (this._sValueFormat && this._sValueFormat.oFormatOptions.pattern),
 				iIndexOfHH,
@@ -1831,7 +1846,7 @@ function(
 
 			if ((this._isNumericPicker && this.isNumericOpen() && this._getInputs() && this._getInputs()._getHoursInput() && this._getInputs()._getHoursInput().getValue() === "24") ||
 				(this._isClockPicker && this.isOpen() && this._getClocks() && this._getClocks()._getHoursClock() && this._getClocks()._getHoursClock().getSelectedValue() === 24) ||
-				(this._sLastChangeValue && this._sLastChangeValue.indexOf("24") > -1)) {
+				(this._sLastChangeValue && this._sLastChangeValue.indexOf("24") > -1 && !bNotReplace00with24)) {
 					bFieldValueIs24 = true;
 			}
 

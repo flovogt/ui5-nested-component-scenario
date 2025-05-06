@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -122,7 +122,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.120.1
+		* @version 1.120.30
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -672,7 +672,8 @@ sap.ui.define([
 				if (!this._oScroller) {
 					this._oScroller = new ScrollEnablement(this, this.getId() + "-scroll", {
 						horizontal: bHorScrolling,
-						vertical: bVerScrolling
+						vertical: bVerScrolling,
+						callBefore: true
 					});
 				} else {
 					this._oScroller.setHorizontal(bHorScrolling);

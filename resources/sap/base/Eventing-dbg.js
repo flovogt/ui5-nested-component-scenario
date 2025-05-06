@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,14 +15,15 @@ sap.ui.define([
 	"use strict";
 
 	/**
-	 * Eventing
+	 * @class A simple eventing implementation that manages listeners and can fire events.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @since 1.120.0
 	 * @private
 	 * @ui5-restricted sap.ui.core sap/base/i18n
+	 * @alias module:sap/base/Eventing
 	 */
 	class Eventing {
 		#mEventRegistry = {};

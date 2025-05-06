@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -275,10 +275,26 @@ sap.ui.define([
 			"application/vnd.openxmlformats-officedocument.wordprocessingml.document": "sap-icon://doc-attachment",
 			"application/rtf": "sap-icon://doc-attachment",
 			"application/pdf": "sap-icon://pdf-attachment",
-			"application/vnd.google-apps.spreadsheet": "sap-icon://excel-attachment",
-			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "sap-icon://excel-attachment",
-			"application/vnd.ms-excel": "sap-icon://excel-attachment",
+
+			// excel mime types
+			// 97 - 2003 (.xls)
 			"application/msexcel": "sap-icon://excel-attachment",
+			"application/vnd.ms-excel": "sap-icon://excel-attachment",
+			// 2007 and later (.xlsx)
+			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "sap-icon://excel-attachment",
+			// macro enabled (.xlsm)
+			"application/vnd.ms-excel.sheet.macroenabled.12": "sap-icon://excel-attachment",
+			// template files (.xltx)
+			"application/vnd.openxmlformats-officedocument.spreadsheetml.template": "sap-icon://excel-attachment",
+			// macro enabled template files (.xltm)
+			"application/vnd.ms-excel.template.macroenabled.12": "sap-icon://excel-attachment",
+			// binary workbook files (.xlsb)
+			"application/vnd.ms-excel.sheet.binary.macroenabled.12": "sap-icon://excel-attachment",
+			// add-in files (.xlam)
+			"application/vnd.ms-excel.addin.macroenabled.12": "sap-icon://excel-attachment",
+			// Google Sheets document
+			"application/vnd.google-apps.spreadsheet": "sap-icon://excel-attachment",
+
 			"application/vnd.ms-powerpoint": "sap-icon://ppt-attachment",
 			"application/vnd.google-apps.presentation": "sap-icon://ppt-attachment",
 			"application/vnd.openxmlformats-officedocument.presentationml.presentation": "sap-icon://ppt-attachment",
@@ -333,7 +349,7 @@ sap.ui.define([
 		 * @since 1.25.0
 		 */
 		IconPool.getIconForMimeType = function (sMimeType) {
-			return mIconForMimeType[sMimeType] || "sap-icon://document";
+			return mIconForMimeType[sMimeType?.toLowerCase()] || "sap-icon://document";
 		};
 
 		return IconPool;

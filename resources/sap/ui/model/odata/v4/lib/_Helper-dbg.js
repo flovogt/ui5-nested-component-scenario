@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -163,8 +163,9 @@ sap.ui.define([
 		 * @param {object} oOperationMetadata
 		 *   The operation metadata to determine whether a given message target is a parameter
 		 *   of the operation
-		 * @param {string} sParameterContextPath
-		 *   The parameter context path
+		 * @param {string} [sParameterContextPath]
+		 *   The parameter context path, needed for adjusting a message target in case it is an
+		 *   operation parameter, except the binding parameter
 		 * @param {string} [sContextPath]
 		 *   The context path for a bound operation
 		 *
@@ -172,7 +173,9 @@ sap.ui.define([
 		 */
 		adjustTargets : function (oMessage, oOperationMetadata, sParameterContextPath,
 				sContextPath) {
-			var sAdditionalTargetsKey = _Helper.getAnnotationKey(oMessage, ".additionalTargets"),
+			var sAdditionalTargetsKey = "additionalTargets" in oMessage
+					? "additionalTargets"
+					: _Helper.getAnnotationKey(oMessage, ".additionalTargets"),
 				aTargets;
 
 			aTargets = [oMessage.target].concat(oMessage[sAdditionalTargetsKey])
@@ -812,12 +815,13 @@ sap.ui.define([
 
 				if (!isRelevant(oClone.error, sTopLevelContentID)) {
 					oClone.error.$ignoreTopLevel = true;
-				} else {
-					oClone.strictHandlingFailed = oError.strictHandlingFailed;
+				}
+				if (oError.strictHandlingFailed) {
+					oClone.strictHandlingFailed = true;
 				}
 				if (oClone.error.details) {
-					oClone.error.details = oClone.error.details.filter(function (oDetail, i) {
-						return isRelevant(oDetail, aDetailContentIDs[i]);
+					oClone.error.details = oClone.error.details.filter(function (oDetail, j) {
+						return isRelevant(oDetail, aDetailContentIDs[j]);
 					});
 				}
 
@@ -1266,8 +1270,9 @@ sap.ui.define([
 		 * @param {object} oOperationMetadata
 		 *   The operation metadata to determine whether a given message target is a parameter
 		 *   of the operation
-		 * @param {string} sParameterContextPath
-		 *   The parameter context path
+		 * @param {string} [sParameterContextPath]
+		 *   The parameter context path, needed for adjusting a message target in case it is an
+		 *   operation parameter, except the binding parameter
 		 * @param {string} [sContextPath]
 		 *   The context path for a bound operation
 		 * @returns {string|undefined} The adjusted target, or <code>undefined</code> if the target
@@ -1276,7 +1281,7 @@ sap.ui.define([
 		 * @private
 		 */
 		getAdjustedTarget : function (sTarget, oOperationMetadata, sParameterContextPath,
-					sContextPath) {
+				sContextPath) {
 			var bIsParameterName,
 				sParameterName,
 				aSegments;
@@ -1290,6 +1295,9 @@ sap.ui.define([
 			if (oOperationMetadata.$IsBound
 					&& sParameterName === oOperationMetadata.$Parameter[0].$Name) {
 				sTarget = _Helper.buildPath(sContextPath, aSegments.join("/"));
+				return sTarget;
+			}
+			if (!sParameterContextPath) {
 				return sTarget;
 			}
 			bIsParameterName = oOperationMetadata.$Parameter.some(function (oParameter) {
@@ -2310,6 +2318,24 @@ sap.ui.define([
 		},
 
 		/**
+		 * Registers the listener for the given owner. Passes a deregister function to the listener.
+		 *
+		 * @param {object} oOwner - The owner with a map mChangeListeners (which may change)
+		 * @param {string} sPath - The path
+		 * @param {object} [oListener] - The listener
+		 *
+		 * @public
+		 */
+		registerChangeListener : function (oOwner, sPath, oListener) {
+			if (oListener) {
+				_Helper.addByPath(oOwner.mChangeListeners, sPath, oListener);
+				oListener.setDeregisterChangeListener(function () {
+					_Helper.removeByPath(oOwner.mChangeListeners, sPath, oListener);
+				});
+			}
+		},
+
+		/**
 		 * Removes an item from the given map by path.
 		 *
 		 * @param {object} mMap
@@ -2982,7 +3008,7 @@ sap.ui.define([
 
 				// Create annotations for a property which was selected but no data was received
 				Object.keys(vSelect).forEach(function (sProperty) {
-					if (!(sProperty in oTarget) && sProperty !== "*") {
+					if (oTarget[sProperty] === undefined && sProperty !== "*") {
 						oTarget[sProperty + "@$ui5.noData"] = true;
 						// Fire change event (useful for Edm.Stream in case of the URL stays the
 						// same, but the content was changed)

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -74,7 +74,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataParentBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
@@ -595,10 +595,12 @@ sap.ui.define([
 		 */
 		function getOriginalResourcePath(oResponseEntity) {
 			if (that.isReturnValueLikeBindingParameter(oOperationMetadata)) {
-				if (that.hasReturnValueContext()) {
-					return that.getReturnValueContextPath(oResponseEntity);
+				const sRVCPath = that.getReturnValueContextPath(oResponseEntity);
+				if (sRVCPath) {
+					return sRVCPath;
 				}
-				if (_Helper.getPrivateAnnotation(vEntity, "predicate")
+				if (that.oOperation.bAdditionalQueryOptionsForRVC === false
+						&& _Helper.getPrivateAnnotation(vEntity, "predicate")
 						=== _Helper.getPrivateAnnotation(oResponseEntity, "predicate")) {
 					// return value is *same* as binding parameter: attach messages to the latter
 					return sOriginalResourcePath.slice(0, sOriginalResourcePath.lastIndexOf("/"));
@@ -795,21 +797,6 @@ sap.ui.define([
 			sDeepResourcePath) {
 		return _Cache.createSingle(this.oModel.oRequestor, sResourcePath, mQueryOptions,
 			this.oModel.bAutoExpandSelect, this.oModel.bSharedRequests, sDeepResourcePath);
-	};
-
-	/**
-	 * @override
-	 * @see sap.ui.model.odata.v4.ODataBinding#doDeregisterChangeListener
-	 */
-	ODataContextBinding.prototype.doDeregisterChangeListener = function (sPath, oListener) {
-		if (this.oOperation) {
-			const sRelativePath = _Helper.getRelativePath(sPath, this.oParameterContext.getPath());
-			if (sRelativePath !== undefined) {
-				_Helper.removeByPath(this.oOperation.mChangeListeners, sRelativePath, oListener);
-				return;
-			}
-		}
-		asODataParentBinding.prototype.doDeregisterChangeListener.apply(this, arguments);
 	};
 
 	/**
@@ -1082,7 +1069,7 @@ sap.ui.define([
 					if (aSegments.length === 1) {
 						return undefined;
 					}
-					_Helper.addByPath(that.oOperation.mChangeListeners,
+					_Helper.registerChangeListener(that.oOperation,
 						sRelativePath.slice(/*"$Parameter/".length*/11), oListener);
 
 					vValue = _Helper.drillDown(that.oOperation.mParameters, aSegments.slice(1));
@@ -1106,7 +1093,7 @@ sap.ui.define([
 						that.fireDataRequested(bPreventBubbling);
 					}, oListener)
 				).then(function (vValue) {
-					that.assertSameCache(oCache);
+					that.checkSameCache(oCache);
 
 					return vValue;
 				}).then(function (vValue) {
@@ -1267,13 +1254,14 @@ sap.ui.define([
 	 *
 	 * @param {object} oResponseEntity
 	 *   The result of the executed operation
-	 * @returns {string} The path for the return value context.
+	 * @returns {string|undefined} The path for the return value context or <code>undefined</code>
+	 *   if it is not possible to create one
 	 *
 	 * @privat
 	 */
 	ODataContextBinding.prototype.getReturnValueContextPath = function (oResponseEntity) {
-		if (this.oOperation.bAdditionalQueryOptionsForRVC === undefined) {
-			throw new Error("Unexpected Value for bAdditionalQueryOptionsForRVC: undefined");
+		if (!this.hasReturnValueContext()) {
+			return undefined;
 		}
 		const sBindingParameterPath = this.oContext.getPath().slice(1);
 		const sPredicate = _Helper.getPrivateAnnotation(oResponseEntity, "predicate");
@@ -1285,10 +1273,14 @@ sap.ui.define([
 		const aMetaPathSegments = _Helper.getMetaPath(sBindingParameterPath).split("/");
 		const sPartner = this.oModel.getMetaModel()
 			.getObject("/" + aMetaPathSegments[0] + "/" + aMetaPathSegments[1] + "/$Partner");
+		const oPartner = oResponseEntity[sPartner];
 		const sPartnerPredicate
-			= this.oModel.getKeyPredicate("/" + aMetaPathSegments[0], oResponseEntity[sPartner]);
+			= oPartner && this.oModel.getKeyPredicate("/" + aMetaPathSegments[0], oPartner);
 
-		return sBindingParameterPath.split("/").map(function (sSegment, i) {
+		if (!(sPartnerPredicate && sPredicate)) {
+			return undefined;
+		}
+		return sBindingParameterPath.split("/").map((sSegment, i) => {
 			return sSegment.slice(0, sSegment.lastIndexOf("("))
 				+ (i ? sPredicate : sPartnerPredicate);
 		}).join("/");
@@ -1328,9 +1320,8 @@ sap.ui.define([
 					// the context (we already read its predicate)
 					this.oContext.patch(oResponseEntity);
 				}
-				if (this.hasReturnValueContext()) {
-					// determine the new path
-					sNewPath = this.getReturnValueContextPath(oResponseEntity);
+				sNewPath = this.getReturnValueContextPath(oResponseEntity);
+				if (sNewPath) {
 					if (bReplaceWithRVC) {
 						// replace is only possible if the path does not contain any navigation
 						// property or the key predicate of the first segment has not changed!
@@ -1546,9 +1537,12 @@ sap.ui.define([
 					bKeepCacheOnError ? sGroupId : undefined);
 				// Do not fire a change event, or else ManagedObject destroys and recreates the
 				// binding hierarchy causing a flood of events.
-				oPromise = bHasChangeListeners
-					? that.createRefreshPromise(/*bPreventBubbling*/bKeepCacheOnError)
-					: undefined;
+				if (bHasChangeListeners) {
+					oPromise = that.createRefreshPromise(/*bPreventBubbling*/bKeepCacheOnError);
+				} else {
+					oReadGroupLock.unlock();
+					that.oReadGroupLock = undefined;
+				}
 				if (bKeepCacheOnError && oPromise) {
 					oPromise = oPromise.catch(function (oError) {
 						return that.fetchResourcePath(that.oContext).then(function (sResourcePath) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -126,7 +126,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -678,15 +678,14 @@ sap.ui.define([
 				activePages: this._aAllActivePagesIndexes
 			});
 		}
-
-		this._adjustArrowsVisibility();
-		this._updateItemsAttributes();
-		this._updatePageIndicator();
-
 		// focus the new page if the focus was in the carousel and is not on some of the page children
 		if (this.getDomRef().contains(document.activeElement) && !this.getFocusDomRef().contains(document.activeElement) || this._bPageIndicatorArrowPress) {
 			this.getFocusDomRef().focus({ preventScroll: true });
 		}
+
+		this._adjustArrowsVisibility();
+		this._updateItemsAttributes();
+		this._updatePageIndicator();
 	};
 
 	Carousel.prototype._updateItemsAttributes = function () {
@@ -880,6 +879,12 @@ sap.ui.define([
 			return;
 		}
 
+		const sTargetTag = oEvent.target.tagName.toLowerCase();
+
+		if (["input", "textarea", "select"].indexOf(sTargetTag) > -1 || oEvent.target.isContentEditable) {
+			return;
+		}
+
 		if (this._isPageIndicatorArrow(oEvent.target)) {
 			// prevent upcoming focusin event on the arrow and focusout on the active page
 			oEvent.preventDefault();
@@ -939,6 +944,7 @@ sap.ui.define([
 		if (!this._bDragging || this._bDragCanceled || oEvent.isMarked("delayedMouseEvent")) {
 			return;
 		}
+
 		// mark the event for components that need to know if the event was handled by the carousel
 		oEvent.setMarked();
 

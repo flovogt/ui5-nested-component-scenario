@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -67,7 +67,7 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -716,6 +716,9 @@ sap.ui.define([
 			} else if (oEvent.target.classList.contains("sapMLIBFocusable")) {
 				if (oEvent.type.startsWith("sappage")) {
 					iForwardIndex = iIndex - iIndex % iColumnCount;
+					if (oEvent.type == "sappageup" && iForwardIndex == 0 && oItemNavigation.getFocusedIndex() > iColumnCount) {
+						iForwardIndex = iColumnCount;
+					}
 				} else if (oEvent.type == "saphome") {
 					iForwardIndex = 0;
 				} else if (oEvent.type == "sapend") {
@@ -746,6 +749,7 @@ sap.ui.define([
 		var aItemDomRefs = oNavigationRoot.querySelectorAll(".sapMListTblRow,.sapMGHLI,.sapMTblCellFocusable,.sapMTblItemNav");
 		oItemNavigation.setItemDomRefs(Array.from(aItemDomRefs));
 
+		var iItemNavigationColumns = oItemNavigation.iColumns;
 		var iColumns = this._colHeaderAriaOwns.length + 1;
 		var iPageSize = Math.min(this.getVisibleItems().length, this.getGrowingThreshold());
 		oItemNavigation.setTableMode(true, false);
@@ -765,6 +769,8 @@ sap.ui.define([
 			} else {
 				oItemNavigation.setFocusedIndex(this._headerHidden ? 0 : iColumns);
 			}
+		} else if (oItemNavigation.getFocusedIndex() >= iItemNavigationColumns) {
+			oItemNavigation.setFocusedIndex(oItemNavigation.getFocusedIndex() + iColumns - iItemNavigationColumns);
 		}
 	};
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -148,7 +148,8 @@ sap.ui.define([
 
 	/**
 	 * Adds a change set to the batch queue for the given group. All modifying requests created
-	 * until the next call to this method are added to this new change set.
+	 * until the next call to this method are added to this new change set. The model is not
+	 * informed about a created batch queue.
 	 *
 	 * @param {string} sGroupId The group ID
 	 *
@@ -156,7 +157,7 @@ sap.ui.define([
 	 */
 	_Requestor.prototype.addChangeSet = function (sGroupId) {
 		var aChangeSet = [],
-			aRequests = this.getOrCreateBatchQueue(sGroupId);
+			aRequests = this.getOrCreateBatchQueue(sGroupId, true);
 
 		aChangeSet.iSerialNumber = this.getSerialNumber();
 		aRequests.iChangeSet += 1;
@@ -941,11 +942,12 @@ sap.ui.define([
 	 * Get the batch queue for the given group or create it if it does not exist yet.
 	 *
 	 * @param {string} sGroupId The group ID
+	 * @param {string} [bSilent] Whether the model is not informed about a created batch queue
 	 * @returns {object[]} The batch queue for the group
 	 *
 	 * @private
 	 */
-	_Requestor.prototype.getOrCreateBatchQueue = function (sGroupId) {
+	_Requestor.prototype.getOrCreateBatchQueue = function (sGroupId, bSilent) {
 		var aChangeSet,
 			aRequests = this.mBatchQueue[sGroupId];
 
@@ -954,7 +956,9 @@ sap.ui.define([
 			aChangeSet.iSerialNumber = 0;
 			aRequests = this.mBatchQueue[sGroupId] = [aChangeSet];
 			aRequests.iChangeSet = 0; // the index of the current change set in this queue
-			this.oModelInterface.onCreateGroup(sGroupId);
+			if (!bSilent) {
+				this.oModelInterface.onCreateGroup(sGroupId);
+			}
 		}
 		return aRequests;
 	};
@@ -1575,23 +1579,28 @@ sap.ui.define([
 			}
 
 			this.oSecurityTokenPromise = new Promise(function (fnResolve, fnReject) {
-				jQuery.ajax(that.sServiceUrl + that.sQueryParams, {
+				const oAjaxSettings = {
 					method : "HEAD",
 					headers : Object.assign({}, that.mHeaders, {"X-CSRF-Token" : "Fetch"})
-				}).then(function (_oData, _sTextStatus, jqXHR) {
-					var sCsrfToken = jqXHR.getResponseHeader("X-CSRF-Token");
+				};
+				if (that.bWithCredentials) {
+					oAjaxSettings.xhrFields = {withCredentials : true};
+				}
+				jQuery.ajax(that.sServiceUrl + that.sQueryParams, oAjaxSettings)
+					.then(function (_oData, _sTextStatus, jqXHR) {
+						var sCsrfToken = jqXHR.getResponseHeader("X-CSRF-Token");
 
-					if (sCsrfToken) {
-						that.mHeaders["X-CSRF-Token"] = sCsrfToken;
-					} else {
-						delete that.mHeaders["X-CSRF-Token"];
-					}
-					that.oSecurityTokenPromise = null;
-					fnResolve();
-				}, function (jqXHR) {
-					that.oSecurityTokenPromise = null;
-					fnReject(_Helper.createError(jqXHR, "Could not refresh security token"));
-				});
+						if (sCsrfToken) {
+							that.mHeaders["X-CSRF-Token"] = sCsrfToken;
+						} else {
+							delete that.mHeaders["X-CSRF-Token"];
+						}
+						that.oSecurityTokenPromise = null;
+						fnResolve();
+					}, function (jqXHR) {
+						that.oSecurityTokenPromise = null;
+						fnReject(_Helper.createError(jqXHR, "Could not refresh security token"));
+					});
 			});
 		}
 
@@ -2084,25 +2093,32 @@ sap.ui.define([
 		if (sContextId) {
 			// start a new session and a new timer with the current header values (should be the
 			// same as before)
-			that.mHeaders["SAP-ContextId"] = sContextId;
+			this.mHeaders["SAP-ContextId"] = sContextId;
 			if (iTimeoutSeconds >= 60) {
 				this.iSessionTimer = setInterval(function () {
 					if (Date.now() >= iSessionTimeout) { // 30 min have passed
 						that.clearSessionContext(/*bTimeout*/true); // give up
-					} else {
-						jQuery.ajax(that.sServiceUrl + that.sQueryParams, {
-							method : "HEAD",
-							headers : {
-								"SAP-ContextId" : that.mHeaders["SAP-ContextId"]
-							}
-						}).fail(function (jqXHR) {
+
+						return;
+					}
+
+					const oAjaxSettings = {
+						method : "HEAD",
+						headers : {
+							"SAP-ContextId" : that.mHeaders["SAP-ContextId"]
+						}
+					};
+					if (that.bWithCredentials) {
+						oAjaxSettings.xhrFields = {withCredentials : true};
+					}
+					jQuery.ajax(that.sServiceUrl + that.sQueryParams, oAjaxSettings)
+						.fail(function (jqXHR) {
 							if (jqXHR.getResponseHeader("SAP-Err-Id") === "ICMENOSESSION") {
 								// The server could not find the context ID ("ICM Error NO SESSION")
 								Log.error("Session not found on server", undefined, sClassName);
 								that.clearSessionContext(/*bTimeout*/true);
 							} // else keep the timer running
 						});
-					}
 				}, (iTimeoutSeconds - 5) * 1000);
 			} else if (sSAPHttpSessionTimeout !== null) {
 				Log.warning("Unsupported SAP-Http-Session-Timeout header", sSAPHttpSessionTimeout,
@@ -2276,7 +2292,7 @@ sap.ui.define([
 	 * @param {function} oModelInterface.reportTransitionMessages
 	 *   A function to report OData transition messages
 	 * @param {function(sap.ui.core.message.Message[],sap.ui.core.message.Message[]):void} oModelInterface.updateMessages
-	 *   A function to report messages to the MessageManager, expecting two arrays of
+	 *   A function to report messages to {@link sap.ui.core.Messaging}, expecting two arrays of
 	 *   {sap.ui.core.message.Message} as parameters. The first array should be the old messages and
 	 *   the second array the new messages.
 	 * @param {object} [mHeaders={}]

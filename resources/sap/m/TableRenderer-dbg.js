@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -186,7 +186,7 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 						rm.attr("aria-haspopup", oMenu ? oMenu.getAriaHasPopupType().toLowerCase() : "dialog");
 						bColumnHeadersActive = true;
 					}
-					if (oControl.isA("sap.m.Label") && oControl.getRequired()) {
+					if (oControl.getRequired?.()) {
 						rm.attr("aria-describedby", InvisibleText.getStaticId("sap.m", "CONTROL_IN_COLUMN_REQUIRED"));
 					}
 				}
@@ -377,9 +377,14 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 		}
 		rm.openEnd();
 
+		const bHasVisibleColumns = oControl.getColumns().some((oColumn) => oColumn.getVisible());
+		if (bHasVisibleColumns) {
+			rm.openStart("td").attr("role", "presentation").class("sapMListTblHighlightCell").openEnd().close("td");
+		}
+
 		var bRenderDummyColumn = oControl.shouldRenderDummyColumn();
 		rm.openStart("td", oControl.getId("nodata-text"));
-		rm.attr("colspan", oControl.getColCount() - bRenderDummyColumn);
+		rm.attr("colspan", oControl.getColCount() - bRenderDummyColumn - (bHasVisibleColumns ? 2 /* Highlight and Navigated cells are rendered always */ : 0));
 		rm.class("sapMListTblCell").class("sapMListTblCellNoData");
 		rm.openEnd();
 
@@ -395,6 +400,10 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/cor
 		}
 
 		rm.close("td");
+
+		if (bHasVisibleColumns) {
+			rm.openStart("td").attr("role", "presentation").class("sapMListTblNavigatedCell").openEnd().close("td");
+		}
 
 		if (bRenderDummyColumn) {
 			ColumnListItemRenderer.renderDummyCell(rm, oControl);

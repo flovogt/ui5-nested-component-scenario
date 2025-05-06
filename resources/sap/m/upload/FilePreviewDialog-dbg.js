@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -45,36 +45,36 @@ sap.ui.define([
 	/**
 	 * Constructor for a new FilePreviewDialog.
 	 *
-   * @class
-   * <h3>Overview</h3>
-   *
-   * Dialog with a carousel to preview files uploaded using the UploadSetwithTable control.
-   * This Element should only be used within the {@link sap.m.upload.UploadSetwithTable UploadSetwithTable} control as an association.
-   *
-   * <h3>Supported File Types for Preview</h3>
-   *
-   * Following are the supported file types that can be previewed:
-   *
-   * <ul><li>Image (PNG, JPEG, BMP, GIF)</li>
-   * <li>PDF </li>
-   * <li>Text (Txt)</li>
-   * <li>Video (MP4, MPEG, Quicktime, MsVideo)</li>
-   * <li>SAP 3D Visual models (VDS)</li></ul>
-   *
-   * @author SAP SE
-   * @param {string} [sId] Id for the new control, it is generated automatically if no id is provided.
-   * @param {object} [mSettings] Initial settings for the new control.
-   * @constructor
-   * @public
-   * @experimental since 1.120
-   * @since 1.120
-   * @version 1.120.1
-   * @extends sap.ui.core.Element
-   * @name sap.m.upload.FilePreviewDialog
-   */
+	 * @class
+	 * <h3>Overview</h3>
+	 *
+	 * Dialog with a carousel to preview files uploaded using the UploadSetwithTable control.
+	 * This Element should only be used within the {@link sap.m.upload.UploadSetwithTable UploadSetwithTable} control as an association.
+	 *
+	 * <h3>Supported File Types for Preview</h3>
+	 *
+	 * Following are the supported file types that can be previewed:
+	 *
+	 * <ul><li>Image (PNG, JPEG, BMP, GIF)</li>
+	 * <li>PDF </li>
+	 * <li>Text (Txt)</li>
+	 * <li>Video (MP4, MPEG, Quicktime, MsVideo)</li>
+	 * <li>SAP 3D Visual models (VDS)</li></ul>
+	 *
+	 * @author SAP SE
+	 * @param {string} [sId] Id for the new control, it is generated automatically if no id is provided.
+	 * @param {object} [mSettings] Initial settings for the new control.
+	 * @constructor
+	 * @public
+	 * @experimental since 1.120
+	 * @since 1.120
+	 * @version 1.120.30
+	 * @extends sap.ui.core.Element
+	 * @name sap.m.upload.FilePreviewDialog
+	 */
 	const FilePreviewDialog = Element.extend("sap.m.upload.FilePreviewDialog", {
-		library: "sap.m",
 		metadata: {
+			library: "sap.m",
 			properties: {
 				/**
 				 * Show or hide carousel's arrows.
@@ -110,7 +110,7 @@ sap.ui.define([
 		/**
 		 * Opens the {@link sap.m.upload.FilePreviewDialog}.
 		 * @private
-	 	*/
+	 	 */
 		_open: async function () {
 			const aItems = this._items;
 			if (aItems?.length && this._previewItem) {
@@ -256,10 +256,10 @@ sap.ui.define([
 		},
 
 		/**
-     	* Creates a {@link sap.m.Carousel} of uploaded files.
-		* @return {sap.m.Carousel} The {@link sap.m.Carousel} control.
-     	* @private
-     	*/
+		 * Creates a {@link sap.m.Carousel} of uploaded files.
+		 * @return {sap.m.Carousel} The {@link sap.m.Carousel} control.
+		 * @private
+		 */
 		_createCarousel: async function () {
 			const oPreviewItem = this._previewItem;
 			let aItems = !this.getShowCarouselArrows() ? [this._previewItem] : this._items;
@@ -356,10 +356,10 @@ sap.ui.define([
 		},
 
 		/**
-	 	* Creates a {@link sap.m.Dialog} with {@link sap.m.Carousel} for previewing uploaded files.
-		* @return {sap.m.Dialog} The {@link sap.m.Dialog} control.
-	 	* @private
-		*/
+		 * Creates a {@link sap.m.Dialog} with {@link sap.m.Carousel} for previewing uploaded files.
+		 * @return {sap.m.Dialog} The {@link sap.m.Dialog} control.
+		 * @private
+		 */
 		_createDialog: function() {
 			const oActiveItem = this._getActiveUploadSetwithTableItem();
 			const oDialog = new Dialog({
@@ -390,10 +390,10 @@ sap.ui.define([
 		},
 
 		/**
-     	* Creates a {@link sap.m.Carousel} of uploaded files.
-		* @return {sap.m.upload.UploadSetwithTableItem} The currently active UploadSetwithTableItem.
-     	* @private
-     	*/
+		 * Creates a {@link sap.m.Carousel} of uploaded files.
+		 * @return {sap.m.upload.UploadSetwithTableItem} The currently active UploadSetwithTableItem.
+		 * @private
+		 */
 		_getActiveUploadSetwithTableItem: function () {
 			const sActivePageId = this._oCarousel.getActivePage();
 			const aPages = this._oCarousel.getPages();
@@ -429,5 +429,5 @@ sap.ui.define([
 
 	FilePreviewDialog.MEGABYTE = 1048576;
 
-  return FilePreviewDialog;
+	return FilePreviewDialog;
 });

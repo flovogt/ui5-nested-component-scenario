@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.MenuItemBase.
-sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/core/IconPool'],
-	function(Element, library, IconPool) {
+sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/core/IconPool', 'sap/m/Image'],
+	function(Element, library, IconPool, Image) {
 	"use strict";
 
 
@@ -23,7 +23,7 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/core/IconPool'],
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -160,11 +160,11 @@ sap.ui.define(['sap/ui/core/Element', './library', 'sap/ui/core/IconPool'],
 	};
 
 
-	MenuItemBase.prototype._getIcon = function(oItem) {
+	MenuItemBase.prototype._getIcon = function() {
 		return IconPool.createControlByURI({
-			src: oItem.getIcon(),
+			src: this.getIcon(),
 			useIconTooltip: false
-		});
+		}, Image);
 	};
 
 	MenuItemBase.prototype.onsaphide = MenuItemBase.prototype.onsapshow;

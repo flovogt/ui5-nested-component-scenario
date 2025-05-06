@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -254,7 +254,7 @@ sap.ui.define([
 		/**
 		 * Attach to the theme applied event
 		 *
-		 * @param {function(module:sap/ui/core/Theming.$appliedEvent)} fnCallback The event handler
+		 * @param {function(module:sap/ui/core/Theming$AppliedEvent)} fnCallback The event handler
 		 * @private
 		 * @ui5-restricted sap.ui.core
 		 */
@@ -264,7 +264,7 @@ sap.ui.define([
 		/**
 		 * Detach from the theme applied event
 		 *
-		 * @param {function(module:sap/ui/core/Theming.$appliedEvent)} fnCallback The event handler
+		 * @param {function(module:sap/ui/core/Theming$AppliedEvent)} fnCallback The event handler
 		 * @private
 		 * @ui5-restricted sap.ui.core
 		 */
@@ -472,7 +472,7 @@ sap.ui.define([
 
 			} catch (e) {
 				// parsing error
-				Log.error("Custom check: Error parsing JSON string for custom.css indication.", e);
+				Log.error("[FUTURE FATAL] Custom check: Error parsing JSON string for custom.css indication.", e);
 			}
 		}
 
@@ -523,7 +523,7 @@ sap.ui.define([
 			ThemeManager.themeLoaded = true;
 			ThemeManager.fireThemeApplied();
 			if (bEmergencyExit) {
-				Log.error("ThemeManager: max. check cycles reached.");
+				Log.error("[FUTURE FATAL] ThemeManager: max. check cycles reached.");
 			}
 		} else {
 			ThemeManager.themeLoaded = true;

@@ -115,6 +115,7 @@
 		"ckb_alt-menu": "Kurdish (Central)",
 		"ckb_alt-variant": "Kurdish (Sorani)",
 		"clc": "Chilcotin",
+		"cnr": "Montenegrin",
 		"co": "Corsican",
 		"cop": "Coptic",
 		"cps": "Capiznon",
@@ -1443,10 +1444,19 @@
 					"Mar",
 					"Apr",
 					"May",
-					"June",
-					"July",
+					[
+						"June",
+						"Jun"
+					],
+					[
+						"July",
+						"Jul"
+					],
 					"Aug",
-					"Sept",
+					[
+						"Sept",
+						"Sep"
+					],
 					"Oct",
 					"Nov",
 					"Dec"
@@ -1490,7 +1500,10 @@
 					"Jun",
 					"Jul",
 					"Aug",
-					"Sept",
+					[
+						"Sept",
+						"Sep"
+					],
 					"Oct",
 					"Nov",
 					"Dec"
@@ -2502,10 +2515,19 @@
 					"Mar",
 					"Apr",
 					"May",
-					"June",
-					"July",
+					[
+						"June",
+						"Jun"
+					],
+					[
+						"July",
+						"Jul"
+					],
 					"Aug",
-					"Sept",
+					[
+						"Sept",
+						"Sep"
+					],
 					"Oct",
 					"Nov",
 					"Dec"
@@ -2549,7 +2571,10 @@
 					"Jun",
 					"Jul",
 					"Aug",
-					"Sept",
+					[
+						"Sept",
+						"Sep"
+					],
 					"Oct",
 					"Nov",
 					"Dec"
@@ -3562,10 +3587,19 @@
 					"Mar",
 					"Apr",
 					"May",
-					"June",
-					"July",
+					[
+						"June",
+						"Jun"
+					],
+					[
+						"July",
+						"Jul"
+					],
 					"Aug",
-					"Sept",
+					[
+						"Sept",
+						"Sep"
+					],
 					"Oct",
 					"Nov",
 					"Dec"
@@ -3609,7 +3643,10 @@
 					"Jun",
 					"Jul",
 					"Aug",
-					"Sept",
+					[
+						"Sept",
+						"Sep"
+					],
 					"Oct",
 					"Nov",
 					"Dec"

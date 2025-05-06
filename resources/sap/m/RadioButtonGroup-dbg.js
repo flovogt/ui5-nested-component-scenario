@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -61,7 +61,7 @@ sap.ui.define([
 			 * @implements sap.ui.core.IFormContent
 			 *
 			 * @author SAP SE
-			 * @version 1.120.1
+			 * @version 1.120.30
 			 *
 			 * @constructor
 			 * @public
@@ -323,8 +323,7 @@ sap.ui.define([
 				var iIndexOld = this.getSelectedIndex();
 				// if a radio button in the group is focused is true, otherwise - false
 				var hasFocusedRadioButton = this.getDomRef() && this.getDomRef().contains(document.activeElement);
-				// if radio button group has buttons and one of them is selected is true, otherwise - false
-				var isRadioGroupSelected = !!(this.aRBs && this.aRBs[iSelectedIndex]);
+				var isRadioGroupSelected = this.aRBs && this.aRBs[iSelectedIndex] && this.aRBs[iSelectedIndex].getDomRef();
 				var iFocusedIndex;
 
 				if (iSelectedIndex < -1) {

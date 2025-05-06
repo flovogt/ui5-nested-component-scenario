@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,6 +20,7 @@ sap.ui.define([
 	'sap/ui/core/EnabledPropagator',
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Popup",
+	"sap/ui/base/ManagedObject",
 	"sap/ui/core/Element"
 ],
 	function(
@@ -37,6 +38,7 @@ sap.ui.define([
 		EnabledPropagator,
 		jQuery,
 		Popup,
+		ManagedObject,
 		Element
 	) {
 		"use strict";
@@ -70,7 +72,7 @@ sap.ui.define([
 		 * @implements sap.ui.core.IContextMenu
 		 *
 		 * @author SAP SE
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @public
@@ -483,10 +485,10 @@ sap.ui.define([
 				id  : sMenuListItemId,
 				type: oItem.getEnabled() ? ListType.Active : ListType.Inactive,
 				icon: oItem.getIcon(),
-				title: oItem.getText(),
+				title: this._handleSettingsValue(oItem.getText()),
 				startsSection: oItem.getStartsSection(),
 				menuItem: oItem,
-				tooltip: oItem.getTooltip(),
+				tooltip: this._handleSettingsValue(oItem.getTooltip()),
 				visible: oItem.getVisible(),
 				enabled: oItem.getEnabled()
 			});
@@ -510,9 +512,9 @@ sap.ui.define([
 			oUfMenuItem = new UfdMenuItem({
 				id: sUfMenuItemId,
 				icon: oItem.getIcon(),
-				text: oItem.getText(),
+				text: this._handleSettingsValue(oItem.getText()),
 				startsSection: oItem.getStartsSection(),
-				tooltip: oItem.getTooltip(),
+				tooltip: this._handleSettingsValue(oItem.getTooltip()),
 				visible: oItem.getVisible(),
 				enabled: oItem.getEnabled()
 			});
@@ -925,7 +927,7 @@ sap.ui.define([
 					this._initPageForParent(oParentItem);
 					oParentItem._setVisualChild(oParentItem.getItems()[0]._getVisualParent());
 					oLI = sap.ui.getCore().byId(oParentItem._getVisualControl());
-					oLI.invalidate();
+					oLI && oLI.invalidate();
 				} else {
 					this._initMenuForItems(oParentItem.getItems(), sap.ui.getCore().byId(oParentItem._getVisualControl()));
 					oParentItem._setVisualChild(oParentItem.getItems()[0]._getVisualParent());
@@ -1005,6 +1007,24 @@ sap.ui.define([
 				return this;
 			};
 		});
+
+		/**
+		 * Checks if the given property value is binding value and if not escapes it
+		 * @param {string} sValue property value to be checked
+		 * @private
+		 * @returns {string} handled value
+		 */
+		Menu.prototype._handleSettingsValue = function(sValue) {
+			if (typeof sValue !== "string") {
+				return sValue;
+			}
+			try {
+				ManagedObject.bindingParser(sValue);
+				return sValue;
+			} catch {
+				return ManagedObject.escapeSettingsValue(sValue);
+			}
+		};
 
 		return Menu;
 	});

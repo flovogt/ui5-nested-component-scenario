@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -234,7 +234,7 @@ sap.ui.define([
 		 * @extends sap.ui.model.Model
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 */
 		ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */{
@@ -893,6 +893,10 @@ sap.ui.define([
 	 *   Whether a binding relative to an {@link sap.ui.model.odata.v4.Context} uses the canonical
 	 *   path computed from its context's path for data service requests; only the value
 	 *   <code>true</code> is allowed.
+	 * @param {boolean} [mParameters.$$clearSelectionOnFilter]
+	 *   Whether the selection state of the list binding is cleared when a filter is changed; this
+	 *   includes dynamic filters, '$filter', '$search', and <code>$$aggregation.search</code>.
+	 *   Supported since 1.120.13.
 	 * @param {boolean} [mParameters.$$getKeepAliveContext]
 	 *   Whether this binding is considered for a match when {@link #getKeepAliveContext} is called;
 	 *   only the value <code>true</code> is allowed. Must not be combined with <code>$apply</code>,
@@ -965,9 +969,14 @@ sap.ui.define([
 	 *   For valid values, see parameter "$$groupId".
 	 * @returns {sap.ui.model.odata.v4.ODataListBinding}
 	 *   The list binding
-	 * @throws {Error}
-	 *   If disallowed binding parameters are provided or an unsupported operation mode is used
-	 *
+	 * @throws {Error} If
+	 *   <ul>
+	 *     <li> disallowed binding parameters are provided,
+	 *     <li> an unsupported operation mode is used,
+	 *     <li> the {@link sap.ui.model.Filter.NONE} filter instance is contained in
+	 *       <code>vFilters</code> together with other filters,
+	 *     <li> {@link sap.ui.model.Filter.NONE} is combined with <code>$$aggregation</code>
+	 *   </ul>
 	 * @public
 	 * @see sap.ui.model.Model#bindList
 	 * @since 1.37.0
@@ -1441,13 +1450,16 @@ sap.ui.define([
 	 *   the longtext URL
 	 * @param {string} [sCachePath]
 	 *   The cache-relative path to the entity; used to resolve the targets
+	 * @param {object} [oOriginalMessage=oRawMessage]
+	 *   The original message object which is used to create the technical details
 	 * @returns {sap.ui.core.message.Message}
 	 *   The created UI5 message object
 	 *
 	 * @private
 	 */
 	// eslint-disable-next-line valid-jsdoc -- .@$ui5. is not understood properly
-	ODataModel.prototype.createUI5Message = function (oRawMessage, sResourcePath, sCachePath) {
+	ODataModel.prototype.createUI5Message = function (oRawMessage, sResourcePath, sCachePath,
+			oOriginalMessage = oRawMessage) {
 		var bIsBound = typeof oRawMessage.target === "string",
 			sMessageLongtextUrl = oRawMessage.longtextUrl,
 			aTargets,
@@ -1482,7 +1494,7 @@ sap.ui.define([
 			// Note: "" instead of undefined makes filtering easier (agreement with FE!)
 			target : bIsBound ? aTargets : "",
 			technical : oRawMessage.technical,
-			technicalDetails : _Helper.createTechnicalDetails(oRawMessage),
+			technicalDetails : _Helper.createTechnicalDetails(oOriginalMessage),
 			type : aMessageTypes[oRawMessage.numericSeverity] || MessageType.None
 		});
 	};
@@ -2426,24 +2438,49 @@ sap.ui.define([
 
 	/**
 	 * Reports the given OData transition messages by firing a <code>messageChange</code> event with
-	 * the new messages.
+	 * the new messages. Takes care of adjusting message targets for bound operations' binding
+	 * parameters.
 	 *
 	 * @param {object[]} aMessages
 	 *   An array of messages suitable for {@link #createUI5Message}
 	 * @param {string} [sResourcePath]
-	 *   The resource path of the cache that saw the messages; used to resolve the longtext URL
+	 *   The resource path of the cache that saw the messages; used to resolve the longtext URL and
+	 *   for adjusting a message target in case it is an operation parameter, except the binding
+	 *   parameter
 	 *
 	 * @private
 	 */
 	ODataModel.prototype.reportTransitionMessages = function (aMessages, sResourcePath) {
-		var that = this;
+		var sContextPath, oOperationMetadata;
 
-		if (aMessages && aMessages.length) {
-			Messaging.updateMessages(undefined, aMessages.map(function (oMessage) {
-				oMessage.transition = true;
-				return that.createUI5Message(oMessage, sResourcePath);
-			}));
+		if (!aMessages.length) {
+			return;
 		}
+
+		if (sResourcePath) {
+			const oMetaModel = this.getMetaModel();
+			sContextPath = "/" + sResourcePath.split("?")[0]; // remove query string
+			const sMetaPath = _Helper.getMetaPath(sContextPath);
+			const vMetadata = oMetaModel.getObject(sMetaPath);
+			if (Array.isArray(vMetadata)) {
+				// normally, ODCB#_invoke has already checked that there is exactly one overload;
+				// in rare case w/o #invoke, such a check is missing
+				oOperationMetadata = oMetaModel.getObject(sMetaPath + "/@$ui5.overload/0");
+				sContextPath = sContextPath.slice(0, sContextPath.lastIndexOf("/"));
+			}
+		}
+
+		Messaging.updateMessages(undefined, aMessages.map((oMessage) => {
+			const oOriginalMessage = oMessage;
+			if (oOperationMetadata) {
+				oMessage = _Helper.clone(oMessage);
+				// make targets absolute, will not be adjusted again in #createUI5Message
+				_Helper.adjustTargets(oMessage, oOperationMetadata, undefined, sContextPath);
+			}
+			oMessage.transition = true;
+
+			return this.createUI5Message(oMessage, sResourcePath, undefined, oOriginalMessage);
+		}));
 	};
 
 	/**
@@ -2835,6 +2872,28 @@ sap.ui.define([
 	 */
 	ODataModel.prototype.toString = function () {
 		return sClassName + ": " + this.sServiceUrl;
+	};
+
+	/**
+	 * Waits until the temporary keep-alive binding matching the given binding has created its
+	 * cache, if required and there is such a binding.
+	 *
+	 * @param {sap.ui.model.odata.v4.ODataBinding} oBinding
+	 *   The binding that possibly needs the cache of a temporary keep-alive binding
+	 * @returns {sap.ui.base.SyncPromise}
+	 *   A promise which is resolved without a defined result when that cache is available
+	 *
+	 * @private
+	 */
+	ODataModel.prototype.waitForKeepAliveBinding = function (oBinding) {
+		if (oBinding.mParameters?.$$getKeepAliveContext) {
+			// $$canonicalPath is not allowed, binding path and resource path are (almost) identical
+			const oTemporaryBinding = this.mKeepAliveBindingsByPath[oBinding.getResolvedPath()];
+			if (oTemporaryBinding) {
+				return oTemporaryBinding.oCachePromise;
+			}
+		}
+		return SyncPromise.resolve();
 	};
 
 	/**

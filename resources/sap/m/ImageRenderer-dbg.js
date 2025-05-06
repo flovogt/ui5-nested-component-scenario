@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -176,13 +176,17 @@ sap.ui.define(['sap/m/library', "sap/base/security/encodeCSS", "sap/ui/core/libr
 		for (var i = 0; i < aAttributes.length; i++) {
 			var oAttr = aAttributes[i],
 				iNamespaceIndex = oAttr.name.indexOf(":"),
-				sAttributeName = iNamespaceIndex < 0 ? oAttr.name : oAttr.name.slice(iNamespaceIndex + 1);
+				sAttributeName = iNamespaceIndex < 0 ? oAttr.name : oAttr.name.slice(iNamespaceIndex + 1),
+				sAttributeValue = oAttr.value;
 
-			if (sAttributeName === "href" && !oImage._isHrefValid(oAttr.value)) {
-				continue;
+			if (sAttributeName === "href") {
+				if (!oImage._isHrefValid(sAttributeValue)) {
+					continue;
+				}
+				sAttributeValue = oImage._toAbsoluteUrl(sAttributeValue, oImage.getSrc());
 			}
 
-			oRm.attr(sAttributeName, oAttr.value);
+			oRm.attr(sAttributeName, sAttributeValue);
 		}
 	};
 

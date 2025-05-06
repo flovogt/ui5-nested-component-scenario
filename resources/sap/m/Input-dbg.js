@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -161,7 +161,7 @@ function(
 	 * @extends sap.m.InputBase
 	 * @implements sap.ui.core.IAccessKeySupport
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -303,6 +303,7 @@ function(
 				/**
 				 * Specifies whether the suggestions highlighting is enabled.
 				 * <b>Note:</b> Due to performance constraints, the functionality will be disabled above 200 items.
+				 * <b>Note:</b> Highlighting in table suggestions will work only for cells containing sap.m.Label or sap.m.Text controls.
 				 *
 				 * @since 1.46
 				 */
@@ -747,7 +748,31 @@ function(
 			while the suggestions popover is open update the value state header.
 			If the input has FormattedText aggregation while the suggestions popover is open then
 			it's new, because the old is already switched to have the value state header as parent */
-			this._updateSuggestionsPopoverValueState();
+			this._updateSuggestionsPopoverValueState(true);
+		}
+	};
+
+	Input.prototype.onAfterRendering = function() {
+		InputBase.prototype.onAfterRendering.call(this);
+
+		// workaround to remove value attribute when having input type password
+		if (this.getType() === InputType.Password) {
+			const innerRef = this.getDomRef("inner");
+			const value = innerRef.value;
+
+			innerRef.removeAttribute("value");
+			innerRef.value = value;
+		}
+
+		const oSuggPopover = this._getSuggestionsPopover();
+		// Update aria-describedby attribute because its update was invalidated to not re-render the popover
+		if (oSuggPopover && oSuggPopover.getPopover() && oSuggPopover.getPopover().getDomRef()) {
+			const oPopover = oSuggPopover.getPopover();
+			if (oPopover.getAriaDescribedBy().length > 0 && oPopover.isOpen()) {
+				oPopover.getDomRef().setAttribute("aria-describedby", this.getValueStateLinksShortcutsId());
+			} else {
+				oPopover.getDomRef().removeAttribute("aria-describedby");
+			}
 		}
 	};
 
@@ -992,6 +1017,15 @@ function(
 		}
 	};
 
+	Input.prototype.getValueStateLinksForAcc = function(){
+		const oFormattedText = this._getFormattedValueStateText();
+		if (!oFormattedText){
+			return [];
+		}
+		return oFormattedText.getControls();
+	};
+
+
 	/**
 	 * Gets <code>sap.m.FormattedText</code> aggregation based on its current parent.
 	 * If the SuggestionPopover is open that is the <code>sap.m.ValueStateHeader</code>, otherwise is the Input itself.
@@ -1011,7 +1045,6 @@ function(
 			return InputBase.prototype.getFormattedValueStateText.call(this);
 		}
 	};
-
 
 	/**
 	 * Updates and synchronizes the <code>selectedRow</code> association and <code>selectedKey</code> properties.
@@ -1447,19 +1480,22 @@ function(
 	 * @param {jQuery.Event} oEvent Keyboard event.
 	 */
 	Input.prototype.onsapenter = function(oEvent) {
-		var bPopupOpened = this._isSuggestionsPopoverOpen(),
-			bFocusInPopup = !this.hasStyleClass("sapMFocus") && bPopupOpened,
-			aItems = this._hasTabularSuggestions() ? this.getSuggestionRows() : this.getSuggestionItems(),
-			bFireSubmit = this.getEnabled() && this.getEditable(),
-			iValueLength, oSelectedItem;
+		const bPopupOpened = this._isSuggestionsPopoverOpen();
+		const bFocusInPopup = !this.hasStyleClass("sapMFocus") && bPopupOpened;
+		const aItems = this._hasTabularSuggestions() ? this.getSuggestionRows() : this.getSuggestionItems();
+		const oSuggestionsPopover = this._getSuggestionsPopover();
+		const oSelectedItem = oSuggestionsPopover?.getItemsContainer()?.getSelectedItem();
+		const sText = oSelectedItem?.getTitle?.() || oSelectedItem?.getCells?.()[0]?.getText?.() || "";
+		const bPendingSuggest = !!this._iSuggestDelay && !sText.toLowerCase().includes(this._getTypedInValue().toLowerCase());
+		let bFireSubmit = this.getEnabled() && this.getEditable();
+		let iValueLength;
 
 		// when enter is pressed before the timeout of suggestion delay, suggest event is cancelled
 		this.cancelPendingSuggest();
 
 		bFocusInPopup && this.setSelectionUpdatedFromList(true);
 
-		if (this.getShowSuggestion() && this._bDoTypeAhead && bPopupOpened) {
-			oSelectedItem = this._getSuggestionsPopover().getItemsContainer().getSelectedItem();
+		if (this.getShowSuggestion() && this._bDoTypeAhead && bPopupOpened && !this.isComposingCharacter() && !bPendingSuggest) {
 			if (this._hasTabularSuggestions()) {
 				oSelectedItem && this.setSelectionRow(oSelectedItem, true);
 			} else {
@@ -1815,7 +1851,15 @@ function(
 
 	Input.prototype.onkeydown = function (oEvent) {
 		// disable the typeahead feature for android devices due to an issue on android soft keyboard, which always returns keyCode 229
-		this._bDoTypeAhead = !Device.os.android && this.getAutocomplete() && (oEvent.which !== KeyCodes.BACKSPACE) && (oEvent.which !== KeyCodes.DELETE);
+		this._bBackspaceOrDelete = (oEvent.which === KeyCodes.BACKSPACE) || (oEvent.which === KeyCodes.DELETE);
+		this._bDoTypeAhead = !Device.os.android && this.getAutocomplete() && !this._bBackspaceOrDelete;
+
+		if (this.areHotKeysPressed(oEvent) && this._isSuggestionsPopoverOpen()) {
+			var oSuggestionsPopover = this._getSuggestionsPopover();
+			oSuggestionsPopover.setValueStateActiveState(true);
+			oSuggestionsPopover._handleValueStateLinkNav(this, oEvent);
+			oSuggestionsPopover.updateFocus(this, null);
+		}
 	};
 
 	Input.prototype.onkeyup = function (oEvent) {
@@ -1935,7 +1979,7 @@ function(
 	/**
 	 * Applies Suggestion Accessibility
 	 *
-	 * Adds the aria-desribedby text with the number of available suggestions.
+	 * Adds the aria-describedby text with the number of available suggestions.
 	 *
 	 * @param {int} iNumItems
 	 * @private
@@ -1958,7 +2002,7 @@ function(
 			if (iNumItems === 1) {
 				sAriaText = oRb.getText("INPUT_SUGGESTIONS_ONE_HIT");
 			} else if (iNumItems > 1) {
-				sAriaText = oRb.getText("INPUT_SUGGESTIONS_MORE_HITS", iNumItems);
+				sAriaText = oRb.getText("INPUT_SUGGESTIONS_MORE_HITS", [iNumItems]);
 			} else {
 				sAriaText = oRb.getText("INPUT_SUGGESTIONS_NO_HIT");
 			}
@@ -2027,6 +2071,14 @@ function(
 		this._synchronizeSuggestions();
 		this._createSuggestionPopupContent();
 
+		return this;
+	};
+
+	Input.prototype.updateSuggestionRows = function () {
+		this._bSuspendInvalidate = true;
+		this.updateAggregation("suggestionRows");
+		this._synchronizeSuggestions();
+		this._bSuspendInvalidate = false;
 		return this;
 	};
 
@@ -2465,7 +2517,7 @@ function(
 					return;
 				}
 
-				aTableCellsDomRef = oSuggestionsTable.$().find('tbody .sapMLabel');
+				aTableCellsDomRef = oSuggestionsTable.$().find('tbody .sapMText, tbody .sapMLabel');
 
 				highlightDOMElements(aTableCellsDomRef, this._getTypedInValue());
 			}
@@ -3002,6 +3054,7 @@ function(
 
 		oPopover = oSuggPopover.getPopover();
 		oPopover.attachBeforeOpen(function () {
+			this.closeValueStateMessage();
 			this._updateSuggestionsPopoverValueState();
 		}, this);
 
@@ -3068,7 +3121,7 @@ function(
 					this._refreshListItems();
 				}, this)
 				.attachBeforeOpen(function() {
-					var oSuggestionsInput = oSuggPopover.getInput();
+						var oSuggestionsInput = oSuggPopover.getInput();
 					// set the same placeholder and maxLength as the original input
 					["placeholder",
 						"maxLength",
@@ -3082,9 +3135,16 @@ function(
 		} else {
 			oPopover
 				.attachAfterClose(function() {
-					var oList = oSuggPopover.getItemsContainer();
-					var oSelectedItem = oList && oList.getSelectedItem();
-					var oDomRef = this.getDomRef();
+					const oList = oSuggPopover.getItemsContainer();
+					const oSuggestionsPopover = this._getSuggestionsPopover();
+					const oSelectedItem = oSuggestionsPopover?.getItemsContainer()?.getSelectedItem();
+					const oDomRef = this.getDomRef();
+					const sText = oSelectedItem?.getTitle?.() || oSelectedItem?.getCells?.()[0]?.getText?.() || "";
+					const bPendingSuggest = !!this._iSuggestDelay && !sText.toLowerCase().includes(this.getValue().toLowerCase());
+
+					if (bPendingSuggest) {
+						return;
+					}
 
 					if (this.getSelectionUpdatedFromList()) {
 						this.updateSelectionFromList(oSelectedItem);
@@ -3098,7 +3158,7 @@ function(
 
 					// only destroy items in simple suggestion mode
 					if (oList instanceof Table) {
-						oSelectedItem && oSelectedItem.removeStyleClass("sapMLIBFocused");
+						oSelectedItem?.removeStyleClass("sapMLIBFocused");
 						oList.removeSelections(true);
 					} else {
 						oList.destroyItems();
@@ -3109,6 +3169,8 @@ function(
 					if (oDomRef && oDomRef.contains(document.activeElement)) {
 						this.addStyleClass("sapMFocus");
 					}
+
+					oSuggestionsPopover.getPopover().getDomRef().removeAttribute("aria-describedby");
 				}, this)
 				.attachBeforeOpen(function () {
 					oSuggPopover._sPopoverContentWidth = this.getMaxSuggestionWidth();
@@ -3134,11 +3196,9 @@ function(
 					} else {
 						oSuggPopover.getPopover().getDomRef().style.setProperty("max-width", iInputWidth + "px");
 						oSuggPopover.getPopover().addStyleClass("sapMSuggestionPopoverInputWidth");
-
 					}
 
 					oSuggPopover.getPopover().getDomRef().style.setProperty("min-width", iInputWidth + "px");
-
 				}
 			}, this);
 		}
@@ -3260,19 +3320,20 @@ function(
 
 	/**
 	 * Updates the suggestions popover value state
-	 *
+	 * @param {boolean} bUpdateValueStateLinkDelagate Whether to reinitialize the value state link delegate
 	 * @private
 	 */
-	Input.prototype._updateSuggestionsPopoverValueState = function() {
-		var oSuggPopover = this._getSuggestionsPopover(),
-			sValueState = this.getValueState(),
-			bNewValueState = this.getValueState() !== oSuggPopover._getValueStateHeader().getValueState(),
-			oNewFormattedValueStateText = this.getFormattedValueStateText(),
-			sValueStateText = this.getValueStateText();
+	Input.prototype._updateSuggestionsPopoverValueState = function(bUpdateValueStateLinkDelagate) {
+		var oSuggPopover = this._getSuggestionsPopover();
 
 		if (!oSuggPopover) {
 			return;
 		}
+
+		var	sValueState = this.getValueState(),
+			bNewValueState = this.getValueState() !== oSuggPopover._getValueStateHeader().getValueState(),
+			oNewFormattedValueStateText = this.getFormattedValueStateText(),
+			sValueStateText = this.getValueStateText();
 
 		/*  If open and no new FormattedText or value state is set to the Input then this is called
 		onBeforeClose of the SuggestionsPopover. Switch the value state aggregation's
@@ -3281,7 +3342,7 @@ function(
 			this.setFormattedValueStateText(oSuggPopover._getValueStateHeader().getFormattedText());
 		}
 
-		oSuggPopover.updateValueState(sValueState, (oNewFormattedValueStateText || sValueStateText), this.getShowValueStateMessage());
+		oSuggPopover.updateValueState(sValueState, (oNewFormattedValueStateText || sValueStateText), this.getShowValueStateMessage(), bUpdateValueStateLinkDelagate);
 
 		if (this.isMobileDevice()) {
 			oSuggPopover.getInput().setValueState(sValueState);

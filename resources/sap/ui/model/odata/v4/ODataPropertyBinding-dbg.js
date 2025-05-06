@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getUpdateGroupId as #getUpdateGroupId
@@ -285,7 +285,7 @@ sap.ui.define([
 								that.fireDataRequested(bPreventBubbling);
 							}, that)
 						.then(function (vResult) {
-							that.assertSameCache(oCache);
+							that.checkSameCache(oCache);
 
 							return vResult;
 						});
@@ -331,7 +331,8 @@ sap.ui.define([
 			});
 			if (bForceUpdate && vValue.isFulfilled()) {
 				if (vType && vType.isFulfilled && vType.isFulfilled()) {
-					this.oType = vType.getResult();
+					PropertyBinding.prototype.setType
+						.call(this, vType.getResult(), this.sInternalType);
 				}
 				this.vValue = vValue.getResult();
 			}
@@ -345,7 +346,7 @@ sap.ui.define([
 
 			if (oCallToken === that.oCheckUpdateCallToken) { // latest call to checkUpdateInternal
 				that.oCheckUpdateCallToken = undefined;
-				that.oType = oType;
+				PropertyBinding.prototype.setType.call(that, oType, that.sInternalType);
 				if (oCallToken.forceUpdate || that.vValue !== vValue) {
 					that.bInitial = false;
 					that.vValue = vValue;
@@ -363,17 +364,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Deregisters the binding as change listener from its cache or operation binding ($Parameter).
-	 *
-	 * @private
-	 */
-	ODataPropertyBinding.prototype.deregisterChangeListener = function () {
-		if (this.sReducedPath) {
-			this.doDeregisterChangeListener(this.sReducedPath, this);
-		}
-	};
-
-	/**
 	 * Destroys the object. The object must not be used anymore after this function was called.
 	 *
 	 * @public
@@ -382,7 +372,6 @@ sap.ui.define([
 	 */
 	// @override sap.ui.model.Binding#destroy
 	ODataPropertyBinding.prototype.destroy = function () {
-		this.deregisterChangeListener();
 		this.oModel.bindingDestroyed(this);
 		this.oCheckUpdateCallToken = undefined;
 		this.mQueryOptions = undefined;
@@ -680,7 +669,7 @@ sap.ui.define([
 						// Note: this.oType => this.sReducedPath
 						&& _Helper.getMetaPath(this.oModel.resolve(this.sPath, oContext))
 							!== _Helper.getMetaPath(this.sReducedPath)) {
-						this.oType = undefined;
+						PropertyBinding.prototype.setType.call(this, undefined, this.sInternalType);
 					}
 					this.sReducedPath = undefined;
 				}

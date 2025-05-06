@@ -105,7 +105,7 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 
 .sapMListTblSubCntSpr,
 .sapMListTblSubCntVal {
-    display: inline;
+    display: inline-flex;
 }
 
 // the header could have a FlexBox control which will occupy 100% width, thus corrupting the popin layout
@@ -316,8 +316,8 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 	vertical-align: middle;
 }
 
-.sapMListTbl .sapMLnk {
-	display: initial;
+.sapMListTblCell > .sapMLnk {
+	vertical-align: bottom;
 }
 
 /* Column header and column header content */
@@ -436,7 +436,7 @@ tr.sapMListTblHeaderNone > .sapMTableTH {
 		margin-right: @_sap_m_Table_CustomFocusMargin; // make the focus border clearly visible on all sides
 	}
 
-	.sapMListTblHasPopin > &:not(.sapMGHLI) > :not(.sapMListTblCellNoData,.sapMListTblDummyCell:last-child)::before {
+	.sapMListTblHasPopin > &:not(.sapMGHLI) > :not(.sapMListTblCellNoData,.sapMListTblDummyCell:last-child,.sapMListTblNavigatedCell)::before {
 		border-bottom: 0;
 		bottom: 0;
 	}

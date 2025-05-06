@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -52,10 +52,13 @@ sap.ui.define([
 	 * @class This control allows you to upload one or more files from your devices (desktop, tablet, or phone)
 	 * and attach them to your application.<br>
 	 * This control builds on the {@link sap.m.UploadCollection} control, providing better handling of headers
-	 * and requests, unified behavior of instant and deferred uploads, as well as improved progress indication.
+	 * and requests, unified behavior of instant and deferred uploads, as well as improved progress indication.<br>
+     * We now ensure that the control handles item insertion and deletion if the items aggregation is not bound to a model.
+	 * It allows the connected model to not only manage the insertion and deletion updates
+	 * but it also helps to avoid template-related issues and ensures better data handling.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @constructor
 	 * @public
 	 * @since 1.63
@@ -184,11 +187,11 @@ sap.ui.define([
 				/**
 				 * Items representing files that have already been uploaded.
 				 */
-				items: {type: "sap.m.upload.UploadSetItem", multiple: true, singularName: "item"},
+				items: {type: "sap.m.upload.UploadSetItem", defaultClass: UploadSetItem, multiple: true, singularName: "item"},
 				/**
 				 * Items representing files yet to be uploaded.
 				 */
-				incompleteItems: {type: "sap.m.upload.UploadSetItem", multiple: true, singularName: "incompleteItem"},
+				incompleteItems: {type: "sap.m.upload.UploadSetItem", defaultClass: UploadSetItem, multiple: true, singularName: "incompleteItem"},
 				/**
 				 * Header fields to be included in the header section of an XHR request.
 				 */
@@ -203,9 +206,8 @@ sap.ui.define([
 				uploader: {type: "sap.m.upload.Uploader", multiple: false},
 				/**
 			 	 * An illustrated message is displayed when no data is loaded or provided
-				 * @private
 				 */
-				 _illustratedMessage: { type: "sap.m.IllustratedMessage", multiple: false, visibility: "hidden" }
+				illustratedMessage: { type: "sap.m.IllustratedMessage", multiple: false }
 			},
 			events: {
 				/**
@@ -328,7 +330,7 @@ sap.ui.define([
 						 * Required for receiving a <code>readyState</code> is to set the property <code>sendXHR</code>
 						 * to true. This property is not supported by Internet Explorer 9.
 						 */
-						readyState : {type : "string"},
+						readyState : {type : "int"},
 
 						/**
 					 	* Status of the XHR request.
@@ -336,7 +338,7 @@ sap.ui.define([
 					 	* Required for receiving a <code>status</code> is to set the property <code>sendXHR</code> to true.
 					 	* This property is not supported by Internet Explorer 9.
 					 	*/
-						status : {type : "string"},
+						status : {type : "int"},
 						/**
 					 	* Http-Response which comes from the server.
 					 	*
@@ -433,7 +435,12 @@ sap.ui.define([
 						 * The file that fails to meet the file size restriction specified in the
 						 * <code>maxFileSize</code> property.
 						 */
-						item: {type: "sap.m.upload.UploadSetItem"}
+						item: {type: "sap.m.upload.UploadSetItem"},
+
+						/**
+						 * The size of a file in MB, that fails to meet the file size restriction specified in the <code>maxFileSize</code> property.
+						 */
+						fileSize: {type: "float"}
 					}
 				},
 				/**
@@ -516,6 +523,7 @@ sap.ui.define([
 		this._mListItemIdToItemMap = {};
 		this._oUploadButton = null;
 		this._oDragIndicator = false;
+		this._initialIllustrationClone = true;
 
 		// Drag&drop
 		this._$Body = null;
@@ -528,15 +536,6 @@ sap.ui.define([
 		//Setting invisible text
 		this._oInvisibleText = new InvisibleText();
 		this._oInvisibleText.toStatic();
-		var oIllustratedMessage = new IllustratedMessage({
-				illustrationType: this.getNoDataIllustrationType(),
-				illustrationSize: IllustratedMessageSize.Auto,
-				title: this.getNoDataText(),
-				description: this.getNoDataDescription()
-			});
-
-		this.setAggregation("_illustratedMessage", oIllustratedMessage);
-		oIllustratedMessage.addIllustrationAriaLabelledBy(this._oInvisibleText.getId());
 		this._oInvisibleText.setText(this._oRb.getText("UPLOAD_SET_ILLUSTRATED_MESSAGE"));
 		this._cloudFilePickerControl = null;
 		this._oListEventDelegate = null;
@@ -560,6 +559,14 @@ sap.ui.define([
 			this._oUploader.destroy();
 			this._oUploader = null;
 		}
+		if (this._oIllustratedMessage) {
+			this._oIllustratedMessage.destroy();
+			this._oIllustratedMessage = null;
+		}
+		if (this._oIllustratedMessageClone) {
+			this._oIllustratedMessageClone.destroy();
+			this._oIllustratedMessageClone = null;
+		}
 	};
 
 	/* ===================== */
@@ -574,6 +581,10 @@ sap.ui.define([
 		this._aGroupHeadersAdded = [];
 		this._clearGroupHeaders();
 		this._fillListWithUploadSetItems(this.getItems());
+		if (this._initialIllustrationClone && this.getAggregation("illustratedMessage")) {
+			this._oIllustratedMessageClone = this.getAggregation("illustratedMessage")?.clone();
+			this._initialIllustrationClone = false;
+		}
 	};
 
 	UploadSet.prototype.onAfterRendering = function () {
@@ -609,6 +620,16 @@ sap.ui.define([
 			} else {
 				aList.getDomRef().querySelector(".sapMUCNoDataPage").focus();
 			}
+		}
+		if (!this._oIllustratedMessage) {
+			this._oIllustratedMessage = new IllustratedMessage({
+				illustrationType: this.getNoDataIllustrationType(),
+				illustrationSize: IllustratedMessageSize.Auto,
+				title: this.getNoDataText(),
+				description: this.getNoDataDescription()
+			});
+			this._oIllustratedMessage.addIllustrationAriaLabelledBy(this._oInvisibleText.getId());
+			this.setAggregation("illustratedMessage", this._oIllustratedMessage);
 		}
 
 		if (this.getCloudFilePickerEnabled()) {
@@ -749,7 +770,10 @@ sap.ui.define([
 	// Functions returns sNoDataText which is combination of Title and Description from the IllustratedMessage
 	UploadSet.prototype._setListNoDataText = function (sText, bIsDescription) {
 		var sNoDataText = "";
-		var oIllustratedMessage = this.getAggregation("_illustratedMessage");
+		var oIllustratedMessage = this.getAggregation("illustratedMessage");
+		if (!oIllustratedMessage) {
+			return "";
+		}
 		if (!sText) {
 			sNoDataText = oIllustratedMessage.getTitle() + " " + oIllustratedMessage.getDescription();
 		} else if (sText) {
@@ -985,18 +1009,59 @@ sap.ui.define([
 	};
 
 	UploadSet.prototype._getIllustratedMessage = function () {
-		var oAggregation = this.getAggregation("_illustratedMessage");
-		// Invoke rendering of illustrated message only when the list is empty else no scope of illustrated message.
-		if (oAggregation && this._oList && this._oList.getItems && !this._oList.getItems().length) {
-			if (this._getDragIndicator()) {
-				oAggregation.setIllustrationType(IllustratedMessageType.UploadCollection);
-				oAggregation.setTitle(this.getDragDropText());
-				oAggregation.setDescription(this.getDragDropDescription());
-				oAggregation.removeAllAdditionalContent();
+		var oAggregation = this.getAggregation("illustratedMessage");
+		// Early return if no aggregation or the list is not empty
+		if (!oAggregation || !this._oList || !this._oList.getItems || this._oList.getItems().length) {
+			return oAggregation;
+		}
+
+		var oIllustratedMessageClone = this._oIllustratedMessageClone;
+
+		// Helper to set the title based on various conditions
+		const setTitle = (title) => {
+			if (title) {
+				oAggregation.setTitle(title);
+			} else if (oIllustratedMessageClone.isBound("title")) {
+				const boundTitle = oAggregation.mBindingInfos.title.binding.getValue();
+				oAggregation.setTitle(boundTitle);
 			} else {
-				oAggregation.setIllustrationType(this.getNoDataIllustrationType());
-				oAggregation.setTitle(this.getNoDataText());
-				oAggregation.setDescription(this.getNoDataDescription());
+				oAggregation.setTitle(this._oRb.getText("UPLOAD_SET_NO_DATA_TEXT"));
+			}
+		};
+
+		// Helper to set the description based on various conditions
+		const setDescription = (description) => {
+			if (description) {
+				oAggregation.setDescription(this.getUploadEnabled() ? description : " ");
+			} else if (oIllustratedMessageClone.isBound("description")) {
+				const boundDescription = oAggregation.mBindingInfos.description.binding.getValue();
+				oAggregation.setDescription(boundDescription);
+			} else {
+				oAggregation.setDescription(
+					this.getUploadEnabled() ? this._oRb.getText("UPLOADCOLLECTION_NO_DATA_DESCRIPTION") : " "
+				);
+			}
+		};
+
+		// Set the illustrated message based on drag indicator presence
+		if (this._getDragIndicator()) {
+			oAggregation.setIllustrationType(IllustratedMessageType.UploadCollection);
+			oAggregation.setTitle(this.getDragDropText());
+			oAggregation.setDescription(this.getUploadEnabled() ? this.getDragDropDescription() : " ");
+		} else {
+			oAggregation.setIllustrationType(oIllustratedMessageClone.getIllustrationType());
+			const sTitle = oIllustratedMessageClone.getTitle() || this.getProperty("noDataText");
+			const sDescription = oIllustratedMessageClone.getDescription() || this.getProperty("noDataDescription");
+			setTitle(sTitle);
+			setDescription(sDescription);
+
+			// Handle additional content
+			oAggregation.removeAllAdditionalContent();
+			if (oIllustratedMessageClone.getAdditionalContent().length) {
+				oAggregation.addAdditionalContent(
+					new Button(oIllustratedMessageClone.getAdditionalContent()[0].mProperties)
+				);
+			} else {
 				oAggregation.addAdditionalContent(this.getUploadButtonForIllustratedMessage());
 			}
 		}
@@ -1005,7 +1070,7 @@ sap.ui.define([
 
 	UploadSet.prototype.getUploadButtonForIllustratedMessage = function () {
 		if (!this._oUploadButton) {
-			var oAccIds = this.getAggregation("_illustratedMessage").getAccessibilityReferences();
+			var oAccIds = this.getAggregation("illustratedMessage").getAccessibilityReferences();
 			var sTitleId = oAccIds.title;
 			var sDescriptionId = oAccIds.description;
 			this._oUploadButton = new Button({
@@ -1410,7 +1475,12 @@ sap.ui.define([
 		if (this._oItemToUpdate && this.getInstantUpload()) {
 			this.removeAggregation('items', this._oItemToUpdate, false);
 		}
-		this.insertItem(oItem, 0);
+		if (!this.isBound('items')){
+			this.insertItem(oItem, 0);
+		}
+                if (this.isBound('items')) {
+			this.removeIncompleteItem(oItem);
+		}
 		oItem.setUploadState(UploadState.Complete);
 		this._oItemToUpdate = null;
 		this.fireUploadCompleted(oXhrParams);
@@ -1563,8 +1633,10 @@ sap.ui.define([
 		if (sAction !== MessageBox.Action.OK) {
 			return;
 		}
-		this.removeItem(this._oItemToBeDeleted);
-		this.removeIncompleteItem(this._oItemToBeDeleted);
+		if (!this.isBound("items")){
+			this.removeItem(this._oItemToBeDeleted);
+			this.removeIncompleteItem(this._oItemToBeDeleted);
+		}
 		this.fireAfterItemRemoved({item: this._oItemToBeDeleted});
 		this._oItemToBeDeleted = null;
 		this._bItemRemoved = true;
@@ -1758,6 +1830,7 @@ sap.ui.define([
 		} else {
 			this.getList().addAggregation("items", oListItem, true);
 		}
+		oItem.attachEvent("selected", this._handleItemSetSelected, this); // capturing selected event to set selected status to CustomListItem
 		this._checkRestrictionsForItem(oItem);
 	};
 
@@ -1854,7 +1927,7 @@ sap.ui.define([
 	UploadSet.prototype._fireFileSizeExceed = function (oItem) {
 		var oSendItem = new UploadSetItem();
 		oSendItem.setFileName(oItem.getParameter('fileName'));
-		this.fireFileSizeExceeded({item: oSendItem});
+		this.fireFileSizeExceeded({item: oSendItem, fileSize: oItem.getParameter("fileSize") });
 	};
 
 	UploadSet.prototype._fireFilenameLengthExceed = function (oItem) {
@@ -2190,6 +2263,37 @@ sap.ui.define([
 			this._oDragIndicator = false;
       this._getIllustratedMessage();
 		}
+	};
+
+	/**
+	 * Handles the selected event of UploadSetItem.
+	 * Used to synchronize the internal list with the given item. The ListItem has to be set to selected value too.
+	 * Otherwise the internal sap.m.List and the UploadSetItem aggregation are not in sync.
+	 * @param {sap.ui.base.Event} event The SAPUI5 event object
+	 * @private
+	 */
+	UploadSet.prototype._handleItemSetSelected = function(event) {
+		var oItem = event.getSource();
+		if (oItem instanceof UploadSetItem) {
+			var oListItem = this._getListItemById(oItem.getId() + "-listItem");
+			if (oListItem) {
+				oListItem.setSelected(oItem.getSelected());
+			}
+		}
+	};
+
+	/**
+	 * Returns a CustomListItem instance rendered in the list using the id.
+	 * @param {string} sID id of the Custom List item to be queried.
+	 * @returns {sap.m.CustomListItem} The matching CustomList Item.
+	 * @private
+	 */
+	UploadSet.prototype._getListItemById = function(sID) {
+		const aListItems = this.getList()?.getItems();
+		if (aListItems && aListItems.length && sID) {
+			return aListItems.find((oListItem) => oListItem?.getId() === sID);
+		}
+		return null;
 	};
 
 	return UploadSet;

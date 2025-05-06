@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -41,6 +41,7 @@ sap.ui.define([
 		rNumberInScientificNotation = /^([+-]?)((\d+)(?:\.(\d+))?)[eE]([+-]?\d+)$/,
 		rTrailingZeroes = /0+$/;
 	const rFallbackPatternTextParts = /(.*)?\{[0|1]}(.*)?\{[0|1]}(.*)?/;
+	const aSupportedWidths = ["narrow", "abbreviated", "wide"];
 
 	/**
 	 * Creates an instance of LocaleData for the given locale.
@@ -51,7 +52,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @public
 	 * @alias sap.ui.core.LocaleData
 	 */
@@ -80,6 +81,39 @@ sap.ui.define([
 		 */
 		_getMerged: function() {
 			return this._get.apply(this, arguments);
+		},
+
+		/**
+		 * Get month names in width "narrow", "abbreviated" or "wide". Result may contain alternative month names.
+		 *
+		 * @param {"narrow"|"abbreviated"|"wide"} sWidth
+		 *   The required width for the month names
+		 * @param {sap.ui.core.CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from locale
+		 * @returns {array}
+		 *   The array of month names; if no alternative exists the entry for the month is its name as a string; if
+		 *   there are alternative month names the entry for the month is an array of strings with the alternative names
+		 * @private
+		 */
+		_getMonthsWithAlternatives: function(sWidth, sCalendarType) {
+			return this._get(getCLDRCalendarName(sCalendarType), "months", "format", sWidth);
+		},
+
+		/**
+		 * Get standalone month names in width "narrow", "abbreviated" or "wide". Result may contain alternative month
+		 * names.
+		 *
+		 * @param {"narrow"|"abbreviated"|"wide"} sWidth
+		 *   The required width for the month names
+		 * @param {sap.ui.core.CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from locale
+		 * @returns {array}
+		 *   The array of month names; if no alternative exists the entry for the month is its name as a string; if
+		 *   there are alternative month names the entry for the month is an array of strings with the alternative names
+		 * @private
+		 */
+		_getMonthsStandAloneWithAlternatives: function(sWidth, sCalendarType) {
+			return this._get(getCLDRCalendarName(sCalendarType), "months", "stand-alone", sWidth);
 		},
 
 		_getDeep: function(oObject, aPropertyNames) {
@@ -235,27 +269,37 @@ sap.ui.define([
 		/**
 		 * Get month names in width "narrow", "abbreviated" or "wide".
 		 *
-		 * @param {string} sWidth the required width for the month names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of month names (starting with January)
+		 * @param {"narrow"|"abbreviated"|"wide"} sWidth
+		 *   The required width for the month names
+		 * @param {sap.ui.core.CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from locale
+		 * @returns {string[]}
+		 *   The array of month names
 		 * @public
 		 */
 		getMonths: function(sWidth, sCalendarType) {
-			assert(sWidth == "narrow" || sWidth == "abbreviated" || sWidth == "wide", "sWidth must be narrow, abbreviated or wide");
-			return this._get(getCLDRCalendarName(sCalendarType), "months", "format", sWidth);
+			assert(aSupportedWidths.includes(sWidth), "sWidth must be narrow, abbreviated or wide");
+			return this._get(getCLDRCalendarName(sCalendarType), "months", "format", sWidth).map((vMonthName) => {
+				return Array.isArray(vMonthName) ? vMonthName[0] : vMonthName;
+			});
 		},
 
 		/**
 		 * Get standalone month names in width "narrow", "abbreviated" or "wide".
 		 *
-		 * @param {string} sWidth the required width for the month names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of month names (starting with January)
+		 * @param {"narrow"|"abbreviated"|"wide"} sWidth
+		 *   The required width for the month names
+		 * @param {sap.ui.core.CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from locale
+		 * @returns {string[]}
+		 *   The array of standalone month names
 		 * @public
 		 */
 		getMonthsStandAlone: function(sWidth, sCalendarType) {
-			assert(sWidth == "narrow" || sWidth == "abbreviated" || sWidth == "wide", "sWidth must be narrow, abbreviated or wide");
-			return this._get(getCLDRCalendarName(sCalendarType), "months", "stand-alone", sWidth);
+			assert(aSupportedWidths.includes(sWidth), "sWidth must be narrow, abbreviated or wide");
+			return this._get(getCLDRCalendarName(sCalendarType), "months", "stand-alone", sWidth).map((vMonthName) => {
+				return Array.isArray(vMonthName) ? vMonthName[0] : vMonthName;
+			});
 		},
 
 		/**
@@ -2332,7 +2376,7 @@ sap.ui.define([
 	 * A list of locales for which CLDR data is bundled with the UI5 runtime.
 	 * @private
 	 */
-	var _cldrLocales = getDesigntimePropertyAsArray("$cldr-locales:ar,ar_EG,ar_SA,bg,ca,cy,cs,da,de,de_AT,de_CH,el,el_CY,en,en_AU,en_GB,en_HK,en_IE,en_IN,en_NZ,en_PG,en_SG,en_ZA,es,es_AR,es_BO,es_CL,es_CO,es_MX,es_PE,es_UY,es_VE,et,fa,fi,fr,fr_BE,fr_CA,fr_CH,fr_LU,he,hi,hr,hu,id,it,it_CH,ja,kk,ko,lt,lv,ms,nb,nl,nl_BE,pl,pt,pt_PT,ro,ru,ru_UA,sk,sl,sr,sr_Latn,sv,th,tr,uk,vi,zh_CN,zh_HK,zh_SG,zh_TW$");
+	var _cldrLocales = getDesigntimePropertyAsArray("$cldr-locales:ar,ar_EG,ar_SA,bg,ca,cnr,cy,cs,da,de,de_AT,de_CH,el,el_CY,en,en_AU,en_GB,en_HK,en_IE,en_IN,en_NZ,en_PG,en_SG,en_ZA,es,es_AR,es_BO,es_CL,es_CO,es_MX,es_PE,es_UY,es_VE,et,fa,fi,fr,fr_BE,fr_CA,fr_CH,fr_LU,he,hi,hr,hu,id,it,it_CH,ja,kk,ko,lt,lv,mk,ms,nb,nl,nl_BE,pl,pt,pt_PT,ro,ru,ru_UA,sk,sl,sr,sr_Latn,sv,th,tr,uk,vi,zh_CN,zh_HK,zh_SG,zh_TW$");
 
 	/**
 	 * A set of locales for which the UI5 runtime contains a CLDR JSON file.

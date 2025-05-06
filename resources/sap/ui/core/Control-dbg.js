@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,6 +9,7 @@ sap.ui.define([
 	'./CustomStyleClassSupport',
 	'./Core',
 	'./Element',
+	'./ElementRegistry',
 	'./UIArea',
 	'./StaticArea',
 	'./RenderManager',
@@ -22,6 +23,7 @@ sap.ui.define([
 		CustomStyleClassSupport,
 		Core,
 		Element,
+		ElementRegistry,
 		UIArea,
 		StaticArea,
 		RenderManager,
@@ -81,7 +83,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @alias sap.ui.core.Control
 	 */
 	var Control = Element.extend("sap.ui.core.Control", /** @lends sap.ui.core.Control.prototype */ {
@@ -662,7 +664,7 @@ sap.ui.define([
 
 			if (oContainer instanceof Element) {
 				if (!isSuitableAsContainer(oContainer)) {
-					Log.warning("placeAt cannot be processed because container " + oContainer + " does not have an aggregation 'content'.");
+					Log.warning("[FUTURE FATAL] placeAt cannot be processed because container " + oContainer + " does not have an aggregation 'content'.");
 					return this;
 				}
 			} else {
@@ -691,7 +693,7 @@ sap.ui.define([
 						oContainer.addContent(this);
 						break;
 					default:
-						Log.warning("Position " + vPosition + " is not supported for function placeAt.");
+						Log.warning("[FUTURE FATAL] Position " + vPosition + " is not supported for function placeAt.");
 				}
 			}
 		}.bind(this));
@@ -746,11 +748,19 @@ sap.ui.define([
 	 * Subclasses of Control should override this hook to implement any necessary actions before the rendering.
 	 *
 	 * @param {jQuery.Event} oEvent onBeforeRendering event object
+	 * @returns {void|undefined} This hook method must not have a return value. Return value <code>void</code> is deprecated since 1.120, as it does not force functions to <b>not</b> return something.
+	 * 	This implies that, for instance, no async function returning a Promise should be used.
+	 *
+	 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
+	 * 	implementation of this hook must not return anything but undefined. Any other
+	 * 	return value will cause an error log in this version of UI5 and will fail in future
+	 * 	major versions of UI5.
 	 * @protected
 	 */
-	Control.prototype.onBeforeRendering = function(oEvent) {
+	Control.prototype.onBeforeRendering = function() {
 		// Before adding any implementation, please remember that this method was first implemented in release 1.54.
 		// Therefore, many subclasses will not call this method at all.
+		return undefined;
 	};
 
 	/**
@@ -761,11 +771,19 @@ sap.ui.define([
 	 * Subclasses of Control should override this hook to implement any necessary actions after the rendering.
 	 *
 	 * @param {jQuery.Event} oEvent onAfterRendering event object
+	 * @returns {void|undefined} This hook method must not have a return value. Return value <code>void</code> is deprecated since 1.120, as it does not force functions to <b>not</b> return something.
+	 * 	This implies that, for instance, no async function returning a Promise should be used.
+	 *
+	 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
+	 * 	implementation of this hook must not return anything but undefined. Any other
+	 * 	return value will cause an error log in this version of UI5 and will fail in future
+	 * 	major versions of UI5.
 	 * @protected
 	 */
-	Control.prototype.onAfterRendering = function(oEvent) {
+	Control.prototype.onAfterRendering = function() {
 		// Before adding any implementation, please remember that this method was first implemented in release 1.54.
 		// Therefore, many subclasses will not call this method at all.
+		return undefined;
 	};
 
 	/**
@@ -1269,7 +1287,7 @@ sap.ui.define([
 	 * @public
 	 */
 	Control.getControlsByFieldGroupId = function(vFieldGroupIds) {
-		return Element.registry.filter((oElement) => {
+		return ElementRegistry.filter((oElement) => {
 			return oElement.isA("sap.ui.core.Control") && oElement.checkFieldGroupIds(vFieldGroupIds);
 		});
 	};

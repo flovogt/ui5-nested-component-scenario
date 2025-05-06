@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -138,6 +138,32 @@ sap.ui.define([
 		 * @type {string}
 		 */
 		HALF_AWAY_FROM_ZERO: "HALF_AWAY_FROM_ZERO"
+	};
+
+	/**
+	 * Derives the maximal possible decimals from the given format option's <code>maxFractionDigits</code>
+	 * and <code>decimals</code> properties.
+	 *
+	 * If <code>decimals</code> and <code>maxFractionDigits</code> are >= 0, then the minimum of
+	 * <code>maxFractionDigits</code> and <code>decimals</code> is returned, - otherwise
+	 * <code>decimals</code> is returned.
+	 *
+	 * @param {object} oFormatOptions
+	 * @param {int} [oFormatOptions.decimals]
+	 *   The number of decimal digits
+	 * @param {int} [oFormatOptions.maxFractionDigits]
+	 *   The maximum number of decimal digits
+	 * @returns {int}
+	 *   The maximum decimals to be used
+	 *
+	 * @private
+	 * @static
+	 */
+	NumberFormat.getMaximalDecimals = function ({decimals, maxFractionDigits}) {
+		if (maxFractionDigits >= 0 && decimals > 0 && maxFractionDigits < decimals) {
+			return maxFractionDigits;
+		}
+		return decimals;
 	};
 
 	var mRoundingFunction = {};
@@ -1298,6 +1324,7 @@ sap.ui.define([
 
 			// either take the decimals/precision on the custom units or fallback to the given format-options
 			oOptions.decimals = (mUnitPatterns && (typeof mUnitPatterns.decimals === "number" && mUnitPatterns.decimals >= 0)) ? mUnitPatterns.decimals : oOptions.decimals;
+			oOptions.decimals = NumberFormat.getMaximalDecimals(oOptions);
 			oOptions.precision = (mUnitPatterns && (typeof mUnitPatterns.precision === "number" && mUnitPatterns.precision >= 0)) ? mUnitPatterns.precision : oOptions.precision;
 		}
 
@@ -1339,6 +1366,7 @@ sap.ui.define([
 				// we either take the custom decimals or use decimals defined in the format-options
 				// we check for undefined here, since 0 is an accepted value
 				oOptions.decimals = oOptions.customCurrencies[sMeasure].decimals !== undefined ? oOptions.customCurrencies[sMeasure].decimals : oOptions.decimals;
+				oOptions.decimals = NumberFormat.getMaximalDecimals(oOptions);
 			}
 		}
 

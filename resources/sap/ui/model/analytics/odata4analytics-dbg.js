@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -3421,14 +3421,14 @@ sap.ui.define([
 			var sOptionString = "";
 			// 1. Process conditions
 			aUI5Filter.sort(function(a, b) {
-				if (a.sPath == b.sPath) {
+				// default path to "" to ensure that the array contains all multi-filters, that don't have a path,
+				// at the beginning
+				const sAPath = a.sPath || "";
+				const sBPath = b.sPath || "";
+				if (sAPath === sBPath) {
 					return 0;
 				}
-				if (a.sPath > b.sPath) {
-					return 1;
-				} else {
-					return -1;
-				}
+				return sAPath > sBPath ? 1 : -1;
 			});
 
 			var sPropertyName = aUI5Filter[0].sPath;

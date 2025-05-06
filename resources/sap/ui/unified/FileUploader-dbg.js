@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -69,7 +69,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent, sap.ui.unified.IProcessableBlobs
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -765,6 +765,10 @@ sap.ui.define([
 
 	FileUploader.prototype.removeAriaLabelledBy = function(sID) {
 		var sLabelId = this.removeAssociation("ariaLabelledBy", sID);
+		if (!sLabelId) {
+			return;
+		}
+
 		this.oBrowse.removeAriaLabelledBy(sLabelId);
 
 		return sLabelId;
@@ -793,6 +797,10 @@ sap.ui.define([
 
 	FileUploader.prototype.removeAriaDescribedBy = function(sID) {
 		var sDescriptionId = this.removeAssociation("ariaDescribedBy", sID);
+		if (!sDescriptionId) {
+			return;
+		}
+
 		this.oBrowse.removeAriaDescribedBy(sDescriptionId);
 
 		return sDescriptionId;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -39,7 +39,7 @@ sap.ui.define(['./SimpleType'],
 	 *   <code>true</code>.
 	 * @extends sap.ui.model.SimpleType
 	 * @public
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 */
 	var CompositeType = SimpleType.extend("sap.ui.model.CompositeType", /** @lends sap.ui.model.CompositeType.prototype */ {
 
@@ -122,15 +122,29 @@ sap.ui.define(['./SimpleType'],
 	 * model messages to the attached control. Prerequisite is that the corresponding binding
 	 * supports this feature, see {@link sap.ui.model.Binding#supportsIgnoreMessages}.
 	 *
-	 * @return {number[]}
+	 * @return {int[]}
 	 *   An array of indices that determine which parts of this type shall not propagate their model
-	 *   messages to the attached control
+	 *   messages to the attached control; an empty array is returned by default
 	 *
 	 * @public
 	 * @see sap.ui.model.Binding#supportsIgnoreMessages
 	 * @since 1.82.0
 	 */
 	CompositeType.prototype.getPartsIgnoringMessages = function () {
+		return [];
+	};
+
+	/**
+	 * Gets the indices of the binding parts of this composite type in order to determine those parts
+	 * whose types are required for formatting. An empty array is returned by default. Subclasses need
+	 * to overwrite this function if they are interested in type changes of the corresponding binding part.
+	 *
+	 * @returns {int[]}
+	 *   The indices of the parts with a relevant type for this composite type
+	 *
+	 * @see #processPartTypes
+	 */
+	CompositeType.prototype.getPartsListeningToTypeChanges = function () {
 		return [];
 	};
 

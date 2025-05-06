@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -57,7 +57,7 @@ sap.ui.define([
 	 * @alias sap.m.p13n.Engine
 	 * @extends sap.m.p13n.modules.AdaptationProvider
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @public
 	 * @since 1.104
 	 */
@@ -259,8 +259,8 @@ sap.ui.define([
 	 * Check if there are changes for a given control instance
 	 *
 	 * @private
-         * @ui5-restricted sap.m, sap.ui.mdc
-         *
+	 * @ui5-restricted sap.m, sap.ui.mdc
+	 *
 	 * @param {sap.ui.core.Control} control The control instance
 	 * @param {string} key The affected controller key
 	 * @returns {Promise<boolean>} A Promise that resolves if the given control instance has applied changes
@@ -642,12 +642,7 @@ sap.ui.define([
 
 		if (aChanges instanceof Array && aChanges.length > 0) {
 			var oModificationSetting = this._determineModification(vControl);
-			return oModificationSetting.handler.processChanges(aChanges, oModificationSetting.payload)
-				.then(function (aChanges) {
-					var oControl = Engine.getControlInstance(vControl);
-					this.fireStateChange(oControl);
-					return aChanges;
-				}.bind(this));
+			return oModificationSetting.handler.processChanges(aChanges, oModificationSetting.payload);
 		} else {
 			return Promise.resolve([]);
 		}
@@ -1130,8 +1125,16 @@ sap.ui.define([
 		var aPPResults = this.hasForReference(vControl, "sap.m.p13n.PersistenceProvider").concat(this.hasForReference(vControl, "sap.ui.mdc.p13n.PersistenceProvider"));
 		var aVMResults = this.hasForReference(vControl, "sap.ui.fl.variants.VariantManagement");
 
-		var aPersistenceProvider = aPPResults.length ? aPPResults : undefined;
-		var sHandlerMode = aPersistenceProvider ? aPersistenceProvider[0].getMode() : "Standard";
+		var oRelevantPersistenceProvider;
+		if (aPPResults?.length > 1) {
+			oRelevantPersistenceProvider = aPPResults.find((oProvider) => {
+				const aDefaultProviders = Object.values(this.defaultProviderRegistry._mDefaultProviders);
+				return aDefaultProviders?.find((oDefaultProvider) => oDefaultProvider.getId() == oProvider.getId());
+			});
+		}
+
+		oRelevantPersistenceProvider = oRelevantPersistenceProvider || aPPResults?.[0];
+		var sHandlerMode = oRelevantPersistenceProvider ? oRelevantPersistenceProvider.getMode() : "Standard";
 
 		var oModificationSetting = {
 			handler: FlexModificationHandler.getInstance(),
@@ -1314,14 +1317,13 @@ sap.ui.define([
 
 			var vP13nData = oController.getP13nData();
 			if (vP13nData) {
-				var p = this.createChanges({
+				var p = (oController.isA("sap.ui.mdc.p13n.subcontroller.FilterController") ? Promise.resolve([]) : this.createChanges({
 					control: oControl,
 					key: sControllerKey,
 					state: vP13nData,
 					suppressAppliance: true,
 					applyAbsolute: true
-				})
-					.then(function (aItemChanges) {
+				})).then(function (aItemChanges) {
 
 						return oController.getBeforeApply().then(function (aChanges) {
 
@@ -1356,8 +1358,7 @@ sap.ui.define([
 	/**
 	 * This method is the central point of access to the Engine Singleton.
 	 *
-	 * @private
-	 * @ui5-restricted sap.m, sap.ui.mdc
+	 * @public
 	 *
 	 * @returns {sap.m.p13n.Engine} The Engine instance
 	 */

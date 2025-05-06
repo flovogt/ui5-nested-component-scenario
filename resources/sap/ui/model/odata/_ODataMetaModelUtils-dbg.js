@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -978,7 +978,7 @@ sap.ui.define([
 				// remove datajs artefact for inline annotations in $metadata
 				delete oSchema.annotations;
 
-				Utils.liftSAPData(oSchema, bIgnoreAnnotationsFromMetadata);
+				Utils.liftSAPData(oSchema, /*sTypeClass*/undefined, bIgnoreAnnotationsFromMetadata);
 				oSchema.$path = "/dataServices/schema/" + i;
 				sSchemaVersion = oSchema["sap:schema-version"];
 				if (sSchemaVersion && !bIgnoreAnnotationsFromMetadata) {

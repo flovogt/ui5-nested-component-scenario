@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /* global FontFace */
@@ -79,7 +79,7 @@ sap.ui.define([
 				'photo-voltaic': 0xe017,
 				'phone': 0xe018,
 				'pending': 0xe019,
-				'pdf-attachment': 0xe01a,
+				'pdf-attachment': 0x1e01a,
 				'past': 0x1e01b,
 				'outgoing-call': 0xe01c,
 				'opportunity': 0xe01d,

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -80,7 +80,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @public
 	 * @since 1.110
@@ -296,7 +296,7 @@ sap.ui.define([
 			placement: library.PlacementType.VerticalPreferredBottom,
 			content: new AssociativeControl({control: this, height: true}),
 			horizontalScrolling: false,
-			verticalScrolling: false,
+			verticalScrolling: true, //Temporary Solution until UX design for a proper overflow of all areas in the menu exists
 			afterClose: [this._onPopoverAfterClose, this]
 		});
 		this.addDependent(this._oPopover);
@@ -573,11 +573,15 @@ sap.ui.define([
 	};
 
 	Menu.prototype._setItemVisibility = function (oItem, bVisible) {
+		if (!this._oItemsContainer) {
+			return;
+		}
+
 		var oList = this._oItemsContainer._getNavigationList().getItems();
 		var oListItem = oList.find(function (oListItem) {
 			return oListItem._key == oItem.getId();
 		});
-		oListItem && oListItem.setVisible(bVisible);
+		oListItem?.setVisible(bVisible);
 	};
 
 	Menu.prototype._initQuickActionContainer = function () {

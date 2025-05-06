@@ -1,7 +1,7 @@
 /*!
 
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -45,8 +45,9 @@ sap.ui.define(['./BarInPageEnabler', 'sap/ui/Device', "sap/base/Log", 'sap/m/HBo
 		oRM.class(this.getContext(oControl));
 
 		oRM.accessibilityState(oControl, {
-			"role": oControl._getRootAccessibilityRole(),
-			"level":  oControl._getRootAriaLevel()
+			"role": oControl._getAccessibilityRole(),
+			"level":  oControl._getRootAriaLevel(),
+			"labelledby": {value: oControl._getAccessibilityRole() ? oControl.getAriaLabelledBy() : "", append: false}
 		});
 
 		/**

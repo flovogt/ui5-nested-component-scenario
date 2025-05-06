@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -22,7 +22,7 @@ var sClassName = "sap.ui.model.odata.ODataMessageParser",
 	// shortcuts for enums
 	MessageType = coreLibrary.MessageType,
 	// This map is used to translate back-end response severity values to the values defined in the
-	// enumeration sap.ui.core.MessageType
+	// enumeration sap.ui.core.message.MessageType
 	mSeverity2MessageType = {
 		"error" : MessageType.Error,
 		"info" : MessageType.Information,
@@ -85,7 +85,7 @@ var sClassName = "sap.ui.model.odata.ODataMessageParser",
  * @extends sap.ui.core.message.MessageParser
  *
  * @author SAP SE
- * @version 1.120.1
+ * @version 1.120.30
  * @public
  * @alias sap.ui.model.odata.ODataMessageParser
  */
@@ -531,7 +531,7 @@ ODataMessageParser.prototype._createTarget = function (sODataTarget, mRequestInf
 	sODataTarget = sCanonicalTarget || sODataTarget;
 
 	return {
-		deepPath : this._metadata._getReducedPath(sDeepPath || sODataTarget),
+		deepPath : ODataUtils._normalizeKey(this._metadata._getReducedPath(sDeepPath || sODataTarget)),
 		target : ODataUtils._normalizeKey(sODataTarget)
 	};
 };

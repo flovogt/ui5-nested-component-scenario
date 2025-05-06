@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 //Provides control sap.ui.unified.Calendar.
@@ -76,7 +76,7 @@ sap.ui.define([
 	 * Basic Calendar.
 	 * This calendar is used for DatePickers
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -119,9 +119,14 @@ sap.ui.define([
 			firstDayOfWeek : {type : "int", group : "Appearance", defaultValue : -1},
 
 			/**
+			 * This property sets chosen days of the week as non-working days, and overrides the weekend days defined in the locale settings.
 			 * If set, the provided weekdays are displayed as non-working days.
-			 * Valid values inside the array are 0 to 6.
-			 * If not set, the weekend defined in the locale settings is displayed as non-working days.
+			 *
+			 * <ul>Users could override the non-working days for each week. Valid values inside the array are from 0 to 6. For example:
+			 * <li>A single day for each week - <code>[3]</code>.</li>
+			 * <li>All days for each week - <code>[0,1,2,3,4,5,6]</code>.</li>
+			 * <li>None of the days for each week - <code>[]</code>. In this case all weekdays are working days.</li>
+			 * <ul>
 			 *
 			 * <b>Note:</b> Keep in mind that this property sets only weekly-recurring days
 			 * as non-working. If you need specific dates or dates ranges, such as national
@@ -502,9 +507,23 @@ sap.ui.define([
 			bExecuteDefault = this.fireWeekNumberSelect({
 				weekNumber: oEvent.getParameter("weekNumber"),
 				weekDays: oWeekDays
-			});
+			}),
+			iSelectedWeekMonth = oWeekDays?.getStartDate() && oWeekDays?.getStartDate().getMonth(),
+			iCurrentMonth = oEvent.getSource().getDate() && oEvent.getSource().getDate().getMonth(),
+			aMonth = this.getAggregation("month"),
+			oFirstMonthStartDate = CalendarDate.fromLocalJSDate(aMonth[0].getDate()),
+			oLastMonthEndDate = CalendarDate.fromLocalJSDate(aMonth[aMonth.length - 1].getDate());
 
-		this._focusDate(CalendarDate.fromLocalJSDate(oWeekDays.getStartDate(), this._getPrimaryCalendarType()), true, false, false);
+			oFirstMonthStartDate.setDate(1);
+			oLastMonthEndDate.setDate(1);
+			oLastMonthEndDate.setMonth(oLastMonthEndDate.getMonth() + 1);
+			oLastMonthEndDate.setDate(0);
+
+		const bOtherMonth = aMonth.length >= 2 ?
+			!CalendarUtils._isBetween(CalendarDate.fromLocalJSDate(oEvent.getSource().getDate()), oFirstMonthStartDate, oLastMonthEndDate, true) :
+			iSelectedWeekMonth !== iCurrentMonth;
+
+		oWeekDays && this._focusDate(CalendarDate.fromLocalJSDate(oWeekDays.getStartDate(), this._getPrimaryCalendarType()), bOtherMonth, false, false);
 
 		if (!bExecuteDefault) {
 			oEvent.preventDefault();
@@ -687,7 +706,7 @@ sap.ui.define([
 			this._sLocale = sLocale;
 			this._oLocaleData = undefined;
 			this.invalidate();
-			this._toggleTwoMonthsInTwoColumnsCSS();
+			this._toggleTwoMonthsInColumnsCSS();
 		}
 
 		return this;
@@ -828,7 +847,7 @@ sap.ui.define([
 				oMonth.setSecondaryCalendarType(this._getSecondaryCalendarType());
 				this.addAggregation("month", oMonth);
 			}
-			this._toggleTwoMonthsInTwoColumnsCSS();
+			this._toggleTwoMonthsInColumnsCSS();
 		} else if (aMonths.length > iMonths){
 			for (i = aMonths.length; i > iMonths; i--) {
 				oMonth = this.removeAggregation("month", i - 1);
@@ -838,7 +857,7 @@ sap.ui.define([
 				// back to standard case -> initialize month width
 				this._bInitMonth = true;
 			}
-			this._toggleTwoMonthsInTwoColumnsCSS();
+			this._toggleTwoMonthsInColumnsCSS();
 		}
 
 		if (iMonths > 1 && aMonths[0].getDate()) {
@@ -1293,7 +1312,7 @@ sap.ui.define([
 		}
 		this._setHeaderText(oCalDate);
 		this._setPrimaryHeaderMonthButtonText();
-		this._toggleTwoMonthsInTwoColumnsCSS();
+		this._toggleTwoMonthsInColumnsCSS();
 	};
 
 	Calendar.prototype._updateLegendParent = function(){
@@ -1798,7 +1817,7 @@ sap.ui.define([
 		// change month and year
 		this._updateHeader(oFirstDate);
 		this._setPrimaryHeaderMonthButtonText();
-		this._toggleTwoMonthsInTwoColumnsCSS();
+		this._toggleTwoMonthsInColumnsCSS();
 
 		if (bFireStartDateChange) {
 			this.fireStartDateChange();
@@ -2394,7 +2413,7 @@ sap.ui.define([
 	 * Toggle On or Off CSS class for indicating if calendar is in two columns with two calendars mode
 	 * @private
 	 */
-	Calendar.prototype._toggleTwoMonthsInTwoColumnsCSS = function () {
+	Calendar.prototype._toggleTwoMonthsInColumnsCSS = function () {
 		if (this._isTwoMonthsInTwoColumns()) {
 			if (oCore.getConfiguration().getLocale().getLanguage().toLowerCase() === "ja" ||
 				oCore.getConfiguration().getLocale().getLanguage().toLowerCase() === "zh") {
@@ -2407,6 +2426,12 @@ sap.ui.define([
 		} else {
 			this.removeStyleClass("sapUiCalTwoMonthsTwoColumnsJaZh");
 			this.removeStyleClass("sapUiCalTwoMonthsTwoColumns");
+		}
+
+		if (this._isTwoMonthsInOneColumn()) {
+			this.addStyleClass("sapUiCalTwoMonthsInOneColumn");
+		} else {
+			this.removeStyleClass("sapUiCalTwoMonthsInOneColumn");
 		}
 	};
 
@@ -2651,7 +2676,7 @@ sap.ui.define([
 		}
 
 		this._setPrimaryHeaderMonthButtonText();
-		this._toggleTwoMonthsInTwoColumnsCSS();
+		this._toggleTwoMonthsInColumnsCSS();
 	}
 
 	/**

@@ -87,6 +87,7 @@
 		"ckb_alt-menu": "Kurdi, Tengah",
 		"ckb_alt-variant": "Kurdi, Sorani",
 		"clc": "Chilcotin",
+		"cnr": "Bahasa Montenegro",
 		"co": "Corsica",
 		"cop": "Coptic",
 		"crg": "Michif",
@@ -1730,14 +1731,35 @@
 					"Saf.",
 					"Rab. I",
 					"Rab. II",
-					"Jam. I",
-					"Jam. II",
-					"Rej.",
-					"Syaa.",
+					[
+						"Jam. I",
+						"Jum. I"
+					],
+					[
+						"Jam. II",
+						"Jum. II"
+					],
+					[
+						"Rej.",
+						"Raj."
+					],
+					[
+						"Syaa.",
+						"Sha."
+					],
 					"Ram.",
-					"Syaw.",
-					"Zulk.",
-					"Zulh."
+					[
+						"Syaw.",
+						"Shaw."
+					],
+					[
+						"Zulk.",
+						"Dhuʻl-Q."
+					],
+					[
+						"Zulh.",
+						"Dhuʻl-H."
+					]
 				],
 				"narrow": [
 					"1",
@@ -1774,14 +1796,35 @@
 					"Saf.",
 					"Rab. I",
 					"Rab. II",
-					"Jam. I",
-					"Jam. II",
-					"Rej.",
-					"Syaa.",
+					[
+						"Jam. I",
+						"Jum. I"
+					],
+					[
+						"Jam. II",
+						"Jum. II"
+					],
+					[
+						"Rej.",
+						"Raj."
+					],
+					[
+						"Syaa.",
+						"Sha."
+					],
 					"Ram.",
-					"Syaw.",
-					"Zulk.",
-					"Zulh."
+					[
+						"Syaw.",
+						"Shaw."
+					],
+					[
+						"Zulk.",
+						"Dhuʻl-Q."
+					],
+					[
+						"Zulh.",
+						"Dhuʻl-H."
+					]
 				],
 				"narrow": [
 					"1",

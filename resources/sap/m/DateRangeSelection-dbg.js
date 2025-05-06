@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -165,8 +165,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.120.1
-	 * @version 1.120.1
+	 * @version 1.120.30
+	 * @version 1.120.30
 	 *
 	 * @constructor
 	 * @public
@@ -734,7 +734,15 @@ sap.ui.define([
 					aDates[1] = aDates[1].slice(1);
 				}
 			} else {
-				aDates = sValue.split(" " + sDelimiter + " ");// Delimiter appears more than once -> try with separators
+				const aDateInterval = sValue.split(" " + sDelimiter + " ");// Delimiter appears more than once -> try with separators
+				if ( aDateInterval.length >= 1 && aDates.length > 2) {
+					const sFirstDate = aDates.slice(0, aDates.length / 2).join(sDelimiter);
+					const sSecondDate = aDates.slice(aDates.length / 2).join(sDelimiter);
+					aDates = [sFirstDate, sSecondDate];
+				} else {
+					aDates = aDateInterval;
+				}
+
 			}
 
 			if (sValue.indexOf(sDelimiter) === -1) {

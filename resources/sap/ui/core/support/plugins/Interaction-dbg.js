@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -40,7 +40,7 @@ sap.ui.define([
 		 * With this plugIn the performance measurements are displayed
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 * @private
 		 * @alias sap.ui.core.support.plugins.Interaction
 		 */
@@ -204,7 +204,7 @@ sap.ui.define([
 			if (bActive || jsonData) {
 				aMeasurements = jsonData || TraceInteraction.getAll(/*bFinalize=*/true);
 
-				var fetchStart = window.performance.timing.fetchStart;
+				var fetchStart = window.performance.getEntriesByType("navigation")?.[0]?.fetchStart;
 
 				for (var i = 0; i < aMeasurements.length; i++) {
 					var measurement = aMeasurements[i];

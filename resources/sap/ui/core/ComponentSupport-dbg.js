@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -97,7 +97,7 @@ sap.ui.define([
 	 * @author SAP SE
 	 * @public
 	 * @since 1.58.0
-	 * @version 1.120.1
+	 * @version 1.120.30
 	 * @namespace
 	 * @alias module:sap/ui/core/ComponentSupport
 	 */
@@ -166,7 +166,7 @@ sap.ui.define([
 					var oProperty = ComponentContainerMetadata.getProperty(sKey);
 					var oEvent = !oProperty && ComponentContainerMetadata.getEvent(sKey);
 					if (!oProperty && !oEvent) {
-						Log.warning("Property or event \"" + sKey + "\" will be ignored as it does not exist in sap.ui.core.ComponentContainer");
+						Log.warning("[FUTURE FATAL] Property or event \"" + sKey + "\" will be ignored as it does not exist in sap.ui.core.ComponentContainer");
 						continue;
 					}
 					if (oProperty) {
@@ -210,7 +210,7 @@ sap.ui.define([
 		if (mSettings.manifest === undefined || mSettings.manifest === "true") {
 			mSettings.manifest = true;
 		} else if (mSettings.manifest === "false") {
-			Log.error("Ignoring \"manifest=false\" for ComponentContainer of component \"" + mSettings.name + "\" as it is not supported by ComponentSupport. " +
+			Log.error("[FUTURE FATAL] Ignoring \"manifest=false\" for ComponentContainer of component \"" + mSettings.name + "\" as it is not supported by ComponentSupport. " +
 				"Forcing \"manifest=true\"", "", "sap/ui/core/ComponentSupport");
 			mSettings.manifest = true;
 		}

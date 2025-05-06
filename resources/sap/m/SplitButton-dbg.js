@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2023 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -46,7 +46,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.1
+		 * @version 1.120.30
 		 *
 		 * @constructor
 		 * @private
@@ -153,8 +153,9 @@ function(
 
 			$textButtonRef.attr("tabindex", "-1");
 			$arrowButtonRef.attr("tabindex", "-1");
-			$textButtonRef.removeAttr("title");
-			$arrowButtonRef.removeAttr("title");
+			if (this.getTooltip()) {
+				$textButtonRef.removeAttr("title");
+			}
 			$textButtonRef.removeAttr("aria-describedby");
 			$arrowButtonRef.removeAttr("aria-describedby");
 		};

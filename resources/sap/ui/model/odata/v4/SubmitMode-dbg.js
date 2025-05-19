@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,7 +25,7 @@ sap.ui.define(function () {
 		API : "API",
 
 		/**
-		 * Requests associated with the group ID are sent in a batch request which is triggered
+		 * Requests associated with the group ID are sent in a batch request which is initiated
 		 * automatically before rendering.
 		 * @public
 		 */

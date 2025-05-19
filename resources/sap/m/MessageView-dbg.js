@@ -1,17 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Lib",
+	"sap/ui/core/Messaging",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Control",
 	"sap/ui/core/CustomData",
 	"sap/ui/core/IconPool",
 	"sap/ui/core/HTML",
 	"sap/ui/core/Icon",
-	'sap/ui/core/ResizeHandler',
 	"./Button",
 	"./Toolbar",
 	"./ToolbarSpacer",
@@ -26,7 +27,9 @@ sap.ui.define([
 	"./MessageItem",
 	"./GroupHeaderListItem",
 	'sap/ui/core/InvisibleText',
+	"sap/ui/core/InvisibleMessage",
 	"sap/ui/core/library",
+	"sap/ui/core/message/MessageType",
 	"sap/ui/base/ManagedObject",
 	"./MessageViewRenderer",
 	"sap/ui/events/KeyCodes",
@@ -34,13 +37,14 @@ sap.ui.define([
 	"sap/base/security/URLListValidator",
 	"sap/ui/thirdparty/caja-html-sanitizer"
 ], function(
+	Library,
+	Messaging,
 	jQuery,
 	Control,
 	CustomData,
 	IconPool,
 	HTML,
 	Icon,
-	ResizeHandler,
 	Button,
 	Toolbar,
 	ToolbarSpacer,
@@ -55,7 +59,9 @@ sap.ui.define([
 	MessageItem,
 	GroupHeaderListItem,
 	InvisibleText,
+	InvisibleMessage,
 	coreLibrary,
+	MessageType,
 	ManagedObject,
 	MessageViewRenderer,
 	KeyCodes,
@@ -66,9 +72,6 @@ sap.ui.define([
 
 	// shortcut for sap.ui.core.ValueState
 	var ValueState = coreLibrary.ValueState;
-
-	// shortcut for sap.ui.core.MessageType
-	var MessageType = coreLibrary.MessageType;
 
 	// shortcut for sap.m.ListType
 	var ListType = library.ListType;
@@ -116,7 +119,7 @@ sap.ui.define([
 	 * The responsiveness of the <code>MessageView</code> is determined by the container in which it is embedded. For that reason the control could not be visualized if the
 	 * container’s sizes are not defined.
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -205,9 +208,8 @@ sap.ui.define([
 						item: {type: "sap.m.MessageItem"},
 						/**
 						 * Refers to the type of messages being shown.
-						 * See sap.ui.core.MessageType values for types.
 						 */
-						messageTypeFilter: {type: "sap.ui.core.MessageType"}
+						messageTypeFilter: {type: "module:sap/ui/core/message/MessageType"}
 					}
 				},
 				/**
@@ -218,7 +220,7 @@ sap.ui.define([
 						/**
 						 * This parameter refers to the type of messages being shown.
 						 */
-						messageTypeFilter: {type: "sap.ui.core.MessageType"}
+						messageTypeFilter: {type: "module:sap/ui/core/message/MessageType"}
 					}
 				},
 				/**
@@ -313,7 +315,7 @@ sap.ui.define([
 		var that = this;
 		this._bHasHeaderButton = false;
 
-		this._oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 		this._createNavigationPages();
 		this._createLists();
@@ -324,10 +326,6 @@ sap.ui.define([
 				that.setProperty(sFuncName, DEFAULT_ASYNC_HANDLERS[sFuncName]);
 			}
 		});
-	};
-
-	MessageView.prototype._handleResize = function(oListItem){
-		this._setItemType(oListItem);
 	};
 
 	/**
@@ -376,24 +374,13 @@ sap.ui.define([
 	 * @private
 	 */
 	MessageView.prototype._setItemType = function (oListItem) {
-		const oItemTitleRef = oListItem.getTitleRef();
+		var oItemTitleRef = oListItem.getTitleRef();
 
-		if (!oItemTitleRef) {
-			return;
-		}
-
-		if (oItemTitleRef.offsetWidth < oItemTitleRef.scrollWidth) {
-			oListItem.setType(ListType.Navigation);
+		if (oItemTitleRef &&  (oItemTitleRef.offsetWidth < oItemTitleRef.scrollWidth)) {
 
 			if (this.getItems().length === 1) {
 				this._fnHandleForwardNavigation(oListItem, "show");
 			}
-
-			return;
-		}
-
-		if (oItemTitleRef.offsetWidth > 0) {
-			oListItem.setType(this._getItemType(oListItem._oMessageItem));
 		}
 	};
 
@@ -401,6 +388,10 @@ sap.ui.define([
 		var oGroupedItems,
 			aListItems,
 			aItems = this.getItems();
+
+		if (!this._oInvisibleMessage) {
+			this._oInvisibleMessage = InvisibleMessage.getInstance();
+		}
 
 		this._clearLists();
 		this._detailsPage.setShowHeader(this.getShowDetailsPageHeader());
@@ -430,16 +421,39 @@ sap.ui.define([
 
 		if (aListItems.length === 1 && aListItems[0].getType()  === ListType.Navigation) {
 
-			this._fnHandleForwardNavigation(aListItems[0], "show");
+			if (this._navContainer.getCurrentPage() !== this._detailsPage) {
+				this._fnHandleForwardNavigation(aListItems[0], "show");
 
-			// TODO: adopt this to NavContainer's public API once a parameter for back navigation transition name is available
-			this._navContainer._pageStack[this._navContainer._pageStack.length - 1].transition = "slide";
+				// TODO: adopt this to NavContainer's public API once a parameter for back navigation transition name is available
+				this._navContainer._pageStack[this._navContainer._pageStack.length - 1].transition = "slide";
+			}
 		} else if (aListItems.length === 0) {
 			this._navContainer.backToTop();
 		}
 
 		// Bind automatically to the MessageModel if no items are bound
 		this._makeAutomaticBinding();
+	};
+
+	MessageView.prototype._updateDescription = function (oItem) {
+		if (!this._isListPage() && oItem._oListItem) {
+			this._updateDescriptionPage(oItem, oItem._oListItem);
+		}
+	};
+
+	/**
+	 * Updates details page when a MessageItem gets updated.
+	 * @param {sap.m.MessageItem} oMessageItem Selected MessageItem.
+	 * @param {sap.m.MessageListItem} oListItem MessageListItem created from the MessageItem.
+	 * @private
+	 */
+	MessageView.prototype._updateDescriptionPage = function (oMessageItem, oListItem) {
+		this._clearDetailsPage();
+		this._setTitle(oMessageItem, oListItem);
+		this._setSubtitle(oMessageItem);
+		this._setDescription(oMessageItem);
+		this._setIcon(oMessageItem, oListItem);
+		this._detailsPage.invalidate();
 	};
 
 	/**
@@ -470,12 +484,11 @@ sap.ui.define([
 		var oHeader = new GroupHeaderListItem({
 			title: sGroupName
 		});
-
-		this._oLists["all"].addAggregation("items", oHeader, true);
+		this._oLists["all"].addItemGroup(null, oHeader, true);
 
 		["error", "warning", "success", "information"].forEach(function (sListType) {
 			if (this._hasGroupItemsOfType(aItems, sListType)) {
-				this._oLists[sListType].addAggregation("items", oHeader.clone(), true);
+				this._oLists[sListType].addItemGroup(null, oHeader.clone(), true);
 			}
 		}, this);
 
@@ -498,6 +511,11 @@ sap.ui.define([
 			this._destroyLists();
 		}
 
+		if (this._oInvisibleMessage) {
+			this._oInvisibleMessage.destroy();
+			this._oInvisibleMessage = null;
+		}
+
 		if (this._oMessageItemTemplate) {
 			this._oMessageItemTemplate.destroy();
 		}
@@ -514,7 +532,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * If there's no items binding, attach the MessageView to the sap.ui.getCore().getMessageManager().getMessageModel()
+	 * If there's no items binding, attach the MessageView to the sap.ui.core.Messaging.getMessageModel()
 	 *
 	 * @private
 	 * @ui5-restricted sap.m.MessagePopover
@@ -535,7 +553,7 @@ sap.ui.define([
 	MessageView.prototype._bindToMessageModel = function () {
 		var that = this;
 
-		this.setModel(sap.ui.getCore().getMessageManager().getMessageModel(), "message");
+		this.setModel(Messaging.getMessageModel(), "message");
 
 		this._oMessageItemTemplate = new MessageItem({
 			type: "{message>type}",
@@ -790,7 +808,7 @@ sap.ui.define([
 		if (!oMessageItem) {
 			return null;
 		}
-
+		const nCharLimit = 140;
 		var sType = oMessageItem.getType(),
 			that = this,
 			listItemType = this._getItemType(oMessageItem),
@@ -804,6 +822,8 @@ sap.ui.define([
 				type: listItemType,
 				messageType: oMessageItem.getType(),
 				activeTitle: oMessageItem.getActiveTitle(),
+				wrapping: true,
+				wrapCharLimit: nCharLimit,
 				activeTitlePress: function () {
 					that.fireActiveTitlePress({ item: oMessageItem });
 				}
@@ -814,16 +834,13 @@ sap.ui.define([
 		if (listItemType !== ListType.Navigation) {
 			oListItem.addEventDelegate({
 				onAfterRendering: function () {
-					this._setItemType(oListItem);
-
-					if (!oListItem._sResizeHandlerId) {
-						this._sResizeHandlerId = ResizeHandler.register(oListItem, this._handleResize.bind(this, oListItem));
-					}
+					that._setItemType(oListItem);
 				}
 			}, this);
 		}
 
 		oListItem._oMessageItem = oMessageItem;
+		oMessageItem._oListItem = oListItem;
 
 		return oListItem;
 	};
@@ -831,7 +848,7 @@ sap.ui.define([
 	/**
 	 * Map ValueState according the MessageType of the message.
 	 *
-	 * @param {sap.ui.core.MessageType} sType Type of Message
+	 * @param {module:sap/ui/core/message/MessageType} sType Type of Message
 	 * @returns {sap.ui.core.ValueState | null} The ValueState
 	 * @private
 	 */
@@ -857,7 +874,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Map a MessageType to the Icon URL.
+	 * Map a `ValueState` to the Icon URL.
 	 *
 	 * @param {sap.ui.core.ValueState} sIcon Type of Error
 	 * @returns {string | null} Icon string
@@ -991,6 +1008,21 @@ sap.ui.define([
 	};
 
 	/**
+	 * Sets subtitle part of details page
+	 * @param {sap.m.MessageItem} oMessageItem The message item
+	 * @private
+	 */
+	MessageView.prototype._setSubtitle = function (oMessageItem) {
+		var sText = oMessageItem.getSubtitle(),
+			sId = this.getId() + "MessageSubtitleText";
+
+		this._oMessageSubtitleText = new Text(sId, {
+			text: sText
+		}).addStyleClass("sapMMsgViewSubtitleText");
+		this._detailsPage.addContent(this._oMessageSubtitleText);
+	};
+
+	/**
 	 * Sets description text part of details page
 	 * When markup description is used it is sanitized within it's container's setter method (MessageItem)
 	 * @param {sap.m.MessageItem} oMessageItem The message item
@@ -1080,7 +1112,11 @@ sap.ui.define([
 				promise: oPromiseArgument
 			};
 
-			fnAsyncURLHandler(config);
+			// apply validation asynchronously
+			// details page should be fully rendered to change the links inside
+			setTimeout(() => {
+				fnAsyncURLHandler(config);
+			}, 0);
 		});
 
 		oPromise.id = iValidationTaskId;
@@ -1256,10 +1292,18 @@ sap.ui.define([
 
 	MessageView.prototype._navigateToDetails = function(oMessageItem, oListItem, sTransiotionName, bSuppressNavigate) {
 		this._setTitle(oMessageItem, oListItem);
+		this._setSubtitle(oMessageItem);
 		this._setDescription(oMessageItem);
 		this._setIcon(oMessageItem, oListItem);
 		this._detailsPage.invalidate();
 		this.fireLongtextLoaded();
+
+		const oContentTitle = this._detailsPage.getContent()[0];
+
+		if (oContentTitle && !oContentTitle.isA("sap.m.Link")) {
+			const sAnnouncement = oContentTitle.getText() + " Additional information available via reading keys";
+			this._oInvisibleMessage.announce(sAnnouncement, "Assertive");
+		}
 
 		if (!bSuppressNavigate) {
 			this._navContainer.to(this._detailsPage, sTransiotionName);

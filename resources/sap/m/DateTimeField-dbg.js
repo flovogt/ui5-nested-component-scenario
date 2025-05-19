@@ -1,17 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.DateTimeField.
 sap.ui.define([
+	"sap/base/i18n/Formatting",
+	"sap/base/i18n/date/CalendarType",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Locale",
 	'sap/ui/model/type/Date',
 	'sap/ui/model/odata/type/ODataType',
 	'sap/ui/model/odata/type/DateTimeBase',
 	'./InputBase',
 	'./ValueStateHeader',
-	'sap/ui/core/Core',
 	'sap/ui/core/LocaleData',
 	'sap/ui/core/library',
 	'sap/ui/core/format/DateFormat',
@@ -19,18 +22,20 @@ sap.ui.define([
 	"sap/base/util/deepEqual",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration",
 	'sap/ui/core/date/UI5Date',
 	'sap/ui/unified/calendar/CalendarUtils',
 	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos"
 ], function(
+	Formatting,
+	CalendarType,
+	Library,
+	Locale,
 	SimpleDateType,
 	ODataType,
 	DateTimeBase,
 	InputBase,
 	ValueStateHeader,
-	Core,
 	LocaleData,
 	coreLibrary,
 	DateFormat,
@@ -38,14 +43,10 @@ sap.ui.define([
 	deepEqual,
 	Log,
 	jQuery,
-	Configuration,
 	UI5Date,
 	CalendarUtils
 ) {
 	"use strict";
-
-	// shortcut for sap.ui.core.CalendarType
-	var CalendarType = coreLibrary.CalendarType;
 
 	// shortcut for sap.ui.core.ValueState
 	var ValueState = coreLibrary.ValueState;
@@ -65,7 +66,7 @@ sap.ui.define([
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -226,11 +227,24 @@ sap.ui.define([
 	};
 
 	/**
+	 * Getter for property <code>dateValue</code>.
+	 *
+	 * The date and time in DateTimeField as UI5Date or JavaScript Date object.
+	 *
+	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
+	 *
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the value of property <code>dateValue</code>
+	 * @public
+	 * @name sap.m.DateTimeField#getDateValue
+	 * @method
+	 */
+
+	/**
 	 * Setter for property <code>dateValue</code>.
 	 *
 	 * The date and time in DateTimeField as UI5Date or JavaScript Date object.
 	 *
-	 * @param {Date|module:sap/ui/core/date/UI5Date} oDate A date instance
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oDate A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -313,6 +327,14 @@ sap.ui.define([
 		}
 
 		this._sPreviousValue = this.getDOMValue();
+	};
+
+	DateTimeField.prototype.shouldValueStateMessageBeOpened = function() {
+		return (this.getValueState() !== ValueState.None) &&
+				this.getEditable() &&
+				this.getEnabled() &&
+				this.getShowValueStateMessage() &&
+				!(this._oPopup && this._oPopup.isOpen());
 	};
 
 	/**
@@ -403,7 +425,7 @@ sap.ui.define([
 
 	DateTimeField.prototype._getLocaleBasedPattern = function (sPlaceholder) {
 		return LocaleData.getInstance(
-			Configuration.getFormatSettings().getFormatLocale()
+			new Locale(Formatting.getLanguageTag())
 		).getDatePattern(sPlaceholder);
 	};
 
@@ -532,7 +554,7 @@ sap.ui.define([
 		}
 
 		if (!sCalendarType) {
-			sCalendarType = Configuration.getCalendarType();
+			sCalendarType = Formatting.getCalendarType();
 		}
 
 		if (bDisplayFormat) {
@@ -606,7 +628,7 @@ sap.ui.define([
 		}
 
 		if (oBindingType instanceof ODataType && oBindingType.getFormat) {
-			return oBindingType.getFormat().oFormatOptions.pattern;
+			return  oBindingType.getFormat().oFormatOptions.pattern;
 		}
 
 		return undefined;
@@ -641,11 +663,17 @@ sap.ui.define([
 		if (sValueState === ValueState.None) {
 			sText = "";
 		} else {
-			oResourceBundle = Core.getLibraryResourceBundle("sap.ui.core");
+			oResourceBundle = Library.getResourceBundleFor("sap.ui.core");
 			sText = oResourceBundle.getText("VALUE_STATE_" + sValueState.toUpperCase());
 		}
 
 		return sText;
+	};
+
+	// support for SemanticFormElement
+	DateTimeField.prototype.getFormFormattedValue = function() {
+		var oDate = this.getDateValue();
+		return this._formatValue(oDate);
 	};
 
 	return DateTimeField;

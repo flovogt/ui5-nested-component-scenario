@@ -1,15 +1,28 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	'sap/base/config',
+	'sap/base/future',
 	'sap/base/Log'
-], function (Log) {
+], function (BaseConfig, future, Log) {
 	"use strict";
 
 	var mLibThemeMetadata = {};
 
+	/**
+	 * [COMPATIBILITY] in case deprecated (and removed) themes are still needed, the fallback might be deactivated
+	 * [  RESTRICTED ] This is not a public offering and must not be used by applications!
+	 * @ui5-transform-hint replace-local false
+	 */
+	const bThemeFallbackDeactivated = BaseConfig.get({
+		name: "sapUiXxDeactivateThemeFallback",
+		type: "boolean",
+		value: false,
+		external: false // must not be usable via URL parameter!
+	});
 
 	// Theme defaulting
 	const DEFAULT_THEME = "sap_horizon";
@@ -17,8 +30,8 @@ sap.ui.define([
 	// dark mode detection
 	const bDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-	// Theme Fallback
-	const rThemePattern = /^([a-zA-Z0-9_]*)(_(hcb|hcw|dark))$/g;
+	// Theme Fallback for variants
+	const rThemeVariantPattern = /(_hcb|_hcw|_dark)$/g;
 
 	/**
 	 * The list of all known themes incl. their variants.
@@ -37,19 +50,7 @@ sap.ui.define([
 		"sap_fiori_3",
 		"sap_fiori_3_dark",
 		"sap_fiori_3_hcb",
-		"sap_fiori_3_hcw",
-
-		// belize
-		"sap_belize",
-		"sap_belize_plus",
-		"sap_belize_hcb",
-		"sap_belize_hcw",
-
-		// bluecrystal (deprecated)
-		"sap_bluecrystal",
-
-		// hcb (deprecated) - the standard HCB theme, newer themes have a dedicated HCB/HCW variant
-		"sap_hcb"
+		"sap_fiori_3_hcw"
 	];
 
 	// cache for already calculated theme fallbacks
@@ -118,7 +119,7 @@ sap.ui.define([
 			oMetadata = JSON.parse(sMetadataJSON);
 			mLibThemeMetadata[sLibName] = oMetadata;
 		} catch (ex) {
-			Log.error("[FUTURE FATAL] Could not parse theme metadata for library " + sLibName + ".");
+			future.errorThrows("Could not parse theme metadata for library " + sLibName + ".");
 		}
 		return oMetadata;
 	};
@@ -153,14 +154,14 @@ sap.ui.define([
 				var bResult = bNoLinkElement || bSheet || bInnerHtml || bLinkElementFinishedLoading;
 
 				if (bLog) {
-					Log.debug("ThemeHelper: " + sId + ": " + bResult + " (noLinkElement: " + bNoLinkElement + ", sheet: " + bSheet + ", innerHtml: " + bInnerHtml + ", linkElementFinishedLoading: " + bLinkElementFinishedLoading + ")");
+					Log.debug("sap.ui.core.theming.ThemeHelper: " + sId + ": " + bResult + " (noLinkElement: " + bNoLinkElement + ", sheet: " + bSheet + ", innerHtml: " + bInnerHtml + ", linkElementFinishedLoading: " + bLinkElementFinishedLoading + ")");
 				}
 
 				return bResult;
 
 			} catch (e) {
 				if (bLog) {
-					Log.error("[FUTURE FATAL] ThemeHelper: " + sId + ": Error during check styles '" + sId + "'", e);
+					future.errorThrows(`sap.ui.core.theming.ThemeHelper: Error during check styles for Id: "${sId}"`, { cause: e });
 				}
 			}
 
@@ -217,6 +218,11 @@ sap.ui.define([
 	 * @returns {string} the validated and transformed theme name
 	 */
 	ThemeHelper.validateAndFallbackTheme = function(sTheme, sThemeRoot) {
+		// refer to comment at the top of this module
+		if (bThemeFallbackDeactivated) {
+			return sTheme;
+		}
+
 		// check cache for already determined fallback
 		// only do this for themes from the default location (potential SAP standard themes)
 		if (sThemeRoot == null && mThemeFallbacks[sTheme]) {
@@ -231,14 +237,9 @@ sap.ui.define([
 		//  * not supported in this version
 		if (sThemeRoot == null && sTheme.startsWith("sap_") && aKnownThemes.indexOf(sTheme) == -1) {
 			// extract the theme variant if given: "_hcb", "_hcw", "_dark"
-			const aThemeMatch = rThemePattern.exec(sTheme) || [];
-			const sVariant = aThemeMatch[2]; //match includes an underscore
+			const sVariant = sTheme.match(rThemeVariantPattern)?.[0] || "";
 
-			if (sVariant) {
-				sNewTheme = `${DEFAULT_THEME}${sVariant}`;
-			} else {
-				sNewTheme = DEFAULT_THEME;
-			}
+			sNewTheme = `${DEFAULT_THEME}${sVariant}`;
 
 			mThemeFallbacks[sTheme] = sNewTheme;
 
@@ -253,6 +254,19 @@ sap.ui.define([
 			DEFAULT_THEME: DEFAULT_THEME,
 			DARK_MODE: bDarkMode
 		};
+	};
+
+	/**
+	 * Checks whether the theme is a SAP delivered standard theme or not.
+	 *
+	 * @param {string} sTheme Name of the theme to check
+	 * @returns {boolean} true if the theme is a standard theme, false otherwise
+	 * @private
+	 * @ui5-restricted sap.ui.core.Theming, sap.ui.core.theming.ThemeManager
+	 * @since 1.135
+	 */
+	ThemeHelper.isStandardTheme = function(sTheme) {
+		return sTheme.startsWith("sap_") || sTheme === "base";
 	};
 
 	return ThemeHelper;

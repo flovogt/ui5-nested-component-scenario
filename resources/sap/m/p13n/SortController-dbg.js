@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	'sap/m/p13n/SelectionController',  'sap/m/p13n/SortPanel', 'sap/m/p13n/modules/xConfigAPI'
-], function (BaseController, SortPanel, xConfigAPI) {
+	'sap/m/p13n/SelectionController', 'sap/m/p13n/SortPanel', 'sap/m/p13n/modules/xConfigAPI'
+], (BaseController, SortPanel, xConfigAPI) => {
 	"use strict";
 
 	/**
@@ -33,18 +33,18 @@ sap.ui.define([
 	 * @extends sap.m.p13n.SelectionController
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @public
 	 * @alias sap.m.p13n.SortController
 	 */
-	var SortController = BaseController.extend("sap.m.p13n.SortController", {
+	const SortController = BaseController.extend("sap.m.p13n.SortController", {
 		constructor: function() {
 			BaseController.apply(this, arguments);
 			this._bResetEnabled = true;
 		}
 	});
 
-	SortController.prototype.getStateKey = function() {
+	SortController.prototype.getStateKey = () => {
 		return "sorters";
 	};
 
@@ -53,13 +53,11 @@ sap.ui.define([
 		return BaseController.prototype.getDelta.apply(this, arguments);
 	};
 
-	SortController.prototype.initAdaptationUI = function(oPropertyHelper){
+	SortController.prototype.initAdaptationUI = function(oPropertyHelper) {
 
-		var oSortPanel;
+		const oSortPanel = new SortPanel();
 
-		oSortPanel = new SortPanel();
-
-		var oAdaptationData = this.mixInfoAndState(oPropertyHelper);
+		const oAdaptationData = this.mixInfoAndState(oPropertyHelper);
 		oSortPanel.setP13nData(oAdaptationData.items);
 		this._oPanel = oSortPanel;
 
@@ -67,10 +65,10 @@ sap.ui.define([
 	};
 
 	SortController.prototype.model2State = function() {
-		var aItems = [];
+		const aItems = [];
 		if (this._oPanel) {
-			this._oPanel.getP13nData(true).forEach(function(oItem){
-				if (oItem.sorted){
+			this._oPanel.getP13nData(true).forEach((oItem) => {
+				if (oItem.sorted) {
 					aItems.push({
 						key: oItem.key
 					});
@@ -80,23 +78,23 @@ sap.ui.define([
 		}
 	};
 
-    SortController.prototype.getChangeOperations = function() {
-        return {
-            add: "addSort",
-            remove: "removeSort",
-            move: "moveSort"
-        };
-    };
+	SortController.prototype.getChangeOperations = () => {
+		return {
+			add: "addSort",
+			remove: "removeSort",
+			move: "moveSort"
+		};
+	};
 
 	SortController.prototype.getCurrentState = function(bExternalize) {
-		var oXConfig = xConfigAPI.readConfig(this.getAdaptationControl()) || {};
-		var aSortConditions = oXConfig.hasOwnProperty("properties") ? oXConfig.properties.sortConditions : [];
+		const oXConfig = xConfigAPI.readConfig(this.getAdaptationControl()) || {};
+		const aSortConditions = oXConfig.hasOwnProperty("properties") ? oXConfig.properties.sortConditions : [];
 
 		return aSortConditions || [];
 	};
 
-	SortController.prototype._createAddRemoveChange = function(oControl, sOperation, oContent){
-		var oAddRemoveChange = {
+	SortController.prototype._createAddRemoveChange = (oControl, sOperation, oContent) => {
+		const oAddRemoveChange = {
 			selectorElement: oControl,
 			changeSpecificData: {
 				changeType: sOperation,
@@ -106,18 +104,18 @@ sap.ui.define([
 		return oAddRemoveChange;
 	};
 
-    SortController.prototype._getPresenceAttribute = function(bexternalAppliance){
-        return "sorted";
-    };
+	SortController.prototype._getPresenceAttribute = (bexternalAppliance) => {
+		return "sorted";
+	};
 
 	SortController.prototype.mixInfoAndState = function(oPropertyHelper) {
 
-		var aItemState = this.getCurrentState();
-		var mExistingSorters = this.arrayToMap(aItemState);
+		const aItemState = this.getCurrentState();
+		const mExistingSorters = this.arrayToMap(aItemState);
 
-		var oP13nData = this.prepareAdaptationData(oPropertyHelper, function(mItem, oProperty){
+		const oP13nData = this.prepareAdaptationData(oPropertyHelper, (mItem, oProperty) => {
 
-			var oExistingSorter = mExistingSorters[oProperty.key];
+			const oExistingSorter = mExistingSorters[oProperty.key];
 
 			mItem.sorted = oExistingSorter ? true : false;
 			mItem.sortPosition = oExistingSorter ? oExistingSorter.position : -1;
@@ -133,7 +131,9 @@ sap.ui.define([
 
 		oP13nData.presenceAttribute = this._getPresenceAttribute();
 
-		oP13nData.items.forEach(function(oItem){delete oItem.sortPosition;});
+		oP13nData.items.forEach((oItem) => {
+			delete oItem.sortPosition;
+		});
 
 		return oP13nData;
 	};

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,6 +10,8 @@ sap.ui.define([
 	'./ComboBoxBaseRenderer',
 	'./SuggestionsPopover',
 	'sap/ui/base/ManagedObjectObserver',
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	'sap/ui/core/SeparatorItem',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/base/ManagedObject',
@@ -23,8 +25,7 @@ sap.ui.define([
 	"sap/m/inputUtils/highlightDOMElements",
 	"sap/m/inputUtils/highlightItemsWithContains",
 	"sap/m/inputUtils/ListHelpers",
-	"sap/ui/core/IconPool",
-	"sap/ui/core/Core"
+	"sap/ui/core/IconPool"
 ],
 	function(
 		Input,
@@ -32,6 +33,8 @@ sap.ui.define([
 		ComboBoxBaseRenderer,
 		SuggestionsPopover,
 		ManagedObjectObserver,
+		Element,
+		Library,
 		SeparatorItem,
 		InvisibleText,
 		ManagedObject,
@@ -45,8 +48,7 @@ sap.ui.define([
 		highlightDOMElements,
 		highlightItemsWithContains,
 		ListHelpers,
-		IconPool,
-		Core
+		IconPool
 	) {
 		"use strict";
 
@@ -68,7 +70,7 @@ sap.ui.define([
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -94,10 +96,11 @@ sap.ui.define([
 
 					/**
 					 * Indicates whether the picker is opened.
-					 * @deprecated since version 1.110
+					 * @deprecated As of version 1.110 Please check the <code>showItems</code> functionality if you need to open the picker programmatically.
 					 * @private
+					 * @ui5-restricted sap.m.ComboBoxBase
 					 */
-					 open: {
+					open: {
 						type: "boolean",
 						defaultValue: false
 					},
@@ -563,10 +566,14 @@ sap.ui.define([
 			ComboBoxTextField.prototype.onkeydown.apply(this, arguments);
 
 			var oSuggestionsPopover = this._getSuggestionsPopover();
-			if (this.areHotKeysPressed(oEvent) && oSuggestionsPopover && oSuggestionsPopover.isOpen()) {
-				oSuggestionsPopover.setValueStateActiveState(true);
-				oSuggestionsPopover._handleValueStateLinkNav(this, oEvent);
-				oSuggestionsPopover.updateFocus(this, null);
+			if (this.areHotKeysPressed(oEvent)) {
+				if (oSuggestionsPopover && oSuggestionsPopover.isOpen()) {
+					oSuggestionsPopover.setValueStateActiveState(true);
+					oSuggestionsPopover._handleValueStateLinkNav(this, oEvent);
+					oSuggestionsPopover.updateFocus(this, null);
+				} else {
+					this._handleValueStateLinkNav();
+				}
 			}
 		};
 
@@ -589,7 +596,7 @@ sap.ui.define([
 
 		ComboBoxBase.prototype.init = function() {
 			ComboBoxTextField.prototype.init.apply(this, arguments);
-			this._oRb = Core.getLibraryResourceBundle("sap.m");
+			this._oRb = Library.getResourceBundleFor("sap.m");
 
 			// sets the picker popup type
 			this.setPickerType(Device.system.phone ? "Dialog" : "Dropdown");
@@ -704,19 +711,6 @@ sap.ui.define([
 				If the input has FormattedText aggregation while the suggestions popover is open then
 				it's new, because the old is already switched to have the value state header as parent */
 				this._updateSuggestionsPopoverValueState(true);
-			}
-		};
-
-		ComboBoxBase.prototype.onAfterRendering = function () {
-			ComboBoxTextField.prototype.onAfterRendering.apply(this, arguments);
-
-			const oPopover = this.getPicker();
-			if (oPopover && oPopover.getDomRef()) {
-				if (oPopover.getAriaDescribedBy().length > 0 && oPopover.isOpen()){
-					oPopover.getDomRef().setAttribute("aria-describedby", this.getValueStateLinksShortcutsId());
-				} else {
-					oPopover.getDomRef().removeAttribute("aria-describedby");
-				}
 			}
 		};
 
@@ -881,7 +875,7 @@ sap.ui.define([
 				return;
 			}
 
-			var oRelatedControl = sap.ui.getCore().byId(oEvent.relatedControlId);
+			var oRelatedControl = Element.getElementById(oEvent.relatedControlId);
 
 			// to prevent the change event from firing when the downward-facing arrow button is pressed
 			if (oRelatedControl === this) {
@@ -1629,8 +1623,7 @@ sap.ui.define([
 		 * Should be overwritten in children classes to apply control specific filtering over the items.
 		 *
 		 * @since 1.64
-		 * @experimental Since 1.64
-		 * @private
+		 * @protected
 		 * @ui5-restricted
 		 */
 		ComboBoxBase.prototype.applyShowItemsFilters = function () {};

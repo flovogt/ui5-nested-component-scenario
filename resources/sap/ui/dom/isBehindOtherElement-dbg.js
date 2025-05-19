@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -16,7 +16,6 @@ sap.ui.define([
 	 * @param {oControl} oControl
 	 * @returns {boolean} If the DomRef of the Control is positioned behind another element. If the DomRef is null or it is outside the visible viewport, returns "false".
 	 * @alias module:sap/ui/dom/isBehindOtherElement
-	 * @experimental Since 1.110
 	 * @public
 	 */
 	function isBehindOtherElement(oDomRef) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -34,13 +34,14 @@ sap.ui.define(["sap/ui/thirdparty/jquery", "sap/ui/events/PseudoEvents"
 		/**
 		 * Constructor for a jQuery.Event object.
 		 *
-		 * See "http://www.jquery.com" and "http://api.jquery.com/category/events/event-object/".
+		 * See {@link https://api.jquery.com/category/events/event-object/ jQuery Event Object}.
 		 *
-		 * @class Check the jQuery.Event class documentation available under "http://www.jquery.com"
-		 * and "http://api.jquery.com/category/events/event-object/" for details.
+		 * @class Check the jQuery.Event class documentation available at
+		 * {@link https://api.jquery.com/category/events/event-object/ jquery.com} for details.
 		 *
 		 * @name jQuery.Event
 		 * @public
+		 * @ui5-module-override sap/ui/thirdparty/jquery Event
 		 */
 
 		/**

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,7 +24,7 @@ sap.ui.define(['./library', 'sap/ui/core/Element', './AssociativeSplitter', 'sap
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -35,7 +35,7 @@ sap.ui.define(['./library', 'sap/ui/core/Element', './AssociativeSplitter', 'sap
 		library : "sap.ui.layout",
 		properties : {
 			/**
-			 The orientation of the Splitter
+			 * The orientation of the Splitter
 			 */
 			orientation : { type : "sap.ui.core.Orientation", group : "Behavior", defaultValue : Orientation.Horizontal }
 		},
@@ -127,14 +127,6 @@ sap.ui.define(['./library', 'sap/ui/core/Element', './AssociativeSplitter', 'sap
 		return this._oSplitter.getLayoutData();
 	};
 
-	/**
-	 * Pane insertion
-	 *
-	 * @public
-	 * @param oObject
-	 * @param iIndex
-	 * @returns {sap.ui.base.ManagedObject}
-	 */
 	PaneContainer.prototype.insertPane = function (oObject, iIndex) {
 		var vResult =  this.insertAggregation("panes", oObject, iIndex),
 			oEventDelegate = {
@@ -154,13 +146,6 @@ sap.ui.define(['./library', 'sap/ui/core/Element', './AssociativeSplitter', 'sap
 		return vResult;
 	};
 
-	/**
-	 * Pane removal
-	 *
-	 * @public
-	 * @param oObject
-	 * @returns {sap.ui.base.ManagedObject}
-	 */
 	PaneContainer.prototype.removePane = function (oObject) {
 		var vResult =  this.removeAggregation("panes", oObject),
 			oEventDelegate = {

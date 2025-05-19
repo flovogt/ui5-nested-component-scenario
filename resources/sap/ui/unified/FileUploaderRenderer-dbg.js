@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.unified.FileUploader
-sap.ui.define(['sap/ui/unified/library', "sap/ui/thirdparty/jquery", "./FileUploaderHelper"],
+sap.ui.define(['sap/ui/unified/library', "sap/ui/thirdparty/jquery", "sap/ui/unified/FileUploaderHelper"],
 	function(library, jQuery, FileUploaderHelper) {
 	"use strict";
 

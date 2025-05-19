@@ -1,15 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.SuggestionsList.
 sap.ui.define([
-		'./library',
-		'./SuggestionsListRenderer',
-		'sap/ui/core/Control'
-	], function(library, SuggestionsListRenderer, Control) {
+	'./library',
+	'./SuggestionsListRenderer',
+	'sap/ui/core/Control',
+	"sap/ui/core/RenderManager",
+	"sap/ui/core/Element"
+], function(library, SuggestionsListRenderer, Control, RenderManager, Element) {
 		"use strict";
 
 		//
@@ -48,7 +50,7 @@ sap.ui.define([
 
 		SuggestionsList.prototype.getItems = function(){
 			try {
-				return sap.ui.getCore().byId(this.getParentInput()).getSuggestionItems();
+				return Element.getElementById(this.getParentInput()).getSuggestionItems();
 			} catch (e) {
 				return [];
 			}
@@ -59,7 +61,7 @@ sap.ui.define([
 			var rm;
 			var domRef = this.getDomRef();
 			if (domRef) {
-				rm = sap.ui.getCore().createRenderManager();
+				rm = new RenderManager().getInterface();
 				this.getRenderer().renderItems(rm, this);
 				rm.flush(domRef);
 				rm.destroy();
@@ -74,7 +76,7 @@ sap.ui.define([
 			var index;
 			var item;
 			var itemId;
-			var parentInput = sap.ui.getCore().byId(this.getParentInput());
+			var parentInput = Element.getElementById(this.getParentInput());
 			var descendantAttr = "aria-activedescendant";
 
 			// selectByIndex(null || undefined || -1) -> remove selection

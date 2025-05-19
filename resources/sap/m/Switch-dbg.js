@@ -1,32 +1,34 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Switch.
 sap.ui.define([
 	'./library',
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/ui/core/EnabledPropagator',
 	'sap/ui/core/IconPool',
+	"sap/ui/core/Lib",
 	'sap/ui/core/theming/Parameters',
 	'sap/ui/events/KeyCodes',
 	'./SwitchRenderer',
-	"sap/base/assert",
-	"sap/ui/core/Configuration"
+	"sap/base/assert"
 ],
 function(
 	library,
+	Localization,
 	Control,
 	EnabledPropagator,
 	IconPool,
+	Library,
 	Parameters,
 	KeyCodes,
 	SwitchRenderer,
-	assert,
-	Configuration
-	) {
+	assert
+) {
 		"use strict";
 
 		// shortcut for sap.m.touch
@@ -50,7 +52,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -161,7 +163,7 @@ function(
 			}
 
 			this._iCurrentPosition = iPosition;
-			this.getDomRef("inner").style[Configuration.getRTL() ? "right" : "left"] = iPosition + "px";
+			this.getDomRef("inner").style[Localization.getRTL() ? "right" : "left"] = iPosition + "px";
 			this._setTempState(Math.abs(iPosition) < Switch._SWAPPOINT);
 		};
 
@@ -178,34 +180,21 @@ function(
 			this.getDomRef("handle").setAttribute("data-sap-ui-swt", b ? this._sOn : this._sOff);
 		};
 
-		Switch.prototype._getInvisibleElement = function(){
-			return this.$("invisible");
-		};
-
 		Switch.prototype.getInvisibleElementId = function() {
 			return this.getId() + "-invisible";
 		};
 
 		Switch.prototype.getInvisibleElementText = function(bState) {
-			var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			var oBundle = Library.getResourceBundleFor("sap.m");
 			var sText = "";
 
 			switch (this.getType()) {
 				case SwitchType.Default:
-					if (bState) {
-						sText = this.getCustomTextOn().trim() || oBundle.getText("SWITCH_ON");
-					} else {
-						sText = this.getCustomTextOff().trim() || oBundle.getText("SWITCH_OFF");
-					}
+					sText = bState ? this.getCustomTextOn().trim() : this.getCustomTextOff().trim();
 					break;
 
 				case SwitchType.AcceptReject:
-					if (bState) {
-						sText = oBundle.getText("SWITCH_ARIA_ACCEPT");
-					} else {
-						sText = oBundle.getText("SWITCH_ARIA_REJECT");
-					}
-
+					sText = bState ? oBundle.getText("SWITCH_ARIA_ACCEPT") : oBundle.getText("SWITCH_ARIA_REJECT");
 					break;
 
 				// no default
@@ -241,7 +230,7 @@ function(
 		/* =========================================================== */
 
 		Switch.prototype.onBeforeRendering = function() {
-			var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			var oRb = Library.getResourceBundleFor("sap.m");
 			this._sOn = this.getCustomTextOn() || oRb.getText("SWITCH_ON");
 			this._sOff = this.getCustomTextOff() || oRb.getText("SWITCH_OFF");
 		};
@@ -348,7 +337,7 @@ function(
 			iPosition = ((this._iStartPressPosX - oTouch.pageX) * -1) + this._iPosition;
 
 			// RTL mirror
-			if (Configuration.getRTL()) {
+			if (Localization.getRTL()) {
 				iPosition = -iPosition;
 			}
 
@@ -473,7 +462,7 @@ function(
 		/* =========================================================== */
 
 		Switch.prototype.getAccessibilityInfo = function() {
-			var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+			var oBundle = Library.getResourceBundleFor("sap.m"),
 				bState = this.getState(),
 				sDesc = this.getInvisibleElementText(bState);
 

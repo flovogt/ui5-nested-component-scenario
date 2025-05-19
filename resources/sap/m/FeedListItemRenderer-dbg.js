@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for the sap.m.FeedListItem
-sap.ui.define(["./ListItemBaseRenderer", "sap/ui/core/Renderer", "sap/ui/Device", "sap/ui/core/Configuration"],
-	function(ListItemBaseRenderer, Renderer, Device, Configuration) {
+sap.ui.define(["./ListItemBaseRenderer", "sap/base/i18n/Localization", "sap/ui/core/Renderer", "sap/ui/Device"],
+	function(ListItemBaseRenderer, Localization, Renderer, Device) {
 	"use strict";
 
 
@@ -45,20 +45,6 @@ sap.ui.define(["./ListItemBaseRenderer", "sap/ui/core/Renderer", "sap/ui/Device"
 		// icon
 		if (oControl.getShowIcon()) {
 			this._writeAvatarControl(oRm, oControl, sMyId);
-		}
-
-		// action button
-		if (oControl.getActions().length > 0) {
-			var isAllActionsNotVisible = oControl.getActions().every(function (oAction) {
-				return oAction.getVisible() === false ;
-			});
-			if (!isAllActionsNotVisible) {
-				oRm.openStart("div", sMyId + "-action-button");
-				oRm.class('sapMFeedListItemActionButton');
-				oRm.openEnd();
-				oRm.renderControl(oControl.getAggregation("_actionButton"));
-				oRm.close("div");
-			}
 		}
 
 		// text (starting with sender)
@@ -126,7 +112,7 @@ sap.ui.define(["./ListItemBaseRenderer", "sap/ui/core/Renderer", "sap/ui/Device"
 			if (oControl.getInfo() || oControl.getTimestamp()) {
 				// info and date
 				oRm.openStart('p').class("sapMFeedListItemFooter").class("sapUiSelectable").openEnd();
-				if (!Configuration.getRTL()) {
+				if (!Localization.getRTL()) {
 					if (oControl.getInfo()) {
 						this._writeInfo(oRm, oControl, sMyId);
 						// Write Interpunct separator if necessary (with spaces before and after)
@@ -158,6 +144,21 @@ sap.ui.define(["./ListItemBaseRenderer", "sap/ui/core/Renderer", "sap/ui/Device"
 			}
 			oRm.close('div');
 		}
+		// action button
+		if (oControl.getActions().length > 0) {
+			var isAllActionsNotVisible = oControl.getActions().every(function (oAction) {
+				return oAction.getVisible() === false ;
+			});
+			if (!isAllActionsNotVisible) {
+				oRm.openStart("div", sMyId + "-action-button");
+				oRm.class('sapMFeedListItemActionButton');
+				oRm.openEnd();
+				oRm.renderControl(oControl.getAggregation("_actionButton"));
+				oRm.close("div");
+			}
+		}
+
+
 		oRm.close('div');
 	};
 

@@ -1,15 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/Log"], function(Log) {
+sap.ui.define(["sap/base/future"], function(future) {
 	"use strict";
 
 	/**
 	 * Provide methods for sap.ui.core.routing.Targets in async mode
 	 * @private
-	 * @experimental
 	 * @since 1.33
 	 */
 	return {
@@ -119,8 +118,8 @@ sap.ui.define(["sap/base/Log"], function(Log) {
 				}
 				return oTarget._display(vData, oSequencePromise, oTargetCreateInfo);
 			} else {
-				var sErrorMessage = "[FUTURE FATAL] The target with the name \"" + sName + "\" does not exist!";
-				Log.error(sErrorMessage, this);
+				var sErrorMessage = `${this}: The target with the name "${sName}" does not exist!`;
+				future.errorThrows(sErrorMessage);
 				return Promise.resolve({
 					name: sName,
 					error: sErrorMessage

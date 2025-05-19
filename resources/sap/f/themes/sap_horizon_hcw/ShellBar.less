@@ -112,9 +112,6 @@ html.sap-desktop .sapMTB-Transparent-CTX .sapMBtnInner.sapMToggleBtnPressed{
 	}
 
 	// Avatar
-	.sapFShellBarProfile:focus {
-		border: none;
-	}
 	.sapFShellBarProfile:not(:focus):hover {
 		box-shadow: 0 0 0.125rem 0 fade(@sapContent_ShadowColor, 72);
 		background-color: none;
@@ -169,6 +166,11 @@ html.sap-desktop .sapMTB-Transparent-CTX .sapMBtnInner.sapMToggleBtnPressed{
 		&.sapMImgFocusable:focus {
 			border-radius: 0.5rem;
 		}
+	}
+
+	//Primary Title
+	.sapFShellBarPrimaryTitle {
+		color: var(--sapShell_SubBrand_TextColor);
 	}
 
 	//Second Title

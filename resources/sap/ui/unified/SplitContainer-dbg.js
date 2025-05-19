@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.SplitContainer.
 sap.ui.define([
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/ui/core/theming/Parameters',
 	'./library',
 	'sap/ui/core/library',
 	'./SplitContainerRenderer',
-	"sap/base/Log",
-	"sap/ui/core/Configuration"
-], function(Control, Parameters, library, coreLibrary, SplitContainerRenderer, Log, Configuration ) {
+	"sap/base/Log"
+], function(Localization, Control, Parameters, library, coreLibrary, SplitContainerRenderer, Log ) {
 	"use strict";
 
 
@@ -34,14 +34,14 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
 	 * @since 1.15.0
 	 * @experimental Since version 1.15.0.
 	 * API is not yet finished and might change completely
-	 * @deprecated Since version 1.44.0.
+	 * @deprecated As of version 1.44.0, the concept has been discarded.
 	 * @alias sap.ui.unified.SplitContainer
 	 */
 	var SplitContainer = Control.extend("sap.ui.unified.SplitContainer", /** @lends sap.ui.unified.SplitContainer.prototype */ { metadata : {
@@ -95,7 +95,7 @@ sap.ui.define([
 	////////////////////////////////////////// Public Methods //////////////////////////////////////////
 
 	SplitContainer.prototype.init = function(){
-		this.bRtl  = Configuration.getRTL();
+		this.bRtl  = Localization.getRTL();
 
 		this._paneRenderer = new library._ContentRenderer(this, this.getId() + "-panecntnt", "secondaryContent");
 		this._canvasRenderer = new library._ContentRenderer(this, this.getId() + "-canvascntnt", "content");
@@ -129,7 +129,7 @@ sap.ui.define([
 
 	SplitContainer.prototype.onAfterRendering = function() {
 		//Refetch RTL setting (might have changed which leads to global rerendering, see Core.fireLocalizationChanged
-		this.bRtl  = Configuration.getRTL();
+		this.bRtl  = Localization.getRTL();
 
 		// Shortcuts to the main DOM containers
 		this._contentContainer 			= this.$("canvas");

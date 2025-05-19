@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,9 +16,11 @@ sap.ui.define([
 	"sap/m/Avatar",
 	"sap/m/AvatarShape",
 	"sap/m/AvatarSize",
+	"sap/ui/core/Theming",
 	"sap/ui/util/openWindow",
-	"sap/ui/core/Configuration",
-	"sap/ui/core/Lib"
+	"sap/ui/core/Lib",
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/Element"
 ],
 function(
 	ListItemBase,
@@ -32,9 +34,11 @@ function(
 	Avatar,
 	AvatarShape,
 	AvatarSize,
+	Theming,
 	openWindow,
-	Configuration,
-	CoreLib
+	CoreLib,
+	InvisibleText,
+	Element
 	) {
 	"use strict";
 
@@ -60,7 +64,7 @@ function(
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -270,6 +274,7 @@ function(
 	 */
 	FeedListItem._sTextShowMore = FeedListItem._oRb.getText("TEXT_SHOW_MORE");
 	FeedListItem._sTextShowLess = FeedListItem._oRb.getText("TEXT_SHOW_LESS");
+	FeedListItem._sTextListItem = FeedListItem._oRb.getText("LIST_ITEM");
 
 	FeedListItem.prototype.init = function() {
 		ListItemBase.prototype.init.apply(this);
@@ -280,6 +285,10 @@ function(
 			icon: "sap-icon://overflow",
 			press: [ this._onActionButtonPress, this ]
 		}), true);
+		//Setting invisible text
+		this._oInvisibleText = new InvisibleText();
+		this._oInvisibleText.toStatic();
+		this._oInvisibleText.setText(FeedListItem._sTextListItem);
 	};
 
 	/**
@@ -337,7 +346,7 @@ function(
 			return;
 		}
 
-		sTheme = Configuration.getTheme();
+		sTheme = Theming.getTheme();
 		oActionSheetPopover = event.getSource().getParent();
 		oActionSheetPopover.removeStyleClass("sapContrast sapContrastPlus");
 
@@ -361,6 +370,7 @@ function(
 	};
 
 	FeedListItem.prototype.onBeforeRendering = function() {
+		this.addAssociation("ariaLabelledBy", this._oInvisibleText, true);
 		this.$("realtext").find('a[target="_blank"]').off("click");
 
 		var oFormattedText = this.getAggregation("_text");
@@ -401,6 +411,9 @@ function(
 		// destroy link control if initialized
 		if (this._oLinkControl) {
 			this._oLinkControl.destroy();
+		}
+		if (this._oInvisibleText){
+			this._oInvisibleText.destroy();
 		}
 		if (this.oAvatar) {
 			this.oAvatar.destroy();
@@ -453,7 +466,7 @@ function(
         if ( oItem instanceof FeedListItem ) {
             oItemDomRef.setAttribute("aria-posinset", mPosition.posInset);
             oItemDomRef.setAttribute("aria-setsize", mPosition.setSize);
-        }
+		}
 	};
 
 	/**
@@ -473,8 +486,7 @@ function(
 		src: sIconSrc,
 		displayShape: this.getIconDisplayShape(),
 		initials: this.getIconInitials(),
-		displaySize: this.getIconSize(),
-		ariaLabelledBy: this.getSender()
+		displaySize: this.getIconSize()
 		});
 
 		var that = this;

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -33,7 +33,9 @@ sap.ui.define([],
 			.style("width", oControl.getWidth())
 			.openEnd(); // div element
 		var oForm = oControl.getAggregation("form");
-		oRm.renderControl(oForm);
+		if (oForm.getLayout()) { // render Form after Layout is loaded
+			oRm.renderControl(oForm);
+		}
 		oRm.close("div");
 		oControl._bChangedByMe = false;
 

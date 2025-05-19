@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -170,7 +170,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
 	 * @alias sap.ui.core.UIArea
@@ -769,7 +769,8 @@ sap.ui.define([
 				// CSN 0000834961 2011: control may have been destroyed since invalidation happened -> check whether it still exists
 				if ( oControl ) {
 					if ( !isRenderedTogetherWithAncestor(oControl) ) {
-						oControl.rerender();
+						oControl._bNeedsRendering = true;
+						UIArea.rerenderControl(oControl);
 						bUpdated = true;
 					} else {
 						aControlsRenderedTogetherWithAncestor.push(oControl);
@@ -800,7 +801,8 @@ sap.ui.define([
 				}
 				if (oControl.bOutput == true && oControl.getDomRef() ||
 					oControl.bOutput == "invisible" && document.getElementById(RenderManager.createInvisiblePlaceholderId(oControl))) {
-					oControl.rerender();
+					oControl._bNeedsRendering = true;
+					UIArea.rerenderControl(oControl);
 				}
 			});
 		}
@@ -866,7 +868,7 @@ sap.ui.define([
 		} else {
 			var oUIArea = oControl.getUIArea();
 			oUIArea && oUIArea._onControlRendered(oControl);
-			oRenderLog.warning("Couldn't rerender '" + oControl.getId() + "', as its DOM location couldn't be determined");
+			oRenderLog.info("Couldn't rerender '" + oControl.getId() + "', as its DOM location couldn't be determined");
 		}
 	};
 	var rEvents = /^(mousedown|mouseup|click|keydown|keyup|keypress|touchstart|touchend|tap)$/;
@@ -1291,7 +1293,7 @@ sap.ui.define([
 		}
 
 		var oCurrentControl = this.getFieldGroupControl();
-		if ( oControl != oCurrentControl && document.activeElement && (document.activeElement.id !== "sap-ui-static-firstfe")) {
+		if ( oControl != oCurrentControl) {
 			var aCurrentGroupIds = (oCurrentControl ? oCurrentControl._getFieldGroupIds() : []),
 				aNewGroupIds = (oControl ? oControl._getFieldGroupIds() : []),
 				aTargetFieldGroupIds = aCurrentGroupIds.filter(function(sCurrentGroupId) {

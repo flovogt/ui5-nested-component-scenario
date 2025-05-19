@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -130,7 +130,7 @@ sap.ui.define([
 	}
 
 	var ManagedObjectModelAggregationBinding = JSONListBinding.extend("sap.ui.model.base.ManagedObjectModelAggregationBinding", {
-		constructor: function() {
+		constructor: function(oModel, sPath, oContext, aSorters, aFilters, mParameters) {
 			JSONListBinding.apply(this, arguments);
 			this._getOriginOfManagedObjectModelBinding();
 		},
@@ -199,6 +199,16 @@ sap.ui.define([
 		 */
 		_getContexts: function(iStartIndex, iLength) {
 			var iSizeLimit;
+
+			if (iStartIndex < 0) {
+				// set StartIndex to fetch last items
+				var iCurrentLength = this.getLength();
+				iStartIndex = iCurrentLength + iStartIndex;
+				if (iStartIndex < 0) {
+					iStartIndex = 0;
+				}
+			}
+
 			if (this._oAggregation) {
 				var oInnerListBinding = this._oOriginMO.getBinding(this._sMember);
 
@@ -231,7 +241,7 @@ sap.ui.define([
 				}
 			}
 
-			return JSONListBinding.prototype._getContexts.apply(this, arguments);
+			return JSONListBinding.prototype._getContexts.apply(this, [iStartIndex, iLength]);
 		},
 		/**
 		 * Determines the managed object that is responsible resp. triggering the list binding.
@@ -295,12 +305,15 @@ sap.ui.define([
 	 * Provides model access to a given {@link sap.ui.base.ManagedObject}. Such access allows to bind to properties and aggregations of
 	 * this object.
 	 *
+ 	 * <b>Note:</b> Use with care! Creating complex control trees based on ManagedObjectModel state may lead to performance issues.
+	 *
 	 * @param {sap.ui.base.ManagedObject} oObject the managed object models root object
 	 * @param {object} [oData] an object for custom data
 	 * @alias sap.ui.model.base.ManagedObjectModel
 	 * @extends sap.ui.model.json.JSONModel
-	 * @public
-	 * @experimental since 1.58
+	 * @private
+	 * @ui5-restricted sap.m, sap.ui.comp, sap.ui.core, sap.ui.fl, sap.ui.mdc
+ 	 * @since 1.58
 	 */
 	var ManagedObjectModel = JSONModel.extend("sap.ui.model.base.ManagedObjectModel", /** @lends sap.ui.mdc.model.base.ManagedObjectModel.prototype */
 		{
@@ -1025,7 +1038,7 @@ sap.ui.define([
 			fnFilter = this.fnFilter === fnFilter ? fnFilter : undefined; // if different filter or no filter set -> use no filter
 			this.fnFilter = undefined;
 		}
-		var aBindings = this.aBindings.slice(0);
+		var aBindings = this.getBindings();
 		aBindings.forEach(function (oBinding) {
 			if (!fnFilter || fnFilter(oBinding)) {
 				oBinding.checkUpdate(bForceUpdate);

@@ -1,16 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.IconTabFilter.
 sap.ui.define([
 	"./library",
-	"./AccButton",
+	"sap/ui/core/Icon",
 	"./IconTabFilterExpandButtonBadge",
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
-	"sap/ui/core/Core",
 	"sap/ui/core/Item",
 	"sap/ui/core/Renderer",
 	"sap/ui/core/IconPool",
@@ -21,13 +22,15 @@ sap.ui.define([
 	"sap/m/ResponsivePopover",
 	"sap/m/IconTabBarSelectList",
 	"sap/m/BadgeEnabler",
-	"sap/m/ImageHelper"
-], function (
+	"sap/m/ImageHelper",
+	"sap/ui/core/InvisibleText"
+], function(
 	library,
-	AccButton,
+	Icon,
 	IconTabFilterExpandButtonBadge,
+	Localization,
+	Library,
 	coreLibrary,
-	Core,
 	Item,
 	Renderer,
 	IconPool,
@@ -38,7 +41,8 @@ sap.ui.define([
 	ResponsivePopover,
 	IconTabBarSelectList,
 	BadgeEnabler,
-	ImageHelper
+	ImageHelper,
+	InvisibleText
 ) {
 	"use strict";
 
@@ -48,14 +52,14 @@ sap.ui.define([
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
 
-	// shortcut for sap.m.ButtonType
-	var ButtonType = library.ButtonType;
-
 	// shortcut for sap.m.PlacementType
 	var PlacementType = library.PlacementType;
 
 	// shortcut for sap.m.IconTabFilterDesign
 	var IconTabFilterDesign = library.IconTabFilterDesign;
+
+	// shortcut for sap.m.IconTabFilterDesign
+	var IconTabFilterInteractionMode = library.IconTabFilterInteractionMode;
 
 	// shortcut for sap.m.BadgeStyle
 	var BadgeStyle = library.BadgeStyle;
@@ -65,9 +69,6 @@ sap.ui.define([
 
 	// shortcut for sap.ui.core.IconColor
 	var IconColor = coreLibrary.IconColor;
-
-	// shortcut for sap.ui.core.aria.HasPopup
-	var AriaHasPopup = coreLibrary.aria.HasPopup;
 
 	/**
 	 * The time between tab activation and the disappearance of the badge.
@@ -93,7 +94,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -158,7 +159,14 @@ sap.ui.define([
 			/**
 			 * Specifies whether the icon and the texts are placed vertically or horizontally.
 			 */
-			design : {type : "sap.m.IconTabFilterDesign", group : "Appearance", defaultValue : IconTabFilterDesign.Vertical}
+			design : {type : "sap.m.IconTabFilterDesign", group : "Appearance", defaultValue : IconTabFilterDesign.Vertical},
+
+			/**
+			 * Specifies the interaction mode.
+			 * @experimental Since 1.121.
+			 * Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+			 */
+			interactionMode : {type : "sap.m.IconTabFilterInteractionMode", group : "Behavior", defaultValue : IconTabFilterInteractionMode.Auto}
 		},
 		defaultAggregation : "content",
 		aggregations : {
@@ -178,10 +186,10 @@ sap.ui.define([
 			items : {type : "sap.m.IconTab", multiple : true, singularName : "item"},
 
 			/**
-			 * The expand button if there are sub filters
+			 * The expand icon if there are sub filters
 			 * @since 1.77
 			 */
-			_expandButton : {type : "sap.m.Button", multiple : false, visibility : "hidden"},
+			_expandIcon : {type : "sap.ui.core.Icon", multiple : false, visibility : "hidden"},
 
 			/**
 			 * The badge of the expand button
@@ -198,7 +206,7 @@ sap.ui.define([
 	 *
 	 * @type {module:sap/base/i18n/ResourceBundle}
 	 */
-	var oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+	var oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 	/**
 	 * Array of all available icon color CSS classes
@@ -276,10 +284,10 @@ sap.ui.define([
 			this._oPopover = null;
 		}
 
-		if (this._oExpandButton) {
-			this._oExpandButton.removeEventDelegate(this._oDragEventDelegate);
-			this._oExpandButton.destroy();
-			this._oExpandButton = null;
+		if (this._oExpandIcon) {
+			this._oExpandIcon.removeEventDelegate(this._oDragEventDelegate);
+			this._oExpandIcon.destroy();
+			this._oExpandIcon = null;
 		}
 
 		this.removeEventDelegate(this._oDragEventDelegate);
@@ -423,7 +431,7 @@ sap.ui.define([
 		}
 
 		var bHasIconTabBar = oIconTabHeader._isInsideIconTabBar(),
-			mAriaParams = { role: "tab" },
+			mAriaParams = { role: "tab"},
 			sId = this.getId(),
 			sCount = this.getCount(),
 			sText = this.getText(),
@@ -436,18 +444,18 @@ sap.ui.define([
 			bInLine = oIconTabHeader._bInLine || oIconTabHeader.isInlineMode(),
 			bShowAll = this.getShowAll(),
 			sTextDir = this.getTextDirection(),
-			bIsUnselectable = oIconTabHeader._isUnselectable(this);
+			bIsSelectable = oIconTabHeader._isSelectable(this);
 
 		if (this._isOverflow()) {
 			mAriaParams.role = "button";
 		}
 
-		if (bHasIconTabBar) {
-			mAriaParams.controls = oIconTabBar.getId() + "-content";
+		if (this.getItems().length && bIsSelectable) {
+			mAriaParams.haspopup = "menu";
 		}
 
-		if (this.getItems().length) {
-			mAriaParams.roledescription = oResourceBundle.getText("ICONTABFILTER_SPLIT_TAB");
+		if (bHasIconTabBar) {
+			mAriaParams.controls = oIconTabBar.getId() + "-content";
 		}
 
 		if (sText.length ||
@@ -503,7 +511,7 @@ sap.ui.define([
 			oRM.class("sapMITBFilter" + sIconColor);
 		}
 
-		if (bIsUnselectable) {
+		if (!bIsSelectable) {
 			oRM.class("sapMITHUnselectable");
 		}
 
@@ -526,7 +534,7 @@ sap.ui.define([
 			oRM.attr("title", sTooltip);
 		}
 
-		if (this._isOverflow() || bIsUnselectable) {
+		if (this._isOverflow() || !bIsSelectable) {
 			oRM.attr("aria-haspopup", "menu");
 		}
 
@@ -593,7 +601,7 @@ sap.ui.define([
 			oRM.openStart("div", sId + "-text")
 				.class("sapMITBText");
 
-			if (!oIcon && !bShowAll) {
+			if (!bShowAll) {
 				oRM.class("sapMITBBadgeHolder");
 			}
 
@@ -616,7 +624,7 @@ sap.ui.define([
 				.text(oIconTabHeader._getDisplayText(this))
 				.close("span");
 
-			if (this._isOverflow() || this.getItems().length && bIsUnselectable) {
+			if (this._isOverflow() || this.getItems().length && !bIsSelectable) {
 				oRM.openStart("span", this.getId() + "-expandButton").class("sapMITHShowSubItemsIcon").openEnd();
 				oRM.icon(IconPool.getIconURI("slim-arrow-down"), null, {
 					"title": null,
@@ -635,14 +643,16 @@ sap.ui.define([
 		oRM.openStart("div").class("sapMITBContentArrow").openEnd().close("div");
 		oRM.close("div");
 
-		if (this.getItems().length && !bIsUnselectable) {
+		if (this.getItems().length && bIsSelectable) {
 
 			oRM.openStart("span").class("sapMITBFilterExpandBtnSeparator")
 				.accessibilityState({ role: "separator" })
 				.openEnd()
 			.close("span");
 
-			oRM.renderControl(this._getExpandButton());
+			oRM.openStart("span", this.getId() + "-expandButton").class("sapMITBFilterExpandBtn").openEnd();
+				oRM.renderControl(this._getExpandIcon());
+			oRM.close("span");
 		}
 
 		oRM.renderControl(this.getAggregation("_expandButtonBadge"));
@@ -697,7 +707,7 @@ sap.ui.define([
 			oRM.attr("title", sTooltip);
 		}
 
-		if (oIconTabHeader._isUnselectable(this)) {
+		if (!oIconTabHeader._isSelectable(this)) {
 			oRM.class("sapMITHUnselectable");
 		}
 
@@ -781,7 +791,8 @@ sap.ui.define([
 
 			oRM.icon(oIcon, aClasses, {
 				id: this.getId() + "-icon",
-				"aria-hidden": true
+				"aria-hidden": true,
+				"aria-label": null
 			});
 		} else {
 			oRM.openStart("span").class("sapUiIcon").openEnd().close("span");
@@ -803,7 +814,7 @@ sap.ui.define([
 	IconTabFilter.prototype._renderText =  function (oRM) {
 		var sText = this.getText(),
 			sCount = this.getCount(),
-			bRTL = Core.getConfiguration().getRTL(),
+			bRTL = Localization.getRTL(),
 			sTextDir = this.getTextDirection();
 
 		oRM.openStart("span", this.getId() + "-text")
@@ -850,7 +861,7 @@ sap.ui.define([
 
 	/**
 	 * Sets the appropriate drag and drop event delegate
-	 * based on whether or not the IconTabFilter is unselectable.
+	 * based on whether or not the IconTabFilter is selectable.
 	 *
 	 * @private
 	 */
@@ -879,26 +890,24 @@ sap.ui.define([
 	/**
 	 * Returns the expand button for this instance.
 	 * This button is conditionally shown in the DOM
-	 * based on whether or not the IconTabFilter is unselectable.
+	 * based on whether or not the IconTabFilter is selectable.
 	 * @private
 	 */
-	IconTabFilter.prototype._getExpandButton = function () {
-		this._oExpandButton = this.getAggregation("_expandButton");
+	IconTabFilter.prototype._getExpandIcon = function () {
+		this._oExpandIcon = this.getAggregation("_expandIcon");
 
-		if (!this._oExpandButton) {
-			this._oExpandButton = new AccButton(this.getId() + "-expandButton", {
-				type: ButtonType.Transparent,
-				icon: IconPool.getIconURI("slim-arrow-down"),
+		if (!this._oExpandIcon) {
+			this._oExpandIcon = new Icon(this.getId() + "-expandIcon", {
+				src: IconPool.getIconURI("slim-arrow-down"),
 				tooltip: oResourceBundle.getText("ICONTABHEADER_OVERFLOW_MORE"),
-				tabIndex: "-1",
-				ariaHasPopup: AriaHasPopup.Menu,
+				noTabStop: true,
 				press: this._expandButtonPress.bind(this)
-			}).addStyleClass("sapMITBFilterExpandBtn");
+			}).addStyleClass("sapMITBFilterExpandIcon");
 
-			this.setAggregation("_expandButton", this._oExpandButton);
+			this.setAggregation("_expandIcon", this._oExpandIcon);
 		}
 
-		return this._oExpandButton;
+		return this._oExpandIcon;
 	};
 
 	/**
@@ -942,10 +951,11 @@ sap.ui.define([
 				showHeader: false,
 				offsetY: 0,
 				offsetX: 0,
-				placement: PlacementType.VerticalPreferredBottom
+				placement: PlacementType.VerticalPreferredBottom,
+				ariaLabelledBy: this._isOverflow() ? InvisibleText.getStaticId("sap.m", this._getOverflowPopoverAccessibleNameLabel()) : InvisibleText.getStaticId("sap.m", this._getSubItemsPopoverAccessibleNameLabel())
 			}).addStyleClass("sapMITBFilterPopover");
 
-			this._oPopover.attachBeforeClose(function () {
+			this._oPopover.attachAfterClose(function () {
 				this._getSelectList().destroyItems();
 			}, this);
 
@@ -991,6 +1001,24 @@ sap.ui.define([
 			this._oPopover.setInitialFocus(bHasSelectedItem ? oSelectList.getSelectedItem() : oSelectList.getVisibleTabFilters()[0]);
 			this._oPopover.openBy(this);
 		}
+	};
+
+	/**
+	 * Returns the message bundle key of the invisible text for the accessible name of the overflow popover.
+	 * @private
+	 * @returns {string} The message bundle key
+	 */
+	IconTabFilter.prototype._getOverflowPopoverAccessibleNameLabel = function() {
+		return "ICONTABBAR_OVERFLOW_POPOVER_ACCESSIBLE_NAME";
+	};
+
+	/**
+	 * Returns the message bundle key of the invisible text for the accessible name of the subitems popover.
+	 * @private
+	 * @returns {string} The message bundle key
+	 */
+	IconTabFilter.prototype._getSubItemsPopoverAccessibleNameLabel = function() {
+		return "ICONTABBAR_SUBITEMS_POPOVER_ACCESSIBLE_NAME";
 	};
 
 	/**

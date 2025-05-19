@@ -1,11 +1,12 @@
 /*
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/InvisibleText'],
-	function(InvisibleText) {
+sap.ui.define(['sap/ui/core/InvisibleText', "sap/ui/core/Lib", "sap/ui/unified/library"],
+
+	function(InvisibleText, Library, unifiedLibrary) {
 	"use strict";
 
 	/**
@@ -29,18 +30,18 @@ sap.ui.define(['sap/ui/core/InvisibleText'],
 			iCustomItemsLength = this.defineItemsLength(oLeg, aCustomItems.length),
 			iCount = (aStandardItems ? aStandardItems.length : 0) + (aCustomItems ? aCustomItems.length : 0),
 			sOwnedItemIds = "",
-			aStandardItems = aStandardItems || [],
-			aCustomItems = aCustomItems || [],
+			iSliceIndex = 4,
 			i,
 			iIdLength,
 			sColumnWidth,
+			sCustomItemType,
 			iIndex = 1;
 
 		oRm.openStart("div", oLeg);
 		oRm.class("sapUiUnifiedLegend");
 		oRm.attr("aria-label", oLeg._getLegendAriaLabel());
 		oRm.attr("role", "list");
-		sOwnedItemIds = oLeg._extractItemIdsString(aStandardItems.concat(aCustomItems));
+		sOwnedItemIds = oLeg._extractItemIdsString(oLeg._getAllItems());
 		oRm.attr("aria-owns", sOwnedItemIds);
 
 		oRm.openEnd();
@@ -68,7 +69,13 @@ sap.ui.define(['sap/ui/core/InvisibleText'],
 			if (aCustomItems) {
 				// rendering special day and colors
 				for (i = 0; i < iCustomItemsLength; i++) {
-					this.renderLegendItem(oRm, "sapUiCalLegDayType" + oLeg._getItemType(aCustomItems[i], aCustomItems).slice(4), aCustomItems[i], ["sapUiUnifiedLegendSquareColor"], iIndex++, iCount);
+					sCustomItemType = oLeg._getItemType(aCustomItems[i], aCustomItems);
+
+					if (sCustomItemType === unifiedLibrary.CalendarDayType.NonWorking) {
+						iSliceIndex = 0;
+					}
+
+					this.renderLegendItem(oRm, "sapUiCalLegDayType" + sCustomItemType.slice(iSliceIndex), aCustomItems[i], ["sapUiUnifiedLegendSquareColor"], iIndex++, iCount);
 				}
 			}
 			this.renderAdditionalItems(oRm, oLeg); //like more sections with items
@@ -232,8 +239,8 @@ sap.ui.define(['sap/ui/core/InvisibleText'],
 		}
 
 		if (!CalendarLegendRenderer.typeARIATexts[sType]) {
-			rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
-			sText = rb.getText("LEGEND_UNNAMED_TYPE", parseInt(sType.slice(4)).toString());
+			rb = Library.getResourceBundleFor("sap.ui.unified");
+			sText = rb.getText("LEGEND_UNNAMED_TYPE", [parseInt(sType.slice(4)).toString()]);
 			CalendarLegendRenderer.typeARIATexts[sType] = new InvisibleText({ text: sText });
 			CalendarLegendRenderer.typeARIATexts[sType].toStatic();
 		}

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,8 +13,8 @@ sap.ui.define([
 	"./SuggestionItem",
 	"sap/ui/Device",
 	"sap/m/library",
-	"sap/ui/core/Core",
-	"sap/ui/core/InvisibleText"
+	"sap/ui/core/InvisibleText",
+	"sap/ui/core/Lib"
 ], function (
 	Toolbar,
 	Button,
@@ -24,8 +24,8 @@ sap.ui.define([
 	SuggestionItem,
 	Device,
 	library,
-	Core,
-	InvisibleText
+	InvisibleText,
+	Library
 ) {
 	"use strict";
 
@@ -127,7 +127,7 @@ sap.ui.define([
 			});
 
 			okButton = new Button({
-				text : Core.getLibraryResourceBundle("sap.m").getText("MSGBOX_OK"),
+				text : Library.getResourceBundleFor("sap.m").getText("MSGBOX_OK"),
 				press : function() {
 					dialog.close();
 				}
@@ -172,7 +172,6 @@ sap.ui.define([
 				offsetX: 0,
 				offsetY: 0,
 				initialFocus: parent,
-				bounce: false,
 				ariaLabelledBy: InvisibleText.getStaticId("sap.m", "INPUT_AVALIABLE_VALUES"),
 				afterOpen: function () {
 					oInput._applySuggestionAcc();

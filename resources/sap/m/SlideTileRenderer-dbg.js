@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -54,9 +54,7 @@ sap.ui.define(['./library', "sap/base/security/encodeCSS"],
 			oRm.attr("title", sTooltip);
 		}
 		iLength = oControl.getTiles().length;
-		if (iLength > 1) {
-			oRm.attr("tabindex", "0");
-		}
+		oRm.attr("tabindex", "0");
 		oRm.attr("role", "application");
 		oRm.attr("aria-roledescription", oControl._oRb.getText("SLIDETILE"));
 		if (iLength > 1) {
@@ -103,12 +101,24 @@ sap.ui.define(['./library', "sap/base/security/encodeCSS"],
 
 		oRm.openStart("div",  oControl.getId() + "-tilesIndicator");
 		oRm.class("sapMSTBulleted");
+		oRm.class("sapUiSizeCompact");
+		oRm.openEnd();
+		oRm.renderControl(oControl._oLeftScroll);
+		oRm.openStart("div",  oControl.getId() + "-tilesWrapper");
+		oRm.class("sapMSTIndicatorWrapper");
 		oRm.openEnd();
 		for ( var i = 0; i < iPageCount; i++) {
+			oRm.openStart("div",oControl.getId() + "-indicatorTap-" + i);
+			oRm.class("sapMSTIndicatorTapArea");
+			oRm.openEnd();
 			oRm.openStart("span", oControl.getId() + "-tileIndicator-" + i );
+			oRm.class("sapMSTIndicator");
 			oRm.openEnd();
 			oRm.close("span");
+			oRm.close("div");
 		}
+		oRm.close("div");
+		oRm.renderControl(oControl._oRightScroll);
 		oRm.close("div");
 	};
 

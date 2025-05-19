@@ -1,69 +1,98 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides the locale object sap.ui.core.LocaleData
 sap.ui.define([
-	"./CalendarType",
 	"./Locale",
 	"sap/base/assert",
+	"sap/base/i18n/Formatting",
 	"sap/base/i18n/LanguageTag",
 	"sap/base/i18n/Localization",
+	"sap/base/i18n/date/CalendarType",
+	"sap/base/i18n/date/CalendarWeekNumbering",
 	"sap/base/util/extend",
 	"sap/base/util/LoaderExtensions",
 	"sap/ui/base/Object",
-	"sap/ui/core/Configuration",
-	"sap/ui/core/date/CalendarWeekNumbering"
-], function(CalendarType, Locale, assert, LanguageTag, Localization, extend, LoaderExtensions, BaseObject,
-		Configuration, CalendarWeekNumbering) {
+	"sap/ui/base/SyncPromise"
+], function(Locale, assert, Formatting, LanguageTag, Localization, CalendarType, CalendarWeekNumbering,
+		extend, LoaderExtensions, BaseObject, SyncPromise) {
 	"use strict";
 
 	var rCIgnoreCase = /c/i,
 		rEIgnoreCase = /e/i,
-		/*
-		* With the upgrade of the CLDR to version 41 some unit keys have changed.
-		* For compatibility reasons this map is used for formatting units.
-		* It maps a legacy unit key to its renamed key.
-		*/
-		mLegacyUnit2CurrentUnit = {
-			"acceleration-meter-per-second-squared": "acceleration-meter-per-square-second",
-			"concentr-milligram-per-deciliter": "concentr-milligram-ofglucose-per-deciliter",
-			"concentr-part-per-million": "concentr-permillion",
-			"consumption-liter-per-100kilometers": "consumption-liter-per-100-kilometer",
-			"mass-metric-ton": "mass-tonne",
-			"pressure-millimeter-of-mercury": "pressure-millimeter-ofhg",
-			"pressure-pound-per-square-inch": "pressure-pound-force-per-square-inch",
-			"pressure-inch-hg": "pressure-inch-ofhg",
-			"torque-pound-foot": "torque-pound-force-foot"
-		},
 		rNumberInScientificNotation = /^([+-]?)((\d+)(?:\.(\d+))?)[eE]([+-]?\d+)$/,
 		rTrailingZeroes = /0+$/;
 	const rFallbackPatternTextParts = /(.*)?\{[0|1]}(.*)?\{[0|1]}(.*)?/;
+	const rOnlyZeros = /^0+$/;
 	const aSupportedWidths = ["narrow", "abbreviated", "wide"];
+	/**
+	 * With the upgrade of the CLDR to version 41 some unit keys have changed.
+	 * For compatibility reasons this map is used for formatting units.
+	 * It maps a legacy unit key to its renamed key.
+	 *
+	 * @deprecated As of version 1.122.0, this map is no longer maintained and stays for compatibility reasons
+	 *   only. Reason for the depreciation: The assumption of homogeneous unit keys in the CLDR data has been proven
+	 *   wrong. Additionally, it is unclear if, those CLDR unit keys are actually used. Implementing a complex logic
+	 *   to maintain potentially unused entries did not seem reasonable. Therefore, it was decided to deprecate this
+	 *   feature.
+	 *   This map was last updated with CLDR V43, in 1.119.0.
+	 * @private
+	 */
+	const mLegacyUnit2CurrentUnit = {
+		"acceleration-meter-per-second-squared": "acceleration-meter-per-square-second",
+		"concentr-milligram-per-deciliter": "concentr-milligram-ofglucose-per-deciliter",
+		"concentr-part-per-million": "concentr-permillion",
+		"consumption-liter-per-100kilometers": "consumption-liter-per-100-kilometer",
+		"mass-metric-ton": "mass-tonne",
+		"pressure-millimeter-of-mercury": "pressure-millimeter-ofhg",
+		"pressure-pound-per-square-inch": "pressure-pound-force-per-square-inch",
+		"pressure-inch-hg": "pressure-inch-ofhg",
+		"torque-pound-foot": "torque-pound-force-foot"
+	};
 
 	/**
-	 * Creates an instance of LocaleData for the given locale.
+	 * The locale data cache. Maps a locale ID, formatted as either the language_region (e.g. "ar_SA"),
+	 * language_script (e.g. "sr_Latn") or just the language code (e.g. "de") to its set of loaded
+	 * CLDR data. In case of asynchronous loading, the locale ID is mapped to a <code>Promise</code> which resolves
+	 * with the loaded CLDR data. As soon as the data is loaded the <code>Promise</code> is replaced by it.
 	 *
-	 * @class Provides access to locale-specific data, such as, date formats, number formats, and currencies.
+	 * @type {Object<string, Object<string, any>|Promise<Object<string, any>>>}
+	 * @private
+	 */
+	let mLocaleIdToData = {};
+
+	/**
+	 * DO NOT call the constructor for <code>LocaleData</code>; use <code>LocaleData.getInstance</code> instead.
 	 *
-	 * @param {sap.ui.core.Locale} oLocale the locale
+	 * @param {sap.ui.core.Locale} oLocale The locale
+	 * @param {boolean} bAsync Whether to load the data asynchronously
 	 *
-	 * @extends sap.ui.base.Object
-	 * @author SAP SE
-	 * @version 1.120.30
-	 * @public
 	 * @alias sap.ui.core.LocaleData
+	 * @author SAP SE
+	 * @extends sap.ui.base.Object
+	 * @class Provides access to locale-specific data, such as date formats, number formats, and currencies. For more
+	 *   information on terminology, such as field names used in the methods of this class, see
+	 *   {@link https://cldr.unicode.org/ Unicode CLDR}.
+	 * @hideconstructor
+	 * @public
+	 * @version 1.136.0
 	 */
 	var LocaleData = BaseObject.extend("sap.ui.core.LocaleData", /** @lends sap.ui.core.LocaleData.prototype */ {
 
-		constructor: function(oLocale) {
+		constructor: function(oLocale, bAsync) {
 			BaseObject.apply(this);
 			this.oLocale = Locale._getCoreLocale(oLocale);
-			var oDataLoaded = getData(this.oLocale);
-			this.mData = oDataLoaded.mData;
-			this.sCLDRLocaleId = oDataLoaded.sCLDRLocaleId;
+			this.loaded = loadData(this.oLocale, bAsync).then((oResult) => {
+				this.mData = oResult.mData;
+				this.sCLDRLocaleId = oResult.sCLDRLocaleId;
+				return this;
+			});
+			this.loaded.finally(() => {
+				delete this.loaded;
+			});
 		},
 
 		/**
@@ -84,12 +113,13 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get month names in width "narrow", "abbreviated" or "wide". Result may contain alternative month names.
+		 * Get month names in the given width. Result may contain alternative month names.
 		 *
-		 * @param {"narrow"|"abbreviated"|"wide"} sWidth
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth
 		 *   The required width for the month names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType]
-		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from locale
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
 		 * @returns {array}
 		 *   The array of month names; if no alternative exists the entry for the month is its name as a string; if
 		 *   there are alternative month names the entry for the month is an array of strings with the alternative names
@@ -100,13 +130,14 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get standalone month names in width "narrow", "abbreviated" or "wide". Result may contain alternative month
+		 * Get standalone month names in the given width. Result may contain alternative month
 		 * names.
 		 *
-		 * @param {"narrow"|"abbreviated"|"wide"} sWidth
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth
 		 *   The required width for the month names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType]
-		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from locale
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
 		 * @returns {array}
 		 *   The array of month names; if no alternative exists the entry for the month is its name as a string; if
 		 *   there are alternative month names the entry for the month is an array of strings with the alternative names
@@ -128,9 +159,9 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get orientation (left-to-right or right-to-left).
+		 * Gets the text orientation.
 		 *
-		 * @returns {string} character orientation for this locale
+		 * @returns {"left-to-right"|"right-to-left"} text orientation
 		 * @public
 		 */
 		getOrientation: function() {
@@ -267,12 +298,13 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get month names in width "narrow", "abbreviated" or "wide".
+		 * Get month names in the given width.
 		 *
-		 * @param {"narrow"|"abbreviated"|"wide"} sWidth
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth
 		 *   The required width for the month names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType]
-		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from locale
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
 		 * @returns {string[]}
 		 *   The array of month names
 		 * @public
@@ -285,12 +317,13 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get standalone month names in width "narrow", "abbreviated" or "wide".
+		 * Get standalone month names in the given width.
 		 *
-		 * @param {"narrow"|"abbreviated"|"wide"} sWidth
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth
 		 *   The required width for the month names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType]
-		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from locale
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
 		 * @returns {string[]}
 		 *   The array of standalone month names
 		 * @public
@@ -303,11 +336,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get day names in width "narrow", "abbreviated" or "wide".
+		 * Get day names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the day names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of day names (starting with Sunday)
+		 * @param {"abbreviated"|"narrow"|"short"|"wide"} sWidth the required width for the day names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of day names (starting with Sunday)
 		 * @public
 		 */
 		getDays: function(sWidth, sCalendarType) {
@@ -316,11 +349,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get standalone day names in width "narrow", "abbreviated" or "wide".
+		 * Get standalone day names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the day names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of day names (starting with Sunday)
+		 * @param {"abbreviated"|"narrow"|"short"|"wide"} sWidth the required width for the day names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of day names (starting with Sunday)
 		 * @public
 		 */
 		getDaysStandAlone: function(sWidth, sCalendarType) {
@@ -329,11 +362,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get quarter names in width "narrow", "abbreviated" or "wide".
+		 * Get quarter names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the quarter names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of quarters
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the required width for the quarter names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of quarters
 		 * @public
 		 */
 		getQuarters: function(sWidth, sCalendarType) {
@@ -342,11 +375,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get standalone quarter names in width "narrow", "abbreviated" or "wide".
+		 * Get standalone quarter names in the given width.
 		 *
-		 * @param {string} sWidth the required width for the quarter names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of quarters
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the required width for the quarter names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of quarters
 		 * @public
 		 */
 		getQuartersStandAlone: function(sWidth, sCalendarType) {
@@ -355,11 +388,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get day periods in width "narrow", "abbreviated" or "wide".
+		 * Get day periods in the given width.
 		 *
-		 * @param {string} sWidth the required width for the day period names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of day periods (AM, PM)
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the required width for the day period names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of day periods (AM, PM)
 		 * @public
 		 */
 		getDayPeriods: function(sWidth, sCalendarType) {
@@ -368,11 +401,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get standalone day periods in width "narrow", "abbreviated" or "wide".
+		 * Get standalone day periods in the given width.
 		 *
-		 * @param {string} sWidth the required width for the day period names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
-		 * @returns {array} array of day periods (AM, PM)
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the required width for the day period names
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @returns {string[]} array of day periods (AM, PM)
 		 * @public
 		 */
 		getDayPeriodsStandAlone: function(sWidth, sCalendarType) {
@@ -381,10 +414,10 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get date pattern in format "short", "medium", "long" or "full".
+		 * Get date pattern in the given style.
 		 *
-		 * @param {string} sStyle the required style for the date pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {"full"|"long"|"medium"|"short"} sStyle the required style for the date pattern
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the selected date pattern
 		 * @public
 		 */
@@ -398,7 +431,7 @@ sap.ui.define([
 		 *
 		 * @param {string} sWidth
 		 *   The required width for the flexible day period names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType]
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
 		 *   The type of calendar. If it's not set, it falls back to the calendar type either set in
 		 *   configuration or calculated from locale.
 		 * @returns {object|undefined}
@@ -427,7 +460,7 @@ sap.ui.define([
 		 *
 		 * @param {string} sWidth
 		 *   The required width for the flexible day period names
-		 * @param {sap.ui.core.CalendarType} [sCalendarType]
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
 		 *   The type of calendar. If it's not set, it falls back to the calendar type either set in
 		 *   configuration or calculated from locale.
 		 * @returns {object|undefined}
@@ -526,10 +559,10 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get time pattern in style "short", "medium", "long" or "full".
+		 * Get time pattern in the given style.
 		 *
-		 * @param {string} sStyle the required style for the date pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {"full"|"long"|"medium"|"short"} sStyle the required style for the time pattern
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the selected time pattern
 		 * @public
 		 */
@@ -539,10 +572,10 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get datetime pattern in style "short", "medium", "long" or "full".
+		 * Get datetime pattern in the given style.
 		 *
-		 * @param {string} sStyle the required style for the datetime pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {"full"|"long"|"medium"|"short"} sStyle the required style for the datetime pattern
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the selected datetime pattern
 		 * @public
 		 */
@@ -552,11 +585,13 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get combined datetime pattern with given date and time style.
+		 * Get combined datetime pattern with given date and time style. The combined datetime pattern is the datetime
+		 * pattern as returned by {@link #getDateTimePattern}, where date and time placeholder are replaced with
+		 * the corresponding patterns for the given styles.
 		 *
-		 * @param {string} sDateStyle the required style for the date part
-		 * @param {string} sTimeStyle the required style for the time part
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {"full"|"long"|"medium"|"short"} sDateStyle the required style for the date part
+		 * @param {"full"|"long"|"medium"|"short"} sTimeStyle the required style for the time part
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the combined datetime pattern
 		 * @public
 		 */
@@ -583,7 +618,7 @@ sap.ui.define([
 		 *
 		 * @param {string} sDateStyle The required style for the date part
 		 * @param {string} sTimeStyle The required style for the time part
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] The type of calendar. If it's not set,
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] The type of calendar. If it's not set,
 		 *   it falls back to the calendar type either set in the configuration or calculated from
 		 *   the locale.
 		 * @returns {string} the combined pattern with datetime and timezone
@@ -656,7 +691,7 @@ sap.ui.define([
 		 * See https://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
 		 *
 		 * @param {string} sSkeleton the wanted skeleton format for the datetime pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the best matching datetime pattern
 		 * @since 1.34
 		 * @public
@@ -673,7 +708,7 @@ sap.ui.define([
 		 * The empty Id ("") might be used to retrieve the interval format fallback.
 		 *
 		 * @param {string} sId Id of the interval format, e.g. "d-d"
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} interval format string with placeholders {0} and {1}
 		 * @public
 		 * @since 1.17.0
@@ -703,7 +738,7 @@ sap.ui.define([
 		 * pattern based on a given pattern, using the fallback interval pattern.
 		 *
 		 * @param {string} sPattern the single date pattern to use within the interval pattern
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string} the calculated interval pattern
 		 * @since 1.46
 		 * @public
@@ -733,7 +768,7 @@ sap.ui.define([
 		 * @param {object|string} vGreatestDiff is either a string which represents the symbol matching the greatest difference in the two dates to format or an object which contains key-value pairs.
 		 *  The value is always true. The key is one of the date field symbol groups whose value are different between the two dates. The key can only be set with 'Year', 'Quarter', 'Month', 'Week',
 		 *  'Day', 'DayPeriod', 'Hour', 'Minute', or 'Second'.
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType] the type of calendar. If it's not set, it falls back to the calendar type either set in configuration or calculated from locale.
 		 * @returns {string|string[]} the best matching interval pattern if interval difference is given otherwise an array with all possible interval patterns which match the given skeleton format
 		 * @since 1.46
 		 * @public
@@ -1192,9 +1227,9 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get number symbol "decimal", "group", "plusSign", "minusSign", "percentSign".
+		 * Get number symbol for the given type.
 		 *
-		 * @param {string} sType the required type of symbol
+		 * @param {"decimal"|"group"|"minusSign"|"percentSign"|"plusSign"} sType the required type of symbol
 		 * @returns {string} the selected number symbol
 		 * @public
 		 */
@@ -1204,10 +1239,10 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get lenient number symbols for "plusSign" or "minusSign".
+		 * Get lenient symbols for the sign of a number for the given symbol type.
 		 *
-		 * @param {string} sType the required type of symbol
-		 * @returns {string} the selected lenient number symbols, e.g. "-‒⁻₋−➖﹣"
+		 * @param {"minusSign"|"plusSign"} sType the required type of symbol
+		 * @returns {string} the selected lenient symbols for the sign of a number, e.g. "-‒⁻₋−➖﹣"
 		 * @public
 		 */
 		getLenientNumberSymbols: function(sType) {
@@ -1226,7 +1261,7 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get currency format pattern.
+		 * Gets the currency format pattern for the given context or selects an alternative pattern if desired.
 		 *
 		 * CLDR format pattern:
 		 *
@@ -1242,17 +1277,18 @@ sap.ui.define([
 		 *
 		 * @see https://cldr.unicode.org/translation/numbers-currency/number-patterns
 		 *
-		 * @param {string} sContext the context of the currency pattern (standard or accounting)
-		 * @returns {string} The pattern
+		 * @param {"accounting"|"sap-accounting"|"sap-standard"|"standard"} sContext
+		 *   The context of the currency pattern; "sap-" prefix is used for the trailing currency code variant
+		 * @param {"alphaNextToNumber"|"noCurrency"} [sAlternative]
+		 *   The alternate currency pattern; since 1.133.0
+		 * @returns {string|undefined}
+		 *   The currency format pattern for the given parameters; <code>undefined</code> if no corresponding pattern is
+		 *   found
+		 *
 		 * @public
 		 */
-		getCurrencyPattern: function(sContext) {
-			// Undocumented contexts for NumberFormat internal use: "sap-standard" and "sap-accounting"
-			return this._get("currencyFormat")[sContext] || this._get("currencyFormat").standard;
-		},
-
-		getCurrencySpacing: function(sPosition) {
-			return this._get("currencyFormat", "currencySpacing", sPosition === "after" ? "afterCurrency" : "beforeCurrency");
+		getCurrencyPattern: function (sContext, sAlternative) {
+			return this._get("currencyFormat")[sAlternative ? sContext + "-" + sAlternative : sContext];
 		},
 
 		/**
@@ -1266,9 +1302,9 @@ sap.ui.define([
 		},
 
 		/**
-		 * Get miscellaneous pattern.
+		 * Get miscellaneous pattern for the given name.
 		 *
-		 * @param {string} sName the name of the misc pattern, can be "approximately", "atLeast", "atMost" or "range"
+		 * @param {"approximately"|"atLeast"|"atMost"|"range"} sName the name of the misc pattern
 		 * @returns {string} The pattern
 		 * @public
 		 */
@@ -1373,34 +1409,42 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns the number of digits of the specified currency.
+		 * Returns the number of digits of the given currency considering a custom currency first and falling
+		 * back to the CLDR data if no custom currency is defined.
 		 *
-		 * @param {string} sCurrency ISO 4217 currency code
-		 * @returns {int} digits of the currency
+		 * @param {string} sCurrency The ISO 4217 currency code
+		 * @returns {int} The number of digits for the given currency
 		 * @public
 		 * @since 1.21.1
 		 */
 		getCurrencyDigits: function(sCurrency) {
+			const mCurrencyDigits = this.getAllCurrencyDigits();
+			return mCurrencyDigits[sCurrency] ?? mCurrencyDigits["DEFAULT"];
+		},
 
-			// try to lookup currency digits from custom currencies
-			var mCustomCurrencies = this._get("currency");
+		/**
+		 * Returns a language dependent map of ISO 4217 currency codes to the number of digits from the CLDR. The map
+		 * only contains currency codes for which the number of digits deviates from the value with the key
+		 * <code>DEFAULT</code>. If custom currencies are defined, they are merged into the map overwriting the CLDR
+		 * values including the default value if a custom default value is set.
+		 *
+		 * @returns {Object<string, number>} The map of currency codes to the number of digits
+		 * @private
+		 * @ui5-restricted sap.ui.export.Spreadsheet
+		 * @since 1.135
+		 */
+		getAllCurrencyDigits() {
+			const mCurrencyDigits = {...this._get("currencyDigits")};
+			const mCustomCurrencies = this._get("currency");
 			if (mCustomCurrencies) {
-				if (mCustomCurrencies[sCurrency] && mCustomCurrencies[sCurrency].hasOwnProperty("digits")) {
-					return mCustomCurrencies[sCurrency].digits;
-				} else if (mCustomCurrencies["DEFAULT"] && mCustomCurrencies["DEFAULT"].hasOwnProperty("digits")) {
-					return mCustomCurrencies["DEFAULT"].digits;
+				for (const sCurrencyCode in mCustomCurrencies) {
+					if (mCustomCurrencies[sCurrencyCode].digits !== undefined) {
+						mCurrencyDigits[sCurrencyCode] = mCustomCurrencies[sCurrencyCode].digits;
+					}
 				}
 			}
 
-			var iDigits = this._get("currencyDigits", sCurrency);
-			if (iDigits == null) {
-				iDigits = this._get("currencyDigits", "DEFAULT");
-
-				if (iDigits == null) {
-					iDigits = 2; // default
-				}
-			}
-			return iDigits;
+			return mCurrencyDigits;
 		},
 
 		/**
@@ -1479,6 +1523,20 @@ sap.ui.define([
 			return (mUnitFormat && mUnitFormat["displayName"]) || "";
 		},
 
+		/**
+		 * @typedef {object} sap.ui.core.LocaleData.RelativeTimePattern
+		 *
+		 * A relative time pattern.
+		 *
+		 * @property {string} pattern
+		 *   The string with the locale-specific representation of the relative time pattern
+		 * @property {"day"|"hour"|"minute"|"month"|"second"|"week"|"year"} scale
+		 *   The scale of the pattern
+		 * @property {number} sign
+		 *   <code>-1</code>, if the pattern is for the past; <code>1</code> otherwise
+		 *
+		 * @public
+		 */
 
 		/**
 		 * Returns relative time patterns for the given scales as an array of objects containing scale, value and pattern.
@@ -1495,9 +1553,10 @@ sap.ui.define([
 		 * }
 		 * </pre>
 		 *
-		 * @param {string[]} aScales The scales for which the available patterns should be returned
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 The style of the scale patterns. The valid values are "wide", "short" and "narrow".
-		 * @returns {object[]} An array of all relative time patterns
+		 * @param {Array<"day"|"hour"|"minute"|"month"|"second"|"week"|"year">} aScales The scales for which the available patterns should be returned
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the scale patterns
+		 * @returns {Array<sap.ui.core.LocaleData.RelativeTimePattern>} An array of all relative time patterns
 		 * @public
 		 * @since 1.34
 		 */
@@ -1553,10 +1612,11 @@ sap.ui.define([
 		/**
 		 * Returns the relative format pattern with given scale (year, month, week, ...) and difference value.
 		 *
-		 * @param {string} sScale the scale the relative pattern is needed for
+		 * @param {"day"|"hour"|"minute"|"month"|"second"|"week"|"year"} sScale the scale the relative pattern is needed for
 		 * @param {int} iDiff the difference in the given scale unit
 		 * @param {boolean} [bFuture] whether a future or past pattern should be used
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative format pattern
 		 * @public
 		 * @since 1.34
@@ -1599,7 +1659,8 @@ sap.ui.define([
 		 * difference value (0 means now, positive value means in the future and negative value means in the past).
 		 *
 		 * @param {int} iDiff the difference in seconds
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative resource pattern in unit 'second'
 		 * @public
 		 * @since 1.31.0
@@ -1616,7 +1677,8 @@ sap.ui.define([
 		 * function to format the difference using unit 'second'.
 		 *
 		 * @param {int} iDiff the difference in minutes
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string|null} the relative resource pattern in unit 'minute'. The method returns null if 0 is given as parameter.
 		 * @public
 		 * @since 1.31.0
@@ -1636,7 +1698,8 @@ sap.ui.define([
 		 * function to format the difference using unit 'minute' or 'second'.
 		 *
 		 * @param {int} iDiff the difference in hours
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string|null} the relative resource pattern in unit 'hour'. The method returns null if 0 is given as parameter.
 		 * @public
 		 * @since 1.31.0
@@ -1653,7 +1716,8 @@ sap.ui.define([
 		 * difference of days (0 means today, 1 means tomorrow, -1 means yesterday, ...).
 		 *
 		 * @param {int} iDiff the difference in days
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative day resource pattern
 		 * @public
 		 * @since 1.25.0
@@ -1667,7 +1731,8 @@ sap.ui.define([
 		 * difference of weeks (0 means this week, 1 means next week, -1 means last week, ...).
 		 *
 		 * @param {int} iDiff the difference in weeks
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative week resource pattern
 		 * @public
 		 * @since 1.31.0
@@ -1681,7 +1746,8 @@ sap.ui.define([
 		 * difference of months (0 means this month, 1 means next month, -1 means last month, ...).
 		 *
 		 * @param {int} iDiff the difference in months
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative month resource pattern
 		 * @public
 		 * @since 1.25.0
@@ -1691,11 +1757,12 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns the display name for a time unit (second, minute, hour, day, week, month, year).
+		 * Returns the display name for a time unit of the given type.
 		 *
-		 * @param {string} sType Type (second, minute, hour, day, week, month, year)
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
-		 * returns {string} display name
+		 * @param {"day"|"era"|"hour"|"minute"|"month"|"quarter"|"second"|"week"|"weekday"|"year"|"zone"} sType the type
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
+		 * @returns {string} display name
 		 * @public
 		 * @since 1.34.0
 		 */
@@ -1721,7 +1788,8 @@ sap.ui.define([
 		 * difference of years (0 means this year, 1 means next year, -1 means last year, ...).
 		 *
 		 * @param {int} iDiff the difference in years
-		 * @param {string} [sStyle="wide"] @since 1.32.10, 1.34.4 the style of the pattern. The valid values are "wide", "short" and "narrow"
+		 * @param {"narrow"|"short"|"wide"} [sStyle="wide"]
+		 *   Since 1.32.10 and 1.34.4, the style of the pattern
 		 * @returns {string} the relative year resource pattern
 		 * @public
 		 * @since 1.25.0
@@ -1731,77 +1799,55 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns the short decimal formats (like 1K, 1M....).
+		 * Returns the compact decimal format pattern (like "000K" or "0M") for the given power of ten in the given
+		 * style and plural category, see {@link topic:91f2f2866f4d1014b6dd926db0e91070 Number Format - Compact Format}.
 		 *
-		 * @param {string} sStyle short or long
-		 * @param {string} sNumber 1000, 10000 ...
-		 * @param {string} sPlural one or other (if not exists other is used)
-		 * @returns {string} decimal format
+		 * @param {"long"|"short"|"short-indian"} sStyle
+		 *   The style
+		 * @param {string} sPowerOfTen
+		 *   The power of ten, for example "1000" or "10000"
+		 * @param {"few"|"many"|"one"|"other"|"two"|"zero"} [sPlural="other"]
+		 *   The plural category; defaults to "other" if the given plural category does not exist for this locale
+		 * @returns {string|undefined}
+		 *   The compact decimal format pattern, or <code>undefined</code> if no decimal format for the given parameters
+		 *   is found
+		 *
 		 * @public
-		 * @since 1.25.0
+		 * @since 1.133.0
 		 */
-		getDecimalFormat: function(sStyle, sNumber, sPlural) {
+		getCompactDecimalPattern: function (sStyle, sPowerOfTen, sPlural = "other") {
+			const oFormats = this._get("decimalFormat-" + sStyle);
 
-			var sFormat;
-			var oFormats;
-
-			switch (sStyle) {
-			case "long":
-				oFormats = this._get("decimalFormat-long");
-				break;
-
-			default: //short
-				oFormats = this._get("decimalFormat-short");
-				break;
-			}
-
-			if (oFormats) {
-				var sName = sNumber + "-" + sPlural;
-				sFormat = oFormats[sName];
-				if (!sFormat) {
-					sName = sNumber + "-other";
-					sFormat = oFormats[sName];
-				}
-			}
-
-			return sFormat;
-
+			return oFormats && (oFormats[sPowerOfTen + "-" + sPlural] || oFormats[sPowerOfTen + "-other"]);
 		},
 
 		/**
-		 * Returns the short currency formats (like 1K USD, 1M USD....).
+		 * Returns the compact currency format pattern (like "¤000K" or "¤0M") for the given power of ten in the given
+		 * style, plural category, and in an optional alternative format if desired, see
+		 * {@link topic:91f2f2866f4d1014b6dd926db0e91070 Number Format - Compact Format}.
 		 *
-		 * @param {string} sStyle short
-		 * @param {string} sNumber 1000, 10000 ...
-		 * @param {string} sPlural one or other (if not exists other is used)
-		 * @returns {string} decimal format
+		 * @param {"short"|"sap-short"|"short-indian"|"sap-short-indian"} sStyle
+		 *   The style; "sap-" prefix is used for the trailing currency code variant
+		 * @param {string} sPowerOfTen
+		 *   The power of ten, for example "1000" or "10000"
+		 * @param {"few"|"many"|"one"|"other"|"two"|"zero"} [sPlural="other"]
+		 *   The plural category; defaults to "other" if the given plural category does not exist for this locale
+		 * @param {"alphaNextToNumber"|"noCurrency"} [sAlternative]
+		 *   The alternate currency format
+		 * @returns {string|undefined}
+		 *   The compact currency format pattern, or <code>undefined</code> if no currency format pattern for the given
+		 *   parameters is found
+		 *
 		 * @public
-		 * @since 1.51.0
+		 * @since 1.133.0
 		 */
-		getCurrencyFormat: function(sStyle, sNumber, sPlural) {
+		getCompactCurrencyPattern: function (sStyle, sPowerOfTen, sPlural = "other", sAlternative = undefined) {
+			const oFormats = this._get("currencyFormat-" + sStyle);
+			const sAlternativeSuffix = sAlternative ? "-" + sAlternative : "";
 
-			var sFormat;
-			var oFormats = this._get("currencyFormat-" + sStyle);
-
-			// Defaults to "short" if not found
-			if (!oFormats) {
-				if (sStyle === "sap-short") {
-					throw new Error("Failed to get CLDR data for property \"currencyFormat-sap-short\"");
-				}
-				oFormats = this._get("currencyFormat-short");
-			}
-
-			if (oFormats) {
-				var sName = sNumber + "-" + sPlural;
-				sFormat = oFormats[sName];
-				if (!sFormat) {
-					sName = sNumber + "-other";
-					sFormat = oFormats[sName];
-				}
-			}
-
-			return sFormat;
-
+			return oFormats
+				&& (oFormats[sPowerOfTen + "-" + sPlural + sAlternativeSuffix]
+					|| oFormats[sPowerOfTen + "-other" + sAlternativeSuffix]);
 		},
 
 		/**
@@ -1823,8 +1869,19 @@ sap.ui.define([
 
 		/**
 		 * Retrieves the unit format pattern for a specific unit name considering the unit mappings.
+		 *
+		 * @example  <caption>A unit format pattern which may be returned for the unit "duration-hour"</caption>
+		 * {
+		 *   displayName: "hours",
+		 *   unitPattern-count-one: "{0} hr",
+		 *   unitPattern-count-other: "{0} hr",
+		 *   perUnitPattern: "{0}/h"
+		 * }
+		 *
 		 * @param {string} sUnit unit name, e.g. "duration-hour" or "my"
-		 * @return {object} The unit format configuration for the given unit name
+		 * @return {Object<string, string>}
+		 *   The unit format pattern for the given unit name as a map from a pattern key like
+		 *   <code>"unitPattern-count-other"</code> to the corresponding pattern
 		 * @public
 		 * @since 1.54
 		 * @see sap.ui.core.LocaleData#getUnitFromMapping
@@ -1835,28 +1892,38 @@ sap.ui.define([
 		},
 
 		/**
-		 * Retrieves the unit format pattern for a specific unit name.
+		 * Retrieves the unit format pattern for a specific unit name, see {@link #getResolvedUnitFormat} for an example
+		 * of a unit format pattern.
 		 *
 		 * Note: Does not take unit mapping into consideration.
+		 *
 		 * @param {string} sUnit unit name, e.g. "duration-hour"
-		 * @return {object} The unit format configuration for the given unit name
+		 * @return {Object<string, string>|undefined}
+		 *  The unit format pattern for the given unit name as a map from a pattern key like
+		 *  <code>"unitPattern-count-other"</code> to the corresponding pattern or <code>undefined</code> if no
+		 *  corresponding pattern is found
 		 * @public
 		 * @since 1.54
 		 */
 		getUnitFormat: function (sUnit) {
 			var oResult = this._get("units", "short", sUnit);
 
+			/** @deprecated As of version 1.122.0, reason mLegacyUnit2CurrentUnit */
 			if (!oResult && mLegacyUnit2CurrentUnit[sUnit]) {
 				oResult = this._get("units", "short", mLegacyUnit2CurrentUnit[sUnit]);
 			}
+
 			return oResult;
 		},
 
 		/**
-		 * Retrieves all unit format patterns merged.
+		 * Retrieves unit format patterns for all units see {@link #getResolvedUnitFormat} for  an example of a unit
+		 * format pattern.
 		 *
 		 * Note: Does not take unit mapping into consideration.
-		 * @return {object} The unit format patterns
+		 *
+		 * @return {Object<string, Object<string, string>>} The unit format patterns as a map from a unit key to a map
+		 *   from a pattern key like <code>"unitPattern-count-other"</code> to the corresponding pattern
 		 * @public
 		 * @since 1.54
 		 */
@@ -1887,11 +1954,13 @@ sap.ui.define([
 
 
 		/**
-		 * Returns array of eras.
+		 * Returns array of eras in the given width.
 		 *
-		 * @param {string} sWidth the style of the era name. It can be 'wide', 'abbreviated' or 'narrow'
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar
-		 * @return {array} the array of eras
+		 * @param {"abbreviated"|"narrow"|"wide"} sWidth the width of the era name
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set in configuration or calculated from the
+		 *   locale
+		 * @return {string[]} the array of eras
 		 * @public
 		 * @since 1.32.0
 		 */
@@ -1910,12 +1979,15 @@ sap.ui.define([
 		/**
 		 * Returns the map of era IDs to era dates.
 		 *
-		 * @param {sap.ui.core.CalendarType} [sCalendarType] the type of calendar
-		 * @return {array} the array of eras containing objects with either an _end or _start property with a date
+		 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+		 *   The type of calendar; defaults to the calendar type either set via the "calendar-type" formatting
+		 *   configuration option, see {@link topic:91f2d03b6f4d1014b6dd926db0e91070 Configuration Options and URL
+		 *   Parameters}, or determined from the current locale
+		 * @return {object[]} the array of eras containing objects with either an _end or _start property with a date
 		 * @public
 		 * @since 1.32.0
 		 */
-		getEraDates: function(sCalendarType) {
+		getEraDates: function(sCalendarType = Formatting.getCalendarType()) {
 			//TODO Adapt generation so that eradates are an array instead of object
 			var oEraDates = this._get("eras-" + sCalendarType.toLowerCase()),
 				aEraDates = [];
@@ -1926,11 +1998,13 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns the defined pattern for representing the calendar week number.
+		 * Returns the pattern for representing the calendar week number in the given style. If
+		 * <code>iWeekNumber</code> is given, the week number placeholder will be replaced by it.
 		 *
-		 * @param {string} sStyle the style of the pattern. It can only be either "wide" or "narrow".
-		 * @param {int} iWeekNumber the week number
-		 * @return {string} the week number string
+		 * @param {"narrow"|"wide"} sStyle The style of the pattern
+		 * @param {string} [sWeekNumber] The week number, e.g. "01" or "42"
+		 * @returns {string}
+		 *   The calendar week with the week number placeholder or the week number e.g. "Calendar Week {0}" or "CW 01"
 		 *
 		 * @public
 		 * @since 1.32.0
@@ -1938,10 +2012,9 @@ sap.ui.define([
 		getCalendarWeek: function(sStyle, iWeekNumber) {
 			assert(sStyle == "wide" || sStyle == "narrow" , "sStyle must be wide or narrow");
 
-			var oMessageBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.core", this.oLocale.toString()),
-				sKey = "date.week.calendarweek." + sStyle;
+			const sText = this._get("sap-calendarWeek")[sStyle];
 
-			return oMessageBundle.getText(sKey, iWeekNumber ? [iWeekNumber] : undefined);
+			return iWeekNumber ? sText.replace("{0}", iWeekNumber) : sText;
 		},
 
 		/**
@@ -1957,9 +2030,10 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns the preferred calendar type for the current locale which exists in {@link sap.ui.core.CalendarType}
+		 * Returns the preferred calendar type for the current locale which exists in
+		 * {@link module:sap/base/i18n/date/CalendarType}
 		 *
-		 * @returns {sap.ui.core.CalendarType} the preferred calendar type
+		 * @returns {module:sap/base/i18n/date/CalendarType} the preferred calendar type
 		 * @public
 		 * @since 1.28.6
 		 */
@@ -1981,9 +2055,9 @@ sap.ui.define([
 		},
 
 		/**
-		 * Returns the preferred hour pattern symbol (h for 12, H for 24 hours) for the current locale.
+		 * Returns the preferred hour pattern symbol ("h" for 12, "H" for 24 hours) for the current locale.
 		 *
-		 * @returns {string} the preferred hour symbol
+		 * @returns {"h"|"H"} the preferred hour symbol
 		 * @public
 		 * @since 1.34
 		 */
@@ -1994,7 +2068,7 @@ sap.ui.define([
 		/**
 		 * Returns an array of all plural categories available in this language.
 		 *
-		 * @returns {array} The array of plural categories
+		 * @returns {string[]} The array of plural categories
 		 * @public
 		 * @since 1.50
 		 */
@@ -2274,6 +2348,10 @@ sap.ui.define([
 		aResult = sValue.match(rNumberInScientificNotation);
 		bNegative = aResult[1] === "-";
 		sValue = aResult[2].replace(".", "");
+		if (rOnlyZeros.test(sValue)) {
+			return "0";
+		}
+
 		iIntegerLength = aResult[3] ? aResult[3].length : 0;
 		iFractionLength = aResult[4] ? aResult[4].length : 0;
 		iExponent = parseInt(aResult[5]);
@@ -2350,61 +2428,17 @@ sap.ui.define([
 	};
 
 	/**
-	 * Helper to analyze and parse designtime (aka buildtime) variables
-	 *
-	 * At buildtime, the build can detect a pattern like $some-variable-name:some-value$
-	 * and replace 'some-value' with a value determined at buildtime (here: the actual list of locales).
-	 *
-	 * At runtime, this method removes the surrounding pattern ('$some-variable-name:' and '$') and leaves only the 'some-value'.
-	 * Additionally, this value is parsed as a comma-separated list (because this is the only use case here).
-	 *
-	 * The mimic of the comments is borrowed from the CVS (Concurrent Versions System),
-	 * see http://web.mit.edu/gnu/doc/html/cvs_17.html.
-	 *
-	 * If no valid <code>sValue</code> is given, <code>null</code> is returned
-	 *
-	 * @param {string} sValue The raw designtime property e.g. $cldr-rtl-locales:ar,fa,he$
-	 * @returns {string[]|null} The designtime property e.g. ['ar', 'fa', 'he']
-	 * @private
-	 */
-	 function getDesigntimePropertyAsArray(sValue) {
-		var m = /\$([-a-z0-9A-Z._]+)(?::([^$]*))?\$/.exec(sValue);
-		return (m && m[2]) ? m[2].split(/,/) : null;
-	}
-
-	/**
 	 * A list of locales for which CLDR data is bundled with the UI5 runtime.
-	 * @private
-	 */
-	var _cldrLocales = getDesigntimePropertyAsArray("$cldr-locales:ar,ar_EG,ar_SA,bg,ca,cnr,cy,cs,da,de,de_AT,de_CH,el,el_CY,en,en_AU,en_GB,en_HK,en_IE,en_IN,en_NZ,en_PG,en_SG,en_ZA,es,es_AR,es_BO,es_CL,es_CO,es_MX,es_PE,es_UY,es_VE,et,fa,fi,fr,fr_BE,fr_CA,fr_CH,fr_LU,he,hi,hr,hu,id,it,it_CH,ja,kk,ko,lt,lv,mk,ms,nb,nl,nl_BE,pl,pt,pt_PT,ro,ru,ru_UA,sk,sl,sr,sr_Latn,sv,th,tr,uk,vi,zh_CN,zh_HK,zh_SG,zh_TW$");
-
-	/**
-	 * A set of locales for which the UI5 runtime contains a CLDR JSON file.
-	 *
-	 * Helps to avoid unsatisfiable backend calls.
+	 * The value of this constant must only be updated by the CLDR generator; do not modify it manually.
 	 *
 	 * @private
 	 */
-	var M_SUPPORTED_LOCALES = (function() {
-		var LOCALES = _cldrLocales,
-			result = {},
-			i;
-
-		if ( LOCALES ) {
-			for (i = 0; i < LOCALES.length; i++) {
-				result[LOCALES[i]] = true;
-			}
-		}
-
-		return result;
-	}());
-
-	/**
-	 * Locale data cache.
-	 *
-	 * @private
-	 */
-	var mLocaleDatas = {};
+	const A_SUPPORTED_LOCALES = ["ar","ar_EG","ar_SA","bg","ca","cnr","cs","cy","da","de","de_AT","de_CH","el","el_CY",
+		"en","en_AU","en_GB","en_HK","en_IE","en_IN","en_NZ","en_PG","en_SG","en_ZA","es",
+		"es_AR","es_BO","es_CL","es_CO","es_MX","es_PE","es_UY","es_VE","et","fa","fi","fr",
+		"fr_BE","fr_CA","fr_CH","fr_LU","he","hi","hr","hu","id","it","it_CH","ja","kk","ko",
+		"lt","lv","mk","ms","nb","nl","nl_BE","pl","pt","pt_PT","ro","ru","ru_UA","sk","sl",
+		"sr","sr_Latn","sv","th","tr","uk","vi","zh_CN","zh_HK","zh_SG","zh_TW"];
 
 	/**
 	 * Creates a flat map from an object structure which contains a link to the parent ("_parent").
@@ -2464,26 +2498,37 @@ sap.ui.define([
 	 * Returns the corresponding calendar name in CLDR of the given calendar type, or the calendar type
 	 * from the configuration, in case sCalendarType is undefined.
 	 *
-	 * @param {sap.ui.core.CalendarType} sCalendarType the type defined in {@link sap.ui.core.CalendarType}.
+	 * @param {module:sap/base/i18n/date/CalendarType} sCalendarType
+	 *   The type defined in {@link module:sap/base/i18n/date/CalendarType}.
 	 * @returns {string} calendar name
 	 * @private
 	 */
 	function getCLDRCalendarName(sCalendarType) {
 		if (!sCalendarType) {
-			sCalendarType = Configuration.getCalendarType();
+			sCalendarType = Formatting.getCalendarType();
 		}
 		return "ca-" + sCalendarType.toLowerCase();
 	}
 
 	/**
-	 * Load LocaleData data from the CLDR generated files.
+	 * Loads data from the generated CLDR files.
+	 *
+	 * @param {sap.ui.core.Locale} oLocale
+	 *   The locale to load the CLDR data for
+	 * @param {boolean} [bAsync]
+	 *   Whether to load the data asynchronously
+	 *
+	 * @returns {SyncPromise<{mData: Object<string, any>, sCLDRLocaleId: string}>}
+	 *   A <code>SyncPromise</code> which resolves with an object with two properties: <code>mData</code>
+	 *   containing the loaded CLDR data and <code>sCLDRLocaleId</code>, the used CLDR locale ID (e.g. "ar-SA");
+	 *   the <code>SyncPromise</code> never rejects; if neither the <language>_<region>.json nor the
+	 *   <language>.json data can be loaded via the second try, the English CLDR data is used as final fallback
 	 */
-	function getData(oLocale) {
+	function loadData(oLocale, bAsync) {
 
 		var sLanguage = oLocale.getLanguage() || "",
-			sScript = oLocale.getScript() || "",
 			sRegion = oLocale.getRegion() || "",
-			mData;
+			sScript = oLocale.getScript() || "";
 
 		/*
 		 * Merge a CLDR delta file and a CLDR fallback file.
@@ -2524,23 +2569,35 @@ sap.ui.define([
 		}
 
 		function getOrLoad(sId) {
-			if ( !mLocaleDatas[sId] && (!M_SUPPORTED_LOCALES || M_SUPPORTED_LOCALES[sId] === true) ) {
-				var data = mLocaleDatas[sId] = LoaderExtensions.loadResource("sap/ui/core/cldr/" + sId + ".json", {
-					dataType: "json",
-					failOnError : false
-				});
+			if (!mLocaleIdToData[sId] && A_SUPPORTED_LOCALES.includes(sId)
+					|| mLocaleIdToData[sId] instanceof Promise && !bAsync) {
+				mLocaleIdToData[sId] = SyncPromise.resolve(LoaderExtensions.loadResource(`sap/ui/core/cldr/${sId}.json`,
+					{
+						"async" : bAsync,
+						dataType : "json",
+						failOnError : false
+					})).then((oData) => {
+						// Note: When preload bundles are created the files in those bundles are optimized, i.e. for
+						// language bundles similar entries/parts are aggregated inside a <language>.json
+						// (e.g. 'ar.json') and only the region specific entries remain in the <language>_<region>.json
+						// (e.g. 'ar_SA.json').
+						// When a <language>_<region>.json is loaded the "__fallbackLocale" property inside the bundle
+						// indicates that further CLDR data/entries have to be loaded from the referenced
+						// <fallbackLocale>.json.
+						if (oData) {
+							return getOrLoad(oData.__fallbackLocale).then((oFallBackData) => {
+								merge(oData, oFallBackData);
+								mLocaleIdToData[sId] = oData;
+								delete oData.__fallbackLocale;
+								return oData;
+							});
+						}
 
-				// check if the data is a minified delta file.
-				// If so, load the corresponding fallback data as well, merge it and remove the fallback marker
-				if ( data && data.__fallbackLocale ) {
-					merge(data, getOrLoad(data.__fallbackLocale));
-					delete data.__fallbackLocale;
-				}
-
-				// if load fails, null is returned
-				// -> caller will process the fallback chain, in the end a result is identified and stored in mDatas under the originally requested ID
+						return oData;
+					}).unwrap();
 			}
-			return mLocaleDatas[sId];
+
+			return SyncPromise.resolve(mLocaleIdToData[sId]);
 		}
 
 		// normalize language and handle special cases
@@ -2566,34 +2623,34 @@ sap.ui.define([
 
 		// sId is the originally requested locale.
 		// this is the key under which the result (even a fallback one) will be stored in the end
-		var sId = sLanguage + "_" + sRegion;
+		const sId = sLanguage + "_" + sRegion;
 
 		// the locale of the loaded json file
-		var sCLDRLocaleId = sId;
+		let sCLDRLocaleId = sId;
 
-		// first try: load CLDR data for specific language / region combination
-		if ( sLanguage && sRegion ) {
-			mData = getOrLoad(sId);
-		}
-		// second try: load data for language only
-		if ( !mData && sLanguage ) {
-			mData = getOrLoad(sLanguage);
-			sCLDRLocaleId = sLanguage;
-		}
-		// last try: load data for default language "en" (english)
-		if (!mData) {
-			mData = getOrLoad("en");
-			sCLDRLocaleId = "en";
-		}
+		// first try: load CLDR data for specific language/region combination
+		return getOrLoad(sId).then((mData) => {
+			if (!mData) {
+				// second try: no data was found for the language/region combination, try with only the language
+				sCLDRLocaleId = sLanguage;
+				return getOrLoad(sLanguage);
+			}
 
-		// store in cache
-		mLocaleDatas[sId] = mData;
+			return mData;
+		}).then((mData) => {
+			if (!mData) {
+				// last try: no data was found for language/region combination nor the language, load "en" locale data
+				sCLDRLocaleId = "en";
+				return getOrLoad("en");
+			}
 
-		sCLDRLocaleId = sCLDRLocaleId.replace(/_/g, "-");
-		return {
-			mData: mData,
-			sCLDRLocaleId: sCLDRLocaleId
-		};
+			return mData;
+		}).then((mData) => {
+			return {
+				mData: mData,
+				sCLDRLocaleId: sCLDRLocaleId.replace(/_/g, "-")
+			};
+		});
 	}
 
 
@@ -2606,7 +2663,7 @@ sap.ui.define([
 	var CustomLocaleData = LocaleData.extend("sap.ui.core.CustomLocaleData", {
 		constructor: function(oLocale) {
 			LocaleData.apply(this, arguments);
-			this.mCustomData = Configuration.getFormatSettings().getCustomLocaleData();
+			this.mCustomData = Formatting.getCustomLocaleData();
 		},
 
 		/**
@@ -2658,10 +2715,10 @@ sap.ui.define([
 
 		/**
 		 * Returns the first day of the week defined by the calendar week numbering algorithm
-		 * set in the configuration, see {@link sap.ui.core.Configuration#setCalendarWeekNumbering}.
-		 * If no specific calendar week numbering algorithm is configured the value set by
-		 * {@link sap.ui.core.Configuration#setFirstDayOfWeek} is returned. Otherwise the first day
-		 * of the week is determined by the current locale, see {@link sap.ui.core.LocaleData#getFirstDayOfWeek}.
+		 * set in the configuration, or if no specific calendar week numbering algorithm is configured, see
+		 * {@link module:sap/base/i18n/Formatting.setCalendarWeekNumbering Formatting.setCalendarWeekNumbering}.
+		 * Otherwise, the first day of the week is determined by the current locale, see
+		 * {@link sap.ui.core.LocaleData#getFirstDayOfWeek}.
 		 *
 		 * Days are encoded as integer where Sunday=0, Monday=1 etc.
 		 *
@@ -2670,7 +2727,7 @@ sap.ui.define([
 		 * @since 1.113.0
 		 */
 		getFirstDayOfWeek: function() {
-			var sCalendarWeekNumbering = Configuration.getCalendarWeekNumbering();
+			var sCalendarWeekNumbering = Formatting.getCalendarWeekNumbering();
 
 			if (sCalendarWeekNumbering === CalendarWeekNumbering.Default) {
 				return LocaleData.prototype.getFirstDayOfWeek.call(this);
@@ -2682,7 +2739,7 @@ sap.ui.define([
 		/**
 		 * Returns the required minimal number of days for the first week of a year defined by the
 		 * calendar week numbering algorithm set in the configuration,
-		 * see {@link sap.ui.core.Configuration#setCalendarWeekNumbering}.
+		 * see {@link module:sap/base/i18n/Formatting.setCalendarWeekNumbering Formatting.setCalendarWeekNumbering}.
 		 * If no specific calendar week numbering algorithm is configured the required minimal number
 		 * of days for the first week of a year is determined by the current locale,
 		 * see {@link sap.ui.core.LocaleData#getMinimalDaysInFirstWeek}.
@@ -2692,7 +2749,7 @@ sap.ui.define([
 		 * @since 1.113.0
 		 */
 		getMinimalDaysInFirstWeek: function() {
-			var sCalendarWeekNumbering = Configuration.getCalendarWeekNumbering();
+			var sCalendarWeekNumbering = Formatting.getCalendarWeekNumbering();
 
 			if (sCalendarWeekNumbering === CalendarWeekNumbering.Default) {
 				return LocaleData.prototype.getMinimalDaysInFirstWeek.call(this);
@@ -2703,14 +2760,50 @@ sap.ui.define([
 	});
 
 	/**
+	 * Resets the locale data cache.
 	 *
+	 * @private
 	 */
-	LocaleData.getInstance = function(oLocale) {
-		oLocale = Locale._getCoreLocale(oLocale);
-		return oLocale.hasPrivateUseSubtag("sapufmt") ? new CustomLocaleData(oLocale) : new LocaleData(oLocale);
+	LocaleData._resetLocaleDataCache = function() {
+		mLocaleIdToData = {};
 	};
 
-	LocaleData._cldrLocales = _cldrLocales;
+	/**
+	 * Creates an instance of <code>LocaleData</code> for the given locale.
+	 *
+	 * @param {sap.ui.core.Locale|module:sap/base/i18n/LanguageTag} vLocale The locale or language tag
+	 * @returns {sap.ui.core.LocaleData} An instance of <code>LocaleData</code>
+	 *
+	 * @public
+	 * @since 1.123
+	 */
+	LocaleData.getInstance = function(vLocale) {
+		vLocale = Locale._getCoreLocale(vLocale);
+		return vLocale.hasPrivateUseSubtag("sapufmt") ? new CustomLocaleData(vLocale) : new LocaleData(vLocale);
+	};
+
+	/**
+	 * Creates an instance of <code>LocaleData</code> asynchronously for the given language tag.
+	 *
+	 * @param {module:sap/base/i18n/LanguageTag} oLanguageTag
+	 *   The language tag
+	 * @returns {Promise<sap.ui.core.LocaleData>}
+	 *   A <code>Promise</code> which resolves with an instance of <code>LocaleData</code>; the <code>Promise</code>
+	 *   never rejects
+	 *
+	 * @private
+	 * @ui5-restricted sap.ui.core
+	 * @since 1.127
+	 */
+	LocaleData.requestInstance = function (oLanguageTag) {
+		const oLocale = Locale._getCoreLocale(oLanguageTag);
+		const oLocaleData = oLocale.hasPrivateUseSubtag("sapufmt")
+			? new CustomLocaleData(oLocale, true)
+			: new LocaleData(oLocale, true);
+		return Promise.resolve(oLocaleData.loaded);
+	};
+
+	LocaleData._cldrLocales = A_SUPPORTED_LOCALES;
 	// maps a locale to a map of time zone translations, which maps an IANA time zone ID to the translated time zone
 	// name
 	LocaleData._mTimezoneTranslations = {};
@@ -2736,6 +2829,49 @@ sap.ui.define([
 		}
 		return sValue;
 	};
+
+	/**
+	 * Replaced by {@link #getCompactCurrencyPattern}.
+	 *
+	 * @param {"short"|"sap-short"|"short-indian"|"sap-short-indian"} sStyle
+	 *   See {@link #getCompactCurrencyPattern}; "short-indian" and "sap-short-indian" are only available since 1.133.0
+	 *   for the "en-IN" locale
+	 * @param {string} sPowerOfTen
+	 *   See {@link #getCompactCurrencyPattern}
+	 * @param {"few"|"many"|"one"|"other"|"two"|"zero"} [sPlural="other"]
+	 *   See {@link #getCompactCurrencyPattern}
+	 * @param {"alphaNextToNumber"|"noCurrency"} [sAlternative]
+	 *   See {@link #getCompactCurrencyPattern}; since 1.133.0
+	 * @returns {string|undefined}
+	 *   See {@link #getCompactCurrencyPattern}
+	 *
+	 * @function
+	 * @name sap.ui.core.LocaleData.prototype.getCurrencyFormat
+	 * @public
+	 * @since 1.51.0
+	 * @deprecated since 1.133.0, use {@link #getCompactCurrencyPattern} instead
+	 */
+	LocaleData.prototype.getCurrencyFormat = LocaleData.prototype.getCompactCurrencyPattern;
+
+	/**
+	 * Replaced by {@link #getCompactDecimalPattern}.
+	 *
+	 * @param {"long"|"short"|"short-indian"} sStyle
+	 *   See {@link #getCompactDecimalPattern}; "short-indian" is only available since 1.133.0 for the "en-IN" locale
+	 * @param {string} sPowerOfTen
+	 *   See {@link #getCompactDecimalPattern}
+	 * @param {"few"|"many"|"one"|"other"|"two"|"zero"} [sPlural="other"]
+	 *   See {@link #getCompactDecimalPattern}
+	 * @returns {string|undefined}
+	 *   See {@link #getCompactDecimalPattern}
+	 *
+	 * @function
+	 * @name sap.ui.core.LocaleData.prototype.getDecimalFormat
+	 * @public
+	 * @since 1.25.0
+	 * @deprecated since 1.133.0, use {@link #getCompactDecimalPattern} instead
+	 */
+	LocaleData.prototype.getDecimalFormat = LocaleData.prototype.getCompactDecimalPattern;
 
 	return LocaleData;
 });

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/assert", "sap/base/Log"], function (assert, Log) {
@@ -391,10 +391,13 @@ sap.ui.define(["sap/base/assert", "sap/base/Log"], function (assert, Log) {
 	}
 
 	function expandToV4(oBinding, iLevel) {
-		var oAggregation = Object.assign(oBinding.getAggregation(), {
-			expandTo: iLevel
-		});
-		oBinding.setAggregation(oAggregation);
+		const bIsSameLevel = oBinding.getAggregation()?.expandTo === iLevel;
+
+		if (bIsSameLevel) {
+			oBinding.refresh();
+		} else {
+			oBinding.setAggregation({...oBinding.getAggregation(), ...{expandTo: iLevel}});
+		}
 	}
 
 	/**

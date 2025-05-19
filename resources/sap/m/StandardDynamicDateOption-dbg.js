@@ -1,30 +1,42 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.StandardDynamicDateOption.
 sap.ui.define([
-		'sap/ui/core/library',
-		'./DynamicDateOption',
-		'./Label',
-		'./RadioButton',
-		'./RadioButtonGroup',
-		'sap/ui/core/date/UniversalDateUtils',
-		'sap/ui/core/date/UniversalDate',
-		'sap/m/DynamicDateValueHelpUIType',
-		'./library'],
+	'sap/base/i18n/date/CalendarWeekNumbering',
+	'sap/ui/core/Lib',
+	'sap/ui/core/library',
+	'sap/ui/core/Item',
+	'./DynamicDateOption',
+	'./Label',
+	'./RadioButton',
+	'./Select',
+	'./VBox',
+	'sap/ui/core/date/UniversalDateUtils',
+	'sap/ui/core/date/UniversalDate',
+	'sap/ui/core/date/UI5Date',
+	'sap/m/DynamicDateValueHelpUIType',
+	'./library'
+],
 	function(
+		_CalendarWeekNumbering, // type of `calendarWeekNumbering`
+		Library,
 		coreLibrary,
+		Item,
 		DynamicDateOption,
 		Label,
 		RadioButton,
-		RadioButtonGroup,
+		Select,
+		VBox,
 		UniversalDateUtils,
 		UniversalDate,
+		UI5Date,
 		DynamicDateValueHelpUIType,
-		library) {
+		library
+	) {
 		"use strict";
 
 		// shortcut for sap.ui.core.VerticalAlign
@@ -42,7 +54,7 @@ sap.ui.define([
 		 * @extends sap.m.DynamicDateOption
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @private
 		 * @alias sap.m.StandardDynamicDateOption
@@ -56,7 +68,7 @@ sap.ui.define([
 					 * If not set, the calendar week numbering of the global configuration is used.
 					 * @since 1.111.0
 					 */
-					calendarWeekNumbering: { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
+					calendarWeekNumbering: { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 				}
 			}
 		});
@@ -108,6 +120,20 @@ sap.ui.define([
 			"NEXTMONTHS": "NEXTMONTHS",
 			"NEXTQUARTERS": "NEXTQUARTERS",
 			"NEXTYEARS": "NEXTYEARS",
+			"LASTMINUTESINCLUDED": "LASTMINUTESINCLUDED",
+			"LASTHOURSINCLUDED": "LASTHOURSINCLUDED",
+			"LASTDAYSINCLUDED": "LASTDAYSINCLUDED",
+			"LASTWEEKSINCLUDED": "LASTWEEKSINCLUDED",
+			"LASTMONTHSINCLUDED": "LASTMONTHSINCLUDED",
+			"LASTQUARTERSINCLUDED": "LASTQUARTERSINCLUDED",
+			"LASTYEARSINCLUDED": "LASTYEARSINCLUDED",
+			"NEXTMINUTESINCLUDED": "NEXTMINUTESINCLUDED",
+			"NEXTHOURSINCLUDED": "NEXTHOURSINCLUDED",
+			"NEXTDAYSINCLUDED": "NEXTDAYSINCLUDED",
+			"NEXTWEEKSINCLUDED": "NEXTWEEKSINCLUDED",
+			"NEXTMONTHSINCLUDED": "NEXTMONTHSINCLUDED",
+			"NEXTQUARTERSINCLUDED": "NEXTQUARTERSINCLUDED",
+			"NEXTYEARSINCLUDED": "NEXTYEARSINCLUDED",
 			"FROM": "FROM",
 			"TO": "TO",
 			"FROMDATETIME": "FROMDATETIME",
@@ -174,6 +200,20 @@ sap.ui.define([
 			"NEXTMONTHS": _Groups.DateRanges,
 			"NEXTQUARTERS": _Groups.DateRanges,
 			"NEXTYEARS": _Groups.DateRanges,
+			"LASTMINUTESINCLUDED": _Groups.DateRanges,
+			"LASTHOURSINCLUDED": _Groups.DateRanges,
+			"LASTDAYSINCLUDED": _Groups.DateRanges,
+			"LASTWEEKSINCLUDED": _Groups.DateRanges,
+			"LASTMONTHSINCLUDED": _Groups.DateRanges,
+			"LASTQUARTERSINCLUDED": _Groups.DateRanges,
+			"LASTYEARSINCLUDED": _Groups.DateRanges,
+			"NEXTMINUTESINCLUDED": _Groups.DateRanges,
+			"NEXTHOURSINCLUDED": _Groups.DateRanges,
+			"NEXTDAYSINCLUDED": _Groups.DateRanges,
+			"NEXTWEEKSINCLUDED": _Groups.DateRanges,
+			"NEXTMONTHSINCLUDED": _Groups.DateRanges,
+			"NEXTQUARTERSINCLUDED": _Groups.DateRanges,
+			"NEXTYEARSINCLUDED": _Groups.DateRanges,
 			"FROM": _Groups.DateRanges,
 			"TO": _Groups.DateRanges,
 			"FROMDATETIME": _Groups.DateRanges,
@@ -189,11 +229,13 @@ sap.ui.define([
 
 		var aLastOptions = ["LASTMINUTES", "LASTHOURS", "LASTDAYS", "LASTWEEKS", "LASTMONTHS", "LASTQUARTERS", "LASTYEARS"];
 		var aNextOptions = ["NEXTMINUTES", "NEXTHOURS", "NEXTDAYS", "NEXTWEEKS", "NEXTMONTHS", "NEXTQUARTERS", "NEXTYEARS"];
+		var aLastIncludedOptions = ["LASTMINUTESINCLUDED", "LASTHOURSINCLUDED", "LASTDAYSINCLUDED", "LASTWEEKSINCLUDED", "LASTMONTHSINCLUDED", "LASTQUARTERSINCLUDED", "LASTYEARSINCLUDED"];
+		var aNextIncludedOptions = ["NEXTMINUTESINCLUDED", "NEXTHOURSINCLUDED", "NEXTDAYSINCLUDED", "NEXTWEEKSINCLUDED", "NEXTMONTHSINCLUDED", "NEXTQUARTERSINCLUDED", "NEXTYEARSINCLUDED"];
 
-		StandardDynamicDateOption.LastXKeys = aLastOptions;
-		StandardDynamicDateOption.NextXKeys = aNextOptions;
+		StandardDynamicDateOption.LastXKeys = aLastOptions.concat(aLastIncludedOptions);
+		StandardDynamicDateOption.NextXKeys = aNextOptions.concat(aNextIncludedOptions);
 
-		var _resourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var _resourceBundle = Library.getResourceBundleFor("sap.m");
 
 		StandardDynamicDateOption.Keys = Keys;
 
@@ -210,17 +252,26 @@ sap.ui.define([
 		StandardDynamicDateOption.prototype.getText = function(oControl) {
 			var sKey = this.getKey();
 			var oOptions = oControl._getOptions();
-
 			var aParams = this.getValueHelpUITypes(oControl);
 			var oLastOptionParam = this._getOptionParams(aLastOptions, oOptions);
+			var oLastOptionIncludedParam = this._getOptionIncludedParams(aLastIncludedOptions, oOptions);
 			var oNextOptionParam = this._getOptionParams(aNextOptions, oOptions);
+			var oNextOptionIncludedParam = this._getOptionIncludedParams(aNextIncludedOptions, oOptions);
 
 			if (oLastOptionParam) {
 				aParams.push(oLastOptionParam);
 			}
 
+			if (oLastOptionIncludedParam) {
+				aParams.push(oLastOptionIncludedParam);
+			}
+
 			if (oNextOptionParam) {
 				aParams.push(oNextOptionParam);
+			}
+
+			if (oNextOptionIncludedParam) {
+				aParams.push(oNextOptionIncludedParam);
 			}
 
 			switch (sKey) {
@@ -238,6 +289,20 @@ sap.ui.define([
 				case Keys.NEXTMONTHS:
 				case Keys.NEXTQUARTERS:
 				case Keys.NEXTYEARS:
+				case Keys.LASTMINUTESINCLUDED:
+				case Keys.LASTHOURSINCLUDED:
+				case Keys.LASTDAYSINCLUDED:
+				case Keys.LASTWEEKSINCLUDED:
+				case Keys.LASTMONTHSINCLUDED:
+				case Keys.LASTQUARTERSINCLUDED:
+				case Keys.LASTYEARSINCLUDED:
+				case Keys.NEXTMINUTESINCLUDED:
+				case Keys.NEXTHOURSINCLUDED:
+				case Keys.NEXTDAYSINCLUDED:
+				case Keys.NEXTWEEKSINCLUDED:
+				case Keys.NEXTMONTHSINCLUDED:
+				case Keys.NEXTQUARTERSINCLUDED:
+				case Keys.NEXTYEARSINCLUDED:
 					return this._getXPeriodTitle(aParams[1].getOptions());
 				case Keys.FROMDATETIME:
 				case Keys.TODATETIME:
@@ -334,6 +399,20 @@ sap.ui.define([
 					case Keys.NEXTMONTHS:
 					case Keys.NEXTQUARTERS:
 					case Keys.NEXTYEARS:
+					case Keys.LASTMINUTESINCLUDED:
+					case Keys.LASTHOURSINCLUDED:
+					case Keys.LASTDAYSINCLUDED:
+					case Keys.LASTWEEKSINCLUDED:
+					case Keys.LASTMONTHSINCLUDED:
+					case Keys.LASTQUARTERSINCLUDED:
+					case Keys.LASTYEARSINCLUDED:
+					case Keys.NEXTMINUTESINCLUDED:
+					case Keys.NEXTHOURSINCLUDED:
+					case Keys.NEXTDAYSINCLUDED:
+					case Keys.NEXTWEEKSINCLUDED:
+					case Keys.NEXTMONTHSINCLUDED:
+					case Keys.NEXTQUARTERSINCLUDED:
+					case Keys.NEXTYEARSINCLUDED:
 						this.aValueHelpUITypes = [
 							new DynamicDateValueHelpUIType({
 								text: _resourceBundle.getText("DDR_LASTNEXTX_LABEL"),
@@ -390,15 +469,25 @@ sap.ui.define([
 			}
 			oControl.aControlsByParameters[this.getKey()] = [];
 
-			var oLastOptionParam = this._getOptionParams(aLastOptions, oOptions),
-				oNextOptionParam = this._getOptionParams(aNextOptions, oOptions);
+			var oLastOptionParam = this._getOptionParams(aLastOptions, oOptions);
+			var oLastOptionIncludedParam = this._getOptionIncludedParams(aLastIncludedOptions, oOptions);
+			var oNextOptionParam = this._getOptionParams(aNextOptions, oOptions);
+			var oNextOptionIncludedParam = this._getOptionIncludedParams(aNextIncludedOptions, oOptions);
 
 			if (oLastOptionParam) {
 				aParams.push(oLastOptionParam);
 			}
 
+			if (oLastOptionIncludedParam) {
+				aParams.push(oLastOptionIncludedParam);
+			}
+
 			if (oNextOptionParam) {
 				aParams.push(oNextOptionParam);
+			}
+
+			if (oNextOptionIncludedParam) {
+				aParams.push(oNextOptionIncludedParam);
 			}
 
 			if (oValue && oValue.values) {
@@ -409,7 +498,7 @@ sap.ui.define([
 
 			for (var iIndex = 0; iIndex < aParams.length; iIndex++) {
 				oCurrentLabel = null;
-				if (aParams[iIndex].getOptions() && aParams[iIndex].getOptions().length <= 1) {
+				if (aParams[iIndex].getOptions() && aParams[iIndex].getOptions().length <= 1 && aParams[iIndex].getOptions().indexOf("included") !== -1) {
 					break;
 				} else if (aParams[ iIndex ].getText()) {
 					oCurrentLabel = new Label({
@@ -424,9 +513,9 @@ sap.ui.define([
 				switch (aParams[iIndex].getType()) {
 					case "int":
 						oInputControl = this._createIntegerControl(oValue, iIndex, fnControlsUpdated);
+						var bHasLastNextOption = oValue && aParams[1] && aParams[1].getOptions() && (aParams[1].getOptions().indexOf(oValue.operator.slice(4).toLowerCase()) !== -1 || aParams[1].getOptions().indexOf(oValue.operator.slice(4).toLowerCase().replace("included", "")) !== -1);
 
-						if (oValue && aParams[1] && aParams[1].getOptions()
-								&& aParams[1].getOptions().indexOf(oValue.operator.slice(4).toLowerCase()) !== -1) {
+						if (bHasLastNextOption) {
 							oInputControl.setValue(oValue.values[iIndex]);
 						}
 						break;
@@ -452,6 +541,9 @@ sap.ui.define([
 						break;
 					case "options":
 						oInputControl = this._createOptionsControl(oValue, iIndex, fnControlsUpdated, aParams);
+						break;
+					case "included":
+						oInputControl = this._createIncludedControl(oValue, fnControlsUpdated);
 						break;
 					default:
 						break;
@@ -490,21 +582,98 @@ sap.ui.define([
 		};
 
 		StandardDynamicDateOption.prototype._createOptionsControl = function(oValue, iIndex, fnControlsUpdated, aParameters) {
-			var oControl = new RadioButtonGroup({
-				buttons: [
-					aParameters[iIndex].getOptions().map(makeRadioButton)
+			const aOptions = aParameters[iIndex].getOptions();
+			const aOptionsStrings = aOptions.map(function(sOption) {
+				let sOptionName = sOption;
+
+				if (sOptionName.indexOf("included") !== -1) {
+					sOptionName = sOptionName.replace("included", "");
+				}
+
+				if (aOptions.indexOf(sOption) !== -1 && aOptions.indexOf(sOptionName) !== -1 && sOptionName !== sOption) {
+					return "";
+				}
+
+				return sOptionName.toUpperCase();
+			});
+
+			const aFilteredOptions = aOptionsStrings.filter(function(str) {
+				return str !== "";
+			});
+
+			var oControl = new Select({
+				items: [
+					aFilteredOptions.map(makeSelectOption)
 				]
 			});
+
+			oControl.setSelectedKey(oControl.getAggregation("items")[0].getKey());
+
 			if (oValue) {
-				var iOptionIndex = aParameters[iIndex].getOptions().indexOf(oValue.operator.slice(4).toLowerCase());
+				const aOptionsArray = aParameters[iIndex].getOptions();
+
+				for (let i = 0; i < aOptionsArray.length; i++) {
+					if (aOptionsArray[i].indexOf("included") !== -1) {
+						aOptionsArray[i] = aOptionsArray[i].replace("included", "");
+					}
+
+					const iLastIndexOfOption = aOptionsArray.lastIndexOf(aOptionsArray[i]);
+
+					if (i !== iLastIndexOfOption) {
+						aOptionsArray.splice(iLastIndexOfOption, 1);
+					}
+				}
+
+				var sKey = oValue.operator.slice(4).replace("INCLUDED", ""),
+					iOptionIndex = aOptionsArray.indexOf(sKey?.toLowerCase());
 
 				if (iOptionIndex !== -1) {
-					oControl.setSelectedIndex(iOptionIndex);
+					oControl.setSelectedKey(sKey);
 				}
 			}
 
 			if (fnControlsUpdated instanceof Function) {
-				oControl.attachSelect(function() {
+				oControl.attachChange(function() {
+					fnControlsUpdated(this);
+				}, this);
+			}
+
+			return oControl;
+		};
+
+		StandardDynamicDateOption.prototype._createIncludedControl = function(oValue, fnControlsUpdated) {
+			const oIncludedRadioButton = new RadioButton({
+				text: _resourceBundle.getText("DDR_LASTNEXTX_INCLUDE_LABEL"),
+				groupName: `includedSelection-${this.getKey()}`
+			});
+			const oExcludedRadioButton = new RadioButton({
+				text: _resourceBundle.getText("DDR_LASTNEXTX_EXCLUDE_LABEL"),
+				selected: true,
+				groupName: `includedSelection-${this.getKey()}`
+			});
+
+			const oControl = new VBox({
+				items: [
+					oExcludedRadioButton,
+					new Label({text:"", wrapping: true}),
+					oIncludedRadioButton,
+					new Label({text: "", wrapping: true})
+				]
+			});
+
+			if (oValue && oValue.operator.indexOf("INCLUDED") > -1) {
+				oIncludedRadioButton.setSelected(true);
+			} else {
+				oExcludedRadioButton.setSelected(true);
+			}
+
+			this._oInternalIncludedControl = oControl;
+
+			if (fnControlsUpdated instanceof Function) {
+				oIncludedRadioButton.attachSelect(function() {
+					fnControlsUpdated(this);
+				}, this);
+				oExcludedRadioButton.attachSelect(function() {
 					fnControlsUpdated(this);
 				}, this);
 			}
@@ -515,12 +684,40 @@ sap.ui.define([
 		StandardDynamicDateOption.prototype._getOptionParams = function(aGroupOptions, oOptions){
 			if (aGroupOptions.indexOf(this.getKey()) !== -1) {
 				return new DynamicDateValueHelpUIType({
-					text: _resourceBundle.getText("DDR_LASTNEXTX_TIME_PERIODS_LABEL"),
+					text: _resourceBundle.getText("DDR_LASTNEXTX_TIME_UNIT_LABEL"),
 					type: "options",
+					options: oOptions ? oOptions.filter(function(option) {
+						return aGroupOptions.indexOf(option.getKey()) !== -1 || aGroupOptions.indexOf(option.getKey().replace("INCLUDED", "")) !== -1;
+					}).map(function(option) {
+						return option.getKey().slice(4).toLowerCase();
+					}) : []
+				});
+			}
+
+			return undefined;
+		};
+
+		StandardDynamicDateOption.prototype._getOptionIncludedParams = function(aGroupOptions, oOptions){
+			if (aGroupOptions.indexOf(this.getKey() + "INCLUDED") !== -1) {
+				return new DynamicDateValueHelpUIType({
+					text: _resourceBundle.getText("DDR_LASTNEXTX_TIME_PERIODS_LABEL"),
+					type: "included",
 					options: oOptions ? oOptions.filter(function(option) {
 						return aGroupOptions.indexOf(option.getKey()) !== -1;
 					}).map(function(option) {
 						return option.getKey().slice(4).toLowerCase();
+					}) : []
+				});
+			}
+
+			if (aGroupOptions.indexOf(this.getKey()) !== -1) {
+				return new DynamicDateValueHelpUIType({
+					text: _resourceBundle.getText("DDR_LASTNEXTX_TIME_UNIT_LABEL"),
+					type: "options",
+					options: oOptions ? oOptions.filter(function(option) {
+						return aGroupOptions.indexOf(option.getKey()) !== -1;
+					}).map(function(option) {
+						return option.getKey().replace("INCLUDED", "").slice(4).toLowerCase();
 					}) : []
 				});
 			}
@@ -586,22 +783,38 @@ sap.ui.define([
 		StandardDynamicDateOption.prototype.getValueHelpOutput = function(oControl) {
 			var oOptions = oControl._getOptions();
 			var aParams = this.getValueHelpUITypes(oControl),
+				bHasIncludedControl = oControl.aControlsByParameters && oControl.aControlsByParameters[this.getKey()] && oControl.aControlsByParameters[this.getKey()].length > 1,
+				bHasLastOption = aLastOptions.indexOf(this.getKey()) !== -1 || aLastIncludedOptions.indexOf(this.getKey()) !== -1,
+				bHasNextOption = aNextOptions.indexOf(this.getKey()) !== -1 || aNextIncludedOptions.indexOf(this.getKey()) !== -1,
 				aResult = {},
 				vOutput;
 
-			if (aLastOptions.indexOf(this.getKey()) !== -1 && oControl.aControlsByParameters[this.getKey()].length > 1) {
+			if (bHasLastOption && bHasIncludedControl) {
 				aResult.operator = oOptions.filter(function(option) {
-					return aLastOptions.indexOf(option.getKey()) !== -1;
-				})[oControl.aControlsByParameters[this.getKey()][1].getSelectedIndex()].getKey();
-			} else if (aNextOptions.indexOf(this.getKey()) !== -1 && oControl.aControlsByParameters[this.getKey()].length > 1) {
+					return this._shouldAddLastOrNextOption(oOptions, option, aLastOptions);
+				}.bind(this))[oControl.aControlsByParameters[this.getKey()][1].getSelectedIndex()].getKey();
+			} else if (bHasNextOption && bHasIncludedControl) {
 				aResult.operator = oOptions.filter(function(option) {
-					return aNextOptions.indexOf(option.getKey()) !== -1;
-				})[oControl.aControlsByParameters[this.getKey()][1].getSelectedIndex()].getKey();
+					return this._shouldAddLastOrNextOption(oOptions, option, aNextOptions);
+				}.bind(this))[oControl.aControlsByParameters[this.getKey()][1].getSelectedIndex()].getKey();
 			} else {
 				aResult.operator = this.getKey();
 			}
 
+			if (aLastOptions.indexOf(this.getKey()) !== -1 || aNextOptions.indexOf(this.getKey()) !== -1) {
+				const bCurrentOptionHasAlsoIncluded = oControl.getStandardOptions().indexOf(aResult.operator + "INCLUDED") > -1;
+				const bIncludedRadioButtonIsSelected = oControl.aControlsByParameters && oControl.aControlsByParameters[this.getKey()] && oControl.aControlsByParameters[this.getKey()][2]?.getItems()[2].getSelected();
+
+				if (bIncludedRadioButtonIsSelected && bCurrentOptionHasAlsoIncluded) {
+					aResult.operator = aResult.operator + "INCLUDED";
+				}
+			}
+
 			aResult.values = [];
+
+			if (!oControl.aControlsByParameters || !oControl.aControlsByParameters[this.getKey()]) {
+				return aResult;
+			}
 
 			for (var i = 0; i < aParams.length; i++) {
 				var oInputControl = oControl.aControlsByParameters[this.getKey()][i];
@@ -676,6 +889,72 @@ sap.ui.define([
 			}
 
 			return aResult;
+		};
+
+		StandardDynamicDateOption.prototype._shouldAddLastOrNextOption = function(aOptions, oOption, aTargetOptions) {
+			let sOptionKey = oOption.getKey();
+			let iRepetitionCounter = 0;
+
+			if (sOptionKey.indexOf("INCLUDED") !== -1) {
+				iRepetitionCounter++;
+				sOptionKey = sOptionKey.replace("INCLUDED", "");
+			}
+
+			for (let i = 0; i < aOptions.length; i++) {
+				if (aOptions[i].getKey() === sOptionKey) {
+					iRepetitionCounter++;
+				}
+			}
+
+			return aTargetOptions.indexOf(sOptionKey) !== -1 && iRepetitionCounter === 1;
+		};
+
+		StandardDynamicDateOption.prototype._isLastOrNextOption = function () {
+			const aLastNextKeys = StandardDynamicDateOption.LastXKeys.concat(StandardDynamicDateOption.NextXKeys);
+
+			return aLastNextKeys.includes(this.getKey());
+		};
+
+		StandardDynamicDateOption.prototype.alignValueHelpUI = function(oControl) {
+			const aControls = oControl.aControlsByParameters[this.getKey()];
+			const oSelectControl = aControls[1];
+			const bIsSelectControl = oSelectControl instanceof Select;
+
+			if (bIsSelectControl && this._isLastOrNextOption() && oSelectControl.getSelectableItems().length === 1) {
+				oSelectControl.setVisible(false);
+
+				const oSelectControlLabel = oControl.aInputControls[2];
+				oSelectControlLabel.setVisible(false);
+			}
+
+			const bHasIncludedLastOptions = aLastOptions.indexOf(this.getKey()) !== -1 && oControl.aControlsByParameters[Object.keys(oControl.aControlsByParameters)[0]].length > 1;
+			const bHasIncludedNextOptions = aNextOptions.indexOf(this.getKey()) !== -1 && oControl.aControlsByParameters[Object.keys(oControl.aControlsByParameters)[0]].length > 1;
+			const bHasRadioButtons = bHasIncludedLastOptions || bHasIncludedNextOptions;
+
+			if (!bHasRadioButtons) {
+				return;
+			}
+
+			const sSelectedOption = oSelectControl.getSelectedKey();
+			const sFullOptionName = this.getKey().slice(0,4) + sSelectedOption.toUpperCase();
+			const oIncludedControl = aControls[2];
+			const oIncludedControlLabel = oControl.aInputControls[4];
+			const oInputControl = aControls[0];
+			const oIncludedDates = this.toDates({"operator": sFullOptionName + "INCLUDED", "values": [oInputControl.getValue()]});
+			const oExcludedDates = this.toDates({"operator": sFullOptionName, "values": [oInputControl.getValue()]});
+			const sIncludedLabel = oControl._getDatesLabelFormatter().format(oIncludedDates);
+			const sExcludedLabel = oControl._getDatesLabelFormatter().format(oExcludedDates);
+
+			oIncludedControl?.getItems()[1].setText(sExcludedLabel);
+			oIncludedControl?.getItems()[3].setText(sIncludedLabel);
+
+			if (oControl.getStandardOptions().indexOf(sFullOptionName + "INCLUDED") !== -1 && oControl.getStandardOptions().indexOf(sFullOptionName) !== -1) {
+				oIncludedControl?.setVisible(true);
+				oIncludedControlLabel?.setVisible(true);
+			} else {
+				oIncludedControl?.setVisible(false);
+				oIncludedControlLabel?.setVisible(false);
+			}
 		};
 
 		StandardDynamicDateOption.prototype.getGroup = function() {
@@ -792,6 +1071,41 @@ sap.ui.define([
 					return UniversalDateUtils.ranges.lastQuarters(iParamLastNext);
 				case "LASTYEARS":
 					return UniversalDateUtils.ranges.lastYears(iParamLastNext);
+				case "LASTMINUTESINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.lastMinutes(iParamLastNext - 1);
+					oResultValues[0].setSeconds(0);
+
+					return oResultValues;
+				case "LASTHOURSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.lastHours(iParamLastNext - 1);
+					oResultValues[0].setMinutes(0, 0);
+
+					return oResultValues;
+				case "LASTDAYSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.lastDays(iParamLastNext - 1);
+					oResultValues[1] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
+				case "LASTWEEKSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.lastWeeks(iParamLastNext - 1, sCalendarWeekNumbering);
+					oResultValues[1] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
+				case "LASTMONTHSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.lastMonths(iParamLastNext - 1);
+					oResultValues[1] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
+				case "LASTQUARTERSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.lastQuarters(iParamLastNext - 1);
+					oResultValues[1] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
+				case "LASTYEARSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.lastYears(iParamLastNext - 1);
+					oResultValues[1] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
 				case "NEXTMINUTES":
 					return UniversalDateUtils.ranges.nextMinutes(iParamLastNext);
 				case "NEXTHOURS":
@@ -806,6 +1120,41 @@ sap.ui.define([
 					return UniversalDateUtils.ranges.nextQuarters(iParamLastNext);
 				case "NEXTYEARS":
 					return UniversalDateUtils.ranges.nextYears(iParamLastNext);
+				case "NEXTMINUTESINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.nextMinutes(iParamLastNext - 1);
+					oResultValues[1].setSeconds(59);
+
+					return oResultValues;
+				case "NEXTHOURSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.nextHours(iParamLastNext - 1);
+					oResultValues[1].setMinutes(59, 59);
+
+					return oResultValues;
+				case "NEXTDAYSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.nextDays(iParamLastNext - 1);
+					oResultValues[0] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
+				case "NEXTWEEKSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.nextWeeks(iParamLastNext  - 1, sCalendarWeekNumbering);
+					oResultValues[0] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
+				case "NEXTMONTHSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.nextMonths(iParamLastNext - 1);
+					oResultValues[0] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
+				case "NEXTQUARTERSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.nextQuarters(iParamLastNext - 1);
+					oResultValues[0] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
+				case "NEXTYEARSINCLUDED":
+					var oResultValues = UniversalDateUtils.ranges.nextYears(iParamLastNext - 1);
+					oResultValues[0] = UniversalDate.getInstance(UI5Date.getInstance());
+
+					return oResultValues;
 				case "FROM":
 					return [UniversalDate.getInstance(oValue.values[0])];
 				case "TO":
@@ -906,21 +1255,36 @@ sap.ui.define([
 				return _resourceBundle.getText("DYNAMIC_DATE_" + sKey + "_TITLE");
 			}
 
-			sCombinedOptions = aOptions.map(function(sOption) {
-				return _resourceBundle.getText("DYNAMIC_DATE_" + sOption.toUpperCase());
-			}).join(" / ");
+			const aOptionsStrings = aOptions.map(function(sOption) {
+				let sOptionName = sOption;
+
+				if (sOptionName.indexOf("included") !== -1) {
+					sOptionName = sOptionName.replace("included", "");
+				}
+
+				if (aOptions.indexOf(sOption) !== -1 && aOptions.indexOf(sOptionName) !== -1 && sOptionName !== sOption) {
+					return "";
+				}
+				return _resourceBundle.getText("DYNAMIC_DATE_" + sOptionName.toUpperCase());
+			});
+
+			const filteredArray = aOptionsStrings.filter(function(str) {
+				return str !== "";
+			});
+
+			sCombinedOptions = filteredArray.join(" / ");
 
 			if (sKey.indexOf("LAST") === 0) {
-				return _resourceBundle.getText("DYNAMIC_DATE_LASTX_TITLE", sCombinedOptions);
+				return _resourceBundle.getText("DYNAMIC_DATE_LASTX_TITLE", [sCombinedOptions]);
 			}
 
 			if (sKey.indexOf("NEXT") === 0) {
-				return _resourceBundle.getText("DYNAMIC_DATE_NEXTX_TITLE", sCombinedOptions);
+				return _resourceBundle.getText("DYNAMIC_DATE_NEXTX_TITLE", [sCombinedOptions]);
 			}
 		};
 
-		function makeRadioButton(sOptionName) {
-			return new RadioButton({ text: _resourceBundle.getText("DYNAMIC_DATE_" + sOptionName.toUpperCase()) });
+		function makeSelectOption(sOption) {
+			return new Item({ key: sOption.toUpperCase(), text: _resourceBundle.getText("DYNAMIC_DATE_" + sOption.toUpperCase()) });
 		}
 
 		return StandardDynamicDateOption;

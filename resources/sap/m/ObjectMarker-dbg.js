@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.ObjectMarker.
 sap.ui.define([
 	"sap/ui/core/Control",
+	"sap/ui/core/Lib",
 	"sap/ui/core/Renderer",
 	"sap/ui/Device",
 	"sap/m/library",
@@ -19,6 +20,7 @@ sap.ui.define([
 	"./ObjectMarkerRenderer"
 ], function(
 	Control,
+	Library,
 	Renderer,
 	Device,
 	library,
@@ -37,6 +39,9 @@ sap.ui.define([
 
 	// shortcut for sap.m.ObjectMarkerVisibility
 	var ObjectMarkerVisibility = library.ObjectMarkerVisibility;
+
+	// shortcut for sap.m.ReactiveAreaMode
+	var ReactiveAreaMode = library.ReactiveAreaMode;
 
 	/**
 	 * Constructor for a new ObjectMarker.
@@ -62,7 +67,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -88,6 +93,20 @@ sap.ui.define([
 				 * </ul>
 				 */
 				type: {type: "sap.m.ObjectMarkerType", group: "Misc"},
+
+				/**
+				 * Defines the size of the reactive area of the link:<ul>
+				 * <li><code>ReactiveAreaMode.Inline</code> - The link is displayed as part of a sentence.</li>
+				 * <li><code>ReactiveAreaMode.Overlay</code> - The link is displayed as an overlay on top of other interactive parts of the page.</li></ul>
+				 *
+				 * <b>Note:</b>It is designed to make links easier to activate and helps meet the WCAG 2.2 Target Size requirement. It is applicable only for the SAP Horizon themes.
+				 * <b>Note:</b>The Reactive area size is sufficiently large to help users avoid accidentally selecting (clicking or tapping) on unintented UI elements.
+				 * UI elements positioned over other parts of the page may need an invisible active touch area.
+				 * This will ensure that no elements beneath are activated accidentally when the user tries to interact with the overlay element.
+				 *
+				 * @since 1.133.0
+				 */
+				reactiveAreaMode : {type : "sap.m.ReactiveAreaMode", group : "Appearance", defaultValue : ReactiveAreaMode.Inline},
 
 				/**
 				 * Sets one of the visibility states.
@@ -297,6 +316,11 @@ sap.ui.define([
 
 		// Inner control can be determined here as all property values are known
 		this._adjustControl(false);
+
+		var oInnerControl = this._getInnerControl();
+		if (oInnerControl && oInnerControl.isA("sap.m.internal.ObjectMarkerCustomLink")) {
+			oInnerControl.setProperty("reactiveAreaMode", this.getReactiveAreaMode());
+		}
 	};
 
 	/**
@@ -309,7 +333,7 @@ sap.ui.define([
 		this._cleanup();
 	};
 
-	/**
+	/*
 	 * Intercepts <code>attachPress</code> to be able to re-render.
 	 * If <code>press</code> event is attached and the control is rendered as text, than the control will be
 	 * re-rendered as link.
@@ -331,7 +355,7 @@ sap.ui.define([
 		return this;
 	};
 
-	/**
+	/*
 	 * Intercepts <code>detachPress</code> to be able to re-render.
 	 * If <code>press</code> event is detached and the control is rendered as a link, than the control will be
 	 * re-rendered as a text.
@@ -391,7 +415,8 @@ sap.ui.define([
 			bIsTextVisible = this._isTextVisible(),
 			bIsIconOnly = bIsIconVisible && !bIsTextVisible,
 			sType = this.getType(),
-			sText;
+			sText,
+			oIconControl;
 
 		// If we have no inner control at this stage we don't need to adjust
 		if (!oInnerControl) {
@@ -405,10 +430,7 @@ sap.ui.define([
 		if (bIsIconVisible) {
 			oInnerControl.setIcon(oType.icon.src, bSuppressInvalidate);
 			oInnerIcon.setDecorative(!bIsIconOnly); // icon should be decorative if we have text
-			if (bIsTextVisible) {
-				oInnerIcon.setAlt(sText);
-			}
-			oInnerIcon.setUseIconTooltip(false);
+			oInnerIcon.setUseIconTooltip(bIsIconOnly);
 			this.addStyleClass("sapMObjectMarkerIcon");
 		} else {
 			oInnerControl.setIcon(null, bSuppressInvalidate);
@@ -430,13 +452,24 @@ sap.ui.define([
 
 		oInnerControl.removeAllAssociation("ariaLabelledBy", bSuppressInvalidate);
 		oInnerControl.removeAllAssociation("ariaDescribedBy", bSuppressInvalidate);
+		if (bIsIconOnly) {
+			oIconControl = oInnerControl._getIconAggregation();
+			oIconControl.removeAllAssociation("ariaLabelledBy", bSuppressInvalidate);
+			oIconControl.removeAllAssociation("ariaDescribedBy", bSuppressInvalidate);
+		}
 
 		this.getAriaLabelledBy().forEach(function(ariaLabelledBy) {
 			oInnerControl.addAssociation("ariaLabelledBy", ariaLabelledBy, bSuppressInvalidate);
+			if (bIsIconOnly) {
+				oInnerControl._getIconAggregation().addAssociation("ariaLabelledBy", ariaLabelledBy, bSuppressInvalidate);
+			}
 		});
 
 		this.getAriaDescribedBy().forEach(function(ariaDescribedBy){
 			oInnerControl.addAssociation("ariaDescribedBy", ariaDescribedBy, bSuppressInvalidate);
+			if (bIsIconOnly) {
+				oInnerControl._getIconAggregation().addAssociation("ariaDescribedBy", ariaDescribedBy, bSuppressInvalidate);
+			}
 		});
 
 		return true;
@@ -452,7 +485,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ObjectMarker.prototype._getMarkerText = function (oType, sType, sAdditionalInfo) {
-		var oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oRB = Library.getResourceBundleFor("sap.m");
 
 		switch (sType) {
 			case "LockedBy":
@@ -552,8 +585,9 @@ sap.ui.define([
 	 */
 	ObjectMarker.prototype._createCustomLink = function () {
 		var oCustomLink = new CustomLink(this.getId() + "-link", {
-				wrapping: true
-			});
+			reactiveAreaMode: this.getReactiveAreaMode(),
+			wrapping: true
+		});
 
 		oCustomLink.attachPress(this._firePress, this);
 
@@ -583,6 +617,8 @@ sap.ui.define([
 		ObjectMarker.prototype[sFn] = function() {
 			var oInnerControl = this._getInnerControl(),
 				oResult;
+			oInnerControl = (this.hasListeners("press") && oInnerControl.getIconOnly()) ? oInnerControl._getIconAggregation() : oInnerControl;
+
 			if (oInnerControl && oInnerControl[sFn]) {
 				oResult = oInnerControl[sFn].apply(oInnerControl, arguments);
 			}
@@ -598,8 +634,10 @@ sap.ui.define([
 
 	CustomTextRenderer.render = function(oRm, oControl) {
 		if (oControl.getIconOnly()) {
-			var oIconControl = oControl._getIconAggregation();
-			oIconControl.setAlt(oControl.getTooltip_AsString());
+			var oIconControl = oControl._getIconAggregation(),
+				sTooltip = oControl.getTooltip_AsString();
+			oIconControl.setAlt(sTooltip);
+			oIconControl.setTooltip(sTooltip);
 			oRm.renderControl(oIconControl);
 		} else {
 			TextRenderer.render.call(this, oRm, oControl);

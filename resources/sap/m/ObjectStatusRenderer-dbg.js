@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/library', './library', 'sap/ui/core/Core'],
-	function(coreLibrary, library, oCore) {
+sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Lib", 'sap/ui/core/library', './library'],
+	function(Localization, Library, coreLibrary, library) {
 	"use strict";
 
 
@@ -15,8 +15,11 @@ sap.ui.define(['sap/ui/core/library', './library', 'sap/ui/core/Core'],
 	// shortcut for sap.m.EmptyIndicator
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
+	// shortcut for sap.m.ReactiveAreaMode
+	var ReactiveAreaMode = library.ReactiveAreaMode;
+
 	// shortcut for library resource bundle
-	var oRb = oCore.getLibraryResourceBundle("sap.m");
+	var oRb = Library.getResourceBundleFor("sap.m");
 
 
 	/**
@@ -46,7 +49,7 @@ sap.ui.define(['sap/ui/core/library', './library', 'sap/ui/core/Core'],
 				sStateText = oObjStatus._getStateText(sState),
 				bInverted = oObjStatus.getInverted(),
 				sTextDir = oObjStatus.getTextDirection(),
-				bPageRTL = oCore.getConfiguration().getRTL(),
+				bPageRTL = Localization.getRTL(),
 				oAccAttributes = {},
 				sTooltip = oObjStatus.getTooltip_AsString();
 
@@ -66,9 +69,12 @@ sap.ui.define(['sap/ui/core/library', './library', 'sap/ui/core/Core'],
 
 			if (oObjStatus._isActive()) {
 				oRm.class("sapMObjStatusActive");
+				if (oObjStatus.getReactiveAreaMode() === ReactiveAreaMode.Overlay) {
+					oRm.class("sapMLnkLargeReactiveArea");
+				}
 				oRm.attr("tabindex", "0");
 				oAccAttributes.role = "button";
-				oAccAttributes.roledescription = oCore.getLibraryResourceBundle("sap.m").getText("OBJECT_STATUS_ACTIVE");
+				oAccAttributes.roledescription = Library.getResourceBundleFor("sap.m").getText("OBJECT_STATUS_ACTIVE");
 			}
 
 			var bTooltipAndAriaDescribedBy = sTooltip && oObjStatus.getAriaDescribedBy().length,
@@ -108,7 +114,7 @@ sap.ui.define(['sap/ui/core/library', './library', 'sap/ui/core/Core'],
 					oRm.attr("dir", sTextDir.toLowerCase());
 				}
 
-				oRm.attr("data-colon", oCore.getLibraryResourceBundle("sap.m").getText("LABEL_COLON"));
+				oRm.attr("data-colon", Library.getResourceBundleFor("sap.m").getText("LABEL_COLON"));
 
 				oRm.openEnd();
 				oRm.text(oObjStatus.getTitle());
@@ -120,6 +126,10 @@ sap.ui.define(['sap/ui/core/library', './library', 'sap/ui/core/Core'],
 				oRm.class("sapMObjStatusLink");
 				oRm.openEnd();
 			}
+
+			oRm.openStart("span", oObjStatus.getId() + "-wrapper");
+			oRm.class("sapMObjStatusWrapper");
+			oRm.openEnd();
 
 			if (oObjStatus.getIcon()) {
 				oRm.openStart("span", oObjStatus.getId() + "-statusIcon");
@@ -143,11 +153,27 @@ sap.ui.define(['sap/ui/core/library', './library', 'sap/ui/core/Core'],
 				oRm.openEnd();
 				oRm.text(oObjStatus.getText());
 				oRm.close("span");
-			} else if (oObjStatus.getEmptyIndicatorMode() !== EmptyIndicatorMode.Off && !oObjStatus.getText()) {
+			} else if (oObjStatus._shouldRenderEmptyIndicator()) {
 				this.renderEmptyIndicator(oRm, oObjStatus);
 			}
 
+			oRm.close("span");
+
 			if (oObjStatus._isActive()) {
+				oRm.close("span");
+			} else {
+				oRm.openStart("span", oObjStatus.getId() + "-role");
+				oRm.class("sapUiPseudoInvisibleText");
+				oRm.openEnd();
+				oRm.text(Library.getResourceBundleFor("sap.m").getText("OBJECT_STATUS"));
+				oRm.close("span");
+			}
+
+			if (!oObjStatus._isActive() && oObjStatus.getIcon() && !oObjStatus.getText()) {
+				oRm.openStart("span", oObjStatus.getId() + "-icon-title");
+				oRm.class("sapUiPseudoInvisibleText");
+				oRm.openEnd();
+				oRm.text(oObjStatus._getAriaIconTitle());
 				oRm.close("span");
 			}
 

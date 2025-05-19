@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -8,13 +8,14 @@ sap.ui.define([
 	'sap/ui/core/Theming',
 	'sap/ui/thirdparty/URI',
 	'../Element',
+	'sap/base/future',
 	'sap/base/Log',
 	'sap/base/util/extend',
 	'sap/base/util/syncFetch',
 	'sap/ui/core/theming/ThemeManager',
 	'./ThemeHelper'
 ],
-	function(Library, Theming, URI, Element, Log, extend, syncFetch, ThemeManager, ThemeHelper) {
+	function(Library, Theming, URI, Element, future, Log, extend, syncFetch, ThemeManager, ThemeHelper) {
 	"use strict";
 
 	var syncCallBehavior = sap.ui.loader._.getSyncCallBehavior();
@@ -48,6 +49,17 @@ sap.ui.define([
 		/**
 		 * Resolves relative URLs in parameter values.
 		 * Only for inline-parameters.
+		 *
+		 * Parameters containing CSS URLs will automatically be resolved to the theme-specific location they originate from.
+		 *
+		 * Example:
+		 * A parameter for the "sap_horizon" theme will be resolved to a libraries "[library path...]/themes/sap_horizon" folder.
+		 * Relative URLs can resolve backwards, too, so given the sample above, a parameter value of <code>url('../my_logo.jpeg')</code>
+		 * will resolve to the "[library path...]/themes" folder.
+		 *
+		 * @param {string} sUrl the relative URL to resolve
+		 * @param {string} sThemeBaseUrl the theme base URL, pointing to the library that contains the parameter
+		 * @returns {string} the resolved URL in CSS URL notation
 		 */
 		function checkAndResolveRelativeUrl(sUrl, sThemeBaseUrl) {
 			var aMatch = rCssUrl.exec(sUrl);
@@ -131,7 +143,7 @@ sap.ui.define([
 						try {
 							sParams = decodeURIComponent(sParams);
 						} catch (ex) {
-							Log.warning("[FUTURE FATAL] Could not decode theme parameters URI from " + oUrl.styleSheetUrl);
+							future.warningThrows("Could not decode theme parameters URI from " + oUrl.styleSheetUrl, { cause: ex });
 						}
 					}
 					try {
@@ -139,7 +151,7 @@ sap.ui.define([
 						mergeParameters(oParams, oUrl.themeBaseUrl);
 						return true; // parameters successfully parsed
 					} catch (ex) {
-						Log.warning("[FUTURE FATAL] Could not parse theme parameters from " + oUrl.styleSheetUrl + ". Loading library-parameters.json as fallback solution.");
+						future.warningThrows("Could not parse theme parameters from " + oUrl.styleSheetUrl + ".", { cause: ex , suffix: "Loading library-parameters.json as fallback solution." });
 					}
 				}
 			}
@@ -203,7 +215,7 @@ sap.ui.define([
 			var oLink = document.getElementById(sId);
 
 			if (!oLink) {
-				Log.warning("[FUTURE FATAL] Could not find stylesheet element with ID", sId, "sap.ui.core.theming.Parameters");
+				future.warningThrows(`sap.ui.core.theming.Parameters: Could not find stylesheet element with ID "${sId}"`);
 				return undefined;
 			}
 
@@ -238,7 +250,7 @@ sap.ui.define([
 
 			function fnErrorCallback(error) {
 				// ignore failure at least temporarily as long as there are libraries built using outdated tools which produce no json file
-				Log.error("[FUTURE FATAL] Could not load theme parameters from: " + sUrl, error); // could be an error as well, but let's avoid more CSN messages...
+				future.errorThrows("Could not load theme parameters from: " + sUrl, { cause: error }); // could be an error as well, but let's avoid more CSN messages...
 
 				if (aWithCredentials.length > 0) {
 					// In a CORS scenario, IF we have sent credentials on the first try AND the request failed,
@@ -268,7 +280,7 @@ sap.ui.define([
 					mOriginsNeedingCredentials[sThemeOrigin] = bCurrentWithCredentials;
 
 					if (Array.isArray(data)) {
-						// in the sap-ui-merged use case, multiple JSON files are merged into and transfered as a single JSON array
+						// in the sap-ui-merged use case, multiple JSON files are merged into and transferred as a single JSON array
 						for (var j = 0; j < data.length; j++) {
 							var oParams = data[j];
 							mergeParameters(oParams, sThemeBaseUrl);
@@ -292,7 +304,7 @@ sap.ui.define([
 		 * @returns {object} a map of all parameters
 		 */
 		function getParameters(bAsync) {
-			// Inital loading
+			// Initial loading
 			if (!mParameters) {
 				// Merge an empty parameter set to initialize the internal object
 				mergeParameters({}, "");
@@ -590,7 +602,7 @@ sap.ui.define([
 		 *        // merge the current parameters with the actual parameters in case they are retrieved asynchronously
 		 *        Object.assign(mMyParams, mParams);
 		 *     }
-		 *  });
+		 *  }));
 		 *
 		 * @param {string | string[] | object} vName the (array with) CSS parameter name(s) or an object containing the (array with) CSS parameter name(s),
 		 *     the scopeElement and a callback for async retrieval of parameters.
@@ -607,7 +619,13 @@ sap.ui.define([
 		 * @public
 		 */
 		Parameters.get = function(vName, oElement) {
-			var sParamName, fnAsyncCallback, bAsync, aNames, iIndex;
+			let sParamName, fnAsyncCallback, bAsync, aNames, iIndex;
+
+			// Whether parameters containing CSS URLs should be parsed into regular URL strings,
+			// e.g. a parameter value of url('https://myapp.sample/image.jpeg') will be returned as "https://myapp.sample/image.jpeg".
+			// Empty strings as well as the special CSS value 'none' will be parsed to null.
+			let bParseUrls;
+
 			var findRegisteredCallback = function (oCallbackInfo) { return oCallbackInfo.callback === fnAsyncCallback; };
 
 			if (!sTheme) {
@@ -645,19 +663,15 @@ sap.ui.define([
 			if (vName instanceof Object && !Array.isArray(vName)) {
 				// async variant of Parameters.get
 				if (!vName.name) {
-					Log.warning("[FUTURE FATAL] sap.ui.core.theming.Parameters.get was called with an object argument without one or more parameter names.");
+					future.warningThrows("sap.ui.core.theming.Parameters: Get was called with an object argument without one or more parameter names.");
 					return undefined;
 				}
 				oElement = vName.scopeElement;
 				fnAsyncCallback = vName.callback;
+				bParseUrls = vName._restrictedParseUrls || false;
 				aNames = typeof vName.name === "string" ? [vName.name] : vName.name;
 				bAsync = true;
-			}
-
-			/**
-			 * @deprecated As of Version 1.120
-			 */
-			if (!(vName instanceof Object && !Array.isArray(vName))) {
+			} else {
 				// legacy variant
 				if (typeof vName === "string") {
 					aNames = [vName];
@@ -674,7 +688,7 @@ sap.ui.define([
 				);
 			}
 
-			var resolveWithParameter, vResult;
+			var resolveWithParameter;
 			var lookForParameter = function (sName) {
 				if (oElement instanceof Element) {
 					return getParamForActiveScope(sName, oElement, bAsync);
@@ -690,50 +704,87 @@ sap.ui.define([
 				}
 			};
 
-			vResult = {};
+			const mResult = {};
 
 			for (var i = 0; i < aNames.length; i++) {
 				sParamName = aNames[i];
 				var sParamValue = lookForParameter(sParamName);
 				if (!bAsync || sParamValue) {
-					vResult[sParamName] = sParamValue;
+					mResult[sParamName] = sParamValue;
 				}
 			}
 
-			if (bAsync && fnAsyncCallback && Object.keys(vResult).length !== aNames.length) {
-				if (!ThemeManager.themeLoaded) {
-					resolveWithParameter = function () {
-						ThemeManager._detachThemeApplied(resolveWithParameter);
-						var vParams = this.get({ // Don't pass callback again
-							name: vName.name,
-							scopeElement: vName.scopeElement
-						});
+			if (bAsync && fnAsyncCallback && Object.keys(mResult).length !== aNames.length) {
+				resolveWithParameter = function () {
+					Theming.detachApplied(resolveWithParameter);
+					var vParams = this.get({ // Don't pass callback again
+						name: vName.name,
+						scopeElement: vName.scopeElement
+					});
 
-						if (!vParams || (typeof vParams === "object" && (Object.keys(vParams).length !== aNames.length))) {
-							Log.error("[FUTURE FATAL] One or more parameters could not be found.", "sap.ui.core.theming.Parameters");
-						}
-
-						fnAsyncCallback(vParams);
-						aCallbackRegistry.splice(aCallbackRegistry.findIndex(findRegisteredCallback), 1);
-					}.bind(this);
-
-					// Check if identical callback is already registered and reregister with current parameters
-					iIndex = aCallbackRegistry.findIndex(findRegisteredCallback);
-					if (iIndex >= 0) {
-						ThemeManager._detachThemeApplied(aCallbackRegistry[iIndex].eventHandler);
-						aCallbackRegistry[iIndex].eventHandler = resolveWithParameter;
-					} else {
-						aCallbackRegistry.push({ callback: fnAsyncCallback, eventHandler: resolveWithParameter });
+					if (!vParams || (typeof vParams === "object" && (Object.keys(vParams).length !== aNames.length))) {
+						Log.error(`sap.ui.core.theming.Parameters: The following parameters could not be found: "${aNames.length === 1 ? aNames[0] : aNames.filter((n) => vParams && !Object.hasOwn(vParams, n))}"`);
 					}
-					ThemeManager._attachThemeApplied(resolveWithParameter);
-					return undefined; // Don't return partial result in case we expect applied event.
+
+					fnAsyncCallback(vParams);
+					aCallbackRegistry.splice(aCallbackRegistry.findIndex(findRegisteredCallback), 1);
+				}.bind(this);
+
+				// Check if identical callback is already registered and reregister with current parameters
+				iIndex = aCallbackRegistry.findIndex(findRegisteredCallback);
+				if (iIndex >= 0) {
+					Theming.detachApplied(aCallbackRegistry[iIndex].eventHandler);
+					aCallbackRegistry[iIndex].eventHandler = resolveWithParameter;
 				} else {
-					Log.error("[FUTURE FATAL] One or more parameters could not be found.", "sap.ui.core.theming.Parameters");
+					aCallbackRegistry.push({ callback: fnAsyncCallback, eventHandler: resolveWithParameter });
 				}
+				Theming.attachApplied(resolveWithParameter);
+				return undefined; // Don't return partial result in case we expect applied event.
 			}
 
-			return aNames.length === 1 ? vResult[aNames[0]] : vResult;
+			// parse CSS URL strings
+			// The URLs itself have been resolved at this point
+			if (bParseUrls) {
+				parseUrls(mResult);
+			}
+
+			// if only 1 parameter is requests we unwrap the results array
+			return aNames.length === 1 ? mResult[aNames[0]] : mResult;
 		};
+
+		/**
+		 * Checks the given map of parameters for CSS URLs and parses them to a regular string.
+		 * Modifies the mParams argument in place.
+		 *
+		 * In order to only retrieve resolved URL strings and not the CSS URL strings, we expose a restricted Parameters.get() option <code>_restrictedParseUrls</code>.
+		 *
+		 * A URL parameter value of '' (empty string) or "none" (standard CSS value) will result in <code>null</code>.
+		 * As with any other <code>Parameters.get()</code> call, a non-existent parameter will result in <code>undefined</code>.
+		 *
+		 * Usage in controls:
+		 *
+		 * @example <caption>Scenario 4: Parsing CSS URLs</caption>
+		 *   const sUrl = Parameters.get({
+		 *      name: ["sapUiUrlParam"],
+		 *      _restrictedParseUrls: true
+		 *   }) ?? "https://my.bootstrap.url/resource/my/lib/images/fallback.jpeg"; // fallback via nullish coalescing operator
+		 *
+		 * @param {object<string,string|undefined>} mParams a set of parameters that should be parsed for CSS URLs
+		 */
+		function parseUrls(mParams) {
+			for (const sKey in mParams) {
+				if (Object.hasOwn(mParams, sKey)) {
+					let sValue = mParams[sKey];
+					const match = rCssUrl.exec(sValue);
+					if (match) {
+						sValue = match[1];
+					} else if (sValue === "''" || sValue === "none") {
+						sValue = null;
+					}
+					mParams[sKey] = sValue;
+				}
+			}
+		}
 
 		/**
 		 *
@@ -801,6 +852,7 @@ sap.ui.define([
 		 * @private
 		 * @param {string} sParamName the theme parameter which contains the logo definition. If nothing is defined the parameter 'sapUiGlobalLogo' is used.
 		 * @param {boolean} bForce whether a valid URL should be returned even if there is no logo defined.
+		 * @deprecated
 		 */
 		Parameters._getThemeImage = function(sParamName, bForce) {
 			sParamName = sParamName || "sapUiGlobalLogo";

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,10 +11,11 @@ sap.ui.define([
 	'./Popup',
 	'./StaticArea',
 	'./library',
+	"sap/ui/core/RenderManager",
 	"sap/ui/events/KeyCodes",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(Control, Element, Popup, StaticArea, library, KeyCodes, jQuery) {
+	function(Control, Element, Popup, StaticArea, library, RenderManager, KeyCodes, jQuery) {
 	"use strict";
 
 
@@ -31,7 +32,7 @@ sap.ui.define([
 	 * @class
 	 * Abstract class that can be extended in order to implement any extended tooltip. For example, RichTooltip Control is based on it. It provides the opening/closing behavior and the main "text" property.
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.TooltipBase
@@ -45,7 +46,7 @@ sap.ui.define([
 				/**
 				 * The text that is shown in the tooltip that extends the TooltipBase class, for example in RichTooltip.
 				 */
-				text : {type : "string", group : "Misc", defaultValue : ""},
+				text : {type : "string", group : "Data", defaultValue : ""},
 
 				/**
 				 * Optional. Open Duration in milliseconds.
@@ -135,7 +136,7 @@ sap.ui.define([
 			var oPopup = this._getPopup();
 			if (!(oPopup.isOpen() && oPopup.getContent() == this)) {
 				// Update Tooltip or create a new span with texts.
-				sap.ui.getCore().createRenderManager().render(this, StaticArea.getDomRef(), true);
+				new RenderManager().getInterface().render(this, StaticArea.getDomRef(), true);
 			}
 
 			// Attach accessibility info to the control oSC

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,61 +8,66 @@
  * Initialization Code and shared classes of library sap.m.
  */
 sap.ui.define([
-	"sap/ui/core/Lib",
-	"sap/ui/Device",
-	"sap/ui/base/DataType",
-	"sap/ui/base/EventProvider",
-	"sap/ui/core/Control",
-	"sap/base/util/ObjectPath",
-	"sap/ui/util/openWindow",
-	// library dependency
-	"sap/ui/core/library",
-	"sap/base/strings/capitalize",
-	"sap/ui/thirdparty/jquery",
-	"sap/base/assert",
-	"sap/base/Log",
-	"sap/base/util/defineLazyProperty",
-	"sap/base/security/encodeCSS",
-	"./AvatarShape",
-	"./AvatarSize",
-	"./AvatarType",
-	"./AvatarColor",
-	"./AvatarImageFitType",
-	"./IllustratedMessageSize",
-	"./IllustratedMessageType",
-	"./upload/UploaderHttpRequestMethod",
-	"sap/ui/core/theming/Parameters",
-	"sap/ui/core/LocaleData",
-	"sap/ui/core/Configuration",
-	"./Support" // referenced here to enable the Support feature
+ "sap/base/i18n/Formatting",
+ "sap/ui/core/Lib",
+ "sap/ui/Device",
+ "sap/ui/base/DataType",
+ "sap/ui/base/EventProvider",
+ "sap/ui/core/Control",
+ "sap/base/util/ObjectPath",
+ "sap/ui/core/Locale",
+ "sap/ui/util/openWindow",
+ // library dependency
+ "sap/ui/core/library",
+ "sap/base/strings/capitalize",
+ "sap/ui/thirdparty/jquery",
+ "sap/base/assert",
+ "sap/base/Log",
+ "sap/base/util/defineLazyProperty",
+ "sap/base/security/encodeCSS",
+ "./AvatarShape",
+ "./AvatarSize",
+ "./AvatarType",
+ "./AvatarColor",
+ "./AvatarBadgeColor",
+ "./AvatarImageFitType",
+ "./IllustratedMessageSize",
+ "./IllustratedMessageType",
+ "./upload/UploaderHttpRequestMethod",
+ "sap/ui/core/theming/Parameters",
+ "sap/ui/core/LocaleData",
+ // referenced here to enable the Support feature
+ "./Support"
 ],
 	function(
-	Library,
-	Device,
-	DataType,
-	EventProvider,
-	Control,
-	ObjectPath,
-	openWindow,
-	CoreLibrary,
-	capitalize,
-	jQuery,
-	assert,
-	Log,
-	defineLazyProperty,
-	encodeCSS,
-	AvatarShape,
-	AvatarSize,
-	AvatarType,
-	AvatarColor,
-	AvatarImageFitType,
-	IllustratedMessageSize,
-	IllustratedMessageType,
-	UploaderHttpRequestMethod,
-	Parameters,
-	LocaleData,
-	Configuration
-) {
+	 Formatting,
+	 Library,
+	 Device,
+	 DataType,
+	 EventProvider,
+	 Control,
+	 ObjectPath,
+	 Locale,
+	 openWindow,
+	 CoreLibrary,
+	 capitalize,
+	 jQuery,
+	 assert,
+	 Log,
+	 defineLazyProperty,
+	 encodeCSS,
+	 AvatarShape,
+	 AvatarSize,
+	 AvatarType,
+	 AvatarColor,
+	 AvatarBadgeColor,
+	 AvatarImageFitType,
+	 IllustratedMessageSize,
+	 IllustratedMessageType,
+	 UploaderHttpRequestMethod,
+	 Parameters,
+	 LocaleData
+	) {
 
 	"use strict";
 
@@ -72,23 +77,29 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @since 1.4
 	 * @public
 	 */
 	var thisLib = Library.init({
+		apiVersion: 2,
 		name : "sap.m",
-		version: "1.120.30",
+		version: "1.136.0",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
+		...{
+			interactionDocumentation: true
+		},
 		types: [
 			"sap.m.AvatarImageFitType",
 			"sap.m.AvatarShape",
 			"sap.m.AvatarSize",
 			"sap.m.AvatarType",
 			"sap.m.AvatarColor",
+			"sap.m.AvatarBadgeColor",
 			"sap.m.BackgroundDesign",
 			"sap.m.BadgeState",
+			"sap.m.BadgeStyle",
 			"sap.m.BadgeAnimationType",
 			"sap.m.BarDesign",
 			"sap.m.BorderDesign",
@@ -123,10 +134,12 @@ sap.ui.define([
 			"sap.m.IBarHTMLTag",
 			"sap.m.IconTabDensityMode",
 			"sap.m.IconTabFilterDesign",
+			"sap.m.IconTabFilterInteractionMode",
 			"sap.m.IconTabHeaderMode",
 			"sap.m.IllustratedMessageSize",
 			"sap.m.IllustratedMessageType",
 			"sap.m.ImageMode",
+			"sap.m.InputListItemContentSize",
 			"sap.m.InputTextFormatMode",
 			"sap.m.InputType",
 			"sap.m.LabelDesign",
@@ -146,22 +159,27 @@ sap.ui.define([
 			"sap.m.ObjectMarkerType",
 			"sap.m.ObjectMarkerVisibility",
 			"sap.m.OverflowToolbarPriority",
+			"sap.m.P13nPopupMode",
 			"sap.m.P13nPanelType",
 			"sap.m.P13nConditionOperation",
 			"sap.m.PageBackgroundDesign",
 			"sap.m.PanelAccessibleRole",
 			"sap.m.PDFViewerDisplayType",
 			"sap.m.PlacementType",
+			"sap.m.CarouselPageIndicatorPlacementType",
 			"sap.m.PlanningCalendarBuiltInView",
 			"sap.m.PlanningCalendarStickyMode",
 			"sap.m.PopinDisplay",
 			"sap.m.PopinLayout",
 			"sap.m.QuickViewGroupElementType",
 			"sap.m.RatingIndicatorVisualMode",
+			"sap.m.ReactiveAreaMode",
 			"sap.m.ScreenSize",
+			"sap.m.CarouselScrollMode",
 			"sap.m.SelectColumnRatio",
 			"sap.m.SelectionDetailsActionLevel",
 			"sap.m.SelectListKeyboardNavigationMode",
+			"sap.m.SelectDialogInitialFocus",
 			"sap.m.SelectType",
 			"sap.m.Size",
 			"sap.m.SplitAppMode",
@@ -174,20 +192,28 @@ sap.ui.define([
 			"sap.m.SwipeDirection",
 			"sap.m.SwitchType",
 			"sap.m.TabsOverflowMode",
+			"sap.m.ContentConfigType",
+			"sap.m.TileInfoColor",
 			"sap.m.TileSizeBehavior",
 			"sap.m.TimePickerMaskMode",
 			"sap.m.TitleAlignment",
+			"sap.m.ExpandableTextOverflowMode",
 			"sap.m.TokenizerRenderMode",
 			"sap.m.ToolbarDesign",
 			"sap.m.ToolbarStyle",
 			"sap.m.UploadState",
 			"sap.m.UploadType",
 			"sap.m.ValueColor",
+            /** @deprecated since 1.135 */
 			"sap.m.ValueCSSColor",
 			"sap.m.VerticalPlacementType",
 			"sap.m.WrappingType",
+			"sap.m.SinglePlanningCalendarSelectionMode",
 			"sap.m.WizardRenderMode",
+			"sap.m.ResetAllMode",
+			"sap.m.SharingMode",
 			"sap.m.plugins.CopyPreference",
+			"sap.m.plugins.ContextMenuScope",
 			"sap.m.semantic.SemanticRuleSetType",
 			"sap.m.table.columnmenu.Category",
 			"sap.m.upload.UploaderHttpRequestMethod",
@@ -201,6 +227,7 @@ sap.ui.define([
 			"sap.m.p13n.IContent",
 			"sap.m.IconTab",
 			"sap.m.IScale",
+			"sap.m.IMenuItem",
 			"sap.m.semantic.IGroup",
 			"sap.m.semantic.IFilter",
 			"sap.m.semantic.ISort",
@@ -232,7 +259,7 @@ sap.ui.define([
 			"sap.m.ComboBox",
 			"sap.m.ComboBoxTextField",
 			"sap.m.ComboBoxBase",
-			"sap.m.CustomAttribute",
+			"sap.m.TileAttribute",
 			"sap.m.CustomListItem",
 			"sap.m.CustomTile",
 			"sap.m.CustomTreeItem",
@@ -285,6 +312,7 @@ sap.ui.define([
 			"sap.m.MessageView",
 			"sap.m.MessageStrip",
 			"sap.m.MultiComboBox",
+			/** @deprecated since 1.120 */
 			"sap.m.MultiEditField",
 			"sap.m.MultiInput",
 			"sap.m.NavContainer",
@@ -385,8 +413,6 @@ sap.ui.define([
 			"sap.m.UploadCollectionToolbarPlaceholder",
 			"sap.m.upload.UploadSet",
 			"sap.m.upload.UploadSetToolbarPlaceholder",
-			"sap.m.upload.UploadSetwithTable",
-			"sap.m.upload.UploadSetwithTableItem",
 			"sap.m.VariantManagement",
 			"sap.m.VBox",
 			"sap.m.ViewSettingsDialog",
@@ -417,6 +443,7 @@ sap.ui.define([
 			"sap.m.ColumnPopoverCustomItem",
 			"sap.m.ColumnPopoverItem",
 			"sap.m.ColumnPopoverSortItem",
+			"sap.m.ContentConfig",
 			"sap.m.DynamicDateOption",
 			"sap.m.DynamicDateValueHelpUIType",
 			"sap.m.FlexItemData",
@@ -456,19 +483,20 @@ sap.ui.define([
 			"sap.m.TabContainerItem",
 			"sap.m.TabStripItem",
 			"sap.m.ToolbarLayoutData",
+			"sap.m.TileInfo",
 			"sap.m.UploadCollectionItem",
 			"sap.m.UploadCollectionParameter",
 			"sap.m.upload.FilePreviewDialog",
 			"sap.m.upload.Uploader",
 			"sap.m.upload.UploaderTableItem",
 			"sap.m.upload.UploadSetItem",
-			"sap.m.upload.FilePreviewDialog",
 			"sap.m.VariantItem",
 			"sap.m.ViewSettingsCustomItem",
 			"sap.m.ViewSettingsCustomTab",
 			"sap.m.ViewSettingsFilterItem",
 			"sap.m.ViewSettingsItem",
 			"sap.m.plugins.CellSelector",
+			"sap.m.plugins.ColumnAIAction",
 			"sap.m.plugins.ColumnResizer",
 			"sap.m.plugins.CopyProvider",
 			"sap.m.plugins.DataStateIndicator",
@@ -509,7 +537,10 @@ sap.ui.define([
 			"sap.m.table.columnmenu.Item",
 			"sap.m.table.columnmenu.ItemBase",
 			"sap.m.table.columnmenu.QuickAction",
-			"sap.m.table.columnmenu.QuickActionBase"
+			"sap.m.table.columnmenu.QuickActionBase",
+			"sap.m.plugins.UploadSetwithTable",
+			"sap.m.upload.UploadItemConfiguration",
+			"sap.m.upload.UploadItem"
 		],
 		extensions: {
 			flChangeHandlers: {
@@ -629,8 +660,7 @@ sap.ui.define([
 				},
 				"sap.m.ObjectHeader": {
 					"moveControls": "default"
-				},
-				"sap.m.upload.UploadSetwithTable":"sap/m/upload/p13n/flexibility/UploadSetwithTable"
+				}
 			},
 			//Configuration used for rule loading of Support Assistant
 			"sap.ui.support": {
@@ -684,11 +714,13 @@ sap.ui.define([
 	thisLib.UploadSetwithTableActionPlaceHolder = {
 	   /**
 		* Placeholder for variant management.
+		* @deprecated As of version 1.124, the concept has been discarded.
 		* @public
 		*/
 	   VariantManagementPlaceholder: "VariantManagementPlaceholder",
 	   /**
 		* Placeholder for personalization settings button.
+		* @deprecated As of version 1.124, the concept has been discarded.
 		* @public
 		*/
 	   PersonalizationSettingsPlaceholder: "PersonalizationSettingsPlaceholder",
@@ -796,20 +828,20 @@ sap.ui.define([
 	 * Types of badge rendering style.
 	 *
 	 * @enum {string}
-	 * @private
+	 * @public
 	 */
 	thisLib.BadgeStyle = {
 		/**
 		 * Default style. Use for badges which contain text or numbers.
 		 *
-		 * @private
+		 * @public
 		 */
 		Default: "Default",
 
 		/**
 		 * Attention style. This badge is rendered as a single dot meant to grab attention.
 		 *
-		 * @private
+		 * @public
 		 */
 		Attention: "Attention"
 	};
@@ -1099,6 +1131,39 @@ sap.ui.define([
 	};
 
 	/**
+	 * Types for the placement of the page indicator of the Carousel control.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.CarouselPageIndicatorPlacementType = {
+
+		/**
+		 * Page indicator will be placed at the top of the Carousel.
+		 * @public
+		 */
+		Top : "Top",
+
+		/**
+		 * Page indicator will be placed at the bottom of the Carousel.
+		 * @public
+		 */
+		Bottom : "Bottom",
+
+		/**
+		 * Page indicator will be placed over the Carousel content, top aligned.
+		 * @public
+		 */
+		OverContentTop : "OverContentTop",
+
+		/**
+		 * Page indicator will be placed over the Carousel content, bottom aligned.
+		 * @public
+		 */
+		OverContentBottom : "OverContentBottom"
+	};
+
+	/**
 	 * A list of the default built-in views in a {@link sap.m.PlanningCalendar}, described by their keys.
 	 *
 	 * @enum {string}
@@ -1172,6 +1237,11 @@ sap.ui.define([
 		Time : "Time"
 
 	};
+
+	/**
+	 * @deprecated As of version 1.32.8
+	 */
+	DataType.registerEnum("sap.m.DateTimeInputType", thisLib.DateTimeInputType);
 
 
 	/**
@@ -1952,6 +2022,125 @@ sap.ui.define([
 	};
 
 	/**
+	 * Colors to highlight certain UI elements.
+	 *
+	 * In contrast to the <code>ValueState</code>, the semantic meaning must be defined by the application.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.124
+	 * @see {@link fiori:/how-to-use-semantic-colors/ Semantic Colors}
+	 */
+	thisLib.TileInfoColor = {
+
+		/**
+		 * Indication Color 1
+		 * @public
+		 */
+		Indication1 : "Indication1",
+
+		/**
+		 * Indication Color 2
+		 * @public
+		 */
+		Indication2 : "Indication2",
+
+		/**
+		 * Indication Color 3
+		 * @public
+		 */
+		Indication3 : "Indication3",
+
+		/**
+		 * Indication Color 4
+		 * @public
+		 */
+		Indication4 : "Indication4",
+
+		/**
+		 * Indication Color 5
+		 * @public
+		 */
+		Indication5 : "Indication5",
+
+		/**
+		 * Indication Color 6
+		 * @public
+		 */
+		Indication6 : "Indication6",
+
+		/**
+		 * Indication Color 7
+		 * @public
+		 */
+		Indication7 : "Indication7",
+
+		/**
+		 * Indication Color 8
+		 * @public
+		 */
+		Indication8 : "Indication8",
+
+		/**
+		 * Indication Color 9
+		 * @public
+		 */
+		Indication9 : "Indication9",
+
+		/**
+		 * Indication Color 10
+		 * @public
+		 */
+		Indication10 : "Indication10",
+		/**
+		 * Critical Text Color
+		 * @public
+		 */
+		CriticalTextColor: "CriticalTextColor",
+		/**
+		 * Warning Background Color
+		 * @public
+		 */
+		WarningBackground: "WarningBackground",
+		/**
+		 * Warning Border Color
+		 * @public
+		 */
+		WarningBorderColor: "WarningBorderColor",
+		/**
+		 * SAP Brand Color
+		 * @public
+		 */
+		BrandColor: "BrandColor",
+		/**
+		 * Information Border Color
+		 * @public
+		 */
+		InformationBorderColor: "InformationBorderColor",
+		/**
+		 * Information Background Color
+		 * @public
+		 */
+		InformationBackgroundColor: "InformationBackgroundColor",
+		/**
+		 * Neutral Element Color
+		 * @public
+		 */
+		NeutralElementColor: "NeutralElementColor",
+		/**
+		 * Neutral Background Color
+		 * @public
+		 */
+		NeutralBackgroundColor: "NeutralBackgroundColor",
+		/**
+		 * Neutral Border Color
+		 * @public
+		 */
+		NeutralBorderColor: "NeutralBorderColor"
+
+	};
+
+	/**
 	 * Defines the priority for the TileContent in ActionMode
 	 *
 	 * @enum {string}
@@ -2026,7 +2215,7 @@ sap.ui.define([
 	/**
 	 * Specifies <code>IconTabBar</code> tab overflow mode.
 	 * @enum {string}
- 	 * @since 1.90.0
+	  * @since 1.90.0
 	 * @public
 	 */
 	thisLib.TabsOverflowMode = {
@@ -2040,6 +2229,27 @@ sap.ui.define([
 		 * @public
 		 */
 		StartAndEnd: "StartAndEnd"
+	};
+
+	/**
+	 * Defines the rendering type of the TileAttribute
+	 *
+	 * @enum {string}
+	 * @since 1.122
+	 * @experimental since 1.122
+	 * @public
+	 */
+	thisLib.ContentConfigType = {
+		/**
+		 * Renders a text inside the TileAttribute
+		 * @public
+		 */
+		Text: "Text",
+		/**
+		 * Renders a link inside the TileAttribute
+		 * @public
+		 */
+		Link: "Link"
 	};
 
 	/**
@@ -2108,6 +2318,30 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Defines the available content sizes for the <code>InputListItem</code> control.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.InputListItemContentSize = {
+
+		/**
+		 * Large: Recommended for larger input controls, such as {@link sap.m.Input} or {@link sap.m.RatingIndicator}. If there is limited space,
+		 * the input control moves to a new line below the label.
+		 * @public
+		 */
+		L : "L",
+
+		/**
+		 * Small: Recommended for smaller controls, such as {@link sap.m.Switch} or {@link sap.m.Checkbox}. If there is limited space, only the label
+		 * is wrapped. The input control is always right-aligned horizontally and middle-aligned vertically.
+		 * @public
+		 */
+		S : "S"
+
+	};
+	DataType.registerEnum("sap.m.InputListItemContentSize", thisLib.InputListItemContentSize);
 
 	/**
 	 *
@@ -2135,6 +2369,17 @@ sap.ui.define([
 	 *
 	 * @since 1.52
 	 * @name sap.m.IBreadcrumbs
+	 * @interface
+	 * @public
+	 */
+
+	/**
+	 *
+	 * Interface for controls which are suitable to be added as items of sap.m.Menu.
+	 *
+	 *
+	 * @since 1.127.0
+	 * @name sap.m.IMenuItem
 	 * @interface
 	 * @public
 	 */
@@ -2285,6 +2530,27 @@ sap.ui.define([
 	 */
 
 	/**
+	 * Interface for controls placed in the <code>content</code> aggregation of <code>{@link sap.m.Toolbar}</code> or <code>{@link sap.m.OverflowToolbar}</code>,
+	 * which need to indicate whether they are interactive or not.
+	 *
+	 * Controls that implement this interface should have the following method:
+	 * <code>_getToolbarInteractive</code> - returns boolean value that shows whether the control is interactive or not
+	 *
+	 * @name sap.m.IToolbarInteractiveControl
+	 * @interface
+	 * @public
+	 */
+
+	/**
+	 * Returns whether the control is interactive or not.
+	 *
+	 * @function
+	 * @name sap.m.IToolbarInteractiveControl._getToolbarInteractive
+	 * @returns {boolean} Whether it is an interactive Control
+	 * @private
+	 */
+
+	/**
 	 *
 	 * Interface for controls which can have special behavior inside <code>sap.m.OverflowToolbar</code>.
 	 * Controls that implement this interface must provide a <code>getOverflowToolbarConfig</code> method
@@ -2303,6 +2569,17 @@ sap.ui.define([
 	 * @name sap.m.IOverflowToolbarContent
 	 * @interface
 	 * @public
+	 */
+
+	/**
+	 * Returns the <code>sap.m.OverflowToolbar</code> configuration object.
+	 *
+	 * @returns {sap.m.OverflowToolbarConfig} Configuration object
+	 *
+	 * @function
+	 * @name sap.m.IOverflowToolbarContent.getOverflowToolbarConfig
+	 * @ui5-restricted
+	 * @private
 	 */
 
 	/**
@@ -2445,6 +2722,36 @@ sap.ui.define([
 	};
 
 	/**
+	 * Available Interaction Modes.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @experimental Since 1.121. Behavior might change.
+	 */
+	thisLib.IconTabFilterInteractionMode = {
+
+		/**
+		 * The item is selectable if it has own content. Select event will not be fired if it has no own content.
+		 * Note: When IconTabHeader is placed in ToolHeader the items will act as selectable items even if they don’t explicitly have content.
+		 * @public
+		 */
+		Auto : "Auto",
+
+		/**
+		 * The item is selectable and select event will be fired.
+		 * @public
+		 */
+		Select : "Select",
+
+		/**
+		 * The item is selectable (and select event is fired) only if it doesn't have any sub items. Select event will not be fired if it has sub items.
+		 * @public
+		 */
+		SelectLeavesOnly : "SelectLeavesOnly"
+	};
+
+
+	/**
 	* Determines how the source image is used on the output DOM element.
 	*
 	* @enum {string}
@@ -2579,6 +2886,7 @@ sap.ui.define([
 	 * @final
 	 * @namespace
 	 * @public
+	 * @deprecated As of version 1.135, the concept has been discarded.
 	 */
 	thisLib.ValueCSSColor = DataType.createType("sap.m.ValueCSSColor", {
 		isValid : function (vValue) {
@@ -2775,6 +3083,11 @@ sap.ui.define([
 		Plain : "Plain"
 
 	};
+
+	/**
+	 * @deprecated As of version 1.16
+	 */
+	DataType.registerEnum("sap.m.ListHeaderDesign", thisLib.ListHeaderDesign);
 
 
 	/**
@@ -3141,8 +3454,11 @@ sap.ui.define([
 	 *
 	 * @property {boolean} [canOverflow]
 	 * 	A boolean that tells whether the control can move to the overflow menu or not.
-	 * 	<b>Note:</b> Even if <code>canOverflow</code> is set to <code>false</code>, the <code>propsUnrelatedToSize</code> field is taken into account,
-	 * 	allowing to optimize the behavior of controls that do not need to overflow, but are used in an <code>sap.m.OverflowToolbar</code> regardless.
+	 * <ul><b>Notes:</b>
+	 * <li>Even if <code>canOverflow</code> is set to <code>false</code>, the <code>propsUnrelatedToSize</code> field is taken into account,
+	 * allowing to optimize the behavior of controls that do not need to overflow, but are used in an <code>sap.m.OverflowToolbar</code> regardless.</li>
+	 * <li>If <code>canOverflow</code> is not provided, its default value is <code>false</code>. In this case, the control is shown in the content of the
+	 * <code>sap.m.OverflowToolbar</code> but it's not possible to enter the overflow area.</li></ul>
 	 * @property {string[]} [autoCloseEvents]
 	 * 	An array of strings, listing all of the control's events that should trigger the closing of the overflow menu, when fired.
 	 * @property {string[]} [invalidationEvents]
@@ -3346,7 +3662,6 @@ sap.ui.define([
 	/**
 	 * @enum {string}
 	 * @public
-	 * @experimental since version 1.26 !!! THIS TYPE IS ONLY FOR INTERNAL USE !!!
 	 */
 	thisLib.P13nConditionOperation = {
 		// filter operations
@@ -3815,6 +4130,48 @@ sap.ui.define([
 		LASTYEARS : "LASTYEARS",
 
 		/**
+		 * The range will contain the last X minutes including the current one. The count of the minutes is selected from a StepInput.
+		 * @public
+		 */
+		LASTMINUTESINCLUDED : "LASTMINUTESINCLUDED",
+
+		/**
+		 * The range will contain the last X hours including the current one. The count of the hours is selected from a StepInput.
+		 * @public
+		 */
+		 LASTHOURSINCLUDED : "LASTHOURSINCLUDED",
+
+		/**
+		 * The range will contain the last X days including the current one. The count of the days is selected from a StepInput.
+		 * @public
+		 */
+		LASTDAYSINCLUDED : "LASTDAYSINCLUDED",
+
+		/**
+		 * The range will contain the last X weeks including the current one. The count of the weeks is selected from a StepInput.
+		 * @public
+		 */
+		LASTWEEKSINCLUDED : "LASTWEEKSINCLUDED",
+
+		/**
+		 * The range will contain the last X months including the current one. The count of the months is selected from a StepInput.
+		 * @public
+		 */
+		LASTMONTHSINCLUDED : "LASTMONTHSINCLUDED",
+
+		/**
+		 * The range will contain the last X quarters including the current one. The count of the quarters is selected from a StepInput.
+		 * @public
+		 */
+		LASTQUARTERSINCLUDED : "LASTQUARTERSINCLUDED",
+
+		/**
+		 * The range will contain the last X years including the current one. The count of the years is selected from a StepInput.
+		 * @public
+		 */
+		LASTYEARSINCLUDED : "LASTYEARSINCLUDED",
+
+		/**
 		 * The range will contain the next X minutes. The count of the minutes is selected from a StepInput.
 		 * @public
 		 */
@@ -3855,6 +4212,48 @@ sap.ui.define([
 		 * @public
 		 */
 		NEXTYEARS : "NEXTYEARS",
+
+		/**
+		 * The range will contain the next X minutes including the current one. The count of the minutes is selected from a StepInput.
+		 * @public
+		 */
+		NEXTMINUTESINCLUDED : "NEXTMINUTESINCLUDED",
+
+		/**
+		 * The range will contain the next X hours including the current one. The count of the hours is selected from a StepInput.
+		 * @public
+		 */
+		NEXTHOURSINCLUDED : "NEXTHOURSINCLUDED",
+
+		/**
+		 * The range will contain the next X days including the current one. The count of the days is selected from a StepInput.
+		 * @public
+		 */
+		NEXTDAYSINCLUDED : "NEXTDAYSINCLUDED",
+
+		/**
+		 * The range will contain the next X weeks including the current one. The count of the weeks is selected from a StepInput.
+		 * @public
+		 */
+		NEXTWEEKSINCLUDED : "NEXTWEEKSINCLUDED",
+
+		/**
+		 * The range will contain the next X months including the current one. The count of the months is selected from a StepInput.
+		 * @public
+		 */
+		NEXTMONTHSINCLUDED : "NEXTMONTHSINCLUDED",
+
+		/**
+		 * The range will contain the next X quarters including the current one. The count of the quarters is selected from a StepInput.
+		 * @public
+		 */
+		NEXTQUARTERSINCLUDED: "NEXTQUARTERSINCLUDED",
+
+		/**
+		 * The range will contain the next X years including the current one. The count of the years is selected from a StepInput.
+		 * @public
+		 */
+		NEXTYEARSINCLUDED : "NEXTYEARSINCLUDED",
 
 		/**
 		 * The range will contain the last X days and the next Y days. The count of the days is selected from a StepInput.
@@ -4141,7 +4540,14 @@ sap.ui.define([
 		 * @public
 		 * @since 1.56
 		 */
-		InfoToolbar: "InfoToolbar"
+		InfoToolbar: "InfoToolbar",
+
+		/**
+		 * The group headers remain in a fixed position at the top of the page during vertical scrolling.
+		 * @public
+		 * @since 1.128
+		 */
+		GroupHeaders: "GroupHeaders"
 	};
 
 	/**
@@ -4163,6 +4569,28 @@ sap.ui.define([
 		 * @public
 		 */
 		Half : "Half"
+
+	};
+
+	/**
+	 * Reactive area modes of interactable elements.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.ReactiveAreaMode = {
+
+		/**
+		 * The target element is displayed as part of a sentence.
+		 * @public
+		 */
+		Inline : "Inline",
+
+		/**
+		 * The target element is displayed as on overlay on top of other interactive parts of the page.
+		 * @public
+		 */
+		Overlay : "Overlay"
 
 	};
 
@@ -4234,6 +4662,28 @@ sap.ui.define([
 		 * @public
 		 */
 		XXLarge : "XXLarge"
+
+	};
+
+	/**
+	 * Defines how pages will be scrolled, when clicking the arrow.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.CarouselScrollMode = {
+
+		/**
+		 * Pages will be scrolled one at a time
+		 * @public
+		 */
+		SinglePage : "SinglePage",
+
+		/**
+		 * Pages will be scrolled, depending on the value of <code>visiblePagesCount</code>
+		 * @public
+		 */
+		VisiblePages : "VisiblePages"
 
 	};
 
@@ -4427,6 +4877,30 @@ sap.ui.define([
 		Generic: "Generic"
 	};
 
+	/**
+	 * Defines the available content sizes for the <code>sap.m.table.columnmenu.QuickAction</code> control.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.table.columnmenu.QuickActionContentSize = {
+
+		/**
+		 * Large: Recommended for larger input controls, such as {@link sap.m.Input} or {@link sap.m.RatingIndicator}. If there is limited space,
+		 * the input control moves to a new line below the label.
+		 * @public
+		 */
+		L : "L",
+
+		/**
+		 * Small: Recommended for smaller controls, such as {@link sap.m.Switch} or {@link sap.m.Checkbox}. If there is limited space, only the label
+		 * is wrapped. The input control is always right-aligned horizontally and middle-aligned vertically.
+		 * @public
+		 */
+		S : "S"
+
+	};
+	DataType.registerEnum("sap.m.table.columnmenu.QuickActionContentSize", thisLib.table.columnmenu.QuickActionContentSize);
 
 	/**
 	 * Predefined types for ObjectMarker.
@@ -4679,13 +5153,20 @@ sap.ui.define([
 	 */
 	thisLib.TimePickerMaskMode = {
 		/**
-		 * <code>MaskInput</code> is enabled for the <code>sap.m.TimePicker</code>.
+		 * The mask is automatically enabled for all valid fixed-length time patterns, and it is disabled when the time format does not have a fixed length.
 		 * @public
 		 */
 		On: "On",
 
 		/**
-		 * <code>MaskInput</code> is disabled for the <code>sap.m.TimePicker</code>.
+		 * The mask will always be enforced for any time patterns.
+		 * <b>Note:</b> The mask functions correctly only with fixed-length time formats.
+		 * Using the <code>Enforce</code> value with time formats that do not have a fixed length may lead to unpredictable behavior.
+		 */
+		Enforce: "Enforce",
+
+		/**
+		 * The mask is disabled for the <code>sap.m.TimePicker</code>.
 		 * @public
 		 */
 		Off: "Off"
@@ -5008,10 +5489,14 @@ sap.ui.define([
 		Popover: "Popover"
 	};
 
+	/*
+	 * Enums defined in separate modules
+	 */
 	thisLib.AvatarShape = AvatarShape;
 	thisLib.AvatarSize = AvatarSize;
 	thisLib.AvatarType = AvatarType;
 	thisLib.AvatarColor = AvatarColor;
+	thisLib.AvatarBadgeColor = AvatarBadgeColor;
 	thisLib.AvatarImageFitType = AvatarImageFitType;
 
 	thisLib.IllustratedMessageSize = IllustratedMessageSize;
@@ -5021,8 +5506,8 @@ sap.ui.define([
 		 * Wizard rendering mode.
 		 *
 		 * @enum {string}
+		 * @since 1.83
 		 * @public
-		 * @experimental since 1.83
 		 */
 		thisLib.WizardRenderMode = {
 
@@ -5040,7 +5525,7 @@ sap.ui.define([
 		};
 
 	/**
-	 * Enumeration of the <code>ResetAllMode>/code> that can be used in a <code>TablePersoController</code>.
+	 * Enumeration of the <code>ResetAllMode</code> that can be used in a <code>TablePersoController</code>.
 	 * @enum {string}
 	 * @public
 	 */
@@ -5063,6 +5548,26 @@ sap.ui.define([
 		 * @public
 		 */
 		ServiceReset: "ServiceReset"
+	};
+
+	/**
+	 * Enumeration of the <code>SharingMode</code> that can be used in a <code>VariantItem</code>.
+	 * @enum {string}
+	 * @public
+	 */
+	thisLib.SharingMode = {
+
+		/**
+		 * Public mode of the <code>VariantItem</code>.
+		 * @public
+		 */
+		Public: "public",
+
+		/**
+		 * Private mode of the <code>VariantItem</code>.
+		 * @public
+		 */
+		Private: "private"
 	};
 
 	/**
@@ -5123,6 +5628,28 @@ sap.ui.define([
 	};
 
 	/**
+	 * Defines the states of list items when the context menu is opened.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.121
+	 */
+	thisLib.plugins.ContextMenuScope = {
+
+		/**
+		 * The scope is set to the default value where the focus is unaffected by the opening of the context menu.
+		 * @public
+		 */
+		Default: "Default",
+
+		/**
+		 * The focus will be on the clicked item and also on other selected items, if the clicked item is selected.
+		 * @public
+		 */
+		Selection: "Selection"
+	};
+
+	/**
 	 * @deprecated since 1.56 as lazy loading implies sync loading
 	 */
 	(function() {
@@ -5179,7 +5706,7 @@ sap.ui.define([
 	 * @since 1.10
 	 */
 	thisLib.getLocale = function() {
-		var oLocale = Configuration.getFormatSettings().getFormatLocale();
+		var oLocale = new Locale(Formatting.getLanguageTag());
 
 		thisLib.getLocale = function() {
 			return oLocale;
@@ -6055,10 +6582,156 @@ sap.ui.define([
 		});
 	}
 
+	/**
+	 * @typedef {object} sap.m.VariantManagementRename
+	 * @description An object type that represents the {@link sap.m.VariantManagement} <code>manage</code>-event property <code>rename</code>.
+	 * @public
+	 * @property {string} key the variant key.
+	 * @property {string} name the new title of the variant.
+	 */
+
+	/**
+	 * @typedef {object} sap.m.VariantManagementExe
+	 * @description An object type that represents the {@link sap.m.VariantManagement} <code>manage</code>-event property <code>exe</code>.
+	 * @public
+	 * @property {string} key the variant key.
+	 * @property {boolean} exe flag describing the associated Appy Automatically indicator.
+	 */
+
+	/**
+	 * @typedef {object} sap.m.VariantManagementFav
+	 * @description An object type that represents the {@link sap.m.VariantManagement} <code>manage</code>-event property <code>fav</code>.
+	 * @public
+	 * @property {string} key the variant key.
+	 * @property {boolean} visible flag describing the associated Favorite indicator.
+	 */
+
 	// ES6 constant represents the maximum safe integer
 	if (!Number.MAX_SAFE_INTEGER) {
 		Number.MAX_SAFE_INTEGER = Math.pow(2, 53) - 1;
 	}
+
+	/*
+	 * Register all of the above defined enums.
+	 * Some enums of the sap.m library are contained in a dedicated module
+	 * and are registered there (e.g. "sap.m.IllustratedMessageType").
+	 */
+	DataType.registerEnum("sap.m.BackgroundDesign", thisLib.BackgroundDesign);
+	DataType.registerEnum("sap.m.BadgeState", thisLib.BadgeState);
+	DataType.registerEnum("sap.m.BadgeStyle", thisLib.BadgeStyle);
+	DataType.registerEnum("sap.m.BadgeAnimationType", thisLib.BadgeAnimationType);
+	DataType.registerEnum("sap.m.BarDesign", thisLib.BarDesign);
+	DataType.registerEnum("sap.m.BorderDesign", thisLib.BorderDesign);
+	DataType.registerEnum("sap.m.BreadcrumbsSeparatorStyle", thisLib.BreadcrumbsSeparatorStyle);
+	DataType.registerEnum("sap.m.ButtonAccessibleRole", thisLib.ButtonAccessibleRole);
+	DataType.registerEnum("sap.m.ButtonType", thisLib.ButtonType);
+	DataType.registerEnum("sap.m.CarouselArrowsPlacement", thisLib.CarouselArrowsPlacement);
+	DataType.registerEnum("sap.m.CarouselPageIndicatorPlacementType", thisLib.CarouselPageIndicatorPlacementType);
+	DataType.registerEnum("sap.m.DeviationIndicator", thisLib.DeviationIndicator);
+	DataType.registerEnum("sap.m.DialogRoleType", thisLib.DialogRoleType);
+	DataType.registerEnum("sap.m.DialogType", thisLib.DialogType);
+	DataType.registerEnum("sap.m.DraftIndicatorState", thisLib.DraftIndicatorState);
+	DataType.registerEnum("sap.m.DynamicDateRangeGroups", thisLib.DynamicDateRangeGroups);
+	DataType.registerEnum("sap.m.EmptyIndicatorMode", thisLib.EmptyIndicatorMode);
+	DataType.registerEnum("sap.m.FacetFilterListDataType", thisLib.FacetFilterListDataType);
+	DataType.registerEnum("sap.m.FacetFilterType", thisLib.FacetFilterType);
+	DataType.registerEnum("sap.m.FilterPanelField", thisLib.FilterPanelField);
+	DataType.registerEnum("sap.m.FlexAlignContent", thisLib.FlexAlignContent);
+	DataType.registerEnum("sap.m.FlexAlignItems", thisLib.FlexAlignItems);
+	DataType.registerEnum("sap.m.FlexAlignSelf", thisLib.FlexAlignSelf);
+	DataType.registerEnum("sap.m.FlexDirection", thisLib.FlexDirection);
+	DataType.registerEnum("sap.m.FlexJustifyContent", thisLib.FlexJustifyContent);
+	DataType.registerEnum("sap.m.FlexRendertype", thisLib.FlexRendertype);
+	DataType.registerEnum("sap.m.FlexWrap", thisLib.FlexWrap);
+	DataType.registerEnum("sap.m.FrameType", thisLib.FrameType);
+	DataType.registerEnum("sap.m.GenericTagDesign", thisLib.GenericTagDesign);
+	DataType.registerEnum("sap.m.GenericTagValueState", thisLib.GenericTagValueState);
+	DataType.registerEnum("sap.m.GenericTileMode", thisLib.GenericTileMode);
+	DataType.registerEnum("sap.m.Priority", thisLib.Priority);
+	DataType.registerEnum("sap.m.GenericTileScope", thisLib.GenericTileScope);
+	DataType.registerEnum("sap.m.HeaderLevel", thisLib.HeaderLevel);
+	DataType.registerEnum("sap.m.IBarHTMLTag", thisLib.IBarHTMLTag);
+	DataType.registerEnum("sap.m.IconTabDensityMode", thisLib.IconTabDensityMode);
+	DataType.registerEnum("sap.m.IconTabFilterDesign", thisLib.IconTabFilterDesign);
+	DataType.registerEnum("sap.m.IconTabFilterInteractionMode", thisLib.IconTabFilterInteractionMode);
+	DataType.registerEnum("sap.m.IconTabHeaderMode", thisLib.IconTabHeaderMode);
+	DataType.registerEnum("sap.m.ImageMode", thisLib.ImageMode);
+	DataType.registerEnum("sap.m.InputTextFormatMode", thisLib.InputTextFormatMode);
+	DataType.registerEnum("sap.m.SelectDialogInitialFocus", thisLib.SelectDialogInitialFocus);
+	DataType.registerEnum("sap.m.InputType", thisLib.InputType);
+	DataType.registerEnum("sap.m.LabelDesign", thisLib.LabelDesign);
+	DataType.registerEnum("sap.m.LightBoxLoadingStates", thisLib.LightBoxLoadingStates);
+	DataType.registerEnum("sap.m.LinkConversion", thisLib.LinkConversion);
+	DataType.registerEnum("sap.m.LinkAccessibleRole", thisLib.LinkAccessibleRole);
+	DataType.registerEnum("sap.m.ListGrowingDirection", thisLib.ListGrowingDirection);
+	DataType.registerEnum("sap.m.ListKeyboardMode", thisLib.ListKeyboardMode);
+	DataType.registerEnum("sap.m.ListMode", thisLib.ListMode);
+	DataType.registerEnum("sap.m.ListSeparators", thisLib.ListSeparators);
+	DataType.registerEnum("sap.m.ListType", thisLib.ListType);
+	DataType.registerEnum("sap.m.LoadState", thisLib.LoadState);
+	DataType.registerEnum("sap.m.MenuButtonMode", thisLib.MenuButtonMode);
+	DataType.registerEnum("sap.m.MultiSelectMode", thisLib.MultiSelectMode);
+	DataType.registerEnum("sap.m.ObjectHeaderPictureShape", thisLib.ObjectHeaderPictureShape);
+	DataType.registerEnum("sap.m.ObjectMarkerType", thisLib.ObjectMarkerType);
+	DataType.registerEnum("sap.m.ObjectMarkerVisibility", thisLib.ObjectMarkerVisibility);
+	DataType.registerEnum("sap.m.OverflowToolbarPriority", thisLib.OverflowToolbarPriority);
+	DataType.registerEnum("sap.m.P13nPopupMode", thisLib.P13nPopupMode);
+	DataType.registerEnum("sap.m.P13nPanelType", thisLib.P13nPanelType);
+	DataType.registerEnum("sap.m.P13nConditionOperation", thisLib.P13nConditionOperation);
+	DataType.registerEnum("sap.m.PageBackgroundDesign", thisLib.PageBackgroundDesign);
+	DataType.registerEnum("sap.m.PanelAccessibleRole", thisLib.PanelAccessibleRole);
+	DataType.registerEnum("sap.m.PDFViewerDisplayType", thisLib.PDFViewerDisplayType);
+	DataType.registerEnum("sap.m.PlacementType", thisLib.PlacementType);
+	DataType.registerEnum("sap.m.PlanningCalendarBuiltInView", thisLib.PlanningCalendarBuiltInView);
+	DataType.registerEnum("sap.m.PlanningCalendarStickyMode", thisLib.PlanningCalendarStickyMode);
+	DataType.registerEnum("sap.m.PopinDisplay", thisLib.PopinDisplay);
+	DataType.registerEnum("sap.m.PopinLayout", thisLib.PopinLayout);
+	DataType.registerEnum("sap.m.QuickViewGroupElementType", thisLib.QuickViewGroupElementType);
+	DataType.registerEnum("sap.m.RatingIndicatorVisualMode", thisLib.RatingIndicatorVisualMode);
+	DataType.registerEnum("sap.m.ReactiveAreaMode", thisLib.ReactiveAreaMode);
+	DataType.registerEnum("sap.m.ScreenSize", thisLib.ScreenSize);
+	DataType.registerEnum("sap.m.CarouselScrollMode", thisLib.CarouselScrollMode);
+	DataType.registerEnum("sap.m.SelectColumnRatio", thisLib.SelectColumnRatio);
+	DataType.registerEnum("sap.m.SelectionDetailsActionLevel", thisLib.SelectionDetailsActionLevel);
+	DataType.registerEnum("sap.m.SelectListKeyboardNavigationMode", thisLib.SelectListKeyboardNavigationMode);
+	DataType.registerEnum("sap.m.SelectType", thisLib.SelectType);
+	DataType.registerEnum("sap.m.Size", thisLib.Size);
+	DataType.registerEnum("sap.m.SplitAppMode", thisLib.SplitAppMode);
+	DataType.registerEnum("sap.m.StandardDynamicDateRangeKeys", thisLib.StandardDynamicDateRangeKeys);
+	DataType.registerEnum("sap.m.StandardTileType", thisLib.StandardTileType);
+	DataType.registerEnum("sap.m.StepInputStepModeType", thisLib.StepInputStepModeType);
+	DataType.registerEnum("sap.m.StepInputValidationMode", thisLib.StepInputValidationMode);
+	DataType.registerEnum("sap.m.Sticky", thisLib.Sticky);
+	DataType.registerEnum("sap.m.StringFilterOperator", thisLib.StringFilterOperator);
+	DataType.registerEnum("sap.m.SwipeDirection", thisLib.SwipeDirection);
+	DataType.registerEnum("sap.m.SwitchType", thisLib.SwitchType);
+	DataType.registerEnum("sap.m.TabsOverflowMode", thisLib.TabsOverflowMode);
+	DataType.registerEnum("sap.m.ContentConfigType", thisLib.ContentConfigType);
+	DataType.registerEnum("sap.m.TileSizeBehavior", thisLib.TileSizeBehavior);
+	DataType.registerEnum("sap.m.TimePickerMaskMode", thisLib.TimePickerMaskMode);
+	DataType.registerEnum("sap.m.TitleAlignment", thisLib.TitleAlignment);
+	DataType.registerEnum("sap.m.ExpandableTextOverflowMode", thisLib.ExpandableTextOverflowMode);
+	DataType.registerEnum("sap.m.TokenizerRenderMode", thisLib.TokenizerRenderMode);
+	DataType.registerEnum("sap.m.ToolbarDesign", thisLib.ToolbarDesign);
+	DataType.registerEnum("sap.m.ToolbarStyle", thisLib.ToolbarStyle);
+	DataType.registerEnum("sap.m.UploadState", thisLib.UploadState);
+	DataType.registerEnum("sap.m.UploadType", thisLib.UploadType);
+	DataType.registerEnum("sap.m.ValueColor", thisLib.ValueColor);
+	/** @deprecated since 1.135 */
+	DataType.registerEnum("sap.m.ValueCSSColor", thisLib.ValueCSSColor);
+	DataType.registerEnum("sap.m.VerticalPlacementType", thisLib.VerticalPlacementType);
+	DataType.registerEnum("sap.m.WrappingType", thisLib.WrappingType);
+	DataType.registerEnum("sap.m.SinglePlanningCalendarSelectionMode", thisLib.SinglePlanningCalendarSelectionMode);
+	DataType.registerEnum("sap.m.WizardRenderMode", thisLib.WizardRenderMode);
+	DataType.registerEnum("sap.m.ResetAllMode", thisLib.ResetAllMode);
+	DataType.registerEnum("sap.m.SharingMode", thisLib.SharingMode);
+	DataType.registerEnum("sap.m.plugins.CopyPreference", thisLib.plugins.CopyPreference);
+	DataType.registerEnum("sap.m.plugins.ContextMenuScope", thisLib.plugins.ContextMenuScope);
+	DataType.registerEnum("sap.m.semantic.SemanticRuleSetType", thisLib.semantic.SemanticRuleSetType);
+	DataType.registerEnum("sap.m.table.columnmenu.Category", thisLib.table.columnmenu.Category);
+	DataType.registerEnum("sap.m.upload.UploaderHttpRequestMethod", thisLib.upload.UploaderHttpRequestMethod);
+	DataType.registerEnum("sap.m.UploadSetwithTableActionPlaceHolder", thisLib.UploadSetwithTableActionPlaceHolder);
+	DataType.registerEnum("sap.m.TileInfoColor", thisLib.TileInfoColor);
 
 	return thisLib;
 });

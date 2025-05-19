@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -41,8 +41,9 @@ sap.ui.define(["./Control"],
 	 * <b>Note:</b> This function can only be used <i>within</i> control development. An application cannot add context menu support for instances of controls.
 	 *
 	 * @private
+	 * @ui5-restricted sap.m.Button, sap.m.Page
 	 * @alias sap.ui.core.ContextMenuSupport
-	 * @mixin
+	 * @function
 	 */
 	var ContextMenuSupport = function() {
 		var oContextMenuDelegate;

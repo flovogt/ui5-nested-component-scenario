@@ -1,25 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides control sap.ui.unified.PlanningCalendarRow.
 sap.ui.define([
-				'sap/ui/core/Core',
 				'sap/ui/core/Element',
 				'sap/m/CustomListItem',
+				"sap/ui/core/Lib",
 				'sap/ui/unified/DateTypeRange',
 				'sap/ui/unified/library'
 			], function (
-				Core,
 				Element,
 				CustomListItem,
+				Library,
 				DateTypeRange,
 				unifiedLibrary
 ) {
 	"use strict";
 
+	// shortcut for sap.ui.unified.CalendarDayType
+	var CalendarDayType = unifiedLibrary.CalendarDayType;
 
 	/**
 	 * Constructor for a new <code>PlanningCalendarRow</code>.
@@ -35,7 +37,7 @@ sap.ui.define([
 	 * The <code>sap.m.PlanningCalendarRow</code> allows you to modify appointments at row level.
 	 *
 	 * @extends sap.ui.core.Element
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -109,12 +111,12 @@ sap.ui.define([
 			 *
 			 * Hours:<br>
 			 * For views where the displayed intervals are hours, the placeholder snaps on every interval
-			 * of 30 minutes. After the appointment is dropped, the {@link #event:appointmentDrop appointmentDrop} event is fired, containing
+			 * of 15 minutes. After the appointment is dropped, the {@link #event:appointmentDrop appointmentDrop} event is fired, containing
 			 * the new start and end UI5Date or JavaScript Date objects.<br>
 			 * For example, an appointment with start date "Nov 13 2017 12:17:00" and end date "Nov 13 2017 12:45:30"
 			 * lasts for 27 minutes and 30 seconds. After dragging and dropping to a new time, the possible new
-			 * start date has time that is either "hh:00:00" or "hh:30:00" because of the placeholder that can
-			 * snap on every 30 minutes. The new end date is calculated to be 27 minutes and 30 seconds later
+			 * start date has time that is either "hh:00:00" or "hh:15:00" because of the placeholder that can
+			 * snap on every 15 minutes. The new end date is calculated to be 27 minutes and 30 seconds later
 			 * and would be either "hh:27:30" or "hh:57:30".
 			 *
 			 * Days:<br>
@@ -130,6 +132,32 @@ sap.ui.define([
 			 * <b>Note:</b> In "One month" view, the appointments are not draggable on small screen (as there they are
 			 * displayed as a list below the dates). Group appointments are also not draggable.
 			 *
+			 * <b>Note:</b> Additional application-level code will be needed to provide a keyboard alternative to drag and drop mouse interactions.
+			 * One possible option is by handling {@link sap.m.PlanningCalendar#event:appointmentSelect appointmentSelect} event of the
+			 * <code>sap.m.PlanningCalendar</code>, as shown in the following simplified example:
+			 *
+			 * <pre>
+			 * 	new sap.m.PlanningCalendar({
+			 * 		...
+   			 *		rows: [
+      		 *			new sap.m.PlanningCalendarRow({
+         	 *				...
+         	 *				enableAppointmentsDragAndDrop: true,
+			 *         		...
+      		 *			}),
+      		 *			...
+   			 *		],
+   			 *		...
+   			 *		appointmentSelect: function(event) {
+      		 *			// Open edit {@link sap.m.Dialog Dialog} to modify the appointment properties
+      		 *			new sap.m.Dialog({ ... }).openBy(event.getParameter("appointment"));
+   			 *		}
+			 *	});
+			 * </pre>
+			 *
+			 * For a complete example, you can check out the following Demokit sample:
+			 * {@link https://ui5.sap.com/#/entity/sap.m.PlanningCalendar/sample/sap.m.sample.PlanningCalendarModifyAppointments Planning Calendar - with appointments modification}
+			 *
 			 * @since 1.54
 			 */
 			enableAppointmentsDragAndDrop : {type : "boolean", group : "Misc", defaultValue : false},
@@ -143,7 +171,7 @@ sap.ui.define([
 			 *
 			 * Hours:
 			 * For views where the displayed intervals are hours, the appointment snaps on every interval
-			 * of 30 minutes. After the resize is finished, the {@link #event:appointmentResize appointmentResize} event is fired, containing
+			 * of 15 minutes. After the resize is finished, the {@link #event:appointmentResize appointmentResize} event is fired, containing
 			 * the new start and end UI5Date or JavaScript Date objects.
 			 *
 			 * Days:
@@ -160,6 +188,9 @@ sap.ui.define([
 			 * In "One month" view, the appointments are not resizable on small screen (as there they are
 			 * displayed as a list below the dates). Group appointments are also not resizable
 			 *
+			 * <b>Note:</b> Additional application-level code will be needed to provide a keyboard alternative to appointments resizing interactions with mouse.
+			 * It can be done in a similar way as described in the <code>enableAppointmentsDragAndDrop</code> property documentation.
+			 *
 			 * @since 1.56
 			 */
 			enableAppointmentsResize : {type : "boolean", group : "Misc", defaultValue : false},
@@ -167,7 +198,7 @@ sap.ui.define([
 			/**
 			 * Determines whether the appointments can be created by dragging on empty cells.
 			 *
-			 * See {@link #property:enableAppointmentsResize enableAppointmentsResize} for the specific points for events snapping
+			 * See <code>enableAppointmentsResize</code> property documentation for the specific points for events snapping.
 			 *
 			 * <b>Notes:</b>
 			 * In "One month" view, the appointments cannot be created on small screen (as there they are
@@ -180,8 +211,12 @@ sap.ui.define([
 			/**
 			 * Defines the text that is displayed when no {@link sap.ui.unified.CalendarAppointment CalendarAppointments} are assigned.
 			 */
-			noAppointmentsText : {type : "string", group : "Misc", defaultValue : null}
+			noAppointmentsText : {type : "string", group : "Misc", defaultValue : null},
 
+			/**
+			 * Defines the text that will be announced by the screen reader when a user navigates to the row header.
+			 */
+			rowHeaderDescription: {type : "string", group : "Misc", defaultValue : null}
 		},
 		aggregations : {
 
@@ -191,6 +226,12 @@ sap.ui.define([
 			 * <b>Note:</b> For performance reasons, only appointments in the visible time range or nearby should be assigned.
 			 */
 			appointments : {type : "sap.ui.unified.CalendarAppointment", multiple : true, singularName : "appointment", dnd : {draggable: true}},
+
+			/**
+			 * Sets the provided period to be displayed as a non-working.
+			 * @since 1.128
+			 */
+			nonWorkingPeriods: {type: "sap.ui.unified.NonWorkingPeriod", multiple: true},
 
 			/**
 			 * The appointments to be displayed at the top of the intervals (for example, for public holidays).
@@ -204,11 +245,13 @@ sap.ui.define([
 			intervalHeaders : {type : "sap.ui.unified.CalendarAppointment", multiple : true, singularName : "intervalHeader"},
 
 			/**
-			 * Holds the special dates in the context of a row. A single date or a date range can be set.
+			 * Holds the special dates in the context of a row. A single <code>sap.ui.unified.DateTypeRange</code> instance can be set.
 			 *
-			 * <b>Note</b> Only date or date ranges of type <code>sap.ui.unified.CalendarDayType.NonWorking</code> will
-			 * be visualized in the <code>PlanningCalendarRow</code>. If the aggregation is set as another type,
-			 * the date or date range will be ignored and will not be displayed in the control.
+			 * <b>Note</b> Only <code>sap.ui.unified.DateTypeRange</code> isntances configured with <code>sap.ui.unified.CalendarDayType.NonWorking</code>
+			 * or <code>sap.ui.unified.CalendarDayType.Working</code> type will be visualized in the row.
+			 * In all other cases the <code>sap.ui.unified.DateTypeRange</code> instances will be ignored and will not be displayed in the control.
+			 * Assigning more than one of these values in combination for the same date will lead to unpredictable results.
+			 *
 			 * @since 1.56
 			 */
 			specialDates : {type : "sap.ui.unified.DateTypeRange", multiple : true, singularName : "specialDate"},
@@ -216,10 +259,10 @@ sap.ui.define([
 			/**
 			 * Holds the header content of the row.
 			 *
-			 * <b>Note:</b> If the <code>headerContent</code> aggregation is added, then the set icon, description, title
-			 * and tooltip are ignored.
+			 * <b>Note:</b> <li>If the <code>headerContent</code> aggregation is added, then the set icon, description, title
+			 * and tooltip are ignored.</li>
+			 * <li>The application developer has to ensure, that the size of the content conforms with the size of the header.</li>
 			 * @since 1.67
-			 * @experimental Since 1.67, providing only limited functionality. Also, the API might be changed in the future.
 			 */
 			headerContent : {type : "sap.ui.core.Control", multiple : true, singularName : "headerContent",
 				forwarding: {
@@ -364,7 +407,7 @@ sap.ui.define([
 	PlanningCalendarRow.prototype._getPlanningCalendarCustomRowHeader = function() {
 		if (!this.oRowHeader) {
 			this.oRowHeader = new CustomListItem(this.getId() + "-CustomHead", {
-				accDescription: Core.getLibraryResourceBundle("sap.m").getText("PC_CUSTOM_ROW_HEADER_CONTENT_DESC")
+				accDescription: Library.getResourceBundleFor("sap.m").getText("PC_CUSTOM_ROW_HEADER_CONTENT_DESC")
 			});
 		}
 
@@ -374,11 +417,14 @@ sap.ui.define([
 	PlanningCalendarRow.prototype._getSpecialDates = function(){
 		var specialDates = this.getSpecialDates();
 		for (var i = 0; i < specialDates.length; i++) {
-			var bNeedsSecondTypeAdding = specialDates[i].getSecondaryType() === unifiedLibrary.CalendarDayType.NonWorking
-					&& specialDates[i].getType() !== unifiedLibrary.CalendarDayType.NonWorking;
+			var bNeedsSecondTypeAdding = (specialDates[i].getSecondaryType() === CalendarDayType.NonWorking
+					&& specialDates[i].getType() !== CalendarDayType.NonWorking)
+					|| (specialDates[i].getSecondaryType() === CalendarDayType.Working
+					&& specialDates[i].getType() !== CalendarDayType.Working);
+
 			if (bNeedsSecondTypeAdding) {
 				var newSpecialDate = new DateTypeRange();
-				newSpecialDate.setType(unifiedLibrary.CalendarDayType.NonWorking);
+				newSpecialDate.setType(specialDates[i].getSecondaryType());
 				newSpecialDate.setStartDate(specialDates[i].getStartDate());
 				if (specialDates[i].getEndDate()) {
 					newSpecialDate.setEndDate(specialDates[i].getEndDate());

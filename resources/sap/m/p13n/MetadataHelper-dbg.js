@@ -1,19 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/base/Object"
-], function(BaseObject) {
+], (BaseObject) => {
 	"use strict";
 
 	/**
 	 * Personalization <code>MetadataObject</code> type.
 	 *
 	 * @public
-	 * @experimental Since 1.104.
 	 * @typedef {object} sap.m.p13n.MetadataObject
 	 * @property {string} key The unique key for the p13n metadata object
 	 * @property {string} label Defines the text that will be displayed in the personalization popup
@@ -42,7 +41,7 @@ sap.ui.define([
 	 *      {key: city, label: City, path: modelPath/to/city}
 	 * ]
 	 */
-	var MetadataHelper = BaseObject.extend("sap.m.p13n.MetadataHelper", {
+	const MetadataHelper = BaseObject.extend("sap.m.p13n.MetadataHelper", {
 		constructor: function(aProperties) {
 			BaseObject.apply(this, arguments);
 			this._aProperties = aProperties;
@@ -53,7 +52,7 @@ sap.ui.define([
 	 * Gets the array of properties.
 	 *
 	 * @public
-	 * @returns {sap.m.p13n.MetadataObject[]} Array of properties
+	 * @returns {object[]} Array of properties
 	 */
 	MetadataHelper.prototype.getProperties = function() {
 		return this._aProperties;
@@ -64,10 +63,10 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @param {string} sKey The property key identifying a property entry
-	 * @returns {sap.m.p13n.MetadataObject} A single property
+	 * @returns {sap.m.p13n.MetadataObject | undefined} A single property
 	 */
 	MetadataHelper.prototype.getProperty = function(sKey) {
-		return this._aProperties.find(function(oProp){
+		return this._aProperties.find((oProp) => {
 			return oProp.key === sKey;
 		});
 	};
@@ -81,6 +80,16 @@ sap.ui.define([
 	 */
 	MetadataHelper.prototype.getPath = function(sKey) {
 		return this.getProperty(sKey).path;
+	};
+
+	/**
+	 * Gets a list of properties that are redundant and should be filtered out in the {@link sap.ui.mdc.p13n.SelectionController} for personalization.
+	 *
+	 * @protected
+	 * @returns {object[]} A list of properties
+	 */
+	MetadataHelper.prototype.getRedundantProperties = function() {
+		return [];
 	};
 
 	return MetadataHelper;

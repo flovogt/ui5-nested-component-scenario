@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,14 +8,14 @@
 sap.ui.define([
 	'./BarInPageEnabler',
 	'./library',
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/ui/core/ResizeHandler',
 	'sap/ui/Device',
 	'./BarRenderer',
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration"
+	"sap/ui/thirdparty/jquery"
 ],
-	function(BarInPageEnabler, library, Control, ResizeHandler, Device, BarRenderer, jQuery, Configuration) {
+	function(BarInPageEnabler, library, Localization, Control, ResizeHandler, Device, BarRenderer, jQuery) {
 	"use strict";
 
 
@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @implements sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -366,7 +366,7 @@ sap.ui.define([
 	 */
 	Bar.prototype._getMidBarCss = function(iRightBarWidth, iBarWidth, iLeftBarWidth) {
 		var iMidBarPlaceholderWidth = this._$MidBarPlaceHolder.outerWidth(true),
-			bRtl = Configuration.getRTL(),
+			bRtl = Localization.getRTL(),
 			oMidBarCss = { visibility : "" };
 
 		/**

@@ -1,16 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.Rendering
 sap.ui.define([
+	"sap/base/config",
 	"sap/base/Log",
 	"sap/ui/base/EventProvider",
 	"sap/ui/performance/trace/Interaction",
 	"sap/ui/performance/Measurement"
 ], (
+	BaseConfig,
 	Log,
 	EventProvider,
 	Interaction,
@@ -29,12 +31,12 @@ sap.ui.define([
 	 * @private
 	 */
 	const oRenderLog = Log.getLogger("sap.ui.Rendering",
-			(
-				// Note that the sap-ui-config option still is expected in camel case.
-				// Lower case is only accepted here because of the config normalization which will be removed in future
-				(window["sap-ui-config"] && (window["sap-ui-config"]["xx-debugRendering"] || window["sap-ui-config"]["xx-debugrendering"]) )
-				|| /sap-ui-xx-debug(R|-r)endering=(true|x|X)/.test(document.location.search)
-			) ? Log.Level.DEBUG : Math.min(Log.Level.INFO, Log.getLevel())
+			BaseConfig.get({
+				name: "sapUiXxDebugRendering",
+				type: BaseConfig.Type.Boolean,
+				external: true,
+				freeze: true
+			}) ? Log.Level.DEBUG : Math.min(Log.Level.INFO, Log.getLevel())
 		);
 
 	const MAX_RENDERING_ITERATIONS = 20,
@@ -54,65 +56,72 @@ sap.ui.define([
 	let _bRendering = false;
 
 	const _renderPendingUIUpdates = (sCaller) => {
-		// start performance measurement
-		Measurement.start("renderPendingUIUpdates","Render pending UI updates in all UIAreas");
+		try {
+			// start performance measurement
+			Measurement.start("renderPendingUIUpdates","Render pending UI updates in all UIAreas");
 
-		oRenderLog.debug("Render pending UI updates: start (" + (sCaller || "by timer" ) + ")");
+			oRenderLog.debug("Render pending UI updates: start (" + (sCaller || "by timer" ) + ")");
 
-		let iLoopCount = 0;
+			let iLoopCount = 0;
 
-		const bLooped = MAX_RENDERING_ITERATIONS > 0;
+			const bLooped = MAX_RENDERING_ITERATIONS > 0;
 
-		_bRendering = true;
+			_bRendering = true;
 
-		do {
+			do {
 
-			if ( bLooped ) {
-				// try to detect long running ('endless') rendering loops
-				iLoopCount++;
-				// if we run another iteration despite the tracking mode, we complain ourselves
-				if ( iLoopCount > MAX_RENDERING_ITERATIONS ) {
-					_bRendering = false;
-					throw new Error("Rendering has been re-started too many times (" + iLoopCount + "). Add URL parameter sap-ui-xx-debugRendering=true for a detailed analysis.");
+				if ( bLooped ) {
+					// try to detect long running ('endless') rendering loops
+					iLoopCount++;
+					// if we run another iteration despite the tracking mode, we complain ourselves
+					if ( iLoopCount > MAX_RENDERING_ITERATIONS ) {
+						_bRendering = false;
+						throw new Error("Rendering has been re-started too many times (" + iLoopCount + "). Add URL parameter sap-ui-xx-debugRendering=true for a detailed analysis.");
+					}
+
+					if ( iLoopCount > 1 ) {
+						oRenderLog.debug("Render pending UI updates: iteration " + iLoopCount);
+					}
 				}
 
-				if ( iLoopCount > 1 ) {
-					oRenderLog.debug("Render pending UI updates: iteration " + iLoopCount);
+				// clear a pending timer so that the next call to re-render will create a new timer
+				if (_sRerenderTimer) {
+					if ( _sRerenderTimer !== Rendering ) { // 'this' is used as a marker for a delayed initial rendering, no timer to cleanup then
+						clearTimeout(_sRerenderTimer); // explicitly stop the timer, as this call might be a synchronous call (applyChanges) while still a timer is running
+					}
+					_sRerenderTimer = undefined;
+					if (aFnDone.length > 0) {
+						aFnDone.pop()();
+					}
 				}
+
+				runPrerenderingTasks();
+
+				const mUIAreasSnapshot = mUIAreas;
+				mUIAreas = {};
+				for (const sId in mUIAreasSnapshot) {
+					mUIAreasSnapshot[sId].rerender();
+				}
+
+			// eslint-disable-next-line no-unmodified-loop-condition
+			} while ( bLooped && _sRerenderTimer ); // iterate if there are new rendering tasks
+
+			_bRendering = false;
+
+			// TODO: Provide information on what actually was re-rendered...
+			Rendering.fireUIUpdated();
+
+
+			oRenderLog.debug("Render pending UI updates: finished");
+
+			// end performance measurement
+			Measurement.end("renderPendingUIUpdates");
+		} catch (e) {
+			const bExecuteDefault = Rendering.fireUIUpdated({failed: e});
+			if (bExecuteDefault) {
+				throw e;
 			}
-
-			// clear a pending timer so that the next call to re-render will create a new timer
-			if (_sRerenderTimer) {
-				if ( _sRerenderTimer !== Rendering ) { // 'this' is used as a marker for a delayed initial rendering, no timer to cleanup then
-					clearTimeout(_sRerenderTimer); // explicitly stop the timer, as this call might be a synchronous call (applyChanges) while still a timer is running
-				}
-				_sRerenderTimer = undefined;
-				if (aFnDone.length > 0) {
-					aFnDone.pop()();
-				}
-			}
-
-			runPrerenderingTasks();
-
-			const mUIAreasSnapshot = mUIAreas;
-			mUIAreas = {};
-			for (const sId in mUIAreasSnapshot) {
-				mUIAreasSnapshot[sId].rerender();
-			}
-
-		// eslint-disable-next-line no-unmodified-loop-condition
-		} while ( bLooped && _sRerenderTimer ); // iterate if there are new rendering tasks
-
-		_bRendering = false;
-
-		// TODO: Provide information on what actually was re-rendered...
-		Rendering.fireUIUpdated();
-
-
-		oRenderLog.debug("Render pending UI updates: finished");
-
-		// end performance measurement
-		Measurement.end("renderPendingUIUpdates");
+		}
 	};
 
 	/**
@@ -230,7 +239,7 @@ sap.ui.define([
 		},
 
 		fireUIUpdated(mParameters) {
-			_oEventProvider.fireEvent("UIUpdated", mParameters);
+			return _oEventProvider.fireEvent("UIUpdated", mParameters, true);
 		},
 
 		/**

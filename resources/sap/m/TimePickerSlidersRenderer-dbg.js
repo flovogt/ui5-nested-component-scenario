@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/Device", "sap/ui/core/Configuration"], function(Device, Configuration) {
+sap.ui.define(["sap/base/i18n/Localization", "sap/ui/Device", "sap/ui/core/Lib"], function(Localization, Device, Library) {
 	"use strict";
 
 	/**
@@ -24,9 +24,9 @@ sap.ui.define(["sap/ui/Device", "sap/ui/core/Configuration"], function(Device, C
 	TimePickerSlidersRenderer.render = function(oRM, oControl) {
 		var aSliders = oControl.getAggregation("_columns"),
 			sLabelText = oControl.getLabelText() || "",
-			oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+			oRb = Library.getResourceBundleFor("sap.m"),
 			iSliderIndex,
-			bRtl = Configuration.getRTL();
+			bRtl = Localization.getRTL();
 
 		oRM.openStart("div", oControl);
 		oRM.class("sapMTimePickerContainer");

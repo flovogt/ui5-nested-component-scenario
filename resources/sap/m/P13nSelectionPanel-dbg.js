@@ -1,13 +1,34 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.P13nSelectionPanel.
 sap.ui.define([
-	'./library', './ColumnListItem', './P13nPanel', './SearchField', './Text', './Table', './Column', './ScrollContainer', './P13nSelectionItem', './VBox', './Link', './OverflowToolbar', './OverflowToolbarLayoutData', './ToolbarSpacer', 'sap/ui/core/library', 'sap/ui/model/ChangeReason', 'sap/ui/model/json/JSONModel', 'sap/ui/model/BindingMode', 'sap/ui/core/ResizeHandler', "sap/ui/thirdparty/jquery"
-], function(library, ColumnListItem, P13nPanel, SearchField, Text, Table, Column, ScrollContainer, P13nSelectionItem /* kept for compatibility*/, VBox, Link, OverflowToolbar, OverflowToolbarLayoutData, ToolbarSpacer, CoreLibrary, ChangeReason, JSONModel, BindingMode, ResizeHandler, jQuery) {
+	'./library',
+	'./ColumnListItem',
+	'./P13nPanel',
+	'./SearchField',
+	'./Text',
+	'./Table',
+	'./Column',
+	'./ScrollContainer',
+	'./P13nSelectionItem',
+	'./VBox',
+	'./Link',
+	'./OverflowToolbar',
+	'./OverflowToolbarLayoutData',
+	'./ToolbarSpacer',
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
+	'sap/ui/core/library',
+	'sap/ui/model/ChangeReason',
+	'sap/ui/model/json/JSONModel',
+	'sap/ui/model/BindingMode',
+	'sap/ui/core/ResizeHandler',
+	"sap/ui/thirdparty/jquery"
+], function(library, ColumnListItem, P13nPanel, SearchField, Text, Table, Column, ScrollContainer, P13nSelectionItem /* kept for compatibility*/, VBox, Link, OverflowToolbar, OverflowToolbarLayoutData, ToolbarSpacer, Element, Library, CoreLibrary, ChangeReason, JSONModel, BindingMode, ResizeHandler, jQuery) {
 	"use strict";
 
 	// shortcut for sap.m.ToolbarDesign
@@ -33,11 +54,12 @@ sap.ui.define([
 	 * @class The P13nSelectionPanel control is used to define selection settings like the visibility or the order of items.
 	 * @extends sap.m.P13nPanel
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @constructor
 	 * @private
 	 * @since 1.46.0
 	 * @alias sap.m.P13nSelectionPanel
+	 * @deprecated As of version 1.124, replaced by the artifacts in {@link sap.m.p13n}.
 	 */
 	var P13nSelectionPanel = P13nPanel.extend("sap.m.P13nSelectionPanel", /** @lends sap.m.P13nSelectionPanel.prototype */
 	{
@@ -346,7 +368,7 @@ sap.ui.define([
 								}
 							],
 							formatter: function(iCountOfSelectedItems, iCountOfItems) {
-								return sap.ui.getCore().getLibraryResourceBundle("sap.m").getText('COLUMNSPANEL_SELECT_ALL_WITH_COUNTER', [
+								return Library.getResourceBundleFor("sap.m").getText('COLUMNSPANEL_SELECT_ALL_WITH_COUNTER', [
 									iCountOfSelectedItems, iCountOfItems
 								]);
 							}
@@ -488,10 +510,10 @@ sap.ui.define([
 	};
 
 	P13nSelectionPanel.prototype._getToolbar = function() {
-		return sap.ui.getCore().byId(this.getId() + "-toolbar") || null;
+		return Element.getElementById(this.getId() + "-toolbar") || null;
 	};
 	P13nSelectionPanel.prototype._getSearchField = function() {
-		return sap.ui.getCore().byId(this.getId() + "-searchField") || null;
+		return Element.getElementById(this.getId() + "-searchField") || null;
 	};
 	P13nSelectionPanel.prototype._getSearchText = function() {
 		var oSearchField = this._getSearchField();
@@ -508,7 +530,7 @@ sap.ui.define([
 		var bShowOnlySelectedItems = this._isFilteredByShowSelected();
 
 		// Switch off the "Select all (n/m)" checkbox if search
-		var oTableCB = sap.ui.getCore().byId(this._oTable.getId() + '-sa');
+		var oTableCB = Element.getElementById(this._oTable.getId() + '-sa');
 		if (oTableCB) {
 			oTableCB.setEnabled(!bIsSearchActive && !bShowOnlySelectedItems);
 		}

@@ -4,7 +4,7 @@
 /* ======================================= */
 
 @_sap_m_StandardListItem_TextShadowColor: none;
-@_sap_m_StandardListItem_SelectedLabelColor: @sapUiContentLabelColor;
+@_sap_m_StandardListItem_SelectedLabelColor: var(--sapContent_LabelColor);
 
 .sapMSLIInfo {
 	text-shadow: @_sap_m_StandardListItem_TextShadowColor;
@@ -17,6 +17,7 @@
 .sapMSLIImgIcon {
 	height: 2.75rem;
 	width: 2.75rem;
+	line-height: 2.75rem;
 	font-size: 1.25rem;
 }
 

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -43,7 +43,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"], function (jQuery) {
 			}
 		},
 
-		/***
+		/**
 		 * Gets the selection state for a package/module.
 		 * Package names must end with a slash, modules must not.
 		 * If an ancestor package of the package/module does not exists, undefined is returned.
@@ -171,6 +171,18 @@ sap.ui.define(["sap/ui/thirdparty/jquery"], function (jQuery) {
 				}
 				oTree.nodes.push(oChildNode);
 			}
+
+			// Sort nodes alphabetically by its text property. In addition placing nodes with a subtree first
+			// This is to have the debug list first show folders and then files
+			oTree.nodes.sort((oNode1, oNode2) => {
+				if (oNode1.nodes.length && !oNode2.nodes.length) {
+					return -1;
+				} else if (!oNode1.nodes.length && oNode2.nodes.length) {
+					return 1;
+				} else {
+					return oNode1.text.localeCompare(oNode2.text);
+				}
+			});
 
 			return iSelectionDepth;
 		},

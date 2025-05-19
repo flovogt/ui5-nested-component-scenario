@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,7 +24,7 @@ sap.ui.define(['./ViewSettingsItem', './library'],
 	 * @extends sap.m.ViewSettingsItem
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -53,6 +53,7 @@ sap.ui.define(['./ViewSettingsItem', './library'],
 			/**
 			 * Let the outside world know that the filter detail aggregation was changed.
 			 * @private
+			 * @ui5-restricted sap.m.ViewSettingsFilterItem
 			 */
 			filterDetailItemsAggregationChange: {}
 		}

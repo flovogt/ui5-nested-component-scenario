@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /**
  * @fileOverview Helper code for branch tracking with Blanket.js and QUnit
- * @deprecated since 1.120.2, use sap.ui.test.ModuleTracking instead.
+ * @deprecated As of version 1.120.2, use sap.ui.test.ModuleTracking instead.
  */
 (function () {
 	"use strict";

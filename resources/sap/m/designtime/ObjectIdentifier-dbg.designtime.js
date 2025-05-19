@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,6 +11,7 @@ sap.ui.define([
 ], function(MLibrary, Log) {
 	"use strict";
 	var oWrapper;
+
 	return {
 		palette: {
 			group: "DISPLAY",
@@ -32,10 +33,6 @@ sap.ui.define([
 				// Checking for the model which is set inside the sap.ui.comp.providers.ControlProvider in case the title link has SmartLink functionality
 				if (oObjectIdentifier.getModel("$sapuicompcontrolprovider_distinctSO")) {
 					if (!oWrapper) {
-						return;
-					}
-					if (!oWrapper.isSettingsAvailable()) {
-						Log.error("sap.m.ObjectIdentifier.designtime: 'settings' action is not available");
 						return;
 					}
 					return {

@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.DatePicker.
 sap.ui.define([
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Lib",
 	'sap/ui/thirdparty/jquery',
 	'sap/ui/Device',
 	"sap/ui/core/Element",
@@ -16,14 +18,12 @@ sap.ui.define([
 	'sap/ui/core/date/UniversalDate',
 	'./library',
 	'sap/ui/core/Control',
-	'sap/ui/core/library',
 	"./DatePickerRenderer",
 	"sap/base/util/deepEqual",
 	"sap/base/assert",
 	"sap/base/Log",
 	"sap/ui/core/IconPool",
 	"./InstanceManager",
-	// jQuery Plugin "cursorPos"
 	"sap/ui/unified/Calendar",
 	"sap/ui/unified/DateRange",
 	'sap/ui/unified/DateTypeRange',
@@ -31,14 +31,16 @@ sap.ui.define([
 	"sap/ui/unified/calendar/CustomYearPicker",
 	"sap/ui/core/LabelEnablement",
 	"sap/ui/unified/library",
-	"sap/ui/core/Configuration",
 	"sap/ui/unified/calendar/CalendarUtils",
 	"sap/ui/core/date/UI5Date",
-	"sap/ui/core/date/CalendarWeekNumbering",
-	"sap/ui/core/Core",
+	"sap/base/i18n/date/CalendarType",
+	"sap/base/i18n/date/CalendarWeekNumbering",
+	"sap/ui/core/InvisibleText",
 	"sap/ui/dom/jquery/cursorPos"
 ],
 	function(
+		Localization,
+		Library,
 		jQuery,
 		Device,
 		Element,
@@ -49,7 +51,6 @@ sap.ui.define([
 		UniversalDate,
 		library,
 		Control,
-		coreLibrary,
 		DatePickerRenderer,
 		deepEqual,
 		assert,
@@ -63,19 +64,16 @@ sap.ui.define([
 		CustomYearPicker,
 		LabelEnablement,
 		unifiedLibrary,
-		Configuration,
 		CalendarUtils,
 		UI5Date,
+		CalendarType,
 		CalendarWeekNumbering,
-		Core
+		InvisibleText
 	) {
 	"use strict";
 
 
-	// shortcut for sap.ui.core.CalendarType
-	var CalendarType = coreLibrary.CalendarType;
-
-	var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+	var oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 	/**
 	 * Constructor for a new <code>DatePicker</code>.
@@ -115,7 +113,8 @@ sap.ui.define([
 	 *
 	 * <ul><li>Use the <code>value</code> property if you want to bind the
 	 * <code>DatePicker</code> to a model using the <code>sap.ui.model.type.Date</code></li>
-	 * @example <caption> binding the <code>value</code> property by using types </caption>
+	 * <caption> binding the <code>value</code> property by using types </caption>
+	 * <pre>
 	 * new sap.ui.model.json.JSONModel({
 	 *     date: sap.ui.core.date.UI5Date.getInstance(2022,10,10,10,10,10)
 	 * });
@@ -123,10 +122,11 @@ sap.ui.define([
 	 * new sap.m.DatePicker({
 	 *     value:{path:"/date",type:"sap.ui.model.type.Date"}
 	 * });
-	 *
+	 *</pre>
 	 * <li>Use the <code>value</code> property if the date is provided as a string from
 	 * the backend or inside the app (for example, as ABAP type DATS field)</li>
-	 * @example <caption> binding the <code>value</code> property by using types </caption>
+	 * <caption> binding the <code>value</code> property by using types </caption>
+	 * <pre>
 	 * new sap.ui.model.json.JSONModel({date:'2022-11-10');
 	 *
 	 * new sap.m.DatePicker({
@@ -140,7 +140,7 @@ sap.ui.define([
 	 *         }
 	 *     }
 	 * });
-	 *
+	 * </pre>
 	 * <b>Note:</b> There are multiple binding type choices, such as:
 	 * sap.ui.model.type.Date
 	 * sap.ui.model.odata.type.DateTime
@@ -186,7 +186,7 @@ sap.ui.define([
 	 * the close event), or select Cancel.
 	 *
 	 * @extends sap.m.DateTimeField
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -202,8 +202,8 @@ sap.ui.define([
 
 				/**
 				 * Displays date in this given type in input field. Default value is taken from locale settings.
-				 * Accepted are values of <code>sap.ui.core.CalendarType</code> or an empty string. If no type is set, the default type of the
-				 * configuration is used.
+				 * Accepted are values of {@link module:sap/base/i18n/date/CalendarType} or an empty string.
+				 * If no type is set, the default type of the configuration is used.
 				 * <b>Note:</b> If data binding on <code>value</code> property with type <code>sap.ui.model.type.Date</code> is used, this property will be ignored.
 				 * @since 1.28.6
 				 */
@@ -214,7 +214,7 @@ sap.ui.define([
 				 * If not set, the dates are only displayed in the primary calendar type
 				 * @since 1.34.1
 				 */
-				secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"},
+				secondaryCalendarType : {type : "sap.base.i18n.date.CalendarType", group : "Appearance"},
 
 				/**
 				 * Minimum date that can be shown and selected in the <code>DatePicker</code>. This must be a UI5Date or JavaScript Date object.
@@ -271,7 +271,7 @@ sap.ui.define([
 				 * If not set, the calendar week numbering of the global configuration is used.
 				 * @since 1.108.0
 				 */
-				calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
+				calendarWeekNumbering : { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 
 			},
 
@@ -360,7 +360,7 @@ sap.ui.define([
 	 * @returns {string} the value of property <code>displayFormat</code>
 	 * @public
 	 * @name sap.m.DatePicker#getDisplayFormat
-	 * @function
+	 * @method
 	 */
 
 	/**
@@ -377,7 +377,7 @@ sap.ui.define([
 	 * @returns {string} the value of property <code>valueFormat</code>
 	 * @public
 	 * @name sap.m.DatePicker#getValueFormat
-	 * @function
+	 * @method
 	 */
 
 	/**
@@ -385,10 +385,10 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>dateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the value of property <code>dateValue</code>
 	 * @public
 	 * @name sap.m.DatePicker#getDateValue
-	 * @function
+	 * @method
 	 */
 
 	DatePicker.prototype.init = function() {
@@ -410,6 +410,7 @@ sap.ui.define([
 			noTabStop: true,
 			decorative: !Device.support.touch || Device.system.desktop ? true : false,
 			useIconTooltip: false,
+			tooltip: oResourceBundle.getText("OPEN_PICKER_TEXT"),
 			alt: oResourceBundle.getText("OPEN_PICKER_TEXT")
 		});
 
@@ -938,7 +939,7 @@ sap.ui.define([
 	 * Sets <code>showFooter</code> property to the given boolean value
 	 *
 	 * @since 1.70
-	 * @param {} bFlag when true footer is displayed
+	 * @param {boolean} bFlag when true footer is displayed
 	 * @public
 	 */
 	DatePicker.prototype.setShowFooter = function(bFlag) {
@@ -1004,7 +1005,7 @@ sap.ui.define([
 	 *
 	 * @since 1.38.5
 	 * @param {sap.ui.unified.DateTypeRange} oSpecialDate The <code>specialDate</code> to remove or its index or ID
-	 * @returns {sap.ui.unified.DateTypeRange|null} The removed <code>specialDate</code> or <code>null</code>
+	 * @returns {int | string | sap.ui.unified.DateTypeRange} The removed <code>specialDate</code>
 	 * @public
 	 */
 	DatePicker.prototype.removeSpecialDate = function(oSpecialDate){
@@ -1053,7 +1054,7 @@ sap.ui.define([
 		var sId = this.getLegend();
 		if (sId) {
 			var CalendarLegend = sap.ui.require("sap/ui/unified/CalendarLegend");
-			oLegend = sap.ui.getCore().byId(sId);
+			oLegend = Element.getElementById(sId);
 			if (oLegend && !(typeof CalendarLegend == "function" && oLegend instanceof CalendarLegend)) {
 				throw new Error(oLegend + " is not an sap.ui.unified.CalendarLegend. " + this);
 			}
@@ -1225,14 +1226,14 @@ sap.ui.define([
 				showArrow: false,
 				showHeader: false,
 				placement: library.PlacementType.VerticalPreferredBottom,
-				contentWidth: this.$().closest(".sapUiSizeCompact").length > 0 ? "18rem" : "21rem",
 				beginButton: new Button({
 					type: library.ButtonType.Emphasized,
 					text: oResourceBundle.getText("DATEPICKER_SELECTION_CONFIRM"),
 					press: this._handleOKButton.bind(this)
 				}),
 				afterOpen: _handleOpen.bind(this),
-				afterClose: _handleClose.bind(this)
+				afterClose: _handleClose.bind(this),
+				ariaLabelledBy: InvisibleText.getStaticId("sap.m", this._getAccessibleNameLabel())
 			}).addStyleClass("sapMRPCalendar");
 
 			if (this.getShowFooter()) {
@@ -1245,7 +1246,7 @@ sap.ui.define([
 				sTitleText = LabelEnablement.getReferencingLabels(this)
 					.concat(this.getAriaLabelledBy())
 					.reduce(function(sAccumulator, sCurrent) {
-						var oCurrentControl = Element.registry.get(sCurrent);
+						var oCurrentControl = Element.getElementById(sCurrent);
 						return sAccumulator + " " + (oCurrentControl.getText ? oCurrentControl.getText() : "");
 					}, "")
 					.trim();
@@ -1268,6 +1269,32 @@ sap.ui.define([
 			// define a parent-child relationship between the control's and the _picker pop-up
 			this.setAggregation("_popup", this._oPopup, true);
 		}
+	};
+
+	/**
+	 * Returns the message bundle key of the invisible text for the accessible name of the popover.
+	 * @private
+	 * @returns {string} The message bundle key
+	 */
+	DatePicker.prototype._getAccessibleNameLabel = function() {
+		var sConstructorName = this._getCalendarConstructor().getMetadata().getName();
+
+		switch (sConstructorName) {
+			case "sap.ui.unified.internal.CustomYearPicker":
+				return "DATEPICKER_YEAR_POPOVER_ACCESSIBLE_NAME";
+			case "sap.ui.unified.internal.CustomMonthPicker":
+				return "DATEPICKER_MONTH_POPOVER_ACCESSIBLE_NAME";
+			default:
+				return "DATEPICKER_POPOVER_ACCESSIBLE_NAME";
+		}
+	};
+
+	DatePicker.prototype._getCalendarWeekNumbering = function () {
+		if (this.isPropertyInitial("calendarWeekNumbering")) {
+			return;
+		}
+
+		return this.getCalendarWeekNumbering();
 	};
 
 	// to be overwritten by DateTimePicker
@@ -1329,7 +1356,6 @@ sap.ui.define([
 				minDate: this.getMinDate(),
 				maxDate: this.getMaxDate(),
 				legend: this.getLegend(),
-				calendarWeekNumbering: this.getCalendarWeekNumbering(),
 				startDateChange: function () {
 						this.fireNavigate({
 							dateRange: this._getVisibleDatesRange(this._getCalendar())
@@ -1338,11 +1364,12 @@ sap.ui.define([
 				});
 
 			this._oCalendar.setShowCurrentDateButton(this.getShowCurrentDateButton());
+			!this.isPropertyInitial("calendarWeekNumbering") && this._oCalendar.setCalendarWeekNumbering(this._getCalendarWeekNumbering());
 			this._oDateRange = new DateRange();
 			this._getCalendar().addSelectedDate(this._oDateRange);
 			this._getCalendar()._setSpecialDatesControlOrigin(this);
 			this._getCalendar().attachCancel(_cancel, this);
-			if (this.$().closest(".sapUiSizeCompact").length > 0) {
+			if (this.getDomRef()?.closest(".sapUiSizeCompact")) {
 				this._getCalendar().addStyleClass("sapUiSizeCompact");
 			}
 			if (this._bSecondaryCalendarTypeSet) {
@@ -1449,7 +1476,7 @@ sap.ui.define([
 		var oRenderer = this.getRenderer();
 		var oInfo = InputBase.prototype.getAccessibilityInfo.apply(this, arguments);
 		var sValue = this.getValue() || "";
-		var sRequired = this.getRequired() ? Core.getLibraryResourceBundle("sap.m").getText("ELEMENT_REQUIRED") : '';
+		var sRequired = this.getRequired() ? Library.getResourceBundleFor("sap.m").getText("ELEMENT_REQUIRED") : '';
 
 		if (this._bValid) {
 			var oDate = this.getDateValue();
@@ -1508,7 +1535,7 @@ sap.ui.define([
 	};
 
 	DatePicker.prototype._getTimezone = function(bUseDefaultAsFallback) {
-		return Configuration.getTimezone();
+		return Localization.getTimezone();
 	};
 
 	/* sets cursor inside the input in order to focus it */

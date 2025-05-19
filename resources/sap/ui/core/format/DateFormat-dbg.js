@@ -1,28 +1,31 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.format.DateFormat
 sap.ui.define([
 	"sap/base/Log",
+	"sap/base/i18n/Formatting",
+	"sap/base/i18n/Localization",
+	"sap/base/i18n/date/CalendarType",
+	"sap/base/i18n/date/CalendarWeekNumbering",
+	"sap/base/i18n/date/TimezoneUtils",
 	"sap/base/strings/formatMessage",
 	"sap/base/util/deepEqual",
 	"sap/base/util/extend",
-	"sap/ui/core/CalendarType",
-	"sap/ui/core/Configuration",
-	"sap/ui/core/Core",
+	"sap/ui/core/Lib",
 	"sap/ui/core/Locale",
 	"sap/ui/core/LocaleData",
 	"sap/ui/core/Supportability",
 	"sap/ui/core/date/CalendarUtils",
-	"sap/ui/core/date/CalendarWeekNumbering",
 	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/date/UniversalDate",
-	"sap/ui/core/format/TimezoneUtil"
-], function(Log, formatMessage, deepEqual, extend, CalendarType, Configuration, Core, Locale,
-		LocaleData, Supportability, CalendarUtils, CalendarWeekNumbering, UI5Date, UniversalDate, TimezoneUtil) {
+	"sap/ui/core/format/FormatUtils"
+], function(Log, Formatting, Localization, CalendarType, CalendarWeekNumbering, TimezoneUtils, formatMessage,
+		deepEqual, extend, Library, Locale, LocaleData, Supportability, CalendarUtils, UI5Date,
+		UniversalDate, FormatUtils) {
 	"use strict";
 
 	/**
@@ -37,7 +40,8 @@ sap.ui.define([
 	 * to a set of format options.
 	 *
 	 * Important:
-	 * Every Date is converted with the timezone taken from {@link sap.ui.core.Configuration#getTimezone}.
+	 * Every Date is converted with the timezone taken from
+	 * {@link module:sap/base/i18n/Localization.getTimezone Localization.getTimezone}.
 	 * The timezone falls back to the browser's local timezone.
 	 *
 	 * Supported format options are pattern based on Unicode LDML Date Format notation. Please note that only a subset of the LDML date symbols
@@ -222,7 +226,7 @@ sap.ui.define([
 	 * Get a date instance of the DateFormat, which can be used for formatting.
 	 *
 	 * @param {object} [oFormatOptions] Object which defines the format options
-	 * @param {sap.ui.core.date.CalendarWeekNumbering} [oFormatOptions.calendarWeekNumbering] since 1.108.0 specifies the calendar week numbering.
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering} [oFormatOptions.calendarWeekNumbering] since 1.108.0 specifies the calendar week numbering.
 	 *   If specified, this overwrites <code>oFormatOptions.firstDayOfWeek</code> and <code>oFormatOptions.minimalDaysInFirstWeek</code>.
 	 * @param {int} [oFormatOptions.firstDayOfWeek] since 1.105.0 specifies the first day of the week starting with <code>0</code> (which is Sunday); if not defined, the value taken from the locale is used
 	 * @param {int} [oFormatOptions.minimalDaysInFirstWeek] since 1.105.0 minimal days at the beginning of the year which define the first calendar week; if not defined, the value taken from the locale is used
@@ -246,7 +250,7 @@ sap.ui.define([
 	 *   "Jan 10 – Feb 12, 2008" becomes "Jan 10, 2008...Feb 12, 2008".
 	 * @param {boolean} [oFormatOptions.singleIntervalValue=false] Only relevant if oFormatOptions.interval is set to 'true'. This allows to pass an array with only one date object to the {@link sap.ui.core.format.DateFormat#format format} method.
 	 * @param {boolean} [oFormatOptions.UTC] if true, the date is formatted and parsed as UTC instead of the local timezone
-	 * @param {sap.ui.core.CalendarType} [oFormatOptions.calendarType] The calender type which is used to format and parse the date. This value is by default either set in configuration or calculated based on current locale.
+	 * @param {module:sap/base/i18n/date/CalendarType} [oFormatOptions.calendarType] The calender type which is used to format and parse the date. This value is by default either set in configuration or calculated based on current locale.
 	 * @param {sap.ui.core.Locale} [oLocale] Locale to ask for locale specific texts/settings
 	 * @ui5-omissible-params oFormatOptions
 	 * @return {sap.ui.core.format.DateFormat} date instance of the DateFormat
@@ -266,7 +270,7 @@ sap.ui.define([
 	 * Get a datetime instance of the DateFormat, which can be used for formatting.
 	 *
 	 * @param {object} [oFormatOptions] Object which defines the format options
-	 * @param {sap.ui.core.date.CalendarWeekNumbering} [oFormatOptions.calendarWeekNumbering] since 1.108.0 specifies the calendar week numbering.
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering} [oFormatOptions.calendarWeekNumbering] since 1.108.0 specifies the calendar week numbering.
 	 *   If specified, this overwrites <code>oFormatOptions.firstDayOfWeek</code> and <code>oFormatOptions.minimalDaysInFirstWeek</code>.
 	 * @param {int} [oFormatOptions.firstDayOfWeek] since 1.105.0 specifies the first day of the week starting with <code>0</code> (which is Sunday); if not defined, the value taken from the locale is used
 	 * @param {int} [oFormatOptions.minimalDaysInFirstWeek] since 1.105.0 minimal days at the beginning of the year which define the first calendar week; if not defined, the value taken from the locale is used
@@ -277,8 +281,8 @@ sap.ui.define([
 	 * @param {string} [oFormatOptions.style] can be either 'short, 'medium', 'long' or 'full'. For datetime you can also define mixed styles, separated with a slash, where the first part is the date style and the second part is the time style (e.g. "medium/short"). If no pattern is given, a locale dependent default datetime pattern of that style is used from the LocaleData class.
 	 * @param {boolean} [oFormatOptions.strictParsing] if true, by parsing it is checked if the value is a valid datetime
 	 * @param {boolean} [oFormatOptions.relative] if true, the date is formatted relatively to today's date if it is within the given day range, e.g. "today", "1 day ago", "in 5 days"
-	 * @param {int[]} [oFormatOptions.relativeRange] the day range used for relative formatting. If <code>oFormatOptions.relativeScale</code> is set to default value 'day', the relativeRange is by default [-6, 6], which means only the last 6 days, today and the next 6 days are formatted relatively. Otherwise when <code>oFormatOptions.relativeScale</code> is set to 'auto', all dates are formatted relatively.
-	 * @param {string} [oFormatOptions.relativeScale="day"] if 'auto' is set, new relative time format is switched on for all Date/Time Instances. The relative scale is chosen depending on the difference between the given date and now.
+	 * @param {int[]} [oFormatOptions.relativeRange] the day range used for relative formatting. If <code>oFormatOptions.relativeScale</code> is set to value 'day', the relativeRange is by default [-6, 6], which means only the last 6 days, today and the next 6 days are formatted relatively. Otherwise when <code>oFormatOptions.relativeScale</code> is set to 'auto', all dates are formatted relatively.
+	 * @param {string} [oFormatOptions.relativeScale="auto"] if 'auto' is set, new relative time format is switched on for all Date/Time Instances. The relative scale is chosen depending on the difference between the given date and now.
 	 * @param {string} [oFormatOptions.relativeStyle="wide"] since 1.32.10, 1.34.4 the style of the relative format. The valid values are "wide", "short", "narrow"
 	 * @param {boolean} [oFormatOptions.interval=false] since 1.48.0 if true, the {@link sap.ui.core.format.DateFormat#format format} method expects an array with two dates as the first argument and formats them as interval. Further interval "Jan 10, 2008 - Jan 12, 2008" will be formatted as "Jan 10-12, 2008" if the 'format' option is set with necessary symbols.
 	 *   Otherwise the two given dates are formatted separately and concatenated with local dependent pattern.
@@ -290,7 +294,7 @@ sap.ui.define([
 	 *   "Jan 10, 2008, 9:15 – 11:45 AM" becomes "Jan 10, 2008, 9:15 AM...Jan 10, 2008, 11:45 AM".
 	 * @param {boolean} [oFormatOptions.singleIntervalValue=false] Only relevant if oFormatOptions.interval is set to 'true'. This allows to pass an array with only one date object to the {@link sap.ui.core.format.DateFormat#format format} method.
 	 * @param {boolean} [oFormatOptions.UTC] if true, the date is formatted and parsed as UTC instead of the local timezone
-	 * @param {sap.ui.core.CalendarType} [oFormatOptions.calendarType] The calender type which is used to format and parse the date. This value is by default either set in configuration or calculated based on current locale.
+	 * @param {module:sap/base/i18n/date/CalendarType} [oFormatOptions.calendarType] The calender type which is used to format and parse the date. This value is by default either set in configuration or calculated based on current locale.
 	 * @param {sap.ui.core.Locale} [oLocale] Locale to ask for locale specific texts/settings
 	 * @ui5-omissible-params oFormatOptions
 	 * @return {sap.ui.core.format.DateFormat} datetime instance of the DateFormat
@@ -342,10 +346,12 @@ sap.ui.define([
 	 * DateFormat.getDateTimeWithTimezoneInstance({showDate: false, showTime: false}).format(oDate, "America/New_York");
 	 * // output: "Americas, New York"
 	 *
-	 * @param {Date} oJSDate The date to format
+	 * @param {Date} [oJSDate] The date to format. If it is <code>null</code> or <code>undefined</code> only the
+	 *   timezone will be formatted, any other invalid date is formatted as empty string.
 	 * @param {string} [sTimezone] The IANA timezone ID in which the date will be calculated and
-	 *   formatted e.g. "America/New_York". If the parameter is omitted, <code>null</code> or an empty string, the timezone
-	 *   will be taken from {@link sap.ui.core.Configuration#getTimezone}. For an invalid IANA timezone ID, an empty string will be returned.
+	 *   formatted e.g. "America/New_York". If the parameter is omitted, <code>null</code> or an empty string, the
+	 *   timezone will be taken from {@link module:sap/base/i18n/Localization.getTimezone Localization.getTimezone}.
+	 *   For an invalid IANA time zone ID, an empty string will be returned.
 	 * @throws {TypeError} Thrown if the parameter <code>sTimezone</code> is provided and has the wrong type.
 	 * @return {string} the formatted output value. If an invalid date or timezone is given, an empty string is returned.
 	 * @name sap.ui.core.format.DateFormat.DateTimeWithTimezone.format
@@ -378,8 +384,9 @@ sap.ui.define([
 	 *
 	 * @param {string} sValue the string containing a formatted date/time value
 	 * @param {string} [sTimezone] The IANA timezone ID which should be used to convert the date
-	 *   e.g. "America/New_York". If the parameter is omitted, <code>null</code> or an empty string, the timezone will be taken
-	 *   from {@link sap.ui.core.Configuration#getTimezone}. For an invalid IANA timezone ID, <code>null</code> will be returned.
+	 *   e.g. "America/New_York". If the parameter is omitted, <code>null</code> or an empty string, the timezone will
+	 *   be taken from {@link module:sap/base/i18n/Localization.getTimezone Localization.getTimezone}. For an invalid
+	 *   IANA timezone ID, <code>null</code> will be returned.
 	 * @param {boolean} [bStrict] Whether to be strict with regards to the value ranges of date fields,
 	 * e.g. for a month pattern of <code>MM</code> and a value range of [1-12]
 	 * <code>strict</code> ensures that the value is within the range;
@@ -416,7 +423,7 @@ sap.ui.define([
 	 * Get a datetimeWithTimezone instance of the DateFormat, which can be used for formatting.
 	 *
 	 * @param {object} [oFormatOptions] An object which defines the format options
-	 * @param {sap.ui.core.date.CalendarWeekNumbering} [oFormatOptions.calendarWeekNumbering] since 1.108.0 specifies the calendar week numbering.
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering} [oFormatOptions.calendarWeekNumbering] since 1.108.0 specifies the calendar week numbering.
 	 *   If specified, this overwrites <code>oFormatOptions.firstDayOfWeek</code> and <code>oFormatOptions.minimalDaysInFirstWeek</code>.
 	 * @param {int} [oFormatOptions.firstDayOfWeek] since 1.105.0 specifies the first day of the week starting with <code>0</code> (which is Sunday); if not defined, the value taken from the locale is used
 	 * @param {int} [oFormatOptions.minimalDaysInFirstWeek] since 1.105.0 minimal days at the beginning of the year which define the first calendar week; if not defined, the value taken from the locale is used
@@ -436,7 +443,7 @@ sap.ui.define([
 	 * @param {int[]} [oFormatOptions.relativeRange] The day range used for relative formatting. If <code>oFormatOptions.relativeScale</code> is set to the default value 'day', the <code>relativeRange<code> is by default [-6, 6], which means that only the previous 6 and the following 6 days are formatted relatively. If <code>oFormatOptions.relativeScale</code> is set to 'auto', all dates are formatted relatively.
 	 * @param {string} [oFormatOptions.relativeScale] If 'auto' is set, a new relative time format is switched on for all Date/Time instances. The default value depends on <code>showDate</code> and <code>showTime</code> options.
 	 * @param {string} [oFormatOptions.relativeStyle="wide"] The style of the relative format. The valid values are "wide", "short", "narrow"
-	 * @param {sap.ui.core.CalendarType} [oFormatOptions.calendarType] The calendar type which is used to format and parse the date. This value is by default either set in the configuration or calculated based on the current locale.
+	 * @param {module:sap/base/i18n/date/CalendarType} [oFormatOptions.calendarType] The calendar type which is used to format and parse the date. This value is by default either set in the configuration or calculated based on the current locale.
 	 * @param {sap.ui.core.Locale} [oLocale] Locale to ask for locale-specific texts/settings
 	 * @ui5-omissible-params oFormatOptions
 	 * @throws {TypeError} If an invalid configuration was supplied, i.e. when the
@@ -487,7 +494,7 @@ sap.ui.define([
 	 * Get a time instance of the DateFormat, which can be used for formatting.
 	 *
 	 * @param {object} [oFormatOptions] Object which defines the format options
-	 * @param {sap.ui.core.date.CalendarWeekNumbering} [oFormatOptions.calendarWeekNumbering] since 1.108.0 specifies the calendar week numbering.
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering} [oFormatOptions.calendarWeekNumbering] since 1.108.0 specifies the calendar week numbering.
 	 *   If specified, this overwrites <code>oFormatOptions.firstDayOfWeek</code> and <code>oFormatOptions.minimalDaysInFirstWeek</code>.
 	 * @param {int} [oFormatOptions.firstDayOfWeek] since 1.105.0 specifies the first day of the week starting with <code>0</code> (which is Sunday); if not defined, the value taken from the locale is used
 	 * @param {int} [oFormatOptions.minimalDaysInFirstWeek] since 1.105.0 minimal days at the beginning of the year which define the first calendar week; if not defined, the value taken from the locale is used
@@ -498,8 +505,8 @@ sap.ui.define([
 	 * @param {string} [oFormatOptions.style] can be either 'short, 'medium', 'long' or 'full'. If no pattern is given, a locale dependent default time pattern of that style is used from the LocaleData class.
 	 * @param {boolean} [oFormatOptions.strictParsing] if true, by parsing it is checked if the value is a valid time
 	 * @param {boolean} [oFormatOptions.relative] if true, the date is formatted relatively to todays date if it is within the given day range, e.g. "today", "1 day ago", "in 5 days"
-	 * @param {int[]} [oFormatOptions.relativeRange] the day range used for relative formatting. If <code>oFormatOptions.relativeScale</code> is set to default value 'day', the relativeRange is by default [-6, 6], which means only the last 6 days, today and the next 6 days are formatted relatively. Otherwise when <code>oFormatOptions.relativeScale</code> is set to 'auto', all dates are formatted relatively.
-	 * @param {string} [oFormatOptions.relativeScale="day"] if 'auto' is set, new relative time format is switched on for all Date/Time Instances. The relative scale is chosen depending on the difference between the given date and now.
+	 * @param {int[]} [oFormatOptions.relativeRange] the day range used for relative formatting. If <code>oFormatOptions.relativeScale</code> is set to value 'day', the relativeRange is by default [-6, 6], which means only the last 6 days, today and the next 6 days are formatted relatively. Otherwise when <code>oFormatOptions.relativeScale</code> is set to 'auto', all dates are formatted relatively.
+	 * @param {string} [oFormatOptions.relativeScale="auto"] if 'auto' is set, new relative time format is switched on for all Date/Time Instances. The relative scale is chosen depending on the difference between the given date and now.
 	 * @param {string} [oFormatOptions.relativeStyle="wide"] since 1.32.10, 1.34.4 the style of the relative format. The valid values are "wide", "short", "narrow"
 	 * @param {boolean} [oFormatOptions.interval=false] since 1.48.0 if true, the {@link sap.ui.core.format.DateFormat#format format} method expects an array with two dates as the first argument and formats them as interval. Further interval "Jan 10, 2008 - Jan 12, 2008" will be formatted as "Jan 10-12, 2008" if the 'format' option is set with necessary symbols.
 	 *   Otherwise the two given dates are formatted separately and concatenated with local dependent pattern.
@@ -511,7 +518,7 @@ sap.ui.define([
 	 *   "09:15 – 11:45 AM" becomes "9:15 AM...11:45 AM".
 	 * @param {boolean} [oFormatOptions.singleIntervalValue=false] Only relevant if oFormatOptions.interval is set to 'true'. This allows to pass an array with only one date object to the {@link sap.ui.core.format.DateFormat#format format} method.
 	 * @param {boolean} [oFormatOptions.UTC] if true, the time is formatted and parsed as UTC instead of the local timezone
-	 * @param {sap.ui.core.CalendarType} [oFormatOptions.calendarType] The calender type which is used to format and parse the date. This value is by default either set in configuration or calculated based on current locale.
+	 * @param {module:sap/base/i18n/date/CalendarType} [oFormatOptions.calendarType] The calender type which is used to format and parse the date. This value is by default either set in configuration or calculated based on current locale.
 	 * @param {sap.ui.core.Locale} [oLocale] Locale to ask for locale specific texts/settings
 	 * @ui5-omissible-params oFormatOptions
 	 * @return {sap.ui.core.format.DateFormat} time instance of the DateFormat
@@ -558,7 +565,7 @@ sap.ui.define([
 
 		// Get Locale and LocaleData to use
 		if (!oLocale) {
-			oLocale = Configuration.getFormatSettings().getFormatLocale();
+			oLocale = new Locale(Formatting.getLanguageTag());
 		}
 		oFormat.oLocale = oLocale;
 		oFormat.oLocaleData = LocaleData.getInstance(oLocale);
@@ -582,7 +589,7 @@ sap.ui.define([
 		oFormat.type = oInfo.type;
 
 		if (!oFormat.oFormatOptions.calendarType) {
-			oFormat.oFormatOptions.calendarType = Configuration.getCalendarType();
+			oFormat.oFormatOptions.calendarType = Formatting.getCalendarType();
 		}
 
 		if (oFormat.oFormatOptions.firstDayOfWeek === undefined && oFormat.oFormatOptions.minimalDaysInFirstWeek !== undefined
@@ -739,7 +746,7 @@ sap.ui.define([
 	 * instances are used as fallback formats of another DateFormat instances.
 	 *
 	 * @param {Object[]} aFallbackFormatOptions the options for creating the fallback DateFormat
-	 * @param {sap.ui.core.CalendarType} sCalendarType the type of the current calendarType
+	 * @param {module:sap/base/i18n/date/CalendarType} sCalendarType the type of the current calendarType
 	 * @param {sap.ui.core.Locale} oLocale Locale to ask for locale specific texts/settings
 	 * @param {Object} oInfo The default info object of the current date type
 	 * @param {object} oParentFormatOptions the format options, relevant are: interval, showDate, showTime and showTimezone
@@ -1084,7 +1091,7 @@ sap.ui.define([
 				// If the current letter in the pattern is " ", sValue is allowed to have no match, exact match
 				// or multiple " ". This makes the parsing more tolerant. Special spaces or RTL characters have
 				// to be normalized before comparison.
-				const sPartValue = DateFormat._normalize(oPart.value);
+				const sPartValue = FormatUtils.normalize(oPart.value);
 				for (; iPatternIndex < sPartValue.length; iPatternIndex++) {
 					sChar = sPartValue.charAt(iPatternIndex);
 
@@ -1754,7 +1761,7 @@ sap.ui.define([
 
 				for (i = 0; i < aDayPeriodsVariants.length; i += 1) {
 					aVariants = aDayPeriodsVariants[i].map((sDayPeriod) => {
-						return DateFormat._normalize(sDayPeriod);
+						return FormatUtils.normalize(sDayPeriod);
 					});
 					if (bAMPMAlternativeCase) {
 						// check normalized match for alternative case of am/pm
@@ -2094,7 +2101,7 @@ sap.ui.define([
 				}
 
 				// valid for zzzz (fallback to OOOO)
-				var iTimezoneOffset = TimezoneUtil.calculateOffset(oDate, sTimezone);
+				var iTimezoneOffset = TimezoneUtils.calculateOffset(oDate, sTimezone);
 				var sTimeZone = "GMT";
 				var iTZOffset = Math.abs(iTimezoneOffset / 60);
 				var bPositiveOffset = iTimezoneOffset > 0;
@@ -2146,7 +2153,7 @@ sap.ui.define([
 		"Z": DateFormat._createPatternSymbol({
 			name: "timezoneRFC822",
 			format: function(oField, oDate, bUTC, oFormat, sTimezone) {
-				var iTimezoneOffset = TimezoneUtil.calculateOffset(oDate, sTimezone);
+				var iTimezoneOffset = TimezoneUtils.calculateOffset(oDate, sTimezone);
 				var iTZOffset = Math.abs(iTimezoneOffset / 60);
 				var bPositiveOffset = iTimezoneOffset > 0;
 				var iHourOffset = Math.floor(iTZOffset / 60);
@@ -2203,7 +2210,7 @@ sap.ui.define([
 				 */
 
 				// @see http://www.unicode.org/reports/tr35/tr35-dates.html#Time_Zone_Goals
-				var iTimezoneOffset = TimezoneUtil.calculateOffset(oDate, sTimezone);
+				var iTimezoneOffset = TimezoneUtils.calculateOffset(oDate, sTimezone);
 				var iTZOffset = Math.abs(iTimezoneOffset / 60);
 				var bPositiveOffset = iTimezoneOffset > 0;
 				var iHourOffset = Math.floor(iTZOffset / 60);
@@ -2261,6 +2268,7 @@ sap.ui.define([
 				if (oPart.digits === 2) {
 					var mTimezoneTranslations = oFormat.oLocaleData.getTimezoneTranslations();
 
+					sTimezone = TimezoneUtils.getABAPTimezone(sTimezone);
 					// shortcut, first try the time zone parameter
 					if (sValue === mTimezoneTranslations[sTimezone]) {
 						return {
@@ -2284,8 +2292,8 @@ sap.ui.define([
 					// find the longest valid time zone ID at the beginning of sValue
 					for (var i = sValue.length; i > 0; i -= 1) {
 						sCurrentValue = sValue.slice(0, i);
-						if (TimezoneUtil.isValidTimezone(sCurrentValue)) {
-							oTimezoneParsed.timezone = sCurrentValue;
+						if (TimezoneUtils.isValidTimezone(sCurrentValue)) {
+							oTimezoneParsed.timezone = TimezoneUtils.getABAPTimezone(sCurrentValue);
 							oTimezoneParsed.length = sCurrentValue.length;
 							break;
 						}
@@ -2337,8 +2345,8 @@ sap.ui.define([
 	/**
 	 * Format a date according to the given format options.
 	 *
-	 * Uses the timezone from {@link sap.ui.core.Configuration#getTimezone}, which falls back to the
-	 * browser's local timezone to convert the given date.
+	 * Uses the timezone from {@link module:sap/base/i18n/Localization.getTimezone Localization.getTimezone}, which
+	 * falls back to the browser's local timezone to convert the given date.
 	 *
 	 * When using instances from getDateTimeWithTimezoneInstance, please see the corresponding documentation:
 	 * {@link sap.ui.core.format.DateFormat.DateTimeWithTimezone#format}.
@@ -2361,7 +2369,8 @@ sap.ui.define([
 			bUTC = false;
 
 			checkTimezoneParameterType(sTimezone);
-			if (sTimezone && !TimezoneUtil.isValidTimezone(sTimezone)) {
+			sTimezone = TimezoneUtils.getABAPTimezone(sTimezone);
+			if (sTimezone && !TimezoneUtils.isValidTimezone(sTimezone)) {
 				Log.error("The given timezone isn't valid.");
 				return "";
 			}
@@ -2375,7 +2384,7 @@ sap.ui.define([
 		}
 
 		// default the timezone to the local timezone to always enforce the conversion
-		sTimezone = sTimezone || Configuration.getTimezone();
+		sTimezone = sTimezone || Localization.getTimezone();
 
 		if (Array.isArray(vJSDate)) {
 			if (!this.oFormatOptions.interval) {
@@ -2412,9 +2421,9 @@ sap.ui.define([
 			}
 		} else {
 			if (!isValidDateObject(vJSDate)) {
-				// Although an invalid date was given, the DATETIME_WITH_TIMEZONE instance might
-				// have a pattern with the timezone (VV) inside then the IANA timezone ID is returned
-				if (this.type === mDateFormatTypes.DATETIME_WITH_TIMEZONE && this.oFormatOptions.pattern.includes("VV")) {
+				const bNullish = vJSDate === undefined || vJSDate === null;
+				if (bNullish && this.type === mDateFormatTypes.DATETIME_WITH_TIMEZONE
+						&& this.oFormatOptions.pattern.includes("VV")) {
 					return this.oLocaleData.getTimezoneTranslations()[sTimezone] || sTimezone;
 				}
 				Log.error("The given date instance isn't valid.");
@@ -2695,9 +2704,9 @@ sap.ui.define([
 	 * Retrieves the parameter for the calendar week configuration from the DateFormat's format
 	 * options
 	 *
-	 * @param {{firstDayOfWeek: int, minimalDaysInFirstWeek: int, calendarWeekNumbering: sap.ui.core.date.CalendarWeekNumbering}} oFormatOptions
+	 * @param {{firstDayOfWeek: int, minimalDaysInFirstWeek: int, calendarWeekNumbering: module:sap/base/i18n/date/CalendarWeekNumbering}} oFormatOptions
 	 *   The format options with which the DateFormat instance was created
-	 * @returns {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}|undefined}
+	 * @returns {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}|undefined}
 	 *   The parameter for the calendar week configuration
 	 */
 	function getCalendarWeekParameter (oFormatOptions) {
@@ -2725,7 +2734,7 @@ sap.ui.define([
 		// Convert to timezone if provided and a valid date is supplied
 		if (!bUTC && isValidDateObject(oJSDate)) {
 			// convert given date to a date in the target timezone
-			return TimezoneUtil.convertToTimezone(oJSDate, sTimezone);
+			return TimezoneUtils.convertToTimezone(oJSDate, sTimezone);
 		}
 		return oJSDate;
 	};
@@ -2781,7 +2790,7 @@ sap.ui.define([
 			}
 
 			if (sTimezone) {
-				oDateValue.tzDiff = TimezoneUtil.calculateOffset(oDate, sTimezone);
+				oDateValue.tzDiff = TimezoneUtils.calculateOffset(oDate, sTimezone);
 			}
 		}
 		if (oDateValue.tzDiff) {
@@ -2834,8 +2843,8 @@ sap.ui.define([
 	/**
 	 * Parse a string which is formatted according to the given format options.
 	 *
-	 * Uses the timezone from {@link sap.ui.core.Configuration#getTimezone}, which falls back to the
-	 * browser's local timezone to convert the given date.
+	 * Uses the timezone from {@link module:sap/base/i18n/Localization.getTimezone Localization.getTimezone}, which
+	 * falls back to the browser's local timezone to convert the given date.
 	 *
 	 * When using instances from getDateTimeWithTimezoneInstance, please see the corresponding documentation:
 	 * {@link sap.ui.core.format.DateFormat.DateTimeWithTimezone#parse}.
@@ -2875,7 +2884,7 @@ sap.ui.define([
 			bUTC = false;
 
 			checkTimezoneParameterType(sTimezone);
-			if (sTimezone && !TimezoneUtil.isValidTimezone(sTimezone)) {
+			if (sTimezone && !TimezoneUtils.isValidTimezone(sTimezone)) {
 				Log.error("The given timezone isn't valid.");
 				return null;
 			}
@@ -2884,13 +2893,13 @@ sap.ui.define([
 		sValue = sValue == null ? "" : String(sValue).trim();
 		// normalize input by removing all RTL special characters and replacing all special spaces
 		// by a standard space (\u0020)
-		sValue = DateFormat._normalize(sValue);
+		sValue = FormatUtils.normalize(sValue);
 
 		var oDateValue;
 		var sCalendarType = this.oFormatOptions.calendarType;
 
 		// default the timezone to the local timezone to always enforce the conversion
-		sTimezone = sTimezone || Configuration.getTimezone();
+		sTimezone = sTimezone || Localization.getTimezone();
 
 		if (bStrict === undefined) {
 			bStrict = this.oFormatOptions.strictParsing;
@@ -3453,7 +3462,7 @@ sap.ui.define([
 	 * @ui5-restricted sap.m
 	 */
 	DateFormat.prototype.getPlaceholderText = function() {
-		var oResourceBundle = Core.getLibraryResourceBundle();
+		var oResourceBundle = Library.getResourceBundleFor("sap.ui.core");
 
 		return oResourceBundle.getText("date.placeholder", [this.format.apply(this, this.getSampleValue())]);
 	};
@@ -3480,7 +3489,7 @@ sap.ui.define([
 		oDate = getDate(iFullYear, 11, 31, 23, 59, 58, 123);
 
 		if (this.type === mDateFormatTypes.DATETIME_WITH_TIMEZONE) {
-			return [oDate, Configuration.getTimezone()];
+			return [oDate, Localization.getTimezone()];
 		}
 
 		if (this.oFormatOptions.interval) {
@@ -3488,20 +3497,6 @@ sap.ui.define([
 		}
 
 		return [oDate];
-	};
-
-	const rAllRTLCharacters = /[\u200e\u200f\u202a\u202b\u202c]/g;
-	const rAllSpaces = /\s/g;
-
-	/**
-	 * Normalizes the given string by removing RTL characters and replacing special space characters
-	 * by the standard ASCII space (\u0020).
-	 *
-	 * @param {string} sValue The value to be normalized
-	 * @return {string} The normalized value
-	 */
-	DateFormat._normalize = function (sValue) {
-		return sValue.replace(rAllRTLCharacters, "").replace(rAllSpaces, " ");
 	};
 
 	return DateFormat;

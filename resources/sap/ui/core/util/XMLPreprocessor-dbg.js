@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 		 */
 		With = ManagedObject.extend("sap.ui.core.util._with", {
 			metadata : {
-				library: "sap.ui.core",
+				library : "sap.ui.core",
 				properties : {
 					any : "any"
 				},
@@ -61,7 +61,7 @@ sap.ui.define([
 		 */
 		Repeat = With.extend("sap.ui.core.util._repeat", {
 			metadata : {
-				library: "sap.ui.core",
+				library : "sap.ui.core",
 				aggregations : {
 					list : {multiple : true, type : "n/a", _doesNotRequireFactory : true}
 				}
@@ -134,6 +134,7 @@ sap.ui.define([
 					oBindingOrContext.getPath(), oBindingOrContext.getContext());
 		}
 
+		// eslint-disable-next-line no-warning-comments
 		/**
 		 * Context interface provided by XML template processing as an additional first argument to
 		 * any formatter function which opts in to this mechanism. Candidates for such formatter
@@ -275,7 +276,7 @@ sap.ui.define([
 
 				if (sPath) {
 					oModel = oBindingOrContext.getModel();
-					if (sPath.charAt(0) !==  '/') { // relative path needs a base context
+					if (sPath.charAt(0) !== "/") { // relative path needs a base context
 						oBaseContext = oBindingOrContext instanceof Context
 							? oBindingOrContext
 							: oModel.createBindingContext(oBindingOrContext.getPath(),
@@ -305,6 +306,7 @@ sap.ui.define([
 			 */
 			getModel : function (iPart) {
 				var oBindingOrContext = getBindingOrContext(iPart);
+
 				return oBindingOrContext && oBindingOrContext.getModel();
 			},
 
@@ -321,6 +323,7 @@ sap.ui.define([
 			 */
 			getPath : function (iPart) {
 				var oBindingOrContext = getBindingOrContext(iPart);
+
 				return oBindingOrContext && getPath(oBindingOrContext);
 			},
 
@@ -391,6 +394,7 @@ sap.ui.define([
 					&& (oModel && oModel.$$valueAsPromise || i === undefined && bValueAsPromise)) {
 				oInfo.formatter = function () {
 					var that = this;
+
 					return SyncPromise.all(arguments).then(function (aArguments) {
 						return fnFormatter.apply(that, aArguments);
 					});
@@ -398,7 +402,7 @@ sap.ui.define([
 				oInfo.formatter.textFragments = fnFormatter.textFragments;
 			}
 			oInfo.mode = BindingMode.OneTime;
-			oInfo.parameters = oInfo.parameters || {};
+			oInfo.parameters ??= {};
 			oInfo.parameters.scope = oScope;
 			if (bAsync && oModel && oModel.$$valueAsPromise) { // opt-in to async behavior
 				bValueAsPromise = oInfo.parameters.$$valueAsPromise = true;
@@ -445,7 +449,7 @@ sap.ui.define([
 		 *
 		 * @param {boolean} bFound
 		 *   Whether an element was approved by the corresponding callback
-		 * @returns {sap.ui.base.SyncPromise|any}
+		 * @returns {sap.ui.base.SyncPromise|any|undefined}
 		 *   First call returns a <code>sap.ui.base.SyncPromise</code> which resolves with a later
 		 *   call's result.
 		 */
@@ -457,6 +461,7 @@ sap.ui.define([
 			if (i < aElements.length) {
 				return fnCallback(aElements[i], i, aElements).then(next);
 			}
+			return undefined;
 		}
 
 		return aElements.length
@@ -602,7 +607,6 @@ sap.ui.define([
 				bCallerLoggedForWarnings = bDebug, // debug output already contains caller
 				sCurrentName = oViewInfo.name, // current view or fragment name
 				mFragmentCache = {},
-				sName,
 				iNestingLevel = 0,
 				oScope = {}, // for BindingParser.complexParser()
 				fnSupportInfo = oViewInfo._supportInfo,
@@ -679,12 +683,11 @@ sap.ui.define([
 					 *   path cannot be resolved (typically because a relative path was given for a
 					 *   model without a binding context)
 					 */
-					getContext : function (sPath) {
+					getContext : function (sPath = "") {
 						var oBindingInfo,
 							oModel,
 							sResolvedPath;
 
-						sPath = sPath || "";
 						if (sPath[0] === "{") {
 							throw new Error("Must be a simple path, not a binding: " + sPath);
 						}
@@ -910,7 +913,7 @@ sap.ui.define([
 					 * @see sap.ui.core.util.XMLPreprocessor.ICallback.getResult
 					 * @since 1.39.0
 					 */
-					"with" : function (mVariables, bReplace) {
+					with : function (mVariables, bReplace) {
 						var oContext,
 							bHasVariables = false,
 							sName,
@@ -982,7 +985,7 @@ sap.ui.define([
 			 *   the XML DOM element
 			 */
 			function error(sMessage, oElement) {
-				sMessage = sMessage + serializeSingleElement(oElement);
+				sMessage += serializeSingleElement(oElement);
 				Log.error(sMessage, sCaller, sXMLPreprocessor);
 				throw new Error(sCaller + ": " + sMessage);
 			}
@@ -1131,20 +1134,23 @@ sap.ui.define([
 
 					if (vBindingInfo.functionsNotFound) {
 						if (bMandatory) {
-							warn(oElement, 'Function name(s)',
-								vBindingInfo.functionsNotFound.join(", "), 'not found');
+							warn(oElement, "Function name(s)",
+								vBindingInfo.functionsNotFound.join(", "), "not found");
 						}
 						return null; // treat incomplete bindings as unrelated
 					}
 
-					const bReady = vBindingInfo.parts.every((oPart) => {
-						return oPart.value !== undefined || oWithControl.getModel(oPart.model);
-					});
-					if (!bReady) {
+					if (!BindingInfo.isReady(vBindingInfo, oWithControl)) {
 						if (bMandatory) {
 							warn(oElement, "Binding not ready");
 						}
 						return null;
+					}
+
+					const bStaticOnly
+						= vBindingInfo.parts.every((oPart) => oPart.value !== undefined);
+					if (bStaticOnly) {
+						fnCallIfConstant?.();
 					}
 
 					if (!oTypesPromise) {
@@ -1195,7 +1201,7 @@ sap.ui.define([
 				// Note: It is perfectly valid to include the very same fragment again, as long as
 				// the context is changed. So we check for cycles at the current "with" control.
 				// A context change will create a new one.
-				oWithControl.$mFragmentContexts = oWithControl.$mFragmentContexts || {};
+				oWithControl.$mFragmentContexts ??= {};
 				if (oWithControl.$mFragmentContexts[sFragmentName]) {
 					error("Cyclic reference to fragment '" + sFragmentName + "' ", oElement);
 				}
@@ -1244,11 +1250,10 @@ sap.ui.define([
 			 *   A sync promise which resolves with <code>undefined</code> as soon as visiting and
 			 *   lifting is done, or is rejected with a corresponding error if visiting fails.
 			 */
-			function liftChildNodes(oParent, oWithControl, oTarget) {
+			function liftChildNodes(oParent, oWithControl, oTarget = oParent) {
 				return visitChildNodes(oParent, oWithControl).then(function () {
 					var oChild;
 
-					oTarget = oTarget || oParent;
 					while ((oChild = oParent.firstChild)) {
 						oTarget.parentNode.insertBefore(oChild, oTarget);
 					}
@@ -1267,14 +1272,14 @@ sap.ui.define([
 			 */
 			function performTest(oElement, oWithControl) {
 				// constant test conditions are suspicious, but useful during development
-				var fnCallIfConstant = warn.bind(null, oElement, 'Constant test condition'),
+				var fnCallIfConstant = warn.bind(null, oElement, "Constant test condition"),
 					oPromise
 						= getResolvedBinding(oElement.getAttribute("test"), oElement, oWithControl,
 								true, fnCallIfConstant)
 						|| SyncPromise.resolve(false);
 
 				return oPromise.catch(function (ex) {
-					warn(oElement, 'Error in formatter:', ex);
+					warn(oElement, "Error in formatter:", ex);
 					// "test == undefined --> false" in debug log
 				}).then(function (vTest) {
 					var bResult = !!vTest && vTest !== "false";
@@ -1383,7 +1388,7 @@ sap.ui.define([
 				var oPromise = getResolvedBinding(oAttribute.value, oElement, oWithControl, false);
 
 				if (!oPromise) {
-					debug(oElement, 'Binding not ready for attribute', oAttribute.name);
+					debug(oElement, "Binding not ready for attribute", oAttribute.name);
 					return oSyncPromiseResolved;
 				}
 				return oPromise.then(function (vValue) {
@@ -1496,7 +1501,7 @@ sap.ui.define([
 
 					return true;
 				}, function (ex) {
-					warn(oElement, 'Error in formatter:', ex);
+					warn(oElement, "Error in formatter:", ex);
 					return true;
 				});
 			}
@@ -1520,15 +1525,15 @@ sap.ui.define([
 				if (!oPromise) {
 					return oSyncPromiseResolved;
 				}
-				return oPromise.then(function (sFragmentName) {
+				return oPromise.then(function (sFragmentName0) {
 					var oOldScope = oScope;
 
 					oScope = Object.create(oScope);
-					return insertFragment(sFragmentName, oElement, oWithControl).then(function () {
+					return insertFragment(sFragmentName0, oElement, oWithControl).then(function () {
 						oScope = oOldScope;
 					});
 				}, function (ex) {
-					warn(oElement, 'Error in formatter:', ex);
+					warn(oElement, "Error in formatter:", ex);
 				});
 			}
 
@@ -1599,8 +1604,8 @@ sap.ui.define([
 					error("Missing binding for ", oElement);
 				}
 				if (oBindingInfo.functionsNotFound) {
-					warn(oElement, 'Function name(s)', oBindingInfo.functionsNotFound.join(", "),
-						'not found');
+					warn(oElement, "Function name(s)", oBindingInfo.functionsNotFound.join(", "),
+						"not found");
 				}
 
 				// set up a scope for the loop variable, so to say
@@ -1631,15 +1636,15 @@ sap.ui.define([
 				}
 
 				// set up the model for the loop variable
-				sVar = sVar || sModelName; // default loop variable is to keep the same model
+				sVar ??= sModelName; // default loop variable is to keep the same model
 				oNewWithControl.setModel(oListBinding.getModel(), sVar);
 
 				// the actual loop
 				iNestingLevel++;
 				debug(oElement, "Starting");
-				return oPromise.then(function (aContexts) {
-					return stopAndGo(aContexts, function (oContext, i) {
-						var oSourceNode = (i === aContexts.length - 1)
+				return oPromise.then(function (aContexts0) {
+					return stopAndGo(aContexts0, function (oContext, i) {
+						var oSourceNode = (i === aContexts0.length - 1)
 								? oElement
 								: oElement.cloneNode(true);
 
@@ -1693,7 +1698,7 @@ sap.ui.define([
 				oWithControl.setChild(oNewWithControl);
 
 				oBindingInfo = BindingParser.simpleParser("{" + sPath + "}");
-				sVar = sVar || oBindingInfo.model; // default variable is same model name
+				sVar ??= oBindingInfo.model; // default variable is same model name
 
 				if (sHelper || sVar) { // create a "named context"
 					oModel = oWithControl.getModel(oBindingInfo.model);
@@ -1717,16 +1722,16 @@ sap.ui.define([
 					if (oViewInfo.sync && oPromise.isPending()) {
 						error("Async helper in sync view in ", oElement);
 					}
-					oPromise = oPromise.then(function (vHelperResult) {
-						if (vHelperResult instanceof Context) {
-							oModel = vHelperResult.getModel();
-							sResolvedPath = vHelperResult.getPath();
-						} else if (vHelperResult !== undefined) {
-							if (typeof vHelperResult !== "string" || vHelperResult === "") {
-								error("Illegal helper result '" + vHelperResult + "' in ",
+					oPromise = oPromise.then(function (vHelperResult0) {
+						if (vHelperResult0 instanceof Context) {
+							oModel = vHelperResult0.getModel();
+							sResolvedPath = vHelperResult0.getPath();
+						} else if (vHelperResult0 !== undefined) {
+							if (typeof vHelperResult0 !== "string" || vHelperResult0 === "") {
+								error("Illegal helper result '" + vHelperResult0 + "' in ",
 									oElement);
 							}
-							sResolvedPath = vHelperResult;
+							sResolvedPath = vHelperResult0;
 						}
 						oNewWithControl.setModel(oModel, sVar);
 						oNewWithControl.bindObject({
@@ -1748,7 +1753,7 @@ sap.ui.define([
 						// Warn and ignore the new "with" control when its binding context is
 						// the same as a previous one.
 						// We test identity because models cache and reuse binding contexts.
-						warn(oElement, 'Set unchanged path:', sResolvedPath);
+						warn(oElement, "Set unchanged path:", sResolvedPath);
 						oNewWithControl = oWithControl;
 					}
 
@@ -1774,12 +1779,24 @@ sap.ui.define([
 			 */
 			function visitAttribute(oElement, oAttribute, oWithControl) {
 				if (fnSupportInfo) {
-					fnSupportInfo({context:undefined /*context from node clone*/, env:{caller:"visitAttribute", before: {name: oAttribute.name, value: oAttribute.value}}});
+					fnSupportInfo({
+						context : undefined /*context from node clone*/,
+						env : {
+							caller : "visitAttribute",
+							before : {name : oAttribute.name, value : oAttribute.value}
+						}
+					});
 				}
 				return resolveAttributeBinding(oElement, oAttribute, oWithControl)
 					.then(function () {
 						if (fnSupportInfo) {
-							fnSupportInfo({context:undefined /*context from node clone*/, env:{caller:"visitAttribute", after: {name: oAttribute.name, value: oAttribute.value}}});
+							fnSupportInfo({
+								context : undefined /*context from node clone*/,
+								env : {
+									caller : "visitAttribute",
+									after : {name : oAttribute.name, value : oAttribute.value}
+								}
+							});
 						}
 					});
 			}
@@ -1853,7 +1870,8 @@ sap.ui.define([
 						return visitChildNodes(oNode, oWithControl);
 					}).then(function () {
 						if (fnSupportInfo) {
-							fnSupportInfo({context:oNode, env:{caller:"visitNode", after: {name: oNode.tagName}}});
+							fnSupportInfo({context : oNode,
+								env : {caller : "visitNode", after : {name : oNode.tagName}}});
 						}
 					});
 				}
@@ -1863,7 +1881,8 @@ sap.ui.define([
 					return oSyncPromiseResolved;
 				}
 				if (fnSupportInfo) {
-					fnSupportInfo({context:oNode, env:{caller:"visitNode", before: {name: oNode.tagName}}});
+					fnSupportInfo({context : oNode,
+						env : {caller : "visitNode", before : {name : oNode.tagName}}});
 				}
 				if (oNode.namespaceURI === sNAMESPACE) {
 					switch (oNode.localName) {
@@ -1886,9 +1905,7 @@ sap.ui.define([
 					switch (oNode.localName) {
 					case "ExtensionPoint":
 						return templateExtensionPoint(oNode, oWithControl).then(function (bResult) {
-							if (bResult) {
-								return visitAttributesAndChildren();
-							}
+							return bResult ? visitAttributesAndChildren() : undefined;
 						});
 
 					case "Fragment":
@@ -1945,27 +1962,28 @@ sap.ui.define([
 			}
 
 			Measurement.average(sPerformanceProcess, "", aPerformanceCategories);
-			mSettings = mSettings || {};
+			mSettings ??= {}; // Note: might be null!
 
 			if (bDebug) {
 				debug(undefined, "Start processing", sCaller);
 				if (mSettings.bindingContexts instanceof Context) {
 					debug(undefined, "undefined =", mSettings.bindingContexts);
 				} else {
-					for (sName in mSettings.bindingContexts) {
+					for (const sName in mSettings.bindingContexts) {
 						debug(undefined, sName, "=", mSettings.bindingContexts[sName]);
 					}
 				}
 			}
 			if (fnSupportInfo) {
 				fnSupportInfo({
-						context: oRootElement,
-						env: {
-							caller:"view",
-							viewinfo: deepExtend({}, oViewInfo),
-							settings: deepExtend({}, mSettings),
-							clone: oRootElement.cloneNode(true),
-							type: "template"}
+						context : oRootElement,
+						env : {
+							caller : "view",
+							viewinfo : deepExtend({}, oViewInfo),
+							settings : deepExtend({}, mSettings),
+							clone : oRootElement.cloneNode(true),
+							type : "template"
+						}
 					});
 			}
 			return requireFor(oRootElement).then(function () {

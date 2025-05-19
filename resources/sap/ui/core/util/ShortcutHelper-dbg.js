@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -258,6 +258,12 @@ sap.ui.define([
 		 * @private
 		 */
 		handleKeydown: function(oShortcutSpec, vOriginalShortcut, fnCallback, oEvent) {
+			// There are situations (SNOW: DINC0032372), where a keydown event is triggered which is no instance of "KeyboardEvent".
+			// Hence, this explicit check is required.
+			if (!oEvent.key) {
+				return;
+			}
+
 			// do not react to keydown of modifier keys
 			if (oEvent.key === "Control" || oEvent.key === "Shift" || oEvent.key === "Alt" || oEvent.key === "AltGraph" || oEvent.key === "Meta") {
 				return;

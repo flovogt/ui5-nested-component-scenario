@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,11 +9,10 @@
  * Code other than the Core tests must not yet introduce dependencies to this module.
  */
 
-/*global sap */
 sap.ui.define([
-	"sap/base/util/merge",
-	"sap/ui/thirdparty/URI"
-], function(merge, URI) {
+	"sap/base/util/isPlainObject",
+	"sap/base/util/merge"
+], function(isPlainObject, merge) {
 	"use strict";
 
 	// ---- helpers ----
@@ -32,7 +31,14 @@ sap.ui.define([
 	}
 
 	function getDefaultSuiteName() {
-		var sName = sap.ui.loader._.guessResourceName(location.href);
+		var sName = sap.ui.loader._.guessResourceName(window.location.href);
+
+		// special handling for karma runner: paths starting with /base/test/ should be /base/test-resources/
+		if ( sName == null && window.location.pathname.startsWith("/base/test/") ) {
+			const altPath = window.location.origin + window.location.pathname.replace("/base/test/", "/base/test-resources/");
+			sName = sap.ui.loader._.guessResourceName(altPath);
+		}
+
 		return sName ? sName.replace(/\.html$/, "") : null;
 	}
 
@@ -85,12 +91,12 @@ sap.ui.define([
 		return [url.origin, url.origin + url.pathname];
 	})();
 
-	function toAbsoluteURL(sUrl) {
+	function createEffectivePageURL(sUrl, oParams, sName) {
 		// check for ui5 scheme
 		if (sUrl.startsWith("ui5:")) {
 			// check for authority
 			if (!sUrl.startsWith("ui5://")) {
-				throw new Error("URLs using the 'ui5' protocol must be absolute. Relative and server absolute URLs are reserved for future use.");
+				throw new TypeError(`Test '${sName}': Page URLs using the 'ui5' protocol must be absolute. Relative and server absolute URLs are reserved for future use.`);
 			}
 
 			const sNoScheme = sUrl.slice(6 /* "ui5://".length */);
@@ -100,7 +106,27 @@ sap.ui.define([
 			// in the context of the test starter, it then by convention is relative to the UI5 baseUrl (parent of "resources/")
 			sUrl = sap.ui.require.toUrl("") + "/../" + sUrl;
 		}
+
 		const url = new URL(sUrl, baseURL);
+
+		// add URL parameters if given
+		if ( oParams != null ) {
+			if ( typeof oParams !== "object" ) {
+				throw new TypeError(`Test '${sName}': Option 'uriParams' must be an object.`);
+			}
+			const urlParams = url.searchParams;
+			for (const name in oParams) {
+				if ( Object.hasOwn(oParams, name) ) {
+					const value = oParams[name];
+					if ( Array.isArray(value) ) {
+						value.forEach((singleValue) => urlParams.append(name, singleValue));
+					} else {
+						urlParams.append(name, value);
+					}
+				}
+			}
+		}
+
 		// for same origin URLs, return a URL w/o origin, otherwise the full URL
 		return url.origin === baseOrigin ? url.pathname + url.search + url.hash : url.href;
 	}
@@ -156,9 +182,7 @@ sap.ui.define([
 		},
 		ui5: {
 			bindingSyntax: 'complex',
-			noConflict: true,
-			libs: [],
-			theme: "sap_belize"
+			libs: []
 		},
 		bootCore: true,
 		autostart: true
@@ -215,7 +239,22 @@ sap.ui.define([
 				oTestDefaults = {
 					name: name
 				};
-			oTestConfig = merge({}, oSuiteDefaults, oTestDefaults, oTestConfig);
+
+			const mergeConfigObjects = (...aConfigs) => {
+				const oResult = merge({}, aConfigs.shift());
+
+				while (aConfigs.length) {
+					const oTmp = aConfigs.shift();
+					for (const sKey in oTmp) {
+						oResult[sKey] = isPlainObject(oResult[sKey]) ? mergeConfigObjects(oResult[sKey], oTmp[sKey]) : oTmp[sKey];
+					}
+				}
+
+				return oResult;
+			};
+
+			oTestConfig = mergeConfigObjects(oSuiteDefaults, oTestDefaults, oTestConfig);
+
 			if ( Array.isArray(oTestConfig.module) ) {
 				oTestConfig.module  = oTestConfig.module.map(function(sModule) {
 					return resolvePackage(resolvePlaceholders(sModule, name));
@@ -224,13 +263,7 @@ sap.ui.define([
 				oTestConfig.module = resolvePackage(resolvePlaceholders(oTestConfig.module, name));
 			}
 			oTestConfig.beforeBootstrap = resolvePackage(resolvePlaceholders(oTestConfig.beforeBootstrap, name));
-			oTestConfig.page = toAbsoluteURL(resolvePlaceholders(oTestConfig.page, name));
-
-			if (oTestConfig.uriParams) {
-				var oUri = new URI(oTestConfig.page);
-				oUri.addSearch(oTestConfig.uriParams);
-				oTestConfig.page = oUri.toString();
-			}
+			oTestConfig.page = createEffectivePageURL(resolvePlaceholders(oTestConfig.page, name), oTestConfig.uriParams, name);
 
 			oTestConfig.title = resolvePlaceholders(oTestConfig.title, name);
 			oSuiteConfig.tests[name] = oTestConfig;
@@ -292,7 +325,11 @@ sap.ui.define([
 			}
 
 			sap.ui.require([sTestSuite], function(oSuiteConfig) {
-				resolve( mergeWithDefaults(oSuiteConfig, sTestSuite) );
+				try {
+					resolve( mergeWithDefaults(oSuiteConfig, sTestSuite) );
+				} catch (oErr) {
+					reject(oErr);
+				}
 			}, function(oErr) {
 				reject(oErr);
 			});

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["./StandardListItemRenderer", "sap/ui/core/Renderer"],
@@ -21,6 +21,40 @@ sap.ui.define(["./StandardListItemRenderer", "sap/ui/core/Renderer"],
 				oRm.renderControl(oControl.getLinkAriaDescribedBy());
 			} else {
 				StandardListItemRenderer.renderTitle.apply(this, arguments);
+			}
+		};
+
+		MessageListItemRenderer.renderTitleWrapper = function(rm, oLI) {
+
+			var	sTitle = oLI.getTitle(),
+				sDescription = oLI.getDescription(),
+				sInfo = oLI.getInfo(),
+				bWrapping = oLI.getWrapping(),
+				bActiveTitle = oLI.getActiveTitle(),
+				bShouldRenderInfoWithoutTitle = !sTitle && sInfo;
+
+			rm.openStart("div");
+
+			if (!bShouldRenderInfoWithoutTitle && sDescription) {
+				rm.class("sapMSLITitle");
+			} else {
+				rm.class("sapMSLITitleOnly");
+			}
+			rm.openEnd();
+
+			if (bWrapping && !bActiveTitle) {
+				this.renderWrapping(rm, oLI, "title");
+				if (sInfo && !sDescription) {
+					this.renderInfo(rm, oLI);
+				}
+			} else {
+				this.renderTitle(rm, oLI);
+			}
+
+			rm.close("div");
+
+			if (sInfo && !sDescription && !bWrapping && !bShouldRenderInfoWithoutTitle) {
+				this.renderInfo(rm, oLI);
 			}
 		};
 

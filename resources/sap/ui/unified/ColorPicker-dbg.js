@@ -1,14 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.ColorPicker.
 sap.ui.define([
 	"./library",
+	"sap/base/i18n/Localization",
 	"sap/ui/core/Control",
 	"sap/ui/core/HTML",
+	"sap/ui/core/Lib",
 	"sap/ui/core/ResizeHandler",
 	"sap/ui/layout/Grid",
 	"sap/ui/layout/GridData",
@@ -22,12 +24,13 @@ sap.ui.define([
 	"./ColorPickerHelper",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration",
 	"sap/ui/Global"
 ], function(
 	Library,
+	Localization,
 	Control,
 	HTML,
+	Library1,
 	ResizeHandler,
 	Grid,
 	GridData,
@@ -40,8 +43,7 @@ sap.ui.define([
 	ColorPickerRenderer,
 	ColorPickerHelper,
 	Log,
-	jQuery,
-	Configuration
+	jQuery
 ) {
 	"use strict";
 
@@ -67,7 +69,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -348,7 +350,7 @@ sap.ui.define([
 		// get the background image of the slider
 		sBgSrc = sap.ui.require.toUrl("sap/ui/unified/img/ColorPicker/Alphaslider_BG.png"),
 		// get resource bundle
-		oRb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified"),
+		oRb = Library1.getResourceBundleFor("sap.ui.unified"),
 		// Constants object
 		CONSTANTS = {};
 
@@ -563,7 +565,7 @@ sap.ui.define([
 		this.RGB = {r: 0, g: 0, b: 0};
 
 		// check if we are in RTL mode
-		this.bRtl = Configuration.getRTL();
+		this.bRtl = Localization.getRTL();
 
 		this.data("sap-ui-fastnavgroup", "true", true); // Define group for F6 handling
 
@@ -617,7 +619,7 @@ sap.ui.define([
 			}
 		},
 		init: function() {
-			this.bRtl = Configuration.getRTL();
+			this.bRtl = Localization.getRTL();
 		},
 		exit: function() {
 			if (this._sResizeListener) {
@@ -1220,6 +1222,15 @@ sap.ui.define([
 		this._updateColorString();
 	};
 
+	/**
+	 * Updates the value of the Alpha channel to the provided value.
+	 * @private
+	 * @param {number} vAlphaValue the new value of the Alpha channel
+	 */
+	ColorPicker.prototype._updateAlphaValue = function(vAlphaValue) {
+		this.Color.a = this._getValueInRange(vAlphaValue, 0, 1);
+	};
+
 	ColorPicker.prototype._updateColorString = function() {
 		// parse string; get the color object
 		this._parseColorString(this.getColorString());
@@ -1767,7 +1778,7 @@ sap.ui.define([
 		}
 
 		// calculate x if we are in RTL mode
-		if (Configuration.getRTL()) {
+		if (Localization.getRTL()) {
 			iX = this._iCPBoxSize - iX;
 		}
 		iY = Math.round((1 - this.oSatField.getValue() / 100.0) * this._iCPBoxSize);

@@ -1,14 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.DateRangeSelection.
 sap.ui.define([
+	"sap/base/i18n/Formatting",
 	'sap/ui/Device',
 	'./DatePicker',
 	'./library',
+	"sap/ui/core/Lib",
+	"sap/ui/core/Locale",
 	'sap/ui/core/LocaleData',
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/core/date/UniversalDate',
@@ -18,16 +21,17 @@ sap.ui.define([
 	"sap/base/util/deepEqual",
 	"sap/base/Log",
 	"sap/base/assert",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/date/UI5Date",
-	"sap/ui/core/Core",
 	// jQuery Plugin "cursorPos"
 	"sap/ui/dom/jquery/cursorPos"
 ],
 	function(
+		Formatting,
 		Device,
 		DatePicker,
 		library,
+		Library,
+		Locale,
 		LocaleData,
 		DateFormat,
 		UniversalDate,
@@ -37,9 +41,7 @@ sap.ui.define([
 		deepEqual,
 		Log,
 		assert,
-		Configuration,
-		UI5Date,
-		Core
+		UI5Date
 	) {
 	"use strict";
 
@@ -100,7 +102,8 @@ sap.ui.define([
 	 *
 	 * <ul><li>Use the <code>value</code> property if the date range is already provided as
 	 * a formatted string</li>
-	 * @example <caption> binding the <code>value</code> property by using types </caption>
+	 * <caption> binding the <code>value</code> property by using types </caption>
+	 * <pre>
 	 * new sap.ui.model.json.JSONModel({start:'2022-11-10', end:'2022-11-15'});
 	 *
 	 * new sap.m.DateRangeSelection({
@@ -125,7 +128,7 @@ sap.ui.define([
 	 *         }}]
 	 *     }
 	 * });
-	 *
+	 * </pre>
 	 * <b>Note:</b> There are multiple binding type choices, such as:
 	 * sap.ui.model.type.Date
 	 * sap.ui.model.odata.type.DateTime
@@ -165,8 +168,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.120.30
-	 * @version 1.120.30
+	 * @version 1.136.0
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -240,6 +243,7 @@ sap.ui.define([
 
 		if (oCalendar instanceof CustomYearPicker) {
 			oCalendar._getYearPicker().setIntervalSelection(true);
+			oCalendar._getYearRangePicker().setIntervalSelection(true);
 		}
 
 		this._getCalendar().detachWeekNumberSelect(this._handleWeekSelect, this);
@@ -276,7 +280,7 @@ sap.ui.define([
 
 		if (!sPlaceholder) {
 			oBinding = this.getBinding("value");
-			oLocale = Configuration.getFormatSettings().getFormatLocale();
+			oLocale = new Locale(Formatting.getLanguageTag());
 			oLocaleData = LocaleData.getInstance(oLocale);
 
 			if (oBinding && oBinding.getType() && oBinding.getType().isA("sap.ui.model.type.DateInterval")) {
@@ -308,6 +312,24 @@ sap.ui.define([
 		}
 
 		return sPlaceholder;
+	};
+
+	/**
+	 * Returns the message bundle key of the invisible text for the accessible name of the popover.
+	 * @private
+	 * @returns {string} The message bundle key
+	 */
+	DateRangeSelection.prototype._getAccessibleNameLabel = function() {
+		var sConstructorName = this._getCalendarConstructor().getMetadata().getName();
+
+		switch (sConstructorName) {
+			case "sap.ui.unified.internal.CustomYearPicker":
+				return "DATERANGESELECTION_YEAR_POPOVER_ACCESSIBLE_NAME";
+			case "sap.ui.unified.internal.CustomMonthPicker":
+				return "DATERANGESELECTION_MONTH_POPOVER_ACCESSIBLE_NAME";
+			default:
+				return "DATERANGESELECTION_POPOVER_ACCESSIBLE_NAME";
+		}
 	};
 
 	DateRangeSelection.prototype._getDateFormatPlaceholderText = function (oFormatOptions) {
@@ -493,7 +515,7 @@ sap.ui.define([
 
 	/**
 	 * Set the start date of the range.
-	 * @param {Date|module:sap/ui/core/date/UI5Date} oFrom A date instance
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oFrom A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 * @deprecated since version 1.22.0, replaced by <code>dateValue</code> property of the {@link sap.m.DateTimeField}
@@ -505,7 +527,7 @@ sap.ui.define([
 
 	/**
 	 * Get the start date of the range.
-	 * @returns {Date} the start date of the date range
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the start date of the date range
 	 * @public
 	 * @deprecated since version 1.22.0, replaced by <code>dateValue</code> property of the {@link sap.m.DateTimeField}
 	 */
@@ -515,7 +537,7 @@ sap.ui.define([
 
 	/**
 	 * Set the end date of the range.
-	 * @param {Date|module:sap/ui/core/date/UI5Date} oTo A date instance
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oTo A date instance
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 * @deprecated since version 1.22.0, replaced by <code>secondDateValue</code> property
@@ -527,7 +549,7 @@ sap.ui.define([
 
 	/**
 	 * Get the end date of the range.
-	 * @returns {Date|module:sap/ui/core/date/UI5Date} the end date of the date range
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the end date of the date range
 	 * @public
 	 * @deprecated since version 1.22.0, replaced by <code>secondDateValue</code> property
 	 */
@@ -544,10 +566,10 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>dateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the value of property <code>dateValue</code>
 	 * @public
 	 * @name sap.m.DateRangeSelection#getDateValue
-	 * @function
+	 * @method
 	 */
 
 	/**
@@ -557,7 +579,7 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @param {Date|module:sap/ui/core/date/UI5Date} oDateValue New value for property <code>dateValue</code>
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oDateValue New value for property <code>dateValue</code>
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -585,10 +607,10 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @returns {Date|module:sap/ui/core/date/UI5Date} the value of property <code>secondDateValue</code>
+	 * @returns {Date|module:sap/ui/core/date/UI5Date|null} the value of property <code>secondDateValue</code>
 	 * @public
 	 * @name sap.m.DateRangeSelection#getSecondDateValue
-	 * @function
+	 * @method
 	 */
 
 	/**
@@ -598,7 +620,7 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b> If this property is used, the <code>value</code> property should not be changed from the caller.
 	 *
-	 * @param {Date|module:sap/ui/core/date/UI5Date} oSecondDateValue New value for property <code>dateValue</code>
+	 * @param {Date|module:sap/ui/core/date/UI5Date|null} oSecondDateValue New value for property <code>dateValue</code>
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -1100,7 +1122,7 @@ sap.ui.define([
 		var oRenderer = this.getRenderer();
 		var oInfo = DatePicker.prototype.getAccessibilityInfo.apply(this, arguments);
 		var sValue = this.getValue() || "";
-		var sRequired = this.getRequired() ? Core.getLibraryResourceBundle("sap.m").getText("ELEMENT_REQUIRED") : '';
+		var sRequired = this.getRequired() ? Library.getResourceBundleFor("sap.m").getText("ELEMENT_REQUIRED") : '';
 
 		if (this._bValid) {
 			var oDate = this.getDateValue();
@@ -1108,7 +1130,7 @@ sap.ui.define([
 				sValue = this._formatValue(oDate, this.getSecondDateValue());
 			}
 		}
-		oInfo.type = Core.getLibraryResourceBundle("sap.m").getText("ACC_CTR_TYPE_DATERANGEINPUT");
+		oInfo.type = Library.getResourceBundleFor("sap.m").getText("ACC_CTR_TYPE_DATERANGEINPUT");
 		oInfo.description = [sValue || this._getPlaceholder(), oRenderer.getLabelledByAnnouncement(this), oRenderer.getDescribedByAnnouncement(this), sRequired].join(" ").trim();
 		return oInfo;
 	};
@@ -1313,7 +1335,7 @@ sap.ui.define([
 
 		if (!sDelimiter) {
 			if (!this._sLocaleDelimiter) {
-				var oLocale = Configuration.getFormatSettings().getFormatLocale();
+				var oLocale = new Locale(Formatting.getLanguageTag());
 				var oLocaleData = LocaleData.getInstance(oLocale);
 				var sPattern = oLocaleData.getIntervalPattern();
 				var iIndex1 = sPattern.indexOf("{0}") + 3;

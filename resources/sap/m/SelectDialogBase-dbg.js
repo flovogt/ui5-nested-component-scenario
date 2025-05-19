@@ -1,23 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.SelectDialogBase.
 sap.ui.define([
 		'./library',
-		'sap/ui/Device',
-		'sap/ui/core/Core',
 		'sap/ui/core/Control',
-		'sap/ui/core/InvisibleText'
+		'sap/ui/core/InvisibleText',
+		"sap/ui/core/Lib"
 ],
 function(
 	library,
-	Device,
-	Core,
 	Control,
-	InvisibleText
+	InvisibleText,
+	Library
 ) {
 	"use strict";
 
@@ -36,7 +34,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -151,30 +149,40 @@ function(
 	SelectDialogBase.getInvisibleText = function() {
 		if (!this.oInvisibleText) {
 			this.oInvisibleText = new InvisibleText({
-				text: Core.getLibraryResourceBundle("sap.m").getText("SELECTDIALOGBASE_LISTLABEL")
+				text: Library.getResourceBundleFor("sap.m").getText("SELECTDIALOGBASE_LISTLABEL")
 			}).toStatic();
 		}
 
 		return this.oInvisibleText;
 	};
 
-	SelectDialogBase.prototype._setInitialFocus = function () {
-		var oInitiallyFocusedControl;
-
-		if (!Device.system.desktop) {
-			return;
+	SelectDialogBase.getSelectionIndicatorInvisibleText = function() {
+		if (!this._oSelectionIndicatorInvisibleText) {
+			this._oSelectionIndicatorInvisibleText = new InvisibleText().toStatic();
 		}
 
+		return this._oSelectionIndicatorInvisibleText;
+	};
+
+	SelectDialogBase.prototype.updateDialogAriaDescribedBy = function() {
+		const oSelectionIndicatorInvisibleText = SelectDialogBase.getSelectionIndicatorInvisibleText();
+
+		if (oSelectionIndicatorInvisibleText.getText()) {
+			if (!this._oDialog.getAriaDescribedBy().includes(oSelectionIndicatorInvisibleText.getId())) {
+				this._oDialog.addAriaDescribedBy(oSelectionIndicatorInvisibleText);
+			}
+		} else {
+			this._oDialog.removeAriaDescribedBy(oSelectionIndicatorInvisibleText);
+		}
+	};
+
+	SelectDialogBase.prototype._getInitialFocus = function () {
 		switch (this.getInitialFocus()) {
 			case SelectDialogInitialFocus.SearchField:
-				oInitiallyFocusedControl = this._oSearchField;
-				break;
+				return this._oSearchField;
 			default:
-				oInitiallyFocusedControl = this._oDialog.getContent()[1];
-				break;
+				return this._oDialog.getContent()[1];
 		}
-
-		this._oDialog.setInitialFocus(oInitiallyFocusedControl);
 	};
 
 	return SelectDialogBase;

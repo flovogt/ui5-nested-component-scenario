@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,7 +9,7 @@
  *            nor must it be required by code outside this package.
  */
 
-/*global QUnit, sinon, */
+/*global QUnit, sinon */
 
 sap.ui.define([
 	"sap/base/util/fetch",
@@ -132,7 +132,7 @@ sap.ui.define([
 
 	function initTestModule(oConfig) {
 		var pAfterLoader, pQUnit, pSinon, pSinonQUnitBridge, pSinonConfig, pCoverage, pTestEnv,
-			oQUnitConfig, aJUnitDoneCallbacks;
+			oQUnitConfig;
 
 		document.title = oConfig.title;
 
@@ -164,22 +164,7 @@ sap.ui.define([
 				utils.addStylesheet(oQUnitConfig.css);
 				return requireP(oQUnitConfig.module);
 			}).then(function() {
-
-				// install a mock version of the qunit-reporter-junit API to collect jUnitDone callbacks
-				aJUnitDoneCallbacks = [];
-				QUnit.jUnitDone = function(cb) {
-					aJUnitDoneCallbacks.push(cb);
-				};
 				return requireP("sap/ui/qunit/qunit-junit");
-			}).then(function() {
-				delete QUnit.jUnitDone;
-				return requireP("sap/ui/thirdparty/qunit-reporter-junit");
-			}).then(function() {
-				// now register the collected callbacks with the real qunit-reporter-junit API
-				aJUnitDoneCallbacks.forEach(function(cb) {
-					QUnit.jUnitDone(cb);
-				});
-				aJUnitDoneCallbacks = undefined;
 			});
 		}
 
@@ -187,6 +172,12 @@ sap.ui.define([
 		if ( oSinonConfig != null ) {
 			pSinon = pAfterLoader.then(function() {
 				return requireP(oSinonConfig.module);
+			}).then(function([sinonModule]) {
+				// If the sinon module provides an export, we also apply it globally
+				// to make it available to the tests and the sinon-qunit-bridge.
+				if (sinonModule) {
+					globalThis.sinon = sinonModule;
+				}
 			});
 
 			if ( oConfig.sinon.qunitBridge && pQUnit ) {
@@ -206,7 +197,10 @@ sap.ui.define([
 					pSinonQUnitBridge
 				]).then(function() {
 					// copy only settings that are listed in sinon.defaultConfig
-					sinon.config = copyFiltered(sinon.config || {}, oConfig.sinon, sinon.defaultConfig);
+					// Note: newer versions of sinon do not support config / defaultConfig anymore
+					if (typeof sinon.defaultConfig === "object") {
+						sinon.config = copyFiltered(sinon.config || {}, oConfig.sinon, sinon.defaultConfig);
+					}
 					return arguments;
 				});
 			}
@@ -425,8 +419,8 @@ sap.ui.define([
 			pTestEnv = pTestEnv.then(function() {
 				return new Promise(function(resolve, reject) {
 					sap.ui.require(["sap/ui/core/Core"], function(core) {
-						core.boot();
-						core.attachInit(resolve);
+						core.boot?.(); // method no longer exists with new bootstrap
+						core.ready(resolve);
 					}, reject);
 				});
 			});
@@ -447,7 +441,7 @@ sap.ui.define([
 						// Note: config option is internally converted to lowercase
 						if (oConfig.ui5["xx-waitfortheme"] === "init") {
 							return new Promise(function(resolve, reject) {
-								sap.ui.require(["sap/ui/qunit/utils/waitForThemeApplied"], resolve, reject);
+								sap.ui.require(["sap/ui/test/utils/waitForThemeApplied"], resolve, reject);
 							}).then(function(waitForThemeApplied) {
 								return waitForThemeApplied();
 							});

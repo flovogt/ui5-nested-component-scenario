@@ -1,10 +1,17 @@
 /* =================================== */
 /* CSS for control sap.m/ObjectNumber  */
-/* Horizon theme                       */
+/* Evening Horizon theme               */
 /* =================================== */
+
+.sapMObjectNumber.sapMLnkLargeReactiveArea:not(.sapMObjectNumberLarge):not(.sapMObjectNumberInverted) {
+	.sapMObjectNumberInner {
+		line-height: 1.5rem;
+	}
+}
 
 .sapMObjectNumberInverted {
 	box-sizing: border-box;
+
 	&:not(.sapMObjectNumberLarge) .sapMObjectNumberInner {
 		min-height: 1rem;
 		height: auto;
@@ -13,12 +20,13 @@
 
 .sapMObjectNumberInverted .sapMObjectNumberInner {
 	border: 0.0625rem solid;
-	border-radius: @sapUiButtonBorderCornerRadius;
+	border-radius: var(--sapButton_BorderCornerRadius);
 	padding: 0.1875rem 0.25rem;
 	vertical-align: middle;
 }
 
 html.sap-desktop .sapMObjectNumberActive:focus {
+
 	.sapMObjectNumberInner::after {
 		left: -0.0625rem;
 		top: -0.0625rem;
@@ -27,7 +35,7 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 		height: auto;
 		outline: none;
 		border-radius: 0.25rem;
-		border: 0.125rem solid @sapUiContentFocusColor;
+		border: 0.125rem solid var(--sapContent_FocusColor);
 	}
 
 	&.sapMObjectNumberInverted .sapMObjectNumberInner::after {
@@ -37,11 +45,12 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 		bottom: -0.0625rem;
 		height: auto;
 		outline: none;
-		border-radius: @sapUiButtonBorderCornerRadius;
-		border: 0.125rem solid @sapUiContentFocusColor;
+		border-radius: var(--sapButton_BorderCornerRadius);
+		border: 0.125rem solid var(--sapContent_FocusColor);
 	}
 
 	&.sapMObjectNumberLarge {
+
 		.sapMObjectNumberInner::after {
 			left: -0.0625rem;
 			top: -0.0625rem;
@@ -49,6 +58,7 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 			bottom: -0.0625rem;
 			height: auto;
 		}
+
 		&.sapMObjectNumberInverted .sapMObjectNumberInner::after {
 			left: -0.0625rem;
 			top: -0.0625rem;
@@ -56,8 +66,8 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 			bottom: -0.0625rem;
 			height: auto;
 			outline: none;
-			border-radius: @sapUiButtonBorderCornerRadius;
-			border: 0.125rem solid @sapUiContentFocusColor;
+			border-radius: var(--sapButton_BorderCornerRadius);
+			border: 0.125rem solid var(--sapContent_FocusColor);
 		}
 	}
 }
@@ -68,10 +78,12 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 				@regularTextShadow, @activeTextShadow,
 				@regularBorderColor, @hoverBorderColor, @activeBorderColor) {
 	.sapMObjectNumberInverted.@{class} {
+
 		.sapMObjectNumberText,
 		.sapMObjectNumberUnit {
 			text-shadow: @regularTextShadow;
 		}
+
 		.sapMObjectNumberInner {
 			border-color: @regularBorderColor;
 			background-color: @regularBackgroundColor;
@@ -79,11 +91,13 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 		}
 
 		&.sapMObjectNumberActive {
+
 			.sapMObjectNumberInner:hover {
 				border-color: @hoverBorderColor;
 				background-color: @hoverBackgroundColor;
 				color: @hoverTextColor;
 			}
+
 			.sapMObjectNumberInner:active,
 			&.sapMObjectNumberPressed .sapMObjectNumberInner {
 				border-color: @activeBorderColor;

@@ -1,43 +1,42 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 // Provides control sap.m.MessageStrip.
 sap.ui.define([
 	"./library",
+	"sap/ui/core/AnimationMode",
 	"sap/ui/core/Control",
 	"./MessageStripUtilities",
 	"./Text",
 	"./Link",
 	"./FormattedText",
-	"sap/ui/core/library",
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Lib",
+	"sap/ui/core/message/MessageType",
 	"./MessageStripRenderer",
 	"sap/base/Log",
 	"sap/m/Button",
-	"sap/ui/core/Core",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/InvisibleText"
 ], function(
 	library,
+	AnimationMode,
 	Control,
 	MSUtils,
 	Text,
 	Link,
 	FormattedText,
-	coreLibrary,
+	ControlBehavior,
+	Library,
+	MessageType,
 	MessageStripRenderer,
 	Log,
 	Button,
-	Core,
-	Configuration,
 	InvisibleText
 ) {
 	"use strict";
-
-	// shortcut for sap.ui.core.MessageType
-	var MessageType = coreLibrary.MessageType;
 
 	// shortcut for sap.m.ButtonType
 	var ButtonType = library.ButtonType;
@@ -85,7 +84,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -102,14 +101,14 @@ sap.ui.define([
 				/**
 				 * Determines the text of the message.
 				 */
-				text: { type: "string", group: "Appearance", defaultValue: "" },
+				text: { type: "string", group: "Data", defaultValue: "" },
 
 				/**
 				 * Determines the type of messages that are displayed in the MessageStrip.
 				 * Possible values are: Information (default), Success, Warning, Error.
 				 * If None is passed, the value is set to Information and a warning is displayed in the console.
 				 */
-				type: { type: "sap.ui.core.MessageType", group: "Appearance", defaultValue: MessageType.Information },
+				type: { type: "sap.ui.core.message.MessageType", group: "Appearance", defaultValue: MessageType.Information },
 
 				/**
 				 * Determines a custom icon which is displayed.
@@ -129,7 +128,7 @@ sap.ui.define([
 
 				/**
 				 * Determines the limited collection of HTML elements passed to the <code>text</code> property should be
-				 * evaluated.
+				 * evaluated. The <code>text</code> property value is set as <code>htmlText</code> to an internal instance of {@link sap.m.FormattedText}
 				 *
 				 * <b>Note:</b> If this property is set to true the string passed to <code>text</code> property
 				 * can evaluate the following list of limited HTML elements. All other HTML elements and their nested
@@ -153,6 +152,14 @@ sap.ui.define([
 				 * Adds an sap.m.Link control which will be displayed at the end of the message.
 				 */
 				link: { type: "sap.m.Link", multiple: false, singularName: "link" },
+
+				/**
+				 * List of <code>sap.m.Link</code> controls that replace the placeholders in the text.
+				 * Placeholders are replaced according to their indexes. The first link in the aggregation replaces the placeholder with index %%0, and so on.
+				 * <b>Note:</b> Placeholders are replaced if the <code>enableFormattedText</code> property is set to true.
+				 * @since 1.129
+				 */
+				controls: { type: "sap.m.Link", multiple: true, singularName: "control", forwarding: { idSuffix: "-formattedText", aggregation: "controls" } },
 
 				/**
 				 * Hidden aggregation which is used to transform the string message into sap.m.Text control.
@@ -221,8 +228,8 @@ sap.ui.define([
 	 * @public
 	 */
 	MessageStrip.prototype.close = function () {
-		var sAnimationMode = Configuration.getAnimationMode(),
-			bHasAnimations = sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal;
+		var sAnimationMode = ControlBehavior.getAnimationMode(),
+			bHasAnimations = sAnimationMode !== AnimationMode.none && sAnimationMode !== AnimationMode.minimal;
 
 		var fnClosed = function () {
 			this.setVisible(false);
@@ -242,7 +249,7 @@ sap.ui.define([
 
 		if (bEnable) {
 			if (!oFormattedText) {
-				oFormattedText = new FormattedText();
+				oFormattedText = new FormattedText(this.getId() + "-formattedText");
 				oFormattedText._setUseLimitedRenderingRules(true);
 				this.setAggregation("_formattedText", oFormattedText);
 			}
@@ -255,7 +262,7 @@ sap.ui.define([
 
 	MessageStrip.prototype.setAggregation = function (sName, oControl, bSupressInvalidate) {
 		if (sName === "link" && oControl instanceof Link) {
-			var sId = this.getId() + "-info" + " " + this.getAggregation("_text").getId(),
+			var sId = this._ariaReferenceId(),
 				aAriaDescribedBy = oControl.getAriaDescribedBy();
 
 			if (!aAriaDescribedBy.includes(sId)) {
@@ -275,11 +282,11 @@ sap.ui.define([
 	MessageStripRenderer.getAccessibilityState = function () {
 		var mAccessibilityState = MSUtils.getAccessibilityState.call(this),
 			oLink = this.getLink(),
-			oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+			oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 
 		if (!oLink) {
-			mAccessibilityState.labelledby = this.getId();
+			mAccessibilityState.labelledby = this._ariaReferenceId();
 		}
 
 		mAccessibilityState.roledescription = oResourceBundle.getText("MESSAGE_STRIP_ARIA_ROLE_DESCRIPTION");
@@ -307,7 +314,7 @@ sap.ui.define([
 	 * Initialize close button.
 	 */
 	MessageStrip.prototype._initCloseButton = function () {
-		var oRb = Core.getLibraryResourceBundle("sap.m"),
+		var oRb = Library.getResourceBundleFor("sap.m"),
 			oCloseButton = this.getAggregation("_closeButton");
 
 			if (!oCloseButton) {
@@ -326,11 +333,11 @@ sap.ui.define([
 
 	/**
 	 * Set Arialabelledby to the close button.
-	 * @param {sap.ui.core.MessageType} sType The Message type
+	 * @param {module:sap/ui/core/message/MessageType} sType The Message type
 	 */
 	MessageStrip.prototype._setButtonAriaLabelledBy = function (sType) {
 		var oCloseButton = this.getAggregation("_closeButton"),
-			oRb = Core.getLibraryResourceBundle("sap.m"),
+			oRb = Library.getResourceBundleFor("sap.m"),
 			sText = oRb.getText("MESSAGE_STRIP_" + sType.toUpperCase() + "_CLOSE_BUTTON");
 
 		if (!this._oInvisibleText) {
@@ -346,6 +353,11 @@ sap.ui.define([
 			oCloseButton.addAssociation("ariaLabelledBy", this._oInvisibleText.getId(), true);
 		}
 	};
+
+	MessageStrip.prototype._ariaReferenceId = function () {
+		return this.getId() + "-info" + " " + this.getAggregation("_text").getId();
+	};
+
 
 	MessageStrip.prototype.exit = function () {
 		if (this._oInvisibleText) {

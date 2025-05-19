@@ -12,7 +12,6 @@
 @_sap_tnt_SideNavigation_NavigationSeparatorHeight: 1px;
 @_sap_tnt_SideNavigation_TriangleColor: @sapUiContentIconColor;
 @_sap_tnt_SideNavigation_BorderRight: 1px solid @sapUiGroupContentBorderColor;
-@_sap_tnt_SideNavigation_BorderRadius: 0;
 @_sap_tnt_SideNavigation_PhoneBorderRadius: 0;
 @_sap_tnt_SideNavigation_BoxShadow: none;
 @_sap_tnt_SideNavigation_TriangleDisplay: block;
@@ -25,12 +24,17 @@
 	min-height: 0;
 	background: @sapUiListBackground;
 	border-right: @_sap_tnt_SideNavigation_BorderRight;
-	box-shadow: @_sap_tnt_SideNavigation_BoxShadow;
-	border-radius: @_sap_tnt_SideNavigation_BorderRadius;
 	min-width: @_sap_tnt_SideNavigation_Width;
+	box-shadow: @_sap_tnt_SideNavigation_BoxShadow;
 	max-width: 100%;
 	width: @_sap_tnt_SideNavigation_Width;
 	transition: width 0.3s, min-width 0.3s;
+	height: 100%;
+}
+
+.sapTntSideNavigationDesignPlain {
+	border-right: none;
+	box-shadow: none;
 }
 
 html[data-sap-ui-animation='off'] .sapTntSideNavigation {
@@ -61,7 +65,7 @@ html.sap-phone {
 		margin: @_sap_tnt_SideNavigation_NavigationSeparatorMarginCollapsed;
 	}
 
-	.sapTnTNavLINotExpandedTriangle:not(.sapTntNavLIItemDisabled):after {
+	.sapTntNLINotExpandedTriangle:not(.sapTntNLIDisabled):after {
 		display: @_sap_tnt_SideNavigation_TriangleDisplay;
 		content: "";
 		width: 0;
@@ -103,8 +107,8 @@ html.sap-phone {
 	position: relative;
 }
 
-html.sap-desktop:not(.sapUiNativeScrollbars) .sapTntSideNavigation ::-webkit-scrollbar {
-	border-radius: @_sap_tnt_SideNavigation_BorderRadius;
+html.sap-desktop:not(.sapUiNativeScrollbars) .sapTntSideNavigation {
+	scrollbar-color: auto;
 }
 
 /*  Compact size

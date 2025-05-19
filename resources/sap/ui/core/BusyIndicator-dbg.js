@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -42,7 +42,7 @@ sap.ui.define([
 	 * Provides methods to show or hide a waiting animation covering the whole
 	 * page and blocking user interaction.
 	 * @namespace
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @public
 	 * @alias sap.ui.core.BusyIndicator
 	 */
@@ -108,20 +108,7 @@ sap.ui.define([
 		var oRootDomRef = document.createElement("div");
 		oRootDomRef.id = this.sDOM_ID;
 
-		var oBusyContainer = document.createElement("div");
-		this._oResBundle = Library.getResourceBundleFor("sap.ui.core");
-		var sTitle = this._oResBundle.getText("BUSY_TEXT");
-		delete this._oResBundle;
-
-		oBusyContainer.className = "sapUiBusy";
-		oBusyContainer.setAttribute("tabindex", "0");
-		oBusyContainer.setAttribute("role", "progressbar");
-		oBusyContainer.setAttribute("alt", "");
-		oBusyContainer.setAttribute("title", sTitle);
-		oRootDomRef.appendChild(oBusyContainer);
-
-		var oBusyElement = BusyIndicatorUtils.getElement(BusyIndicatorSize.Large);
-		oBusyElement.setAttribute("title", sTitle);
+		const oBusyElement = BusyIndicatorUtils.getElement(BusyIndicatorSize.Large);
 		oRootDomRef.appendChild(oBusyElement);
 
 		this.oDomRef = oRootDomRef;

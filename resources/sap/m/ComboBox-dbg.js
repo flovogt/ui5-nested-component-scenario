@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,6 +10,7 @@ sap.ui.define([
 	'./List',
 	'./library',
 	'sap/ui/Device',
+	"sap/ui/core/Element",
 	'sap/ui/core/Item',
 	'./ComboBoxRenderer',
 	"sap/ui/dom/containsOrEquals",
@@ -22,7 +23,6 @@ sap.ui.define([
 	"sap/m/inputUtils/selectionRange",
 	"sap/m/inputUtils/calculateSelectionStart",
 	"sap/ui/events/KeyCodes",
-	"sap/ui/core/Core",
 	"sap/base/Log"
 ],
 	function(
@@ -31,6 +31,7 @@ sap.ui.define([
 		List,
 		library,
 		Device,
+		Element,
 		Item,
 		ComboBoxRenderer,
 		containsOrEquals,
@@ -43,7 +44,6 @@ sap.ui.define([
 		selectionRange,
 		calculateSelectionStart,
 		KeyCodes,
-		core,
 		Log
 	) {
 		"use strict";
@@ -106,7 +106,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -354,7 +354,7 @@ sap.ui.define([
 			this._setPropertyProtected("selectedItemId", (vItem instanceof Item) ? vItem.getId() : vItem, true);
 
 			if (typeof vItem === "string") {
-				vItem = core.byId(vItem);
+				vItem = Element.getElementById(vItem);
 			}
 
 			if (oList) {
@@ -753,7 +753,9 @@ sap.ui.define([
 				this.setSelection(null);
 			}
 
-			if (!bEmptyValue && oControl && oControl._bDoTypeAhead) {
+			const bExactMatch = aCommonStartsWithItems.some((item) => item.getText() === sValue);
+
+			if (!bEmptyValue && oControl && (oControl._bDoTypeAhead || bExactMatch)) {
 				this.handleTypeAhead(oControl, aVisibleItems, sValue);
 			} else if (!bEmptyValue && aCommonStartsWithItems[0] && sValue === aCommonStartsWithItems[0].getText()) {
 				this.setSelection(aCommonStartsWithItems[0]);
@@ -1063,7 +1065,9 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.onsapenter = function(oEvent) {
 			var oControl = oEvent.srcControl,
-				oItem = oControl.getSelectedItem();
+				oItem = oControl.getSelectedItem(),
+				oSuggestionPopover = oControl._getSuggestionsPopover(),
+				oFocusedItem = oSuggestionPopover && oSuggestionPopover.getFocusedListItem();
 
 			if (oItem && this.getFilterSecondaryValues()) {
 				oControl.updateDomValue(oItem.getText());
@@ -1073,6 +1077,11 @@ sap.ui.define([
 
 			// in case of a non-editable or disabled combo box, the selection cannot be modified
 			if (!oControl.getEnabled() || !oControl.getEditable()) {
+				return;
+			}
+
+			// prevent closing of popover, when Enter is pressed on a group header
+			if (oFocusedItem && oFocusedItem.isA("sap.m.GroupHeaderListItem")) {
 				return;
 			}
 
@@ -1119,7 +1128,7 @@ sap.ui.define([
 					this.handleInlineListNavigation(sName);
 				} else {
 					var oSuggestionsPopover = this._getSuggestionsPopover();
-					oSuggestionsPopover && oSuggestionsPopover.handleListNavigation(this, oEvent, sName);
+					oSuggestionsPopover && oSuggestionsPopover.handleListNavigation(this, oEvent, !!this.getSelectedItem());
 				}
 
 				// mark the event for components that needs to know if the event was handled
@@ -1300,6 +1309,10 @@ sap.ui.define([
 				return;
 			}
 
+			if (!this.isMobileDevice()) {
+				this.openValueStateMessage();
+			}
+
 			this.updateFocusOnClose();
 		};
 
@@ -1402,7 +1415,7 @@ sap.ui.define([
 			}
 
 			bTablet = this.isPlatformTablet();
-			oRelatedControl = core.byId(oEvent.relatedControlId);
+			oRelatedControl = Element.getElementById(oEvent.relatedControlId);
 			oFocusDomRef = oRelatedControl && oRelatedControl.getFocusDomRef();
 
 			if (containsOrEquals(oPicker.getFocusDomRef(), oFocusDomRef) && !bTablet && !(this._getSuggestionsPopover().getValueStateActiveState())) {
@@ -1655,7 +1668,7 @@ sap.ui.define([
 		 *
 		 * Default value is <code>null</code>.
 		 *
-		 * @param {string | sap.ui.core.Item | null} vItem New value for the <code>selectedItem</code> association.
+		 * @param {sap.ui.core.ID | sap.ui.core.Item | null} vItem New value for the <code>selectedItem</code> association.
 		 * If an ID of a <code>sap.ui.core.Item</code> is given, the item with this ID becomes the
 		 * <code>selectedItem</code> association.
 		 * Alternatively, a <code>sap.ui.core.Item</code> instance may be given or <code>null</code> to clear
@@ -1668,7 +1681,7 @@ sap.ui.define([
 
 			if (typeof vItem === "string") {
 				this.setAssociation("selectedItem", vItem, true);
-				vItem = core.byId(vItem);
+				vItem = Element.getElementById(vItem);
 			}
 
 			if (!(vItem instanceof Item) && vItem !== null) {
@@ -1803,7 +1816,7 @@ sap.ui.define([
 		 */
 		ComboBox.prototype.getSelectedItem = function() {
 			var vSelectedItem = this.getAssociation("selectedItem");
-			return (vSelectedItem === null) ? null : core.byId(vSelectedItem) || null;
+			return (vSelectedItem === null) ? null : Element.getElementById(vSelectedItem) || null;
 		};
 
 		/**

@@ -1,17 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
+	"sap/base/future",
 	"sap/base/Log",
 	"sap/ui/base/ManagedObjectMetadata",
 	"sap/ui/core/ComponentContainer",
 	"sap/ui/core/Element",
 	"sap/ui/core/Placeholder",
-	"sap/ui/core/library",
-	"sap/ui/core/Configuration"
-], function(Log, ManagedObjectMetadata, ComponentContainer, Element, Placeholder, coreLib, Configuration) {
+	"sap/ui/core/library"
+], function(future, Log, ManagedObjectMetadata, ComponentContainer, Element, Placeholder, coreLib) {
 	"use strict";
 
 	// shortcut for sap.ui.core.ComponentLifecycle
@@ -20,7 +20,6 @@ sap.ui.define([
 	/**
 	 * Provide methods for sap.ui.core.routing.Target in async mode
 	 * @private
-	 * @experimental
 	 * @since 1.33
 	 */
 	return {
@@ -138,10 +137,13 @@ sap.ui.define([
 				case "View":
 					oCreateOptions = {
 						name: sName,
-						type: oOptions.viewType,
 						id: oOptions.id,
 						async: true
 					};
+
+					if (!sName.startsWith("module:")) {
+						oCreateOptions.type = oOptions.viewType;
+					}
 					break;
 				case "Component":
 					oOptions.id = oOptions.id || ManagedObjectMetadata.uid("uicomponent");
@@ -679,17 +681,17 @@ sap.ui.define([
 				sLogMessage = "";
 
 			if (!bHasTargetControl) {
-				sLogMessage = "[FUTURE FATAL] The target " + oOptions._name + " has no controlId set and no parent so the target cannot be displayed.";
+				sLogMessage = "The target " + oOptions._name + " has no controlId set and no parent so the target cannot be displayed.";
 				bIsValid = false;
 			}
 
 			if (!oOptions.controlAggregation) {
-				sLogMessage = "[FUTURE FATAL] The target " + oOptions._name + " has a control id or a parent but no 'controlAggregation' was set, so the target could not be displayed.";
+				sLogMessage = "The target " + oOptions._name + " has a control id or a parent but no 'controlAggregation' was set, so the target could not be displayed.";
 				bIsValid = false;
 			}
 
 			if (sLogMessage) {
-				Log.error(sLogMessage, this);
+				future.errorThrows(`${this}: ${sLogMessage}`);
 			}
 
 			return bIsValid || sLogMessage;

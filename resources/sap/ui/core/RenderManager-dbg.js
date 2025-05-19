@@ -1,44 +1,46 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the render manager sap.ui.core.RenderManager
 sap.ui.define([
-	'./LabelEnablement',
-	'sap/ui/base/Object',
-	'sap/ui/performance/trace/Interaction',
-	'sap/base/util/uid',
-	"sap/ui/util/ActivityDetection",
-	"sap/ui/thirdparty/jquery",
-	"sap/base/security/encodeXML",
-	"sap/base/security/encodeCSS",
-	"sap/base/assert",
-	"sap/ui/performance/Measurement",
-	"sap/base/Log",
-	"sap/base/util/extend",
 	"./ControlBehavior",
+	"./FocusHandler",
 	"./InvisibleRenderer",
+	'./LabelEnablement',
 	"./Patcher",
-	"./FocusHandler"
+	"sap/base/assert",
+	"sap/base/future",
+	"sap/base/Log",
+	"sap/base/security/encodeCSS",
+	"sap/base/security/encodeXML",
+	"sap/base/util/extend",
+	'sap/base/util/uid',
+	'sap/ui/base/Object',
+	"sap/ui/performance/Measurement",
+	'sap/ui/performance/trace/Interaction',
+	"sap/ui/thirdparty/jquery",
+	"sap/ui/util/ActivityDetection"
 ], function(
-	LabelEnablement,
-	BaseObject,
-	Interaction,
-	uid,
-	ActivityDetection,
-	jQuery,
-	encodeXML,
-	encodeCSS,
-	assert,
-	Measurement,
-	Log,
-	extend,
 	ControlBehavior,
+	FocusHandler,
 	InvisibleRenderer,
+	LabelEnablement,
 	Patcher,
-	FocusHandler
+	assert,
+	future,
+	Log,
+	encodeCSS,
+	encodeXML,
+	extend,
+	uid,
+	BaseObject,
+	Measurement,
+	Interaction,
+	jQuery,
+	ActivityDetection
 ) {
 
 	"use strict";
@@ -48,6 +50,9 @@ sap.ui.define([
 
 	var aCommonMethods = ["renderControl", "cleanupControlWithoutRendering", "accessibilityState", "icon"];
 
+	/**
+	 * @deprecated As of version 1.92, the string rendering methods are deprecated
+	 */
 	var aStrInterfaceMethods = ["write", "writeEscaped", "writeAcceleratorKey", "writeControlData", "writeElementData",
 		"writeAttribute", "writeAttributeEscaped", "addClass", "writeClasses", "addStyle", "writeStyles",
 		"writeAccessibilityState", "writeIcon", "translate", "getConfiguration", "getHTML"];
@@ -236,7 +241,7 @@ sap.ui.define([
 	 *
 	 * @extends Object
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @alias sap.ui.core.RenderManager
 	 * @hideconstructor
 	 * @public
@@ -256,6 +261,7 @@ sap.ui.define([
 			oDomInterface = {},            // semantic rendering API for the controls whose renderer provides apiVersion=2 marker
 			aRenderingStyles = [],         // during string-based rendering, stores the styles that couldn't be set via style attribute due to CSP restrictions
 			oPatcher = new Patcher(),      // the Patcher instance to handle in-place DOM patching
+			iOpenTagCount = 0,             // the number of open tags, this is used to detect missing tags
 			sLastStyleMethod,
 			sLastClassMethod;
 
@@ -269,6 +275,7 @@ sap.ui.define([
 			aStyleStack = that.aStyleStack = [{}];
 			bDomInterface = undefined;
 			bVoidOpen = false;
+			iOpenTagCount = 0;
 			sOpenTag = "";
 		}
 
@@ -550,6 +557,7 @@ sap.ui.define([
 			assertOpenTagHasEnded();
 			assert(!(sLastStyleMethod = sLastClassMethod = ""));
 			sOpenTag = sTagName;
+			iOpenTagCount++;
 
 			aBuffer.push("<" + sTagName);
 			if (vControlOrId) {
@@ -600,6 +608,7 @@ sap.ui.define([
 		this.close = function(sTagName) {
 			assertValidName(sTagName, "tag");
 			assertOpenTagHasEnded();
+			iOpenTagCount--;
 
 			aBuffer.push("</" + sTagName + ">");
 			return this;
@@ -640,6 +649,7 @@ sap.ui.define([
 			assertOpenTagHasStarted("voidEnd");
 			assertOpenTagHasEnded(bVoidOpen || !sOpenTag);
 			bVoidOpen = false;
+			iOpenTagCount--;
 			sOpenTag = "";
 
 			writeClasses(bExludeStyleClasses ? false : undefined);
@@ -785,6 +795,7 @@ sap.ui.define([
 			assertOpenTagHasEnded();
 			assert(!(sLastStyleMethod = sLastClassMethod = ""));
 			sOpenTag = sTagName;
+			iOpenTagCount++;
 
 			if (!vControlOrId) {
 				oPatcher.openStart(sTagName);
@@ -870,6 +881,7 @@ sap.ui.define([
 			assertOpenTagHasStarted("voidEnd");
 			assertOpenTagHasEnded(bVoidOpen || !sOpenTag);
 			bVoidOpen = false;
+			iOpenTagCount--;
 			sOpenTag = "";
 
 			oPatcher.voidEnd();
@@ -899,6 +911,7 @@ sap.ui.define([
 		oDomInterface.close = function(sTagName) {
 			assertValidName(sTagName, "tag");
 			assertOpenTagHasEnded();
+			iOpenTagCount--;
 
 			oPatcher.close(sTagName);
 			return this;
@@ -1244,6 +1257,8 @@ sap.ui.define([
 		//Does everything needed after the rendering (restore focus, calling "onAfterRendering", initialize event binding)
 		function finalizeRendering(oStoredFocusInfo){
 
+			assert(!iOpenTagCount, "RenderManager: Mismatched opening and closing tags. Verify renderers!");
+
 			var i, size = aRenderedControls.length;
 
 			for (i = 0; i < size; i++) {
@@ -1579,6 +1594,9 @@ sap.ui.define([
 		aDomInterfaceMethods.forEach(function (sMethod) {
 			oStringInterface[sMethod] = oInterface[sMethod] = this[sMethod];
 		}, this);
+		/**
+		 * @deprecated As of version 1.92, the string rendering methods are deprecated
+		 */
 		aStrInterfaceMethods.forEach(function (sMethod) {
 			oStringInterface[sMethod] = oInterface[sMethod] = this[sMethod];
 		}, this);
@@ -1965,13 +1983,23 @@ sap.ui.define([
 	RenderManager.prototype.icon = function(sURI, aClasses, mAttributes){
 		var IconPool = sap.ui.require("sap/ui/core/IconPool");
 		if (!IconPool) {
-			Log.warning("Synchronous loading of IconPool due to sap.ui.core.RenderManager#icon call. " +
-				"Ensure that 'sap/ui/core/IconPool is loaded before this function is called" , "SyncXHR", null, function() {
-				return {
-					type: "SyncXHR",
-					name: "rendermanager-icon"
-				};
-			});
+			future.warningThrows(
+				"sap/ui/core/IconPool must be loaded before sap.ui.core.RenderManager#icon can be called.",
+				{
+					suffix: "Falling back to synchronous loading of IconPool"
+				},
+				"SyncXHR",
+				null,
+				function() {
+					return {
+						type: "SyncXHR",
+						name: "rendermanager-icon"
+					};
+				}
+			);
+			/**
+			 * @deprecated As of version 1.120
+			 */
 			IconPool = sap.ui.requireSync("sap/ui/core/IconPool"); // legacy-relevant: Sync fallback
 		}
 

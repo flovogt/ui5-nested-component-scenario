@@ -1,17 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides the Design Time Metadata for the sap.ui.layout.form.SimpleForm control
 sap.ui.define([
 	"sap/m/Title",
+	"sap/ui/core/Element",
 	"sap/ui/core/Title",
+	"sap/ui/core/Lib",
 	"sap/ui/fl/Utils"
 ], function(
 	MTitle,
+	Element,
 	CoreTitle,
+	Library,
 	FlexUtils
 ) {
 	"use strict";
@@ -61,6 +65,10 @@ sap.ui.define([
 	}
 
 	var oFormPropagatedMetadata = {
+		properties: {
+			width: {ignore: true},
+			editable: {ignore: true}
+		},
 		aggregations: {
 			formContainers: {
 				//maybe inherited from Form
@@ -118,7 +126,7 @@ sap.ui.define([
 							return true;
 						},
 						getCreatedContainerId: function(sNewControlID) {
-							var oTitle = sap.ui.getCore().byId(sNewControlID);
+							var oTitle = Element.getElementById(sNewControlID);
 							var sParentElementId = oTitle.getParent().getId();
 
 							return sParentElementId;
@@ -140,6 +148,11 @@ sap.ui.define([
 		name: {
 			singular: "GROUP_CONTROL_NAME",
 			plural: "GROUP_CONTROL_NAME_PLURAL"
+		},
+		properties: {
+			visible: {ignore: true},
+			expanded: {ignore: true},
+			expandable: {ignore: true}
 		},
 		aggregations: {
 			formElements: {
@@ -168,8 +181,7 @@ sap.ui.define([
 					add: {
 						delegate: {
 							changeType: "addSimpleFormField",
-							changeOnRelevantContainer: true,
-							supportsDefaultDelegate: true
+							changeOnRelevantContainer: true
 						}
 					}
 				}
@@ -210,7 +222,7 @@ sap.ui.define([
 							}
 						}
 						if (bContent) {
-							var oTextResources = sap.ui.getCore().getLibraryResourceBundle("sap.ui.layout.designtime");
+							var oTextResources = Library.getResourceBundleFor("sap.ui.layout.designtime");
 							return oTextResources.getText("MSG_REMOVING_TOOLBAR");
 						}
 					}
@@ -224,6 +236,9 @@ sap.ui.define([
 		name: {
 			singular: "FIELD_CONTROL_NAME",
 			plural: "FIELD_CONTROL_NAME_PLURAL"
+		},
+		properties: {
+			visible: {ignore: true}
 		},
 		actions: {
 			rename: {

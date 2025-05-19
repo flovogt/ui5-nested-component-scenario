@@ -1,20 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./library",
 	"sap/ui/core/Item",
-	"sap/ui/core/library",
+	"sap/ui/core/message/MessageType",
 	"sap/base/Log"
 ],
-	function(library, Item, coreLibrary, Log) {
+	function(library, Item, MessageType, Log) {
 		"use strict";
-
-		// shortcut for sap.ui.core.MessageType
-		var MessageType = coreLibrary.MessageType;
 
 		/**
 		 * Constructor for a new MessageItem.
@@ -36,7 +33,7 @@ sap.ui.define([
 		 *
 		 * @extends sap.ui.core.Item
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -51,28 +48,28 @@ sap.ui.define([
 					/**
 					 * Specifies the type of the message
 					 */
-					type: { type: "sap.ui.core.MessageType", group: "Appearance", defaultValue: MessageType.Error },
+					type: { type: "sap.ui.core.message.MessageType", group: "Appearance", defaultValue: MessageType.Error },
 
 					/**
 					 * Specifies the title of the message
 					 */
-					title: { type: "string", group: "Appearance", defaultValue: "" },
+					title: { type: "string", group: "Data", defaultValue: "" },
 
 					/**
 					 * Specifies the subtitle of the message
 					 * <b>Note:</b> This is only visible when the <code>title</code> property is not empty.
 					 */
-					subtitle : {type : "string", group : "Misc", defaultValue : null},
+					subtitle : {type : "string", group : "Data", defaultValue : null},
 
 					/**
 					 * Specifies detailed description of the message
 					 */
-					description: { type: "string", group: "Appearance", defaultValue: "" },
+					description: { type: "string", group: "Data", defaultValue: "" },
 
 					/**
 					 * Specifies if description should be interpreted as markup
 					 */
-					markupDescription: { type: "boolean", group: "Appearance", defaultValue: false },
+					markupDescription: { type: "boolean", group: "Data", defaultValue: false },
 
 					/**
 					 * Specifies long text description location URL
@@ -113,6 +110,8 @@ sap.ui.define([
 				sType = this.getType().toLowerCase(),
 				// Exclude list properties. Some properties have already been set and shouldn't be changed in the StandardListItem
 				aPropertiesNotToUpdateInList = ["description", "type", "groupName"],
+				// properties affecting details page rendering
+				aDetailsPageUpdatingProps = ["type", "title", "subtitle", "description", "markupDescription", "longtextUrl", "counter", "groupName", "activeTitle"],
 				// TODO: the '_oMessagePopoverItem' needs to be updated to proper name in the eventual sap.m.MessageView control
 				fnUpdateProperty = function (sName, oItem) {
 					if (oItem._oMessagePopoverItem.getId() === this.getId() && oItem.getMetadata().getProperty(sName)) {
@@ -131,7 +130,13 @@ sap.ui.define([
 				this._updatePropertiesFn();
 			}
 
-			return Item.prototype.setProperty.apply(this, arguments);
+			Item.prototype.setProperty.apply(this, arguments);
+
+			if (aDetailsPageUpdatingProps.includes(sPropertyName) && oParent && oParent._updateDescription) {
+				oParent._updateDescription(this);
+			}
+
+			return this;
 		};
 
 		/**
@@ -148,7 +153,7 @@ sap.ui.define([
 		 * Sets type of the MessageItem.
 		 * <b>Note:</b> if you set the type to None it will be handled and rendered as Information.
 		 *
-		 * @param {sap.ui.core.MessageType} sType Type of Message
+		 * @param {module:sap/ui/core/message/MessageType} sType Type of Message
 		 * @returns {this} The MessageItem
 		 * @public
 		 */

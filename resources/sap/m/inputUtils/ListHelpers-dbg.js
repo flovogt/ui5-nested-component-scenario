@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -181,6 +181,10 @@ sap.ui.define([
 				wrapCharLimit: 10000
 			});
 
+			oListItem.getMultiSelectControl(true)._getVisualOnlyMode = function () {
+				return true;
+			};
+
 			// Constructor does not escape properly curly braces and binding. We need to use the setters instead.
 			oListItem.setTitle(oItem.getText());
 			oListItem.setInfo((oItem.getAdditionalText && bShowSecondaryValues) ? oItem.getAdditionalText() : "");
@@ -217,7 +221,11 @@ sap.ui.define([
 
 		// map the items to list items and add them to the list
 		aItems.forEach(function (oItem) {
-			oItemsContainer.addItem(fnMapItem(oItem));
+			if (oItem.isA("sap.ui.core.SeparatorItem")) {
+				oItemsContainer.addItemGroup(null, fnMapItem(oItem));
+			} else {
+				oItemsContainer.addItem(fnMapItem(oItem));
+			}
 		});
 	};
 

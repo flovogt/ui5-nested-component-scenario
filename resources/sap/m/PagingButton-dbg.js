@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,9 +10,10 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/core/IconPool',
 	'./PagingButtonRenderer',
-	"sap/base/Log"
+	"sap/base/Log",
+	"sap/ui/core/Lib"
 ],
-	function(Button, Control, IconPool, PagingButtonRenderer, Log) {
+	function(Button, Control, IconPool, PagingButtonRenderer, Log, Library) {
 		"use strict";
 
 		/**
@@ -26,7 +27,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -91,7 +92,7 @@ sap.ui.define([
 			renderer: PagingButtonRenderer
 		});
 
-		var resourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var resourceBundle = Library.getResourceBundleFor("sap.m");
 
 		PagingButton.prototype.init = function () {
 			this._attachPressEvents();

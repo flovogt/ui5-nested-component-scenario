@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -10,8 +10,7 @@ sap.ui.define([
 	'sap/ui/model/Context',
 	'sap/ui/model/ChangeReason',
 	'sap/ui/model/PropertyBinding',
-	"sap/base/util/deepEqual",
-	'sap/ui/model/ChangeReason'
+	"sap/base/util/deepEqual"
 ],
 	function(ODataMetaModel, Context, ChangeReason, PropertyBinding, deepEqual) {
 	"use strict";

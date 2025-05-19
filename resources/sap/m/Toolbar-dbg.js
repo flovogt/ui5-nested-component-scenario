@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,6 +16,7 @@ sap.ui.define([
 	"sap/ui/events/KeyCodes",
 	'./ToolbarRenderer',
 	"sap/m/Button",
+	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/library"
 ],
 function(
@@ -29,6 +30,7 @@ function(
 	KeyCodes,
 	ToolbarRenderer,
 	Button,
+	jQuery,
 	coreLibrary
 ) {
 	"use strict";
@@ -78,7 +80,7 @@ function(
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -228,7 +230,7 @@ function(
 	 * @return {string} width
 	 */
 	Toolbar.getOrigWidth = function(sId) {
-		var oControl = Element.registry.get(sId);
+		var oControl = Element.getElementById(sId);
 		if (!oControl || !oControl.getWidth) {
 			return "";
 		}
@@ -249,6 +251,10 @@ function(
 	 * @returns {true|false|undefined|Object}
 	 */
 	Toolbar.checkShrinkable = function(oControl, sShrinkClass) {
+		if (oControl.isA("sap.ui.core.HTML")) {
+			return;
+		}
+
 		if (oControl instanceof ToolbarSpacer) {
 			return this.isRelativeWidth(oControl.getWidth());
 		}
@@ -312,8 +318,7 @@ function(
 		return {
 			role: !bActive ? this._getAccessibilityRole() : undefined, // active toolbar is rendered with sap.m.Button as native button
 			haspopup: bActive ? this.getAriaHasPopup() : undefined,
-			labelledby: aAriaLabelledBy.length ? this.getAriaLabelledBy() : this.getTitleId(),
-			roledescription: this._sAriaRoleDescription
+			labelledby: aAriaLabelledBy.length ? this.getAriaLabelledBy() : this.getTitleId()
 		};
 	};
 
@@ -334,14 +339,149 @@ function(
 		this._oContentDelegate = {
 			onAfterRendering: this._onAfterContentRendering
 		};
+
+		this._handleKeyNavigationBound =  this._handleKeyNavigation.bind(this);
+
 	};
 
 	Toolbar.prototype.onAfterRendering = function() {
 		this._checkContents();
+
+		//Attach event listened needed for the arrow key navigation
+		if (this.getDomRef()) {
+			this.getDomRef().removeEventListener("keydown", this._handleKeyNavigationBound);
+			this.getDomRef().addEventListener("keydown", this._handleKeyNavigationBound);
+		}
+	};
+
+	Toolbar.prototype._handleKeyNavigation = function(oEvent) {
+		const focusedElement = document.activeElement;
+		const toolbarDom = this.getDomRef();
+		if (toolbarDom.contains(focusedElement)) {
+			if (oEvent.keyCode === KeyCodes.ARROW_RIGHT || oEvent.keyCode === KeyCodes.ARROW_DOWN) {
+				this._moveFocus("forward", oEvent);
+			} else if (oEvent.keyCode === KeyCodes.ARROW_LEFT || oEvent.keyCode === KeyCodes.ARROW_UP) {
+				this._moveFocus("backward", oEvent);
+			}
+		}
+	};
+
+	/**
+	 * A custom function to get the active element in the document
+	 * without relying on jQuery.is(":focus") selector check
+	 * @static
+	 * @returns {sap.ui.core.Element|undefined}
+	 */
+	Toolbar._getActiveElement = () => {
+		try {
+			var $Act = jQuery(document.activeElement);
+
+			return Element.closestTo($Act[0]);
+		} catch (err) {
+			//escape eslint check for empty block
+		}
+	};
+
+	/**
+	 * Try to find the parent of the active element assuming it is a child of the toolbar.
+	 * If the active element is not a child of the toolbar, return original active element
+	 * (in cases like associative toolbar)
+	 * @param {sap.ui.core.Element} oActiveElement
+	 * @returns {sap.ui.core.Element}
+	 */
+	Toolbar.prototype._getParent = function(oActiveElement) {
+		var originalActiveElement = oActiveElement;
+
+		while (oActiveElement && oActiveElement.getParent() !== this) {
+			oActiveElement = oActiveElement.getParent();
+		}
+
+		return oActiveElement || originalActiveElement;
+	};
+
+	Toolbar.prototype._moveFocus = function(sDirection, oEvent) {
+		var aFocusableElements = this._getToolbarInteractiveControls(),
+			oActiveElement = Toolbar._getActiveElement(),
+			oActiveDomElement = document.activeElement;
+
+		oActiveElement = this._getParent(oActiveElement);
+
+		var iCurrentIndex = aFocusableElements.indexOf(oActiveElement),
+			iNextIndex = this._calculateNextIndex(sDirection, iCurrentIndex, aFocusableElements.length),
+			bIsFirst = this._isFirst(sDirection, iCurrentIndex),
+			bIsLast = this._isLast(sDirection, iCurrentIndex, aFocusableElements);
+
+			if (this._shouldAllowDefaultBehavior(oActiveElement, oEvent)) {
+				return;
+			}
+
+		// Handle specific behaviour for the input based controls
+		if (this._isInputBasedControl(oActiveDomElement, oActiveElement, oEvent)) {
+            var bIsAtStart = oActiveDomElement.selectionStart === 0,
+                bIsAtEnd = oActiveDomElement.selectionStart === oActiveDomElement.value.length,
+                bTextSelected = oActiveDomElement.selectionStart !== oActiveDomElement.selectionEnd;
+
+            if (bTextSelected || (sDirection === "forward" && !bIsAtEnd) || (sDirection === "backward" && !bIsAtStart)) {
+                return;
+            }
+		}
+
+		if (aFocusableElements[iNextIndex] && !bIsFirst && !bIsLast) {
+			this._focusElement(aFocusableElements[iNextIndex], oEvent);
+		}
+	};
+
+	Toolbar.prototype._isInputBasedControl = function(oActiveDomElement) {
+		return oActiveDomElement.tagName === "INPUT" && !oActiveDomElement.readOnly;
+	};
+
+	Toolbar.prototype._isFirst = function(sDirection, iCurrentIndex) {
+		return (iCurrentIndex === 0) && (sDirection === "backward" || sDirection === "up");
+	};
+
+	Toolbar.prototype._isLast = function(sDirection, iCurrentIndex, aFocusableElements) {
+		return (iCurrentIndex === aFocusableElements.length - 1) && (sDirection === "forward" || sDirection === "down");
+	};
+
+	Toolbar.prototype._shouldAllowDefaultBehavior = function(oActiveElement, oEvent) {
+		if (!oActiveElement) {
+			return false;
+		}
+		var sActiveElementName = oActiveElement.getMetadata().getName(),
+			bIsSelectOrCombobox = ["sap.m.Select", "sap.m.ComboBox"].includes(sActiveElementName),
+			bIsUpOrDownArrowKey = [KeyCodes.ARROW_UP, KeyCodes.ARROW_DOWN].includes(oEvent.keyCode),
+			bIsBreadcrumbs = sActiveElementName === "sap.m.Breadcrumbs",
+			bIsSlider = ["sap.m.Slider", "sap.m.RangeSlider"].includes(sActiveElementName);
+
+		if (bIsUpOrDownArrowKey && bIsSelectOrCombobox || bIsBreadcrumbs || bIsSlider) {
+			return true;
+		}
+
+		// If the control does not have its own navigation or the conditions are not met, return false
+		return false;
+	};
+
+	Toolbar.prototype._calculateNextIndex = function(sDirection, iCurrentIndex, length) {
+		if (sDirection === "forward") {
+			return (iCurrentIndex + 1) % length;
+		}
+
+		return (iCurrentIndex - 1 + length) % length;
+	};
+
+	Toolbar.prototype._focusElement = function(element, oEvent) {
+		element.focus();
+
+		if (document.activeElement.tagName === 'INPUT') {
+			document.activeElement.select(); // Optionally select text in input field
+		}
+
+		// Prevent the default behavior to avoid any further automatic focus movement
+		oEvent.preventDefault();
 	};
 
 	Toolbar.prototype.onLayoutDataChange = function() {
-		this.rerender();
+		this.invalidate();
 	};
 
 	Toolbar.prototype.addContent = function(oControl) {
@@ -370,18 +510,18 @@ function(
 
 	// handle tap for active toolbar, do nothing if already handled
 	Toolbar.prototype.ontap = function(oEvent) {
-		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._getActiveButton()) {
+		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._activeButton) {
 			oEvent.setMarked();
 			this.firePress({
 				srcControl : oEvent.srcControl
 			});
-			this.focus();
+			this.focus({preventScroll: true});
 		}
 	};
 
 	// fire press event when enter is hit on the active toolbar
 	Toolbar.prototype.onsapenter = function(oEvent) {
-		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._getActiveButton()) {
+		if (this.getActive() && !oEvent.isMarked() || oEvent.srcControl === this._activeButton) {
 			oEvent.setMarked();
 			this.firePress({
 				srcControl : this
@@ -391,7 +531,7 @@ function(
 
 	Toolbar.prototype.onsapspace = function(oEvent) {
 		// Prevent browser scrolling in case of SPACE key
-		if (oEvent.srcControl === this._getActiveButton()) {
+		if ((!this.getActive() && oEvent.isMarked()) || oEvent.srcControl === this._activeButton) {
 			oEvent.preventDefault();
 		}
 	};
@@ -504,11 +644,21 @@ function(
 	 * @private
 	 */
 	Toolbar.prototype._getToolbarInteractiveControlsCount = function () {
+		return this._getToolbarInteractiveControls().length;
+	};
+
+	/**
+	 *
+	 * @returns {Array} Toolbar interactive Controls
+	 * @private
+	 */
+
+	Toolbar.prototype._getToolbarInteractiveControls = function () {
 		return this.getContent().filter(function (oControl) {
 			return oControl.getVisible()
 				&& oControl.isA("sap.m.IToolbarInteractiveControl")
 				&& typeof (oControl._getToolbarInteractive) === "function" && oControl._getToolbarInteractive();
-		}).length;
+		});
 	};
 
 	Toolbar.prototype._getActiveButton = function() {

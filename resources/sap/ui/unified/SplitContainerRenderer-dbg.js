@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.unified.SplitContainer
-sap.ui.define(["sap/ui/core/library", "sap/ui/core/Configuration"],
-	function(coreLibrary, Configuration) {
+sap.ui.define(["sap/ui/core/ControlBehavior", "sap/ui/core/library", "sap/ui/core/Configuration"],
+	function(ControlBehavior, coreLibrary, Configuration) {
 	"use strict";
 
 
@@ -17,7 +17,7 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Configuration"],
 	/**
 	 * SplitContainer renderer.
 	 * @namespace
-	 * @deprecated Since version 1.44.0.
+	 * @deprecated As of version 1.44.0, the concept has been discarded.
 	 */
 	var SplitContainerRenderer = {};
 
@@ -35,7 +35,7 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Configuration"],
 		rm.writeControlData(oControl);
 		rm.addClass("sapUiUfdSpltCont");
 		rm.addClass("sapUiUfdSpltCont" + (bVertical ? "V" : "H"));
-		if (Configuration.getAnimationMode() !== Configuration.AnimationMode.none) {
+		if (ControlBehavior.getAnimationMode() !== Configuration.AnimationMode.none) {
 			rm.addClass("sapUiUfdSpltContAnim");
 		}
 

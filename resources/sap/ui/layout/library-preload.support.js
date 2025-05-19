@@ -1,7 +1,7 @@
 //@ui5-bundle sap/ui/layout/library-preload.support.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -22,14 +22,14 @@ sap.ui.predefine("sap/ui/layout/library.support", ["./rules/Form.support"],
 }, true);
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the Form controls of sap.ui.layout library.
  */
-sap.ui.predefine("sap/ui/layout/rules/Form.support", ["sap/ui/support/library", "sap/ui/layout/library"],
-	function(SupportLib, layoutLibrary) {
+sap.ui.predefine("sap/ui/layout/rules/Form.support", ["sap/ui/core/Lib", "sap/ui/support/library", "sap/ui/layout/library"],
+	function(Lib, SupportLib, layoutLibrary) {
 	"use strict";
 
 	// shortcuts
@@ -918,7 +918,7 @@ sap.ui.predefine("sap/ui/layout/rules/Form.support", ["sap/ui/support/library", 
 				oScope.getElementsByClassName("sap.ui.layout.form.Form")
 					.forEach(function (oForm) {
 						var oLayout = oForm.getLayout();
-						var oLoadedLibraries = sap.ui.getCore().getLoadedLibraries();
+						var oLoadedLibraries = Lib.all();
 						if (oLayout && oLayout.isA("sap.ui.layout.form.ColumnLayout") && !oLoadedLibraries.hasOwnProperty("sap.ui.commons")) {
 							var oParent = oForm.getParent();
 							var sId;

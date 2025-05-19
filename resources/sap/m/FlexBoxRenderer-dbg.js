@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -82,8 +82,24 @@ sap.ui.define([
 		}
 
 		// Add inline styles
+		const sGap = oFlexBox.getGap(),
+			sRowGap = oFlexBox.getRowGap(),
+			sColumnGap = oFlexBox.getColumnGap();
+
 		oRm.style("height", oFlexBox.getHeight());
 		oRm.style("width", oFlexBox.getWidth());
+
+		if (sGap) {
+			oRm.style("gap", sGap);
+		}
+
+		if (sRowGap) {
+			oRm.style("row-gap", sRowGap);
+		}
+
+		if (sColumnGap) {
+			oRm.style("column-gap", sColumnGap);
+		}
 
 		// Add tooltip
 		var sTooltip = oFlexBox.getTooltip_AsString();

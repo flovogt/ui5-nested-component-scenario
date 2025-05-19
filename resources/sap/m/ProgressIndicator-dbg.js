@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,6 +10,7 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	"sap/ui/Device",
 	'sap/ui/core/Icon',
+	"sap/ui/core/Lib",
 	'sap/ui/core/ResizeHandler',
 	'sap/ui/core/ValueStateSupport',
 	'sap/ui/core/library',
@@ -19,17 +20,18 @@ sap.ui.define([
 	"sap/m/Text"
 ],
 	function(
-	library,
-	Control,
-	Device,
-	Icon,
-	ResizeHandler,
-	ValueStateSupport,
-	coreLibrary,
-	ProgressIndicatorRenderer,
-	Log,
-	Popover,
-	Text
+		library,
+		Control,
+		Device,
+		Icon,
+		Library,
+		ResizeHandler,
+		ValueStateSupport,
+		coreLibrary,
+		ProgressIndicatorRenderer,
+		Log,
+		Popover,
+		Text
 	) {
 	"use strict";
 
@@ -59,7 +61,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -74,6 +76,7 @@ sap.ui.define([
 			properties : {
 				/**
 				 * Switches enabled state of the control. Disabled fields have different colors, and cannot be focused.
+				 * @deprecated As of version 1.130 with no replacement.
 				 */
 				enabled : {type : "boolean", group : "Behavior", defaultValue : true},
 
@@ -246,6 +249,12 @@ sap.ui.define([
 		}
 	};
 
+	ProgressIndicator.prototype.setShowValue = function (bShowValue) {
+		this.toggleStyleClass("sapMPINoValue", !bShowValue);
+
+		return this.setProperty("showValue", bShowValue);
+	};
+
 	/**
 	 * Updates the hoverable scenario.
 	 * If we have a hoverable scenario we toggle on the "sapMPIHoverable" CSS class and vice-versa.
@@ -416,7 +425,7 @@ sap.ui.define([
 	 * The object contains the accessibility information of <code>sap.m.ProgressIndicator</code>
 	 */
 	ProgressIndicator.prototype.getAccessibilityInfo = function() {
-		var oBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+		var oBundle = Library.getResourceBundleFor("sap.m"),
 			sDisplayValue = this.getDisplayValue(),
 			sDescription = sDisplayValue ? sDisplayValue : oBundle.getText("ACC_CTR_STATE_PROGRESS", [this.getPercentValue()]);
 

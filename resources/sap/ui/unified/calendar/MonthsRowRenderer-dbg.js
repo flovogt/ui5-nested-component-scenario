@@ -1,12 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar/CalendarDate', 'sap/ui/unified/CalendarLegendRenderer',
-		'sap/ui/unified/library', "sap/base/Log", "sap/ui/core/date/UI5Date"],
-	function (CalendarUtils, CalendarDate, CalendarLegendRenderer, library, Log, UI5Date) {
+sap.ui.define(["sap/ui/core/Element", 'sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar/CalendarDate', 'sap/ui/unified/CalendarLegendRenderer', 'sap/ui/unified/library', "sap/base/Log", "sap/ui/core/date/UI5Date"],
+	function(Element, CalendarUtils, CalendarDate, CalendarLegendRenderer, library, Log, UI5Date) {
 		"use strict";
 
 
@@ -33,7 +32,6 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		var oDate = oMonthsRow._getStartDate();
 		var sTooltip = oMonthsRow.getTooltip_AsString();
 		var sId = oMonthsRow.getId();
-		var oAriaLabel = {value: sId + "-Descr", append: true};
 
 		oRm.openStart("div", oMonthsRow);
 		oRm.class("sapUiCalMonthsRow");
@@ -46,17 +44,10 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 		oRm.accessibilityState(oMonthsRow, {
 			role: "grid",
 			readonly: "true",
-			multiselectable: !oMonthsRow.getSingleSelection() || oMonthsRow.getIntervalSelection(),
-			labelledby: oAriaLabel
+			multiselectable: !oMonthsRow.getSingleSelection() || oMonthsRow.getIntervalSelection()
 		});
 
 		oRm.openEnd(); // div element
-
-		oRm.openStart("span", sId + "-Descr");
-		oRm.style("display", "none");
-		oRm.openEnd();
-		oRm.text(oMonthsRow._rb.getText("CALENDAR_DIALOG"));
-		oRm.close("span");
 
 		if (oMonthsRow.getIntervalSelection()) {
 			oRm.openStart("span", sId + "-Start");
@@ -205,7 +196,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 
 		var sLegendId = oMonthsRow.getLegend();
 		if (sLegendId) {
-			var oLegend = sap.ui.getCore().byId(sLegendId);
+			var oLegend = Element.getElementById(sLegendId);
 			if (oLegend) {
 				if (!(oLegend instanceof sap.ui.unified.CalendarLegend)) {
 					throw new Error(oLegend + " is not an sap.ui.unified.CalendarLegend. " + oMonthsRow);
@@ -268,7 +259,7 @@ sap.ui.define(['sap/ui/unified/calendar/CalendarUtils', 'sap/ui/unified/calendar
 			role: oMonthsRow._getAriaRole(),
 			selected: false,
 			label: "",
-			describedby: ""
+			describedby: oMonthsRow._getMonthDescription()
 		};
 
 		var sYyyymm = oMonthsRow._oFormatYyyymm.format(oDate.toUTCJSDate(), true);

@@ -1,14 +1,14 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
 // Provides control sap.m.ExpandableText
 sap.ui.define([
 	'./library',
-	'sap/ui/core/Core',
 	'sap/ui/core/Control',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/Device',
@@ -18,11 +18,11 @@ sap.ui.define([
 	'sap/m/Button',
 	'sap/m/ResponsivePopover',
 	'sap/m/HyphenationSupport',
-	"./ExpandableTextRenderer"
+	'./ExpandableTextRenderer'
 ],
 function(library,
-		 Core,
 		 Control,
+		 Library,
 		 coreLibrary,
 		 InvisibleText,
 		 Device,
@@ -35,7 +35,7 @@ function(library,
 		 ExpandableTextRenderer) {
 	"use strict";
 
-	var oRb = Core.getLibraryResourceBundle("sap.m");
+	var oRb = Library.getResourceBundleFor("sap.m");
 
 	var TEXT_SHOW_MORE = oRb.getText("EXPANDABLE_TEXT_SHOW_MORE");
 	var TEXT_SHOW_LESS = oRb.getText("EXPANDABLE_TEXT_SHOW_LESS");
@@ -102,10 +102,10 @@ function(library,
 	 * </ul>
 	 *
 	 * @extends sap.ui.core.Control
-	 * @implements sap.ui.core.IFormContent, sap.m.IHyphenation
+	 * @implements sap.ui.core.IFormContent, sap.m.IHyphenation, sap.ui.core.ILabelable
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -117,7 +117,8 @@ function(library,
 
 			interfaces: [
 				"sap.ui.core.IFormContent",
-				"sap.m.IHyphenation"
+				"sap.m.IHyphenation",
+				"sap.ui.core.ILabelable"
 			],
 			library: "sap.m",
 			properties: {
@@ -125,7 +126,7 @@ function(library,
 				/**
 				 * Determines the text to be displayed.
 				 */
-				text: { type: "string", defaultValue: '', bindable: "bindable" },
+				text: { type: "string", group: "Data", defaultValue: '', bindable: "bindable" },
 
 				/**
 				 * Available options for the text direction are left-to-right (LTR) and right-to-left (RTL)
@@ -215,7 +216,7 @@ function(library,
 	 * Gets the text.
 	 *
 	 * @public
-	 * @param {boolean} bNormalize Indication for normalized text.
+	 * @param {boolean} [bNormalize] Indication for normalized text.
 	 * @returns {string} Text value.
 	 */
 	ExpandableText.prototype.getText = function (bNormalize) {
@@ -243,6 +244,16 @@ function(library,
 		}
 
 		return this.getDomRef("string");
+	};
+
+	/**
+	 * Returns if the control can be bound to a label
+	 *
+	 * @returns {boolean} <code>true</code> if the control can be bound to a label
+	 * @public
+	 */
+	ExpandableText.prototype.hasLabelableHTMLElement = function () {
+		return false;
 	};
 
 	/**
@@ -345,10 +356,6 @@ function(library,
 						}
 
 						showMoreLink.setText(TEXT_SHOW_LESS);
-						// force the re-rendering of the link,
-						// so the popover won't flickering,
-						// because of text changing
-						showMoreLink.rerender();
 
 						oPopover.removeAllAriaLabelledBy();
 						oPopover.destroyContent();

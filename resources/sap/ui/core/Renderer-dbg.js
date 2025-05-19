@@ -1,25 +1,25 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides (optional) base class for all renderers
 sap.ui.define([
 	"sap/base/Log",
+	"sap/base/i18n/Localization",
 	"sap/base/util/isPlainObject",
 	"sap/base/util/ObjectPath",
 	"sap/base/assert",
-	"sap/base/util/extend",
-	"sap/ui/core/Configuration"
-], function(Log, isPlainObject, ObjectPath, assert, extend, Configuration) {
+	"sap/base/util/extend"
+], function(Log, Localization, isPlainObject, ObjectPath, assert, extend) {
 	"use strict";
 
 	/**
 	 * @classdesc Base Class for a Renderer.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @namespace
 	 * @public
 	 * @alias sap.ui.core.Renderer
@@ -53,8 +53,13 @@ sap.ui.define([
 		oChildRenderer.extend = createExtendedRenderer;
 		extend(oChildRenderer, oRendererInfo);
 
-		// expose the renderer globally
-		ObjectPath.set(sName, oChildRenderer);
+		/**
+		 * @deprecated
+		 */
+		(() => {
+			// expose the renderer globally
+			ObjectPath.set(sName, oChildRenderer);
+		})();
 
 		return oChildRenderer;
 	}
@@ -222,6 +227,9 @@ sap.ui.define([
 		// lazy require sap.ui.core library
 		sapUiCore = sap.ui.require("sap/ui/core/library");
 
+		/**
+		 * @deprecated
+		 */
 		if (!sapUiCore) {
 			Log.warning("Synchronous loading of a library.js. Ensure that 'sap/ui/core/library.js' is loaded" +
 				" before sap.ui.core.Renderer#getTextAlign is called.", "SyncXHR", null, function() {
@@ -238,7 +246,7 @@ sap.ui.define([
 		var TextDirection = sapUiCore.TextDirection;
 
 		var sTextAlign = "",
-			bRTL = Configuration.getRTL();
+			bRTL = Localization.getRTL();
 
 		switch (oTextAlign) {
 		case TextAlign.End:

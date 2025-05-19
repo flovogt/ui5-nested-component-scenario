@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
 	"sap/base/util/extend",
+	"sap/ui/core/Lib",
 	"sap/ui/core/format/NumberFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/type/ODataType"
-], function (Log, extend, NumberFormat, FormatException, ParseException, ValidateException,
-		ODataType) {
+], function(Log, extend, Library, NumberFormat, FormatException, ParseException, ValidateException, ODataType) {
 	"use strict";
 
 	var rInteger = /^[-+]?(\d+)$/, // user input for an Int64 w/o the sign
@@ -68,7 +68,7 @@ sap.ui.define([
 	 *   the message
 	 */
 	function getText(sKey, aParams) {
-		return sap.ui.getCore().getLibraryResourceBundle().getText(sKey, aParams);
+		return Library.getResourceBundleFor("sap.ui.core").getText(sKey, aParams);
 	}
 
 	/**
@@ -119,7 +119,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @alias sap.ui.model.odata.type.Int64
 	 * @param {object} [oFormatOptions]
@@ -133,6 +133,7 @@ sap.ui.define([
 	 *   violated
 	 * @param {boolean|string} [oConstraints.nullable=true]
 	 *   if <code>true</code>, the value <code>null</code> is accepted
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> format option is provided
 	 * @public
 	 * @since 1.27.1
 	 */

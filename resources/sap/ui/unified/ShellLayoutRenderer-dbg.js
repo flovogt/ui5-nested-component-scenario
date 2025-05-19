@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.unified.ShellLayout
-sap.ui.define(["sap/ui/core/Configuration"],
-	function(Configuration) {
+sap.ui.define(["sap/ui/core/ControlBehavior"],
+	function(ControlBehavior) {
 	"use strict";
 
 
 	/**
 	 * Shell Layout renderer.
 	 * @namespace
-	 * @deprecated Since version 1.44.0.
+	 * @deprecated As of version 1.44.0, the concept has been discarded.
 	 */
 	var ShellLayoutRenderer = {};
 
@@ -48,7 +48,7 @@ sap.ui.define(["sap/ui/core/Configuration"],
 		rm.write("<hr id='", id, "-brand' class='sapUiUfdShellBrand'>");
 
 		rm.write("<header id='", id, "-hdr'  class='sapUiUfdShellHead'");
-		if (Configuration.getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			rm.writeAttribute("role", "banner");
 		}
 		rm.write("><div><div id='", id, "-hdrcntnt' class='sapUiUfdShellCntnt'>");

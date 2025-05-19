@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.core.mvc.View.
 sap.ui.define([
 	"sap/base/assert",
+	"sap/base/future",
 	"sap/base/Log",
 	"sap/base/util/extend",
 	"sap/base/util/isEmptyObject",
@@ -21,6 +22,7 @@ sap.ui.define([
 	"./XMLProcessingMode"
 ], function(
 		assert,
+		future,
 		Log,
 		extend,
 		isEmptyObject,
@@ -131,18 +133,22 @@ sap.ui.define([
 	 *
 	 *
 	 * <h3>Other Methods</h3>
-	 * Besides <code>createContent</code>, there are two other methods that a view can implement:
-	 * Method {@link #getControllerName getControllerName} defines the name of the controller that should
+	 * Besides <code>createContent</code>, there are other methods that a view can implement:
+	 * <ul>
+	 * <li>Method {@link #getControllerName getControllerName} defines the name of the controller that should
 	 * be instantiated and used for the view. The name must be in class name notation (dot notation),
 	 * without the <code>".controller"</code> suffix. The suffix will be added by the framework when
-	 * loading the module containing the controller.
-	 *
-	 * {@link #getAutoPrefixId getAutoPrefixId} defines whether the IDs of controls created during
+	 * loading the module containing the controller.</li>
+	 * <li>Method {@link #getControllerModuleName getControllerModuleName} defines the module name of the controller that
+	 * should be loaded for the view. Unlike <code>getControllerName</code>, the name must be in <code>sap.ui.define/sap.ui.require</code>
+	 * syntax (slash-separated name without '.js' suffix).</li>
+	 * <li>{@link #getAutoPrefixId getAutoPrefixId} defines whether the IDs of controls created during
 	 * the execution of <code>createContent</code> will be prefixed with the ID of the view automatically.
-	 * The default implementation of this method returns <code>false</code>.
+	 * The default implementation of this method returns <code>false</code>.</li>
+	 * </ul>
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.View
@@ -319,6 +325,7 @@ sap.ui.define([
 	 * @param {boolean} bAsync Whether processing is async or not
 	 * @return {object} oPreprocessorImpl
 	 * @private
+	 * @ui5-transform-hint replace-param bAsync true
 	 */
 	function initPreprocessor(oPreprocessor, bAsync) {
 		var oPreprocessorImpl;
@@ -434,6 +441,7 @@ sap.ui.define([
 	 * @returns {Promise|undefined} A promise for asynchronous or undefined for synchronous controllers
 	 * @throws {Error}
 	 * @private
+	 * @ui5-transform-hint replace-param mSettings.async true
 	 */
 	var createAndConnectController = function(oThis, mSettings) {
 		var bAsync = mSettings.async;
@@ -447,10 +455,11 @@ sap.ui.define([
 			var oController = mSettings.controller,
 				sName = oController && typeof oController.getMetadata === "function" && oController.getMetadata().getName();
 
-			if (!oController && oThis.getControllerName) {
+			if (!oController) {
 				oThis.bControllerIsViewManaged = true;
+
 				// get optional default controller name
-				var defaultController = oThis.getControllerName();
+				let defaultController = oThis._getControllerModuleName() || oThis._getControllerName();
 				if (defaultController) {
 					// check for controller replacement
 					var Component = sap.ui.require("sap/ui/core/Component");
@@ -470,7 +479,7 @@ sap.ui.define([
 						oController = sap.ui.controller(defaultController, true, false, oThis.sId); // legacy-relevant: Sync path
 					}
 				}
-			} else if (oController) {
+			} else {
 				oThis.bControllerIsViewManaged = false;
 				// if passed controller is not extended yet we need to do it.
 				var sOwnerId = ManagedObject._sOwnerId;
@@ -561,7 +570,7 @@ sap.ui.define([
 							// only 'visible' property can be customized
 							for (var sProperty in oCustomSetting) {
 								if (sProperty !== "visible") {
-									Log.warning("[FUTURE FATAL] Customizing: custom value for property '" + sProperty + "' of control '" + sId + "' in View '" + that.sViewName + "' ignored: only the 'visible' property can be customized.");
+									future.warningThrows(`Customizing: property '${sProperty}' of control '${sId}' in View '${that.sViewName}' cannot be customized, only 'visible' can.`, { suffix: "Property will be ignored" });
 									delete oCustomSetting[sProperty];
 								}
 							}
@@ -573,6 +582,10 @@ sap.ui.define([
 			}
 		}
 
+		/**
+		 * @private
+		 * @ui5-transform-hint replace-param bAsync true
+		 */
 		var fnPropagateOwner = function(fnCallback, bAsync) {
 			assert(typeof fnCallback === "function", "fn must be a function");
 			var oOwnerComponent = Component && Component.getOwnerComponentFor(that);
@@ -651,6 +664,14 @@ sap.ui.define([
 	 */
 	View.prototype.getController = function() {
 		return this.oController;
+	};
+
+	View.prototype._getControllerName = function(){
+		return this.getControllerName?.();
+	};
+
+	View.prototype._getControllerModuleName = function(){
+		return this.getControllerModuleName?.();
 	};
 
 	/**
@@ -775,7 +796,7 @@ sap.ui.define([
 	 * @deprecated As of version 1.120, please call the corresponding View factory instead, e.g. {@link sap.ui.core.mvc.XMLView.create}
 	 */
 	View.prototype.clone = function(sIdSuffix, aLocalIds) {
-		Log.error("[FUTURE FATAL] Cloning a View and/or using a View as a binding template is deprecated. Please call the corresponding View factory instead, e.g. XMLView.create()");
+		future.errorThrows("Cloning a View and/or using a View as a binding template is deprecated. Please call the corresponding View factory instead, e.g. XMLView.create()");
 
 		var mSettings = {}, sKey, oClone;
 		//Clone properties (only those with non-default value)
@@ -956,7 +977,7 @@ sap.ui.define([
 		if (vPreprocessor) {
 			initGlobalPreprocessorsRegistry(sType, sViewType);
 			if (bOnDemand && onDemandPreprocessorExists(sViewType, sType)) {
-				Log.error("[FUTURE FATAL] Registration for \"" + sType + "\" failed, only one on-demand-preprocessor allowed", this.getMetadata().getName());
+				future.errorThrows(`${this.getMetadata().getName()}: Registration for "${sType}" failed, only one on-demand-preprocessor allowed`);
 				return;
 			}
 			View._mPreprocessors[sViewType][sType].push({
@@ -968,7 +989,7 @@ sap.ui.define([
 			Log.debug("Registered " + (bOnDemand ? "on-demand-" : "") + "preprocessor for \"" + sType + "\"" +
 			(bSyncSupport ? " with syncSupport" : ""), this.getMetadata().getName());
 		} else {
-			Log.error("[FUTURE FATAL] Registration for \"" + sType + "\" failed, no preprocessor specified",  this.getMetadata().getName());
+			future.errorThrows(`${this.getMetadata().getName()}: Registration for "${sType}" failed, no preprocessor specified`);
 		}
 	};
 
@@ -991,6 +1012,18 @@ sap.ui.define([
 	 * @return {string} the name of the controller
 	 * @public
 	 * @name sap.ui.core.mvc.View#getControllerName
+	 * @function
+	 */
+
+	/**
+	 * An optional method that views can implement to return the controller's module name in <code>sap.ui.define/sap.ui.require</code>
+	 * syntax (slash-separated name without '.js' suffix).
+	 * If no controller instance is provided at the time of View instantiation AND this method exists, the View attempts to load and
+	 * instantiate the controller and to connect it to itself.
+	 *
+	 * @return {string} Name of the module name from which to load the view definition.
+	 * @public
+	 * @name sap.ui.core.mvc.View#getControllerModuleName
 	 * @function
 	 */
 
@@ -1081,14 +1114,18 @@ sap.ui.define([
 		}
 
 		return new Promise(function(resolve, reject) {
-			 var sViewClass = View._getViewClassName(mParameters);
+			 var sViewClass = getViewClassName(mParameters);
 			 sap.ui.require([sViewClass], function(ViewClass){
 				 resolve(ViewClass);
 			 }, reject);
 		})
 		.then(function(ViewClass) {
-			// Activate the asynchronous processing for XMLViews
+			/**
+			 * @deprecated because the 'Sequential' Mode is used by default and it's the only mode that will be supported
+			 * in the next major release
+			 */
 			if (ViewClass.getMetadata().isA("sap.ui.core.mvc.XMLView")) {
+				// Activate the asynchronous processing for XMLViews
 				mParameters.processingMode = XMLProcessingMode.Sequential;
 			}
 
@@ -1218,6 +1255,10 @@ sap.ui.define([
 			oView.type = sType;
 		}
 
+		/**
+		 * @deprecated because the 'Sequential' Mode is used by default and it's the only mode that will be supported
+		 * in the next major release
+		 */
 		if (oView.type === ViewType.XML && oView.async) {
 			// the processingMode might be already set by the asnychronous View.create factory
 			// "SequentialLegacy" is only used if the sap.ui.view factory with async=true was called
@@ -1246,7 +1287,7 @@ sap.ui.define([
 			}
 		}
 
-		var sViewClass = View._getViewClassName(oView);
+		var sViewClass = getViewClassName(oView);
 		view = createView(sViewClass, oView);
 		return view;
 	}
@@ -1259,8 +1300,8 @@ sap.ui.define([
 	 * @returns {string|undefined} Name of the view class (in sap.ui.define syntax)
 	 * @private
 	 */
-	View._getViewClassName = function(oViewSettings, bSkipLog) {
-		var sViewClass = View._getModuleName(oViewSettings);
+	function getViewClassName(oViewSettings, bSkipLog) {
+		var sViewClass = getTypedViewModuleName(oViewSettings);
 
 		// view creation
 		if (sViewClass) {
@@ -1298,16 +1339,22 @@ sap.ui.define([
 		}
 
 		return sViewClass;
-	};
+	}
 
 	function createView(sViewClass, oViewSettings) {
 		var ViewClass = sap.ui.require(sViewClass);
 		if (!ViewClass) {
-			ViewClass = sap.ui.requireSync(sViewClass);// legacy-relevant: sync fallback for missing dependency
-			if (oViewSettings.async) {
-				//not supported
-				Log.warning("sap.ui.view was called without requiring the according view class.");
-			}
+			future.warningThrows(`The view class '${sViewClass}' needs to be required before an instance of the view can be created.`);
+			/**
+			 * @deprecated
+			 */
+			(() => {
+				ViewClass = sap.ui.requireSync(sViewClass);// legacy-relevant: sync fallback for missing dependency
+				if (oViewSettings.async) {
+					//not supported
+					Log.warning("sap.ui.view was called without requiring the according view class.");
+				}
+			})();
 		}
 		return new ViewClass(oViewSettings);
 	}
@@ -1338,13 +1385,13 @@ sap.ui.define([
 	 * @returns {string|undefined} Name of the module (in sap.ui.define syntax) from which to load the view definition.
 	 * @private
 	 */
-	View._getModuleName = function(mSettings) {
+	function getTypedViewModuleName(mSettings) {
 		var sModuleName;
 		if (mSettings.viewName && mSettings.viewName.startsWith("module:")) {
 			sModuleName = mSettings.viewName.slice("module:".length);
 		}
 		return sModuleName;
-	};
+	}
 
 	/**
 	 * Interface for Preprocessor implementations that can be hooked in the view life cycle.
@@ -1353,7 +1400,6 @@ sap.ui.define([
 	 * where it is the executed only for this instance, or by the registerPreprocessor method of the view type. Currently this is
 	 * available only for XMLViews (as of version 1.30).
 	 *
-	 * @see sap.ui.view
 	 * @see sap.ui.core.mvc.View.registerPreprocessor (the method is available specialized for view types, so use the following)
 	 * @see sap.ui.core.mvc.XMLView.registerPreprocessor
 	 *
@@ -1424,6 +1470,7 @@ sap.ui.define([
 	 * can construct the complete UI in this method, or only return the root control and create the remainder of the UI
 	 * lazily later on.
 	 *
+	 * @param {sap.ui.core.mvc.Controller} oController The controller of the view
 	 * @returns {sap.ui.core.Control|sap.ui.core.Control[]|Promise<sap.ui.core.Control|sap.ui.core.Control[]>} A control or array of controls representing the view user interface or a Promise resolving with a control or an array of controls.
 	 * @public
 	 * @name sap.ui.core.mvc.View#createContent
@@ -1477,6 +1524,10 @@ sap.ui.define([
 		}.bind(this), mPreprocessorSettings);
 	};
 
+	/**
+	 * @private
+	 * @ui5-transform-hint replace-param mSettings.async true
+	 */
 	View.prototype.initViewSettings = function(mSettings) {
 		// check if renderer exists, otherwise default it
 		if (!this.getMetadata()._oRenderer) {

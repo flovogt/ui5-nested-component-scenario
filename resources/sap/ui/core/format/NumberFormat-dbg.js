@@ -1,22 +1,23 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.format.NumberFormat
 sap.ui.define([
+	"sap/base/i18n/Formatting",
+	"sap/base/i18n/Localization",
 	'sap/ui/base/Object',
 	'sap/ui/core/Locale',
 	'sap/ui/core/LocaleData',
 	'sap/ui/core/Supportability',
+	'sap/ui/core/format/FormatUtils',
 	'sap/base/Log',
 	'sap/base/assert',
-	'sap/base/util/extend',
-	'sap/ui/core/Configuration'
-
+	'sap/base/util/extend'
 ],
-	function(BaseObject, Locale, LocaleData, Supportability, Log, assert, extend, Configuration) {
+	function(Formatting, Localization, BaseObject, Locale, LocaleData, Supportability, FormatUtils, Log, assert, extend) {
 	"use strict";
 
 
@@ -47,17 +48,37 @@ sap.ui.define([
 		}
 	});
 
-	var rAllWhiteSpaces = /\s/g,
-		rDigit = /\d/,
-		// Regex for checking if a number has leading zeros
-		rLeadingZeros = /^(-?)0+(\d)/,
-		// Not matching Sc (currency symbol) and Z (separator) characters
-		// https://www.unicode.org/reports/tr44/#General_Category_Values
-		rNotSAndNotZ = /[^\$\xA2-\xA5\u058F\u060B\u09F2\u09F3\u09FB\u0AF1\u0BF9\u0E3F\u17DB\u20A0-\u20BD\uA838\uFDFC\uFE69\uFF04\uFFE0\uFFE1\uFFE5\uFFE6\u0020\xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/,
-		// Regex for matching the number placeholder in pattern
-		rNumPlaceHolder = /0+(\.0+)?/,
-		// Regex for checking that the given string only consists of '0' characters
-		rOnlyZeros = /^0+$/;
+	// Regex for replacing the number part of a decimal or currency pattern
+	const rNumberPattern = /[0#.,]+/;
+	const rAllWhiteSpaces = /\s/g;
+	// Regex for checking whether the last character belongs to the Unicode General Category L (letter)
+	const rEndsWithLetter = /\p{L}$/u;
+	// Regex for checking whether the first character belongs to the Unicode General Category L (letter)
+	const rStartsWithLetter = /^\p{L}/u;
+	// splits a currency pattern into following matching groups:
+	// 0: complete match
+	// 1: the optional number pattern in front of the currency placeholder
+	// 2: the characters between the number pattern in front of the currency placeholder and the currency placeholder
+	// 3: the currency placeholder
+	// 4: the characters between the currency placeholder and the number pattern after the currency placeholder
+	// 5: the optional number pattern after the currency placeholder
+	const rSplitCurrencyPattern = /([0#.,]*)([^0#.,]*)(¤)([^0#.,]*)([0#.,]*)/;
+	// Regex for checking if a number has leading zeros
+	const rLeadingZeros = /^(-?)0+(\d)/;
+	// Regex for matching the number placeholder in pattern
+	const rNumPlaceHolder = /0+(\.0+)?/;
+	// Regex for checking that the given string only consists of '0' characters
+	const rOnlyZeros = /^0+$/;
+	// A regular expresssion that can be used to remove a leading "-" from a number representing zero,
+	// e.g. "-0", or "-0.00"; $1 contains the number without the leading "-"
+	const rRemoveMinusFromZero = /^-(0(?:.0+)?)$/;
+	// A regular expression that can be used to remove trailing zeros from a number
+	const rTrailingZeros = /0+$/;
+	// A regular expression that can be used to remove all RTL characters
+	// see: https://www.unicode.org/reports/tr44/#Bidi_Class_Values (Explicit Formatting Types)
+	const rAllRTLCharacters = /[\u061c\u200e\u200f\u202a\u202b\u202c]/g;
+	// A regular expression that can be used to remove the left-to-right mark character
+	const rLeftToRightMark = /\u200e/;
 
 	/*
 	 * Is used to validate existing grouping separators.
@@ -82,8 +103,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Specifies a rounding behavior for numerical operations capable of discarding precision. Each rounding mode in this object indicates how the least
-	 * significant returned digits of rounded result is to be calculated.
+	 * Specifies a rounding behavior for numerical operations capable of discarding precision. Each rounding mode in
+	 * this object indicates how the least significant returned digits of rounded result are to be calculated.
 	 *
 	 * @public
 	 * @enum {string}
@@ -91,49 +112,61 @@ sap.ui.define([
 	 */
 	var mRoundingMode = {
 		/**
-		 * Rounding mode to round towards negative infinity
+		 * Rounding mode to round towards negative infinity; examples of rounding results to one fractional digit: 0.51
+		 * is rounded to 0.5, and -0.51 is rounded to -0.6.
 		 * @public
 		 * @type {string}
 		 */
 		FLOOR: "FLOOR",
 		/**
-		 * Rounding mode to round towards positive infinity
+		 * Rounding mode to round towards positive infinity; examples of rounding results to one fractional digit: 0.51
+		 * is rounded to 0.6, and -0.51 is rounded to -0.5.
 		 * @public
 		 * @type {string}
 		 */
 		CEILING: "CEILING",
 		/**
-		 * Rounding mode to round towards zero
+		 * Rounding mode to round towards zero; examples of rounding results to one fractional digit: 0.59 is rounded to
+		 * 0.5, and -0.59 is rounded to -0.5.
 		 * @public
 		 * @type {string}
 		 */
 		TOWARDS_ZERO: "TOWARDS_ZERO",
 		/**
-		 * Rounding mode to round away from zero
+		 * Rounding mode to round away from zero; examples of rounding results to one fractional digit: 0.51 is rounded
+		 * to 0.6, and -0.51 is rounded to -0.6.
 		 * @public
 		 * @type {string}
 		 */
 		AWAY_FROM_ZERO: "AWAY_FROM_ZERO",
 		/**
-		 * Rounding mode to round towards the nearest neighbor unless both neighbors are equidistant, in which case round towards negative infinity.
+		 * Rounding mode to round towards the nearest neighbor, unless both neighbors are equidistant, in which case
+		 * round towards negative infinity; examples of rounding results to one fractional digit: 0.54 or 0.46 are
+		 * rounded to 0.5, -0.54 or -0.46 are rounded to -0.5, 0.55 is rounded to 0.5, and -0.55 is rounded to -0.6.
 		 * @public
 		 * @type {string}
 		 */
 		HALF_FLOOR: "HALF_FLOOR",
 		/**
-		 * Rounding mode to round towards the nearest neighbor unless both neighbors are equidistant, in which case round towards positive infinity.
+		 * Rounding mode to round towards the nearest neighbor, unless both neighbors are equidistant, in which case
+		 * round towards positive infinity; examples of rounding results to one fractional digit: 0.54 or 0.46 are
+		 * rounded to 0.5, -0.54 or -0.46 are rounded to -0.5, 0.55 is rounded to 0.6, and -0.55 is rounded to -0.5.
 		 * @public
 		 * @type {string}
 		 */
 		HALF_CEILING: "HALF_CEILING",
 		/**
-		 * Rounding mode to round towards the nearest neighbor unless both neighbors are equidistant, in which case round towards zero.
+		 * Rounding mode to round towards the nearest neighbor, unless both neighbors are equidistant, in which case
+		 * round towards zero; examples of rounding results to one fractional digit: 0.54 or 0.46 are rounded to 0.5,
+		 * -0.54 or -0.46 are rounded to -0.5, 0.55 is rounded to 0.5, and -0.55 is rounded to -0.5.
 		 * @public
 		 * @type {string}
 		 */
 		HALF_TOWARDS_ZERO: "HALF_TOWARDS_ZERO",
 		/**
-		 * Rounding mode to round towards the nearest neighbor unless both neighbors are equidistant, in which case round away from zero.
+		 * Rounding mode to round towards the nearest neighbor unless, both neighbors are equidistant, in which case
+		 * round away from zero; examples of rounding results to one fractional digit: 0.54 or 0.46 are rounded to 0.5,
+		 * -0.54 or -0.46 are rounded to -0.5, 0.55 is rounded to 0.6, and -0.55 is rounded to -0.6.
 		 * @public
 		 * @type {string}
 		 */
@@ -141,7 +174,77 @@ sap.ui.define([
 	};
 
 	/**
-	 * Derives the maximal possible decimals from the given format option's <code>maxFractionDigits</code>
+	 * Adds the summand given as a number to an decimal given as a string.
+	 *
+	 * @param {string} sDecimal A positive or negative decimal number as string
+	 * @param {int} iSummand An integer between -9 and 9 to be added to the given decimal number
+	 * @returns {string} The sum of the two numbers as a string
+	 *
+	 * @private
+	 */
+	NumberFormat.add = function (sDecimal, iSummand) {
+		const aParts = sDecimal.split(".");
+		let sInteger = aParts[0];
+		const sFractionPart = aParts[1];
+		const bNegative = sInteger[0] === "-";
+		if (bNegative) {
+			sInteger = sInteger.slice(1);
+			iSummand = -iSummand;
+		}
+		const aDigits = sInteger.split("").map(Number);
+		const iLastIndex = aDigits.length - 1;
+		aDigits[iLastIndex] += iSummand;
+		for (let i = iLastIndex; i >= 0; i -= 1) {
+			if (aDigits[i] >= 10) {
+				aDigits[i] = aDigits[i] % 10;
+				if (i === 0) {
+					aDigits.unshift(1);
+					break;
+				}
+				aDigits[i - 1] += 1;
+			} else if (aDigits[i] < 0 && i > 0) {
+				aDigits[i] = 10 + aDigits[i];
+				aDigits[i - 1] -= 1;
+				if (i === 1 && aDigits[0] === 0) {
+					aDigits.shift();
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+		if (bNegative) {
+			aDigits[0] = -aDigits[0];
+		}
+		let sResult = aDigits.join("");
+		if (!sFractionPart) {
+			return sResult;
+		}
+
+		// If sResult is 0, the sign may be lost and has to be restored, e.g. "-5.123" + 5 => -5 + 5 = 0 => "-0.123"
+		sResult = sResult === "0" && bNegative ? "-0" : sResult;
+		const sResultSign = sResult[0] === "-" ? "-" : "";
+		// If both signs are equal, the fraction part can simply be appended
+		if (bNegative === !!sResultSign) {
+			return sResult + "." + sFractionPart;
+		}
+
+		// If the signs are different, aDigits contains only one digit which is different from zero; to compute the
+		// result, the result sign has to be kept, the integer part is the absolute sResult reduced by one, and the
+		// fractional part is (1 - fractional part), e.g. "2.123" - 5 => 2 - 5 = -3 => sign = "-", integer part is
+		// |-3| - 1 = 2 and fractional part is 1 - 0.123 = 0.877 without the leading "0." => "-2.877"
+		const aFractionDigits = sFractionPart.split("").map(Number);
+		for (let i = aFractionDigits.length - 1; i >= 0; i -= 1) {
+			aFractionDigits[i] = 10 - aFractionDigits[i];
+			if (i > 0) {
+				aFractionDigits[i - 1] += 1;
+			}
+		}
+		return sResultSign + (Math.abs(aDigits[0]) - 1) + "." + aFractionDigits.join("");
+	};
+
+	/**
+	 * Derives the maximum number of possible decimals from the given format option's <code>maxFractionDigits</code>
 	 * and <code>decimals</code> properties.
 	 *
 	 * If <code>decimals</code> and <code>maxFractionDigits</code> are >= 0, then the minimum of
@@ -159,32 +262,91 @@ sap.ui.define([
 	 * @private
 	 * @static
 	 */
-	NumberFormat.getMaximalDecimals = function ({decimals, maxFractionDigits}) {
+	NumberFormat.getMaximumDecimals = function ({decimals, maxFractionDigits}) {
 		if (maxFractionDigits >= 0 && decimals > 0 && maxFractionDigits < decimals) {
 			return maxFractionDigits;
 		}
 		return decimals;
 	};
 
-	var mRoundingFunction = {};
-	mRoundingFunction[mRoundingMode.FLOOR] = Math.floor;
-	mRoundingFunction[mRoundingMode.CEILING] = Math.ceil;
-	mRoundingFunction[mRoundingMode.TOWARDS_ZERO] = function(nValue) {
-		return nValue > 0 ? Math.floor(nValue) : Math.ceil(nValue);
+	/**
+	 * Rounds the given number up to the smallest integer greater than or equal to the given number.
+	 *
+	 * @param {number|string} vNumber
+	 *   The number to be rounded up; it has at least one digit in front of the decimal point in case of type "string"
+	 * @returns {number|string}
+	 *   The smallest integer greater than or equal to the given number; the returned type is the same as the type of
+	 *   the given number
+	 */
+	function ceil(vNumber) {
+		if (typeof vNumber === "number") {
+			return Math.ceil(vNumber);
+		}
+
+		const [sIntegerPart, sFractionPart = "0"] = vNumber.split(".");
+		return rOnlyZeros.test(sFractionPart) || sIntegerPart[0] === "-"
+			? sIntegerPart
+			: NumberFormat.add(sIntegerPart, 1);
+	}
+
+	/**
+	 * Rounds the given number down to the largest integer less than or equal to the given number.
+	 *
+	 * @param {number|string} vNumber
+	 *   The number to be rounded down; it has at least one digit in front of the decimal point in case of type "string"
+	 * @returns {number|string}
+	 *   The largest integer less than or equal to the given number; the returned type is the same as the type of the
+	 *   given number
+	 */
+	function floor(vNumber) {
+		if (typeof vNumber === "number") {
+			return Math.floor(vNumber);
+		}
+
+		const [sIntegerPart, sFractionPart = "0"] = vNumber.split(".");
+		return rOnlyZeros.test(sFractionPart) || sIntegerPart[0] !== "-"
+			? sIntegerPart
+			: NumberFormat.add(sIntegerPart, -1);
+	}
+
+	/**
+	 * Adds 0.5 to or subtracts 0.5 from the given number.
+	 *
+	 * @param {number|string} vNumber
+	 *   The number to be increased or decreased by 0.5
+	 * @param {boolean} bIncrease
+	 *   Whether to increase the number by 0.5; otherwise the number is decreased by 0.5
+	 * @returns {number|string}
+	 *   The number increased or decreased by 0.5; the returned type is the same as the type of the given number
+	 */
+	function increaseOrDecreaseByHalf(vNumber, bIncrease) {
+		if (typeof vNumber === "number") {
+			return bIncrease ? vNumber + 0.5 : vNumber - 0.5;
+		}
+
+		vNumber = NumberFormat._shiftDecimalPoint(vNumber, 1);
+		vNumber = NumberFormat.add(vNumber, bIncrease ? 5 : -5);
+		return NumberFormat._shiftDecimalPoint(vNumber, -1);
+	}
+
+	const mRoundingFunction = {
+		[mRoundingMode.FLOOR]: floor,
+		[mRoundingMode.CEILING]: ceil,
+		[mRoundingMode.TOWARDS_ZERO]: (vNumber) => (vNumber > 0 ? floor(vNumber) : ceil(vNumber)),
+		[mRoundingMode.AWAY_FROM_ZERO]: (vNumber) => (vNumber > 0 ? ceil(vNumber) : floor(vNumber)),
+		[mRoundingMode.HALF_TOWARDS_ZERO]: (vNumber) => {
+			const bPositive = vNumber > 0;
+			vNumber = increaseOrDecreaseByHalf(vNumber, !bPositive);
+			return bPositive ? ceil(vNumber) : floor(vNumber);
+		},
+		[mRoundingMode.HALF_AWAY_FROM_ZERO]: (vNumber) => {
+			const bPositive = vNumber > 0;
+			vNumber = increaseOrDecreaseByHalf(vNumber, bPositive);
+			return bPositive ? floor(vNumber) : ceil(vNumber);
+		},
+		[mRoundingMode.HALF_FLOOR]: (vNumber) => ceil(increaseOrDecreaseByHalf(vNumber, false)),
+		[mRoundingMode.HALF_CEILING]: (vNumber) => floor(increaseOrDecreaseByHalf(vNumber, true))
 	};
-	mRoundingFunction[mRoundingMode.AWAY_FROM_ZERO] = function(nValue) {
-		return nValue > 0 ? Math.ceil(nValue) : Math.floor(nValue);
-	};
-	mRoundingFunction[mRoundingMode.HALF_TOWARDS_ZERO] = function(nValue) {
-		return nValue > 0 ? Math.ceil(nValue - 0.5) : Math.floor(nValue + 0.5);
-	};
-	mRoundingFunction[mRoundingMode.HALF_AWAY_FROM_ZERO] = function(nValue) {
-		return nValue > 0 ? Math.floor(nValue + 0.5) : Math.ceil(nValue - 0.5);
-	};
-	mRoundingFunction[mRoundingMode.HALF_FLOOR] = function(nValue) {
-		return Math.ceil(nValue - 0.5);
-	};
-	mRoundingFunction[mRoundingMode.HALF_CEILING] = Math.round;
 
 	NumberFormat.RoundingMode = mRoundingMode;
 
@@ -333,6 +495,46 @@ sap.ui.define([
 	};
 
 	/**
+	 * Checks the given format options if decimal padding is allowed and if the decimal padding value is supported.
+	 *
+	 * @param {object} [oFormatOptions]
+	 *   The format options to be checked
+	 * @param {int} [oFormatOptions.decimalPadding]
+	 *   The format option decimal padding
+	 * @param {boolean} [oFormatOptions.showMeasure]
+	 *   The format option show measure
+	 * @param {string} [oFormatOptions.style]
+	 *   The format option style
+	 * @param {boolean} [bDecimalPaddingSupported=true]
+	 *   Whether decimal padding is supported
+	 * @param {boolean} [bShowMeasureMustBeFalse=false]
+	 *   Whether the format option <code>showMeasure</code> must be set to false
+	 * @throws {Error} If decimal padding cannot be used or the given decimal padding value is not supported
+	 *
+	 * @private
+	 * @static
+	 */
+	NumberFormat.checkDecimalPadding = function (oFormatOptions, bDecimalPaddingSupported = true,
+			bShowMeasureMustBeFalse = false) {
+		const iDecimalPadding = oFormatOptions?.decimalPadding;
+		if (!bDecimalPaddingSupported && iDecimalPadding !== undefined) {
+			throw new Error("Unsupported format option: 'decimalPadding' cannot be used with an integer or percent"
+				+ " instance of sap.ui.core.format.NumberFormat");
+		}
+		if (bShowMeasureMustBeFalse && iDecimalPadding && oFormatOptions?.showMeasure !== false) {
+			throw new Error("The format option 'decimalPadding' can only be used if the format option"
+				+ " 'showMeasure' is set to false");
+		}
+		if (iDecimalPadding < 1) {
+			throw new Error("The format option 'decimalPadding' must have a value greater than 0");
+		}
+		if (iDecimalPadding > 0 && (oFormatOptions?.style === "short" || oFormatOptions?.style === "long")) {
+			throw new Error("The format option 'decimalPadding' can only be used if the format option"
+				+ " 'style' is not set to 'short' or 'long'");
+		}
+	};
+
+	/**
 	 * An alias for {@link #getFloatInstance}.
 	 *
 	 * @param {object} [oFormatOptions] Object which defines the format options. See the documentation of
@@ -347,9 +549,6 @@ sap.ui.define([
 
 	/**
 	 * Get a float instance of the NumberFormat, which can be used for formatting.
-	 *
-	 * If no locale is given, the currently configured
-	 * {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale formatLocale} will be used.
 	 *
 	 * <p>
 	 * This instance has HALF_AWAY_FROM_ZERO set as default rounding mode.
@@ -371,6 +570,16 @@ sap.ui.define([
 	 *
 	 * @param {object} [oFormatOptions] The option object, which supports the following parameters.
 	 *   If no options are given, default values according to the type and locale settings are used.
+	 * @param {int} [oFormatOptions.decimalPadding]
+	 *   The target length of places after the decimal separator; if the number has fewer decimal places than given in
+	 *   this option, it is padded with whitespaces at the end up to the target length. An additional whitespace
+	 *   character for the decimal separator is added for a number without any decimals.
+	 *   <b>Note:</b> This format option is only allowed if the following conditions apply:
+	 *   <ul>
+	 *     <li>It has a value greater than 0.</li>
+	 *     <li>The <code>oFormatOptions.style</code> format option is <b>not</b> set to <code>"short"</code> or
+	 *         <code>"long"</code>.</li>
+	 *   </ul>
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
@@ -400,19 +609,25 @@ sap.ui.define([
 	 *   to "0.005".
 	 * @param {string} [oFormatOptions.pattern] CLDR number pattern which is used to format the number
 	 * @param {string} [oFormatOptions.plusSign] defines the used plus symbol
-	 * @param {int} [oFormatOptions.precision] defines the numerical precision; the number of decimals
-	 *   is calculated dependent on the integer digits
+	 * @param {int} [oFormatOptions.precision] The maximum number of digits in the formatted representation of a number;
+	 *   if the <code>precision</code> is less than the overall length of the number, its fractional part is truncated
+	 *   through rounding. As the <code>precision</code> only affects the rounding of a number, its integer part can
+	 *   retain more digits than defined by this parameter.
+	 *   <b>Example:</b> With a <code>precision</code> of 2, <code>234.567</code> is formatted to <code>235</code>.
+	 *   <b>Note:</b> The formatted output may differ depending on locale.
 	 * @param {boolean} [oFormatOptions.preserveDecimals=false] Whether {@link #format} preserves
 	 *   decimal digits except trailing zeros in case there are more decimals than the
 	 *   <code>maxFractionDigits</code> format option allows.
 	 *   If decimals are not preserved, the formatted number is rounded to <code>maxFractionDigits</code>.
 	 * @param {sap.ui.core.format.NumberFormat.RoundingMode} [oFormatOptions.roundingMode=HALF_AWAY_FROM_ZERO]
-	 *   specifies the rounding behavior for discarding the digits after the maximum fraction digits
-	 *   defined by maxFractionDigits. Rounding will only be applied if the passed value is of type <code>number</code>.
+	 *   Specifies the rounding behavior for discarding the digits after the maximum fraction digits
+	 *   defined by <code>maxFractionDigits</code>.
 	 *   This can be assigned
 	 *   <ul>
 	 *     <li>by value in {@link sap.ui.core.format.NumberFormat.RoundingMode RoundingMode},</li>
-	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the number of decimal digits that should be reserved.</li>
+	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the
+	 *         number of decimal digits that should be reserved. <b>Using a function is deprecated since 1.121.0</b>;
+	 *         string based numbers are not rounded via this custom function.</li>
 	 *   </ul>
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimal in the shortened format string. If this isn't specified, the 'decimals' options is used
 	 * @param {int} [oFormatOptions.shortLimit] only use short number formatting for values above this limit
@@ -426,24 +641,26 @@ sap.ui.define([
 	 *   numbers are formatted into compact forms. When this option is set, the default value of the
 	 *   'precision' option is set to 2. This can be changed by setting either min/maxFractionDigits,
 	 *   decimals, shortDecimals, or the 'precision' option itself.
-	 * @param {sap.ui.core.Locale} [oLocale] Locale to get the formatter for
+	 * @param {sap.ui.core.Locale} [oLocale]
+	 *   The locale to get the formatter for; if no locale is given, a locale for the currently configured language is
+	 *   used; see {@link module:sap/base/i18n/Formatting.getLanguageTag Formatting.getLanguageTag}
 	 * @return {sap.ui.core.format.NumberFormat} float instance of the NumberFormat
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> is set but is not allowed
 	 * @static
 	 * @public
 	 */
 	NumberFormat.getFloatInstance = function(oFormatOptions, oLocale) {
-		var oFormat = this.createInstance(oFormatOptions, oLocale),
-			oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.FLOAT);
+		NumberFormat.checkDecimalPadding(oFormatOptions);
+		const oFormat = NumberFormat.createInstance(oFormatOptions, oLocale);
+		const oLocaleFormatOptions = oFormat.getLocaleFormatOptions(mNumberType.FLOAT);
+		oFormat.oFormatOptions = extend({}, this.oDefaultFloatFormat, oLocaleFormatOptions,
+			oFormat.oOriginalFormatOptions);
 
-		oFormat.oFormatOptions = extend({}, this.oDefaultFloatFormat, oLocaleFormatOptions, oFormat.oOriginalFormatOptions);
 		return oFormat;
 	};
 
 	/**
 	 * Get an integer instance of the NumberFormat, which can be used for formatting.
-	 *
-	 * If no locale is given, the currently configured
-	 * {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale formatLocale} will be used.
 	 *
 	 * <p>
 	 * This instance has TOWARDS_ZERO set as default rounding mode.
@@ -464,6 +681,7 @@ sap.ui.define([
 	 *
 	 * @param {object} [oFormatOptions] The option object, which supports the following parameters.
 	 *   If no options are given, default values according to the type and locale settings are used.
+	 * @param {int} [oFormatOptions.decimalPadding] Not supported.
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
@@ -493,19 +711,28 @@ sap.ui.define([
 	 *   to "5000".
 	 * @param {string} [oFormatOptions.pattern] CLDR number pattern which is used to format the number
 	 * @param {string} [oFormatOptions.plusSign] defines the used plus symbol
-	 * @param {int} [oFormatOptions.precision] defines the numerical precision; the number of decimals
-	 *   is calculated dependent on the integer digits
+	 * @param {int} [oFormatOptions.precision] <b>Note:</b> Only considered if the number format leads to a
+	 *   representation with decimal places, e.g. if the option <code>style: "short"</code> is set.
+	 *   The maximum number of digits in the formatted representation of a number; if the <code>precision</code> is
+	 *   less than the overall length of the number, its fractional part is truncated through rounding.
+	 *   As the <code>precision</code> only affects the rounding of a number, its integer part can retain more digits
+	 *   than defined by this parameter.
+	 *   <b>Example:</b> With a <code>precision</code> of 2 and <code>style: "short"</code>,
+	 *   <code>234567</code> is formatted to <code>"235K"</code>.
+	 *   <b>Note:</b> The formatted output may differ depending on locale.
 	 * @param {boolean} [oFormatOptions.preserveDecimals=false] Whether {@link #format} preserves
 	 *   decimal digits except trailing zeros in case there are more decimals than the
 	 *   <code>maxFractionDigits</code> format option allows.
 	 *   If decimals are not preserved, the formatted number is rounded to <code>maxFractionDigits</code>.
 	 * @param {sap.ui.core.format.NumberFormat.RoundingMode} [oFormatOptions.roundingMode=TOWARDS_ZERO]
-	 *   specifies the rounding behavior for discarding the digits after the maximum fraction digits
-	 *   defined by maxFractionDigits. Rounding will only be applied if the passed value is of type <code>number</code>.
+	 *   Specifies the rounding behavior for discarding the digits after the maximum fraction digits
+	 *   defined by <code>maxFractionDigits</code>.
 	 *   This can be assigned
 	 *   <ul>
 	 *     <li>by value in {@link sap.ui.core.format.NumberFormat.RoundingMode RoundingMode},</li>
-	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the number of decimal digits that should be reserved.</li>
+	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the
+	 *         number of decimal digits that should be reserved. <b>Using a function is deprecated since 1.121.0</b>;
+	 *         string based numbers are not rounded via this custom function.</li>
 	 *   </ul>
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimal in the shortened format string. If this isn't specified, the 'decimals' options is used
 	 * @param {int} [oFormatOptions.shortLimit] only use short number formatting for values above this limit
@@ -519,24 +746,27 @@ sap.ui.define([
 	 *   numbers are formatted into compact forms. When this option is set, the default value of the
 	 *   'precision' option is set to 2. This can be changed by setting either min/maxFractionDigits,
 	 *   decimals, shortDecimals, or the 'precision' option itself.
-	 * @param {sap.ui.core.Locale} [oLocale] Locale to get the formatter for
+	 * @param {sap.ui.core.Locale} [oLocale]
+	 *   The locale to get the formatter for; if no locale is given, a locale for the currently configured language is
+	 *   used; see {@link module:sap/base/i18n/Formatting.getLanguageTag Formatting.getLanguageTag}
 	 * @return {sap.ui.core.format.NumberFormat} integer instance of the NumberFormat
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> format option is provided
 	 * @static
 	 * @public
 	 */
 	NumberFormat.getIntegerInstance = function(oFormatOptions, oLocale) {
-		var oFormat = this.createInstance(oFormatOptions, oLocale),
-			oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.INTEGER);
+		NumberFormat.checkDecimalPadding(oFormatOptions, false);
+		const oFormat = NumberFormat.createInstance(oFormatOptions, oLocale);
+		const oLocaleFormatOptions = oFormat.getLocaleFormatOptions(mNumberType.INTEGER);
 
-		oFormat.oFormatOptions = extend({}, this.oDefaultIntegerFormat, oLocaleFormatOptions, oFormat.oOriginalFormatOptions);
+		oFormat.oFormatOptions = extend({}, NumberFormat.oDefaultIntegerFormat, oLocaleFormatOptions,
+			oFormat.oOriginalFormatOptions);
+
 		return oFormat;
 	};
 
 	/**
 	 * Get a currency instance of the NumberFormat, which can be used for formatting.
-	 *
-	 * If no locale is given, the currently configured
-	 * {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale formatLocale} will be used.
 	 *
 	 * <p>
 	 * This instance has HALF_AWAY_FROM_ZERO set as default rounding mode.
@@ -562,7 +792,9 @@ sap.ui.define([
 	 *
 	 * As an alternative to using a fixed <code>symbol</code> for your custom currencies, you can also provide an ISO-Code.
 	 * The provided ISO-Code will be used to look up the currency symbol in the global configuration,
-	 * either defined in the CLDR or custom defined on the Format Settings (see {@link sap.ui.core.Configuration.FormatSettings#setCustomCurrencies}, {@link sap.ui.core.Configuration.FormatSettings#addCustomCurrencies}).
+	 * either defined in the CLDR or custom defined on the Format Settings (see
+	 * {@link module:sap/base/i18n/Formatting.setCustomCurrencies Formatting.setCustomCurrencies},
+	 * {@link module:sap/base/i18n/Formatting.addCustomCurrencies Formatting.addCustomCurrencies}).
 	 *
 	 * If no symbol is given at all, the custom currency key is used for formatting.
 	 *
@@ -599,7 +831,19 @@ sap.ui.define([
 	 *   If custom currencies are defined on the instance, no other currencies can be formatted and parsed by this instance.
 	 *   Globally available custom currencies can be added via the global configuration.
 	 *   See the above examples.
-	 *   See also {@link sap.ui.core.Configuration.FormatSettings#setCustomCurrencies} and {@link sap.ui.core.Configuration.FormatSettings#addCustomCurrencies}.
+	 *   See also {@link module:sap/base/i18n/Formatting.setCustomCurrencies Formatting.setCustomCurrencies} and
+	 *   {@link module:sap/base/i18n/Formatting.addCustomCurrencies Formatting.addCustomCurrencies}.
+	 * @param {int} [oFormatOptions.decimalPadding]
+	 *   The target length of places after the decimal separator; if the number has fewer decimal places than given in
+	 *   this option, it is padded with whitespaces at the end up to the target length. An additional whitespace
+	 *   character for the decimal separator is added for a number without any decimals.
+	 *   <b>Note:</b> This format option is only allowed if the following conditions apply:
+	 *   <ul>
+	 *     <li>It has a value greater than 0.</li>
+	 *     <li>The <code>FormatOptions.showMeasure</code> format option is set to <code>false</code>.</li>
+	 *     <li>The <code>oFormatOptions.style</code> format option is <b>not</b> set to <code>"short"</code> or
+	 *         <code>"long"</code>.</li>
+	 *   </ul>
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
@@ -620,7 +864,9 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.maxFractionDigits=99] defines the maximum number of decimal digits
 	 * @param {int} [oFormatOptions.maxIntegerDigits=99] defines the maximum number of non-decimal digits.
 	 *   If the number exceeds this maximum, e.g. 1e+120, "?" characters are shown instead of digits.
-	 * @param {int} [oFormatOptions.minFractionDigits=0] defines the minimal number of decimal digits
+	 * @param {int} [oFormatOptions.minFractionDigits=0] Deprecated as of 1.130; this format option does not have
+	 *   an effect on currency formats since decimals can always be determined, either through the given format options,
+	 *   custom currencies or the CLDR
 	 * @param {int} [oFormatOptions.minIntegerDigits=1] defines the minimal number of non-decimal digits
 	 * @param {string} [oFormatOptions.minusSign] defines the used minus symbol
 	 * @param {boolean} [oFormatOptions.parseAsString=false] since 1.28.2 defines whether to output
@@ -634,12 +880,14 @@ sap.ui.define([
 	 *   <code>maxFractionDigits</code> format option allows.
 	 *   If decimals are not preserved, the formatted number is rounded to <code>maxFractionDigits</code>.
 	 * @param {sap.ui.core.format.NumberFormat.RoundingMode} [oFormatOptions.roundingMode=HALF_AWAY_FROM_ZERO]
-	 *   specifies the rounding behavior for discarding the digits after the maximum fraction digits
-	 *   defined by maxFractionDigits. Rounding will only be applied if the passed value is of type <code>number</code>.
+	 *   Specifies the rounding behavior for discarding the digits after the maximum fraction digits
+	 *   defined by <code>maxFractionDigits</code>.
 	 *   This can be assigned
 	 *   <ul>
 	 *     <li>by value in {@link sap.ui.core.format.NumberFormat.RoundingMode RoundingMode},</li>
-	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the number of decimal digits that should be reserved.</li>
+	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the
+	 *         number of decimal digits that should be reserved. <b>Using a function is deprecated since 1.121.0</b>;
+	 *         string based numbers are not rounded via this custom function.</li>
 	 *   </ul>
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimal in the shortened format string. If this isn't specified, the 'decimals' options is used
 	 * @param {int} [oFormatOptions.shortLimit] only use short number formatting for values above this limit
@@ -659,56 +907,48 @@ sap.ui.define([
 	 * @param {boolean} [oFormatOptions.strictGroupingValidation=false] whether the positions of grouping separators are validated. Space characters used as grouping separators are not validated.
 	 * @param {string} [oFormatOptions.style=standard] defines the style of format. Valid values are
 	 *   'short, 'long' or 'standard' (based on the CLDR decimalFormat). When set to 'short' or 'long',
-	 *   numbers are formatted into compact forms. When this option is set, the default value of the
+	 *   numbers are formatted into the 'short' form only. When this option is set, the default value of the
 	 *   'precision' option is set to 2. This can be changed by setting either min/maxFractionDigits,
 	 *   decimals, shortDecimals, or the 'precision' option itself.
 	 * @param {boolean} [oFormatOptions.trailingCurrencyCode] overrides the global configuration
-	 *   value {@link sap.ui.core.Configuration.FormatSettings#getTrailingCurrencyCode}, which has a
-	 *   default value of <code>true</>.
+	 *   value {@link module:sap/base/i18n/Formatting.getTrailingCurrencyCode Formatting.getTrailingCurrencyCode},
+	 *   which has a default value of <code>true</>.
 	 *   This is ignored if <code>oFormatOptions.currencyCode</code> is set to <code>false</code>,
 	 *   or if <code>oFormatOptions.pattern</code> is supplied.
-	 * @param {sap.ui.core.Locale} [oLocale] Locale to get the formatter for
+	 * @param {sap.ui.core.Locale} [oLocale]
+	 *   The locale to get the formatter for; if no locale is given, a locale for the currently configured language is
+	 *   used; see {@link module:sap/base/i18n/Formatting.getLanguageTag Formatting.getLanguageTag}
 	 * @return {sap.ui.core.format.NumberFormat} currency instance of the NumberFormat
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> is set but is not allowed
 	 * @static
 	 * @public
 	 */
 	NumberFormat.getCurrencyInstance = function(oFormatOptions, oLocale) {
-		var oFormat = this.createInstance(oFormatOptions, oLocale);
-		var sContext = oFormat.oOriginalFormatOptions && oFormat.oOriginalFormatOptions.currencyContext;
+		NumberFormat.checkDecimalPadding(oFormatOptions, true, true);
+		const oFormat = NumberFormat.createInstance(oFormatOptions, oLocale);
+		const oLocaleFormatOptions = oFormat.getLocaleFormatOptions(mNumberType.CURRENCY);
+		oFormat.oFormatOptions = extend({}, NumberFormat.oDefaultCurrencyFormat, oLocaleFormatOptions,
+			oFormat.oOriginalFormatOptions);
 
-		// currency code trailing
-		var bShowTrailingCurrencyCode = showTrailingCurrencyCode(oFormat.oOriginalFormatOptions);
-
-
-		// prepend "sap-" to pattern params to load (context and short)
-		if (bShowTrailingCurrencyCode) {
-			sContext = sContext || this.oDefaultCurrencyFormat.style;
-			sContext = "sap-" + sContext;
-		}
-		var oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.CURRENCY, sContext);
-
-		oFormat.oFormatOptions = extend({}, this.oDefaultCurrencyFormat, oLocaleFormatOptions, oFormat.oOriginalFormatOptions);
-
-		// Trailing currency code option
-		//
-		// The format option "trailingCurrencyCode" is influenced by other options, such as pattern, currencyCode, global config
+		// The format option "trailingCurrencyCode" is influenced by other options, such as pattern, currencyCode,
+		// global config
 		// Therefore set it manually without modifying the original oFormatOptions.
 		// E.g. the "pattern" option would overwrite this option, even if the "trailingCurrencyCode" option is set
 		// oFormatOptions.pattern = "###"
 		// oFormatOptions.trailingCurrencyCode = true
 		// ->
 		// oFormatOptions.trailingCurrencyCode = false
-		oFormat.oFormatOptions.trailingCurrencyCode = bShowTrailingCurrencyCode;
+		oFormat.oFormatOptions.trailingCurrencyCode = oFormat.showTrailingCurrencyCode();
 		oFormat._defineCustomCurrencySymbols();
+		if (oFormat.oFormatOptions.style === "long") {
+			oFormat.oFormatOptions.style = "short";
+		}
 
 		return oFormat;
 	};
 
 	/**
 	 * Get a unit instance of the NumberFormat, which can be used for formatting units.
-	 *
-	 * If no locale is given, the currently configured
-	 * {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale formatLocale} will be used.
 	 *
 	 * <p>
 	 * This instance has HALF_AWAY_FROM_ZERO set as default rounding mode.
@@ -728,6 +968,17 @@ sap.ui.define([
 	 *      "decimals": 2,
 	 *      "precision": 4
 	 *   }}
+	 * @param {int} [oFormatOptions.decimalPadding]
+	 *   The target length of places after the decimal separator; if the number has fewer decimal places than given in
+	 *   this option, it is padded with whitespaces at the end up to the target length. An additional whitespace
+	 *   character for the decimal separator is added for a number without any decimals.
+	 *   <b>Note:</b> This format option is only allowed if the following conditions apply:
+	 *   <ul>
+	 *     <li>It has a value greater than 0.</li>
+	 *     <li>The <code>FormatOptions.showMeasure</code> format option is set to <code>false</code>.</li>
+	 *     <li>The <code>oFormatOptions.style</code> format option is <b>not</b> set to <code>"short"</code> or
+	 *         <code>"long"</code>.</li>
+	 *   </ul>
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
@@ -757,19 +1008,26 @@ sap.ui.define([
 	 *   to "0.005".
 	 * @param {string} [oFormatOptions.pattern] CLDR number pattern which is used to format the number
 	 * @param {string} [oFormatOptions.plusSign] defines the used plus symbol
-	 * @param {int} [oFormatOptions.precision] defines the numerical precision; the number of decimals
-	 *   is calculated dependent on the integer digits
+	 * @param {int} [oFormatOptions.precision] The maximum number of digits in the formatted representation of a number;
+	 *   if the <code>precision</code> is less than the overall length of the number, its fractional part is truncated
+	 *   through rounding. As the <code>precision</code> only affects the rounding of a number, its integer part can
+	 *   retain more digits than defined by this parameter.
+	 *   <b>Example:</b> With a <code>precision</code> of 2, the parameters <code>"234.567", "mass-kilogram"</code> are
+	 *   formatted to <code>"235 kg"</code>.
+	 *   <b>Note:</b> The formatted output may differ depending on locale.
 	 * @param {boolean} [oFormatOptions.preserveDecimals=false] Whether {@link #format} preserves
 	 *   decimal digits except trailing zeros in case there are more decimals than the
 	 *   <code>maxFractionDigits</code> format option allows.
 	 *   If decimals are not preserved, the formatted number is rounded to <code>maxFractionDigits</code>.
 	 * @param {sap.ui.core.format.NumberFormat.RoundingMode} [oFormatOptions.roundingMode=HALF_AWAY_FROM_ZERO]
-	 *   specifies the rounding behavior for discarding the digits after the maximum fraction digits
-	 *   defined by maxFractionDigits. Rounding will only be applied if the passed value is of type <code>number</code>.
+	 *   Specifies the rounding behavior for discarding the digits after the maximum fraction digits
+	 *   defined by <code>maxFractionDigits</code>.
 	 *   This can be assigned
 	 *   <ul>
 	 *     <li>by value in {@link sap.ui.core.format.NumberFormat.RoundingMode RoundingMode},</li>
-	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the number of decimal digits that should be reserved.</li>
+	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the
+	 *         number of decimal digits that should be reserved. <b>Using a function is deprecated since 1.121.0</b>;
+	 *         string based numbers are not rounded via this custom function.</li>
 	 *   </ul>
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimals in the shortened
 	 *   format string. If this option isn't specified, the 'decimals' option is used instead.
@@ -798,24 +1056,27 @@ sap.ui.define([
 	 *   numbers are formatted into compact forms. When this option is set, the default value of the
 	 *   'precision' option is set to 2. This can be changed by setting either min/maxFractionDigits,
 	 *   decimals, shortDecimals, or the 'precision' option itself.
-	 * @param {sap.ui.core.Locale} [oLocale] Locale to get the formatter for
+	 * @param {sap.ui.core.Locale} [oLocale]
+	 *   The locale to get the formatter for; if no locale is given, a locale for the currently configured language is
+	 *   used; see {@link module:sap/base/i18n/Formatting.getLanguageTag Formatting.getLanguageTag}
 	 * @return {sap.ui.core.format.NumberFormat} unit instance of the NumberFormat
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> is set but is not allowed
 	 * @static
 	 * @public
 	 */
 	NumberFormat.getUnitInstance = function(oFormatOptions, oLocale) {
-		var oFormat = this.createInstance(oFormatOptions, oLocale),
-			oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.UNIT);
+		NumberFormat.checkDecimalPadding(oFormatOptions, true, true);
+		const oFormat = NumberFormat.createInstance(oFormatOptions, oLocale);
+		const oLocaleFormatOptions = oFormat.getLocaleFormatOptions(mNumberType.UNIT);
 
-		oFormat.oFormatOptions = extend({}, this.oDefaultUnitFormat, oLocaleFormatOptions, oFormat.oOriginalFormatOptions);
+		oFormat.oFormatOptions = extend({}, NumberFormat.oDefaultUnitFormat, oLocaleFormatOptions,
+			oFormat.oOriginalFormatOptions);
+
 		return oFormat;
 	};
 
 	/**
 	 * Get a percent instance of the NumberFormat, which can be used for formatting.
-	 *
-	 * If no locale is given, the currently configured
-	 * {@link sap.ui.core.Configuration.FormatSettings#getFormatLocale formatLocale} will be used.
 	 *
 	 * <p>
 	 * This instance has HALF_AWAY_FROM_ZERO set as default rounding mode.
@@ -825,6 +1086,7 @@ sap.ui.define([
 	 *
 	 * @param {object} [oFormatOptions] The option object, which supports the following parameters.
 	 *   If no options are given, default values according to the type and locale settings are used.
+	 * @param {int} [oFormatOptions.decimalPadding] Not supported.
 	 * @param {int} [oFormatOptions.decimals] defines the number of decimal digits
 	 * @param {string} [oFormatOptions.decimalSeparator] defines the character used as decimal separator.
 	 *   Note: <code>decimalSeparator</code> must always be different from <code>groupingSeparator</code>.
@@ -855,19 +1117,26 @@ sap.ui.define([
 	 * @param {string} [oFormatOptions.pattern] CLDR number pattern which is used to format the number
 	 * @param {string} [oFormatOptions.percentSign] defines the used percent symbol
 	 * @param {string} [oFormatOptions.plusSign] defines the used plus symbol
-	 * @param {int} [oFormatOptions.precision] defines the numerical precision; the number of decimals
-	 *   is calculated dependent on the integer digits
+	 * @param {int} [oFormatOptions.precision] The maximum number of digits in the formatted representation of a number;
+	 *   if the <code>precision</code> is less than the overall length of the number, its fractional part is truncated
+	 *   through rounding. As the <code>precision</code> only affects the rounding of a number, its integer part
+	 *   can retain more digits than defined by this parameter.
+	 *   <b>Example:</b> With a <code>precision</code> of 2, <code>234.567</code> is formatted to
+	 *   <code>"23,457%"</code>.
+	 *   <b>Note:</b> The formatted output may differ depending on locale.
 	 * @param {boolean} [oFormatOptions.preserveDecimals=false] Whether {@link #format} preserves
 	 *   decimal digits except trailing zeros in case there are more decimals than the
 	 *   <code>maxFractionDigits</code> format option allows.
 	 *   If decimals are not preserved, the formatted number is rounded to <code>maxFractionDigits</code>.
 	 * @param {sap.ui.core.format.NumberFormat.RoundingMode} [oFormatOptions.roundingMode=HALF_AWAY_FROM_ZERO]
-	 *   specifies the rounding behavior for discarding the digits after the maximum fraction digits
-	 *   defined by maxFractionDigits. Rounding will only be applied if the passed value is of type <code>number</code>.
+	 *   Specifies the rounding behavior for discarding the digits after the maximum fraction digits
+	 *   defined by <code>maxFractionDigits</code>.
 	 *   This can be assigned
 	 *   <ul>
 	 *     <li>by value in {@link sap.ui.core.format.NumberFormat.RoundingMode RoundingMode},</li>
-	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the number of decimal digits that should be reserved.</li>
+	 *     <li>via a function that is used for rounding the number and takes two parameters: the number itself, and the
+	 *         number of decimal digits that should be reserved. <b>Using a function is deprecated since 1.121.0</b>;
+	 *         string based numbers are not rounded via this custom function.</li>
 	 *   </ul>
 	 * @param {int} [oFormatOptions.shortDecimals] defines the number of decimal in the shortened format string. If this isn't specified, the 'decimals' options is used
 	 * @param {int} [oFormatOptions.shortLimit] only use short number formatting for values above this limit
@@ -881,16 +1150,22 @@ sap.ui.define([
 	 *   numbers are formatted into compact forms. When this option is set, the default value of the
 	 *   'precision' option is set to 2. This can be changed by setting either min/maxFractionDigits,
 	 *   decimals, shortDecimals, or the 'precision' option itself.
-	 * @param {sap.ui.core.Locale} [oLocale] Locale to get the formatter for
+	 * @param {sap.ui.core.Locale} [oLocale]
+	 *   The locale to get the formatter for; if no locale is given, a locale for the currently configured language is
+	 *   used; see {@link module:sap/base/i18n/Formatting.getLanguageTag Formatting.getLanguageTag}
 	 * @return {sap.ui.core.format.NumberFormat} percentage instance of the NumberFormat
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> format option is provided
 	 * @static
 	 * @public
 	 */
 	NumberFormat.getPercentInstance = function(oFormatOptions, oLocale) {
-		var oFormat = this.createInstance(oFormatOptions, oLocale),
-			oLocaleFormatOptions = this.getLocaleFormatOptions(oFormat.oLocaleData, mNumberType.PERCENT);
+		NumberFormat.checkDecimalPadding(oFormatOptions, false);
+		const oFormat = NumberFormat.createInstance(oFormatOptions, oLocale);
+		const oLocaleFormatOptions = oFormat.getLocaleFormatOptions(mNumberType.PERCENT);
 
-		oFormat.oFormatOptions = extend({}, this.oDefaultPercentFormat, oLocaleFormatOptions, oFormat.oOriginalFormatOptions);
+		oFormat.oFormatOptions = extend({}, NumberFormat.oDefaultPercentFormat, oLocaleFormatOptions,
+			oFormat.oOriginalFormatOptions);
+
 		return oFormat;
 	};
 
@@ -910,7 +1185,7 @@ sap.ui.define([
 			oFormatOptions = undefined;
 		}
 		if (!oLocale) {
-			oLocale = Configuration.getFormatSettings().getFormatLocale();
+			oLocale = new Locale(Formatting.getLanguageTag());
 		}
 		oFormat.oLocale = oLocale;
 		oFormat.oLocaleData = LocaleData.getInstance(oLocale);
@@ -965,29 +1240,35 @@ sap.ui.define([
 	};
 
 	/**
-	 * Get locale dependent default format options.
+	 * Gets the default locale-dependent format options for the given number format type.
 	 *
-	 * @static
+	 * @param {"integer"|"float"|"currency"|"unit"|"percent"} sType
+	 *   The number format type
+	 * @returns {object} The default locale-dependent format options for the given number format type
+	 *
+	 * @private
 	 */
-	NumberFormat.getLocaleFormatOptions = function(oLocaleData, iType, sContext) {
-		var oLocaleFormatOptions,
-			sNumberPattern;
-
-		switch (iType) {
+	NumberFormat.prototype.getLocaleFormatOptions = function (sType) {
+		const oLocaleData = this.oLocaleData;
+		let sNumberPattern;
+		let sContext;
+		switch (sType) {
 			case mNumberType.PERCENT:
 				sNumberPattern = oLocaleData.getPercentPattern();
 				break;
 			case mNumberType.CURRENCY:
+				sContext = this.oOriginalFormatOptions?.currencyContext || NumberFormat.oDefaultCurrencyFormat.style;
+				// prepend "sap-" to pattern params to load (context and short)
+				if (this.showTrailingCurrencyCode()) {
+					sContext = "sap-" + sContext;
+				}
 				sNumberPattern = oLocaleData.getCurrencyPattern(sContext);
-				break;
-			case mNumberType.UNIT:
-				sNumberPattern = oLocaleData.getDecimalPattern();
 				break;
 			default:
 				sNumberPattern = oLocaleData.getDecimalPattern();
 		}
 
-		oLocaleFormatOptions = this.parseNumberPattern(sNumberPattern);
+		const oLocaleFormatOptions = NumberFormat.parseNumberPattern(sNumberPattern);
 
 		oLocaleFormatOptions.plusSign = oLocaleData.getNumberSymbol("plusSign");
 		oLocaleFormatOptions.minusSign = oLocaleData.getNumberSymbol("minusSign");
@@ -998,14 +1279,7 @@ sap.ui.define([
 
 		// Some options need to be overridden to stay compatible with the formatting defaults
 		// before pattern parsing was added to the NumberFormat
-		switch (iType) {
-			case mNumberType.UNIT:
-			case mNumberType.FLOAT:
-			case mNumberType.PERCENT:
-				// Unlimited fraction digits for float and percent values
-				oLocaleFormatOptions.minFractionDigits = 0;
-				oLocaleFormatOptions.maxFractionDigits = 99;
-				break;
+		switch (sType) {
 			case mNumberType.INTEGER:
 				// No fraction digits and no grouping for integer values
 				oLocaleFormatOptions.minFractionDigits = 0;
@@ -1017,6 +1291,11 @@ sap.ui.define([
 				oLocaleFormatOptions.minFractionDigits = undefined;
 				oLocaleFormatOptions.maxFractionDigits = undefined;
 				break;
+			default:
+				// cases: mNumberType.UNIT, mNumberType.FLOAT and mNumberType.PERCENT
+				// Unlimited fraction digits
+				oLocaleFormatOptions.minFractionDigits = 0;
+				oLocaleFormatOptions.maxFractionDigits = 99;
 		}
 
 		return oLocaleFormatOptions;
@@ -1175,7 +1454,7 @@ sap.ui.define([
 	 * @returns {string} the number with stripped trailing zero decimals, e.g. "1.230"
 	 */
 	function stripTrailingZeroDecimals(sNumber, minDecimalsPreserved) {
-		if (sNumber.indexOf(".") >= 0 && !isScientificNotation(sNumber) && sNumber.endsWith("0")) {
+		if (sNumber.indexOf(".") >= 0 && sNumber.endsWith("0")) {
 			var iFractionDigitsLength = sNumber.length - sNumber.lastIndexOf(".") - 1;
 			var iFractionsToRemove = iFractionDigitsLength - minDecimalsPreserved;
 			if (iFractionsToRemove > 0) {
@@ -1227,9 +1506,13 @@ sap.ui.define([
 	/**
 	 * Format a number according to the given format options.
 	 *
-	 * @param {number|array} vValue the number to format or an array which contains the number to format and the sMeasure parameter
-	 * @param {string} [sMeasure] an optional unit which has an impact on formatting currencies and units
-	 * @return {string} the formatted output value
+	 * @param {number|string|array} vValue
+	 *   The number to format as a number or a string, such as <code>1234.45</code> or <code>"-1234.45"</code>, or an
+	 *   array which contains both the number to format as a number or a string and the <code>sMeasure</code> parameter
+	 * @param {string} [sMeasure]
+	 *   An optional unit which has an impact on formatting currencies and units
+	 * @returns {string}
+	 *   The formatted value
 	 * @public
 	 */
 	NumberFormat.prototype.format = function(vValue, sMeasure) {
@@ -1250,7 +1533,6 @@ sap.ui.define([
 			oOrigOptions = this.oOriginalFormatOptions,
 			bIndianCurrency = oOptions.type === mNumberType.CURRENCY && sMeasure === "INR" &&
 				this.oLocale.getLanguage() === "en" && this.oLocale.getRegion() === "IN",
-			aPatternParts,
 			oShortFormat,
 			nShortRefNumber,
 			sPluralCategory,
@@ -1321,14 +1603,16 @@ sap.ui.define([
 			if (!mUnitPatterns && !oOptions.showNumber) {
 				return this._addOriginInfo(sMeasure);
 			}
-
+		}
+		if (oOptions.type === mNumberType.UNIT) {
 			// either take the decimals/precision on the custom units or fallback to the given format-options
 			oOptions.decimals = (mUnitPatterns && (typeof mUnitPatterns.decimals === "number" && mUnitPatterns.decimals >= 0)) ? mUnitPatterns.decimals : oOptions.decimals;
-			oOptions.decimals = NumberFormat.getMaximalDecimals(oOptions);
+			oOptions.decimals = NumberFormat.getMaximumDecimals(oOptions);
 			oOptions.precision = (mUnitPatterns && (typeof mUnitPatterns.precision === "number" && mUnitPatterns.precision >= 0)) ? mUnitPatterns.precision : oOptions.precision;
 		}
-
-		if (oOptions.type == mNumberType.CURRENCY) {
+		let sCurrencySymbolOrCode;
+		if (oOptions.type === mNumberType.CURRENCY) {
+			sCurrencySymbolOrCode = this.getCurrencySymbolOrCode(sMeasure, oOptions.currencyCode);
 			// Make sure the "trailingCurrencyCode" mode is only used on currency codes:
 			// The "customCurrencies" format option takes precedence over CLDR and global configuration. If the given measure isn't found
 			// there, we already return an empty string in the check above (look for error log 'Currency "xy" is unknown').
@@ -1337,36 +1621,25 @@ sap.ui.define([
 			// it shouldn't be formatted with the "trailingCurrencyCode" pattern.
 			if (sMeasure && oOptions.trailingCurrencyCode) {
 				if (!this.mKnownCurrencyCodes[sMeasure] && !/(^[A-Z]{3}$)/.test(sMeasure)) {
-					oOptions.trailingCurrencyCode = false;
 					// Revert to non-"sap-" prefixed (trailing-currency-code) pattern. Also see code in getCurrencyInstance()
-					oOptions.pattern = this.oLocaleData.getCurrencyPattern(oOptions.currencyContext);
+					oOptions.trailingCurrencyCode = false;
 				}
 			}
 
 			if (!oOptions.showNumber) {
 				// if the number should not be shown, return the sMeasure part standalone, without anything number specific
-				if (!oOptions.currencyCode) {
-					var sSymbol;
-					// custom currencies provided
-					if (oOptions.customCurrencies && typeof oOptions.customCurrencies === "object") {
-						// the custom currency symbol map was preprocessed on instance creation
-						sSymbol = this.mKnownCurrencySymbols[sMeasure];
-					} else {
-						sSymbol = this.oLocaleData.getCurrencySymbol(sMeasure);
-					}
-
-					if (sSymbol && sSymbol !== sMeasure) {
-						sMeasure = sSymbol;
-					}
-				}
-				return sMeasure;
+				return sCurrencySymbolOrCode;
 			}
-			// if decimals are given on a custom currency, they have precedence over the decimals defined on the format options
-			if (oOptions.customCurrencies && oOptions.customCurrencies[sMeasure]) {
-				// we either take the custom decimals or use decimals defined in the format-options
-				// we check for undefined here, since 0 is an accepted value
-				oOptions.decimals = oOptions.customCurrencies[sMeasure].decimals !== undefined ? oOptions.customCurrencies[sMeasure].decimals : oOptions.decimals;
-				oOptions.decimals = NumberFormat.getMaximalDecimals(oOptions);
+
+			if (oOptions.style === "long" || oOptions.style === "short") {
+				oOptions.maxFractionDigits ??= 0;
+			} else {
+				if (oOptions.customCurrencies?.[sMeasure]?.decimals !== undefined) {
+					oOptions.decimals = oOptions.customCurrencies[sMeasure].decimals;
+				} else {
+					oOptions.decimals ??= this.oLocaleData.getCurrencyDigits(sMeasure);
+				}
+				oOptions.decimals = NumberFormat.getMaximumDecimals(oOptions);
 			}
 		}
 
@@ -1378,7 +1651,7 @@ sap.ui.define([
 
 		if (oOptions.shortLimit === undefined || Math.abs(vValue) >= oOptions.shortLimit) {
 			nShortRefNumber = oOptions.shortRefNumber === undefined ? vValue : oOptions.shortRefNumber;
-			oShortFormat = getShortenedFormat(nShortRefNumber, oOptions, this.oLocaleData, bIndianCurrency);
+			oShortFormat = this.getShortenedFormat(nShortRefNumber, oOptions, bIndianCurrency);
 			if (oShortFormat && oShortFormat.formatString != "0") {
 				vValue = vValue / oShortFormat.magnitude;
 				// If shortDecimals is defined, override the fractionDigits
@@ -1427,35 +1700,26 @@ sap.ui.define([
 			vValue = NumberFormat._shiftDecimalPoint(vValue, 2);
 		}
 
-		//handle measure
-		if (oOptions.type == mNumberType.CURRENCY) {
-			var iDigits = this.oLocaleData.getCurrencyDigits(sMeasure);
-
-			// decimals might be undefined, yet 0 is accepted of course
-			if (oOptions.customCurrencies && oOptions.customCurrencies[sMeasure] && oOptions.customCurrencies[sMeasure].decimals !== undefined) {
-				iDigits = oOptions.customCurrencies[sMeasure].decimals;
-			}
-
-			if (oOptions.maxFractionDigits === undefined) {
-				oOptions.maxFractionDigits = iDigits;
-			}
-			if (oOptions.minFractionDigits === undefined) {
-				oOptions.minFractionDigits = iDigits;
-			}
-		}
-
 		// Rounding the value with oOptions.maxFractionDigits and oOptions.roundingMode.
 		//
 		// If the number of fraction digits are equal or less than oOptions.maxFractionDigits, the
 		// number isn't changed. After this operation, the number of fraction digits is
 		// equal or less than oOptions.maxFractionDigits.
-		if (typeof vValue === "number" && !oOptions.preserveDecimals) {
+		if ((typeof vValue === "number" || typeof vValue === "string" && typeof oOptions.roundingMode !== "function")
+				&& !oOptions.preserveDecimals) {
 			vValue = rounding(vValue, oOptions.maxFractionDigits, oOptions.roundingMode);
 		}
 
 		// No sign on zero values
 		if (vValue == 0) {
 			bNegative = false;
+		}
+
+		if (!bValueIsNullOrUndefined) {
+			sNumber = LocaleData.convertToDecimal(vValue);
+		}
+		if (sNumber === "NaN") {
+			return sNumber;
 		}
 
 		// strip of trailing zeros in decimals
@@ -1466,16 +1730,8 @@ sap.ui.define([
 		// These zeros are cut off until maxFractionDigits is reached to be backward compatible.
 		// If more trailing decimal zeros are required the option maxFractionDigits can be increased.
 		// Note: default maxFractionDigits for Unit and Float is 99.
-		if (oOptions.preserveDecimals && (typeof vValue === "string" || vValue instanceof String)) {
-			vValue = stripTrailingZeroDecimals(vValue, oOptions.maxFractionDigits);
-		}
-
-		if (!bValueIsNullOrUndefined) {
-			sNumber = LocaleData.convertToDecimal(vValue);
-		}
-
-		if (sNumber == "NaN") {
-			return sNumber;
+		if (oOptions.preserveDecimals) {
+			sNumber = stripTrailingZeroDecimals(sNumber, oOptions.maxFractionDigits);
 		}
 
 		// if number is negative remove minus
@@ -1545,6 +1801,10 @@ sap.ui.define([
 			sGroupedIntegerPart = sIntegerPart;
 		}
 
+		const iDecimalPadding = oOptions.decimalPadding || 0;
+		if (iDecimalPadding) {
+			oOptions.minusSign = oOptions.minusSign.replace(rLeftToRightMark, "");
+		}
 		// combine
 		if (bNegative) {
 			sResult = oOptions.minusSign;
@@ -1554,85 +1814,37 @@ sap.ui.define([
 			sResult += oOptions.decimalSeparator + sFractionPart;
 		}
 
-		if (oShortFormat && oShortFormat.formatString && oOptions.showScale && oOptions.type !== mNumberType.CURRENCY) {
+		const bUseCompactPattern = oShortFormat && oShortFormat.formatString && oOptions.showScale;
+		let sCompactPattern;
+		if (bUseCompactPattern) {
 			// Get correct format string based on actual decimal/fraction digits
-			// the plural category of a compact number is determined for the reduced short number without compact
-			// notation, e.g. "1.2M" must check "1.2" (see CLDR "decimalFormat-short" and "decimalFormat-long")
+			// the plural category of a compact number/currency is determined for the reduced short number without
+			// compact notation, e.g. "1.2M" must check "1.2"
+			// (see CLDR "decimalFormat-short" and "decimalFormat-long" or "currencyFormat-short")
 			sPluralCategory = this._getPluralCategory(sIntegerPart, sFractionPart);
-			oShortFormat.formatString = this.oLocaleData.getDecimalFormat(oOptions.style, oShortFormat.key, sPluralCategory);
-			//inject formatted shortValue in the formatString
-			sResult = oShortFormat.formatString.replace(oShortFormat.valueSubString, sResult);
-			//formatString may contain '.' (quoted to differentiate them decimal separator)
-			//which must be replaced with .
-			sResult = sResult.replace(/'.'/g, ".");
+			sCompactPattern = this.getCompactPattern(oOptions.type, oOptions.style, oShortFormat.key, sPluralCategory,
+				oOptions.trailingCurrencyCode, bIndianCurrency, sMeasure && oOptions.showMeasure, sCurrencySymbolOrCode,
+				bNegative);
+			if (oOptions.type !== mNumberType.CURRENCY) {
+				// inject formatted shortValue in the formatString
+				sResult = sCompactPattern.replace(oShortFormat.valueSubString, sResult);
+			}
 		}
 
 		if (oOptions.type === mNumberType.CURRENCY) {
-			sPattern = oOptions.pattern;
+			sPattern = bUseCompactPattern
+				? sCompactPattern
+				: this.getCurrencyPattern(oOptions.currencyContext, oOptions.trailingCurrencyCode,
+					sMeasure && oOptions.showMeasure, sCurrencySymbolOrCode, bNegative);
 
-			if (oShortFormat && oShortFormat.formatString && oOptions.showScale) {
-				var sStyle;
-
-				// Currency formatting has only short style (no long)
-				if (oOptions.trailingCurrencyCode) {
-					sStyle = "sap-short";
-				} else {
-					sStyle = "short";
-				}
-
-				// Get correct format string based on actual decimal/fraction digits
-				// the plural category of a compact currency is determined for the reduced short number without compact
-				// notation, e.g. "1.2M" must check "1.2" (see CLDR "currencyFormat-short")
-				sPluralCategory = this._getPluralCategory(sIntegerPart, sFractionPart);
-				if (bIndianCurrency) {
-					sPattern = getIndianCurrencyFormat(sStyle, oShortFormat.key, sPluralCategory);
-				} else {
-					sPattern = this.oLocaleData.getCurrencyFormat(sStyle, oShortFormat.key, sPluralCategory);
-				}
-				//formatString may contain '.' (quoted to differentiate them decimal separator)
-				//which must be replaced with .
-				sPattern = sPattern.replace(/'.'/g, ".");
-			}
-
-			// The currency pattern is defined in some locale, for example in "ko", as: ¤#,##0.00;(¤#,##0.00)
-			// where the pattern after ';' should be used for negative numbers.
-			// Therefore it's needed to check whether the pattern contains ';' and use the later part for
-			// negative values
-			aPatternParts = sPattern.split(";");
-			if (aPatternParts.length === 2) {
-				sPattern = bNegative ? aPatternParts[1] : aPatternParts[0];
-				if (bNegative) {
-					sResult = sResult.substring(oOptions.minusSign.length);
-				}
-			}
-
-			// check if we need to render a symbol instead of a currency-code
-			if (!oOptions.currencyCode) {
-				var sSymbol;
-				// custom currencies provided
-				if (oOptions.customCurrencies && typeof oOptions.customCurrencies === "object") {
-					// the custom currency symbol map was preprocessed on instance creation
-					sSymbol = this.mKnownCurrencySymbols[sMeasure];
-				} else {
-					sSymbol = this.oLocaleData.getCurrencySymbol(sMeasure);
-				}
-
-				if (sSymbol && sSymbol !== sMeasure) {
-					sMeasure = sSymbol;
-				}
-			}
-
-			sResult = this._composeCurrencyResult(sPattern, sResult, sMeasure, {
-				showMeasure: oOptions.showMeasure,
-				negative: bNegative,
-				minusSign: oOptions.minusSign
-			});
+			sResult = NumberFormat._composeCurrencyResult(sPattern, sResult, sCurrencySymbolOrCode, oOptions.minusSign,
+				bNegative);
 		}
 
 		// format percent values:
 		if (oOptions.type === mNumberType.PERCENT) {
 			sPattern = oOptions.pattern;
-			sResult = sPattern.replace(/[0#.,]+/, sResult);
+			sResult = sPattern.replace(rNumberPattern, sResult);
 			sResult = sResult.replace(/%/, oOptions.percentSign);
 		}
 
@@ -1655,7 +1867,46 @@ sap.ui.define([
 			}
 			sResult = sPattern.replace("{0}", sResult);
 		}
+		let iDecimalPaddingLength = iDecimalPadding - sFractionPart.length;
+		if (iDecimalPaddingLength > 0) {
+			const bNegativeAccounting = sResult[sResult.length - 1] === ")";
+			const sCharPunctuationSpace = "\u2008";
+			if (sFractionPart) {
+				if (bNegativeAccounting) {
+					// the ")" and the CHAR_PUNCTUATION_SPACE u2008 have a combined width close to the width of a
+					// CHAR_FIGURE_SPACE u2007
+					sResult += sCharPunctuationSpace;
+					iDecimalPaddingLength = iDecimalPaddingLength - 1;
+				}
+			} else if (!bNegativeAccounting) {
+				// only add CHAR_PUNCTUATION_SPACE u2008 if there is no ")" at the end
+				sResult += sCharPunctuationSpace;
+			}
+			sResult += "\u2007".repeat(iDecimalPaddingLength); // CHAR_FIGURE_SPACE u2007
+		}
 		return this._addOriginInfo(sResult);
+	};
+
+	/**
+	 * Gets the currency symbol or the currency code for the given currency code depending on the given format options.
+	 *
+	 * @param {string} sCurrencyCode
+	 *   The currency code
+	 * @param {boolean} bCurrencyCode
+	 *   Whether to show the currency code instead of the currency symbol, see {@link Numberformat.getCurrencyInstance}
+	 * @returns {string}
+	 *   The currency symbol or the currency code
+	 *
+	 * @private
+	 */
+	NumberFormat.prototype.getCurrencySymbolOrCode = function (sCurrencyCode, bCurrencyCode) {
+		if (bCurrencyCode) {
+			return sCurrencyCode;
+		}
+		// the custom currency symbol map was preprocessed on instance creation
+		return (typeof this.oFormatOptions.customCurrencies === "object"
+			? this.mKnownCurrencySymbols[sCurrencyCode]
+			: this.oLocaleData.getCurrencySymbol(sCurrencyCode)) || sCurrencyCode;
 	};
 
 	/**
@@ -1699,62 +1950,46 @@ sap.ui.define([
 		return sResult;
 	};
 
-
-	NumberFormat.prototype._composeCurrencyResult = function(sPattern, sFormattedNumber, sMeasure, oOptions) {
-		var sMinusSign = oOptions.minusSign;
-
-		sPattern = sPattern.replace(/[0#.,]+/, sFormattedNumber);
-
-		if (oOptions.showMeasure && sMeasure) {
-			var sPlaceHolder = "\u00a4",
-				mRegex = {
-					"[:digit:]": rDigit,
-					"[[:^S:]&[:^Z:]]": rNotSAndNotZ
-				},
-				iMeasureStart = sPattern.indexOf(sPlaceHolder),
-				// determine whether the number is before the measure or after it by comparing the position of measure placeholder with half of the length of the pattern string
-				sPosition = iMeasureStart < sPattern.length / 2 ? "after" : "before",
-				oSpacingSetting = this.oLocaleData.getCurrencySpacing(sPosition),
-				sCurrencyChar = (sPosition === "after" ? sMeasure.charAt(sMeasure.length - 1) : sMeasure.charAt(0)),
-				sNumberChar,
-				rCurrencyChar = mRegex[oSpacingSetting.currencyMatch],
-				rNumberChar = mRegex[oSpacingSetting.surroundingMatch],
-				iInsertPos;
-
-			sPattern = sPattern.replace(sPlaceHolder, sMeasure);
-
-			sNumberChar = (sPosition === "after" ? sPattern.charAt(iMeasureStart + sMeasure.length) : sPattern.charAt(iMeasureStart - 1));
-
-			if (rCurrencyChar && rCurrencyChar.test(sCurrencyChar) && rNumberChar && rNumberChar.test(sNumberChar)) {
-				// when both checks are valid, insert the defined space
-
-				if (sPosition === "after") {
-					iInsertPos = iMeasureStart + sMeasure.length;
-				} else {
-					iInsertPos = iMeasureStart;
-				}
-
-				// insert the space char between the measure and the number
-				sPattern = sPattern.slice(0, iInsertPos) + oSpacingSetting.insertBetween + sPattern.slice(iInsertPos);
-			} else if (oOptions.negative && sPosition === "after") {
-				// when no space is inserted between measure and number
-				// and when the number is negative and the measure is shown before the number
-				// a zero-width non-breakable space ("\ufeff") is inserted before the minus sign
-				// in order to prevent the formatted currency number from being wrapped after the
-				// minus sign when the space isn't enough for displaying the currency number within
-				// one line
-				sMinusSign = "\ufeff" + oOptions.minusSign;
+	/**
+	 * Replaces the amount, measure, and minus sign parts in the given pattern with the given values and returns the
+	 * result.
+	 *
+	 * @param {string} sPattern
+	 *   The currency pattern, e.g. "¤#,##0.00;(¤#,##0.00)", "¤#,##0.00;¤-#,##0.00", "#,##0.00", or "¤ 000K"
+	 * @param {string} sAmount
+	 *   The formatted amount, e.g. "1,234.56"
+	 * @param {string} sMeasure
+	 *   The currency symbol or code
+	 * @param {string} sMinusSign
+	 *   The locale specific minus sign
+	 * @param {boolean} bNegative
+	 *   Whether the amount is negative
+	 * @returns {string}
+	 *   The resulting string after replacing the amount, measure, and minus sign parts in the given pattern with the
+	 *   given values
+	 *
+	 * @private
+	 */
+	NumberFormat._composeCurrencyResult = function (sPattern, sAmount, sMeasure, sMinusSign, bNegative) {
+		const aPatternParts = sPattern.split(";");
+		if (aPatternParts.length === 2) {
+			sPattern = aPatternParts[bNegative ? 1 : 0];
+			if (bNegative) {
+				sAmount = sAmount.slice(sMinusSign.length);
 			}
-		} else {
-			// If measure is not shown, also remove whitespace next to the measure symbol
-			sPattern = sPattern.replace(/\s*\u00a4\s*/, "");
+		}
+		let sResult = sPattern.replace("-", sMinusSign).replace(rNumberPattern, sAmount).replace("\u00a4", sMeasure);
+		if (bNegative) {
+			// when no space is inserted between measure and number
+			// and when the number is negative and the measure is shown before the number
+			// a zero-width non-breakable space ("\ufeff") is inserted before the minus sign
+			// in order to prevent the formatted currency number from being wrapped after the
+			// minus sign when the space isn't enough for displaying the currency number within
+			// one line
+			sResult = sResult.replace(sMeasure + sMinusSign, sMeasure + "\ufeff" + sMinusSign);
 		}
 
-		if (oOptions.negative) {
-			sPattern = sPattern.replace(/-/, sMinusSign);
-		}
-
-		return sPattern;
+		return sResult;
 	};
 
 	/**
@@ -1789,8 +2024,15 @@ sap.ui.define([
 			vResult = 0,
 			oShort, vEmptyParseValue;
 
+		if (typeof sValue !== "string" && !(sValue instanceof String)) {
+			return null;
+		}
+
+		sValue = FormatUtils.normalize(sValue).trim();
+
 		if (sValue === "") {
-			if (!oOptions.showNumber) {
+			const bUnitOrCurrency = oOptions.type === mNumberType.CURRENCY || oOptions.type === mNumberType.UNIT;
+			if (!oOptions.showNumber && !bUnitOrCurrency) {
 				return null;
 			}
 			vEmptyParseValue = oOptions.emptyString;
@@ -1799,15 +2041,14 @@ sap.ui.define([
 			if (oOptions.parseAsString && (oOptions.emptyString === 0 || isNaN(oOptions.emptyString))) {
 				vEmptyParseValue = oOptions.emptyString + "";
 			}
-			if (oOptions.type === mNumberType.CURRENCY || oOptions.type === mNumberType.UNIT) {
+			if (bUnitOrCurrency) {
+				if (!oOptions.showNumber) {
+					return [undefined, vEmptyParseValue];
+				}
 				return [vEmptyParseValue, undefined];
 			} else {
 				return vEmptyParseValue;
 			}
-		}
-
-		if (typeof sValue !== "string" && !(sValue instanceof String)) {
-			return null;
 		}
 
 		if (oOptions.groupingSeparator === oOptions.decimalSeparator) {
@@ -1928,9 +2169,6 @@ sap.ui.define([
 				return [undefined, sMeasure];
 			}
 		}
-
-		// remove the RTL special characters before the string is matched with the regex
-		sValue = sValue.replace(/[\u202a\u200e\u202c\u202b\u200f]/g, "");
 
 		// remove all white spaces because when grouping separator is a non-breaking space (russian and french for example)
 		// user will not input it this way. Also white spaces or grouping separator can be ignored by determining the value
@@ -2056,7 +2294,7 @@ sap.ui.define([
 			return;
 		}
 
-		var oShortFormat = getShortenedFormat(this.oFormatOptions.shortRefNumber, this.oFormatOptions, this.oLocaleData),
+		var oShortFormat = this.getShortenedFormat(this.oFormatOptions.shortRefNumber, this.oFormatOptions),
 			sScale;
 		if (oShortFormat && oShortFormat.formatString) {
 			// remove the placeholder of number
@@ -2070,10 +2308,22 @@ sap.ui.define([
 		}
 	};
 
-	NumberFormat._shiftDecimalPoint = function(vValue, iStep) {
-		if (typeof iStep !== "number") {
-			return NaN;
-		}
+	/**
+	 * Moves the decimal seperator of the given number by the given steps to the right or left.
+	 *
+	 * @param {number|string} vValue
+	 *   The number
+	 * @param {int} iStep
+	 *   The number of decimal places to shift the "."; positive values shift to the right, negative values shift to the
+	 *   left
+	 * @param {boolean} bNormalize
+	 *   Whether the result is normalized if <code>vValue</code> is of type "string"; that means whether trailing zeros
+	 *   are removed and whether scientific notation is resolved to a decimal string without exponent
+	 * @returns {number|string|null}
+	 *   The number with shifted decimal point; or <code>null</code> if the given value is neither of type "number", nor
+	 *   of type "string"
+	 */
+	NumberFormat._shiftDecimalPoint = function(vValue, iStep, bNormalize) {
 		var sMinus = "";
 		var aExpParts = vValue.toString().toLowerCase().split("e");
 
@@ -2086,7 +2336,7 @@ sap.ui.define([
 
 			return +(aExpParts[0] + "e" + iStep);
 		} else if (typeof vValue === "string") {
-			if (parseFloat(vValue) === 0 && iStep >= 0) {
+			if (!bNormalize && parseFloat(vValue) === 0 && iStep >= 0) {
 				// input "00000" should become "0"
 				// input "000.000" should become "0.000" to keep precision of decimals
 				// input "1e-1337" should remain "1e-1337" in order to keep the precision
@@ -2098,7 +2348,7 @@ sap.ui.define([
 			var sFirstChar = aExpParts[0].charAt(0);
 			sMinus = sFirstChar === "-" ? sFirstChar : "";
 
-			if (sMinus) {
+			if (sMinus || sFirstChar === "+") {
 				aExpParts[0] = aExpParts[0].slice(1);
 			}
 
@@ -2137,9 +2387,11 @@ sap.ui.define([
 
 			sInt = vValue.substring(0, iAfterMovePos);
 			sDecimal = vValue.substring(iAfterMovePos);
-
 			// remove unnecessary leading zeros
 			sInt = sInt.replace(rLeadingZeros, "$1$2");
+			if (bNormalize) {
+				sDecimal = sDecimal.replace(rTrailingZeros, "");
+			}
 
 			return sMinus + sInt + (sDecimal ? ("." + sDecimal) : "");
 		} else {
@@ -2148,8 +2400,166 @@ sap.ui.define([
 		}
 	};
 
-	function getShortenedFormat(fValue, oOptions, oLocaleData, bIndianCurrency) {
-		var oShortFormat, iKey, sKey, sCldrFormat,
+	/**
+	 * Checks whether there is a letter next to the number using the given currency pattern.
+	 *
+	 * @param {string} sPattern
+	 *   The currency pattern, e.g. "¤#,##0.00;(¤#,##0.00)" or "¤ 000K"
+	 * @param {string} sCurrency
+	 *   The currency code or the currency symbol to check, e.g. "USD" or "$"
+	 * @param {boolean} bNegative
+	 *   Whether the value to be formatted is negative
+	 * @returns {boolean}
+	 *   Whether there is a letter next to the number for the given pattern and currency
+	 *
+	 * @private
+	 */
+	NumberFormat.isAlphaNextToNumber = function (sPattern, sCurrency, bNegative) {
+		if (!sPattern || !sCurrency) {
+			return false;
+		}
+		const aPatterns = sPattern.split(";");
+		sPattern = (aPatterns[bNegative ? 1 : 0] || aPatterns[0]).replace(rAllRTLCharacters, "");
+		const aMatches = rSplitCurrencyPattern.exec(sPattern);
+
+		// number in front of the currency placeholder
+		if (aMatches[1]) {
+			return rStartsWithLetter.test(sCurrency) && !aMatches[2];
+		}
+
+		// currency placeholder in front of the number
+		return !aMatches[4] // no characters between the placeholder and the number
+			&& rEndsWithLetter.test(sCurrency) // currency ends with a letter
+			// if there is no separate negative pattern and the value is negative, there is a minus sign between
+			// the currency and the number, so there is no need for the alphaNextToNumber pattern
+			&& (!bNegative || aPatterns.length !== 1);
+	};
+
+	/**
+	 * Gets the compact decimal or currency pattern for the given power of ten and plural category.
+	 *
+	 * @param {"integer"|"float"|"currency"|"unit"|"percent"} sType
+	 *   The number format type
+	 * @param {"long"|"short"} sStyle
+	 *   The style of the compact format
+	 * @param {string} sPowerOfTen
+	 *   The power of ten
+	 * @param {"few"|"many"|"one"|"other"|"two"|"zero"} sPluralCategory
+	 *   The plural category
+	 * @param {boolean} [bTrailingCurrencyCode]
+	 *   Whether the currency code is formatted after the amount; only relevant if type "currency" is used
+	 * @param {boolean} [bIndianCurrency]
+	 *   Whether to use the Indian currency format; only relevant if type "currency" is used
+	 * @param {boolean} [bShowMeasure]
+	 *   Whether to show the measure
+	 * @param {string} [sCurrency]
+	 *   The currency code or symbol
+	 * @param {boolean} [bNegative]
+	 *   Whether the number is negative
+	 * @returns {string|undefined}
+	 *   The compact decimal or currency pattern for the given power of ten and plural category; or
+	 *   <code>undefined</code> if there is no pattern for the given parameters
+	 *
+	 * @private
+	 */
+	NumberFormat.prototype.getCompactPattern = function (sType, sStyle, sPowerOfTen, sPluralCategory,
+			bTrailingCurrencyCode, bIndianCurrency, bShowMeasure, sCurrency, bNegative) {
+		let sPattern;
+		if (sType === mNumberType.CURRENCY) {
+			if (bTrailingCurrencyCode) {
+				sStyle = "sap-short";
+			}
+			if (bIndianCurrency) {
+				sStyle += "-indian";
+			}
+			if (bShowMeasure) {
+				// Use currency specific format because for some languages there is a difference between the
+				// decimalFormat and the currencyFormat
+				sPattern = this.oLocaleData.getCompactCurrencyPattern(sStyle, sPowerOfTen, sPluralCategory);
+				if (NumberFormat.isAlphaNextToNumber(sPattern, sCurrency, bNegative)) {
+					sPattern = this.oLocaleData.getCompactCurrencyPattern(sStyle, sPowerOfTen, sPluralCategory,
+						"alphaNextToNumber") || sPattern;
+				}
+			} else {
+				sPattern = this.oLocaleData.getCompactCurrencyPattern(sStyle, sPowerOfTen, sPluralCategory,
+					"noCurrency");
+				if (!sPattern) {
+					if (sStyle.startsWith("sap-")) {
+						sStyle = sStyle.slice(4);
+					}
+					sPattern = this.oLocaleData.getCompactDecimalPattern(sStyle, sPowerOfTen, sPluralCategory);
+				}
+			}
+		} else {
+			sPattern = this.oLocaleData.getCompactDecimalPattern(sStyle, sPowerOfTen, sPluralCategory);
+		}
+
+		// pattern may contain a single quoted dot ('.') to differentiate them from decimal separator; replace it
+		// with an unquoted dot (.)
+		sPattern = sPattern?.replace(/'.'/g, ".");
+
+		return sPattern;
+	};
+
+	/**
+	 * Gets the locale specific currency pattern for the given parameters.
+	 *
+	 * @param {"accounting"|"standard"} sContext The context of the currency pattern
+	 * @param {boolean} [bShowTrailingCurrencyCode] Whether the currency code shall be shown after the amount
+	 * @param {boolean} [bShowMeasure] Whether to include the measure (currency code or currency symbol) in the pattern
+	 * @param {string} [sCurrency] The currency code or symbol to use
+	 * @param {boolean} [bNegative] Whether the current value is negative
+	 * @returns {string} The currency pattern
+	 *
+	 * @private
+	 */
+	NumberFormat.prototype.getCurrencyPattern = function (sContext, bShowTrailingCurrencyCode, bShowMeasure, sCurrency,
+			bNegative) {
+		if (bShowTrailingCurrencyCode) {
+			sContext = "sap-" + sContext;
+		}
+		let sPattern = this.oLocaleData.getCurrencyPattern(sContext, bShowMeasure ? undefined : "noCurrency");
+		if (bShowMeasure && NumberFormat.isAlphaNextToNumber(sPattern, sCurrency, bNegative)) {
+			sPattern = this.oLocaleData.getCurrencyPattern(sContext, "alphaNextToNumber") || sPattern;
+		}
+
+		return sPattern;
+	};
+
+	/**
+	 * Gets the compact decimal or currency format for the given value and parameters.
+	 *
+	 * @param {number|string} vValue
+	 *   The value for which the shortened format is determined
+	 * @param {object} oOptions
+	 *   The options used for getting the compact pattern
+	 * @param {int} [oOptions.precision = 2]
+	 *   The maximum number of digits in the formatted representation of the number
+	 * @param {"long"|"short"} oOptions.style
+	 *   The style of the compact format
+	 * @param {boolean} [oOptions.trailingCurrencyCode]
+	 *   Whether the currency code is formatted after the amount; only relevant if type "currency" is used
+	 * @param {"integer"|"float"|"currency"|"unit"|"percent"} oOptions.type
+	 *   The number format type
+	 * @param {boolean} [bIndianCurrency]
+	 *   Whether to use the Indian currency format; only relevant if type "currency" is used
+	 *
+	 * @returns {object|undefined}
+	 *   The compact decimal or currency format for the given value; or <code>undefined</code> if neither the "short"
+	 *   or the "long" style is used, or if there is no compact format for the given parameters; the returned object
+	 *   contains the following properties:
+	 *   <ul>
+	 *     <li><code>decimals</code>: The number of decimals used in the compact format pattern</li>
+	 *     <li><code>formatString</code>: The compact format pattern to use</li>
+	 *     <li><code>key</code>: The power of ten matching the given value</li>
+	 *     <li><code>magnitude</code>: The divisor to get the compact number to show from the given value</li>
+	 *     <li><code>valueSubString</code>: The number part of the format pattern</li>
+	 *  </ul>
+	 *
+	 * @private
+	 */
+	NumberFormat.prototype.getShortenedFormat = function (vValue, oOptions, bIndianCurrency) {
+		var oShortFormat, iKey, sKey,
 			sStyle = oOptions.style,
 			iPrecision = oOptions.precision !== undefined ? oOptions.precision : 2;
 
@@ -2159,7 +2569,7 @@ sap.ui.define([
 
 		for (var i = 0; i < 15; i++) {
 			iKey = Math.pow(10, i);
-			if (rounding(Math.abs(fValue) / iKey, iPrecision - 1) < 10) {
+			if (rounding(Math.abs(vValue) / iKey, iPrecision - 1) < 10) {
 				break;
 			}
 		}
@@ -2167,20 +2577,8 @@ sap.ui.define([
 
 		// Use "other" format to find the right magnitude, the actual format will be retrieved later
 		// after the value has been calculated
-		if (oOptions.type === mNumberType.CURRENCY) {
-			if (oOptions.trailingCurrencyCode) {
-				sStyle = "sap-short";
-			}
-			if (bIndianCurrency) {
-				sCldrFormat = getIndianCurrencyFormat(sStyle, sKey, "other", true);
-			} else {
-				// Use currency specific format because for some languages there is a difference between the decimalFormat and the currencyFormat
-				sCldrFormat = oLocaleData.getCurrencyFormat(sStyle, sKey, "other");
-			}
-		} else {
-			sCldrFormat = oLocaleData.getDecimalFormat(sStyle, sKey, "other");
-		}
-
+		const sCldrFormat = this.getCompactPattern(oOptions.type, oOptions.style, sKey, "other",
+			oOptions.trailingCurrencyCode, bIndianCurrency, oOptions.showMeasure);
 		if (!sCldrFormat || sCldrFormat == "0") {
 			//no format or special "0" format => number doesn't need to be shortened
 			return undefined;
@@ -2212,8 +2610,7 @@ sap.ui.define([
 		}
 
 		return oShortFormat;
-
-	}
+	};
 
 	function getNumberFromShortened(sValue, oLocaleData, bIndianCurrency) {
 		var sNumber,
@@ -2223,17 +2620,12 @@ sap.ui.define([
 			sCldrFormat,
 			bestResult = {number: undefined,
 				factor: iFactor},
-			fnGetFactor = function(sPlural, iKey, sStyle, bIndian) {
-				if (bIndian) {
-					sCldrFormat = getIndianCurrencyFormat(sStyle, iKey.toString(), sPlural, true);
-				} else {
-					sCldrFormat = oLocaleData.getDecimalFormat(sStyle, iKey.toString(), sPlural);
-				}
+			fnGetFactor = function(sPlural, iKey, sStyle) {
+				sCldrFormat = oLocaleData.getCompactDecimalPattern(sStyle, iKey.toString(), sPlural);
 
 				if (sCldrFormat) {
-					// Note: CLDR uses a non-breaking space in the format string
-					// remove right-to-left mark u+200f character
-					sCldrFormat = sCldrFormat.replace(/[\s\u00a0\u200F]/g, "");
+					// Note: CLDR uses a non-breaking space and right-to-left mark u+200f in the format string
+					sCldrFormat = FormatUtils.normalize(sCldrFormat, true);
 					//formatString may contain '.' (quoted to differentiate them decimal separator)
 					//which must be replaced with .
 					sCldrFormat = sCldrFormat.replace(/'.'/g, ".");
@@ -2250,8 +2642,6 @@ sap.ui.define([
 						if (iIndex >= 0) {
 							// parse the number part like every other number and then use the factor to get the real number
 							sNumber = sValue.replace(sUnit, "");
-							// remove right-to-left mark u+200f character
-							sNumber = sNumber.replace(/\u200F/g, "");
 							iFactor = iKey;
 							// spanish numbers e.g. for MRD in format for "one" is "00 MRD" therefore factor needs to be adjusted
 							// german numbers e.g. for Mrd. in format for "one" is "0 Mrd." therefore number does not need to be adjusted
@@ -2290,7 +2680,7 @@ sap.ui.define([
 			while (iKey < 1e15) {
 				for (var i = 0; i < aPluralCategories.length; i++) {
 					var sPluralCategory = aPluralCategories[i];
-					fnGetFactor(sPluralCategory, iKey, "short", true);
+					fnGetFactor(sPluralCategory, iKey, "short-indian");
 				}
 				iKey = iKey * 10;
 			}
@@ -2305,131 +2695,20 @@ sap.ui.define([
 	}
 
 	/**
-	 * Based on the format options and the global config, determine whether to display a trailing currency code
-	 * @param oFormatOptions
-	 * @returns {boolean}
+	 * Whether to show the currency code at the end based on the original format options and the global configuration.
+	 *
+	 * @returns {boolean} Whether to show trailing currency code
 	 */
-	function showTrailingCurrencyCode(oFormatOptions) {
-		var bShowTrailingCurrencyCodes = Configuration.getFormatSettings().getTrailingCurrencyCode();
-		if (oFormatOptions) {
-
-			// overwritten by instance configuration
-			if (oFormatOptions.trailingCurrencyCode !== undefined) {
-				bShowTrailingCurrencyCodes = oFormatOptions.trailingCurrencyCode;
-			}
-
-			// is false when custom pattern is used
-			if (oFormatOptions.pattern) {
-				bShowTrailingCurrencyCodes = false;
-			}
-
-			// is false when currencyCode is not used
-			if (oFormatOptions.currencyCode === false) {
-				bShowTrailingCurrencyCodes = false;
-			}
+	NumberFormat.prototype.showTrailingCurrencyCode = function () {
+		const oFormatOptions = this.oOriginalFormatOptions;
+		// use default currency mode if custom pattern is given or currency code shall not be shown
+		if (oFormatOptions?.pattern || oFormatOptions?.currencyCode === false) {
+			return false;
 		}
-		return bShowTrailingCurrencyCodes;
-	}
-
-	function getIndianCurrencyFormat(sStyle, sKey, sPlural, bDecimal) {
-		var sFormat,
-			oCurrencyFormats = {
-				"short": {
-					"1000-one": "\xa40000",
-					"1000-other": "\xa40000",
-					"10000-one": "\xa400000",
-					"10000-other": "\xa400000",
-					"100000-one": "\xa40 Lk",
-					"100000-other": "\xa40 Lk",
-					"1000000-one": "\xa400 Lk",
-					"1000000-other": "\xa400 Lk",
-					"10000000-one": "\xa40 Cr",
-					"10000000-other": "\xa40 Cr",
-					"100000000-one": "\xa400 Cr",
-					"100000000-other": "\xa400 Cr",
-					"1000000000-one": "\xa4000 Cr",
-					"1000000000-other": "\xa4000 Cr",
-					"10000000000-one": "\xa40000 Cr",
-					"10000000000-other": "\xa40000 Cr",
-					"100000000000-one": "\xa400000 Cr",
-					"100000000000-other": "\xa400000 Cr",
-					"1000000000000-one": "\xa40 Lk Cr",
-					"1000000000000-other": "\xa40 Lk Cr",
-					"10000000000000-one": "\xa400 Lk Cr",
-					"10000000000000-other": "\xa400 Lk Cr",
-					"100000000000000-one": "\xa40 Cr Cr",
-					"100000000000000-other": "\xa40 Cr Cr"
-				},
-				"sap-short": {
-					"1000-one": "0000\xa0\xa4",
-					"1000-other": "0000\xa0\xa4",
-					"10000-one": "00000\xa0\xa4",
-					"10000-other": "00000\xa0\xa4",
-					"100000-one": "0 Lk\xa0\xa4",
-					"100000-other": "0 Lk\xa0\xa4",
-					"1000000-one": "00 Lk\xa0\xa4",
-					"1000000-other": "00 Lk\xa0\xa4",
-					"10000000-one": "0 Cr\xa0\xa4",
-					"10000000-other": "0 Cr\xa0\xa4",
-					"100000000-one": "00 Cr\xa0\xa4",
-					"100000000-other": "00 Cr\xa0\xa4",
-					"1000000000-one": "000 Cr\xa0\xa4",
-					"1000000000-other": "000 Cr\xa0\xa4",
-					"10000000000-one": "0000 Cr\xa0\xa4",
-					"10000000000-other": "0000 Cr\xa0\xa4",
-					"100000000000-one": "00000 Cr\xa0\xa4",
-					"100000000000-other": "00000 Cr\xa0\xa4",
-					"1000000000000-one": "0 Lk Cr\xa0\xa4",
-					"1000000000000-other": "0 Lk Cr\xa0\xa4",
-					"10000000000000-one": "00 Lk Cr\xa0\xa4",
-					"10000000000000-other": "00 Lk Cr\xa0\xa4",
-					"100000000000000-one": "0 Cr Cr\xa0\xa4",
-					"100000000000000-other": "0 Cr Cr\xa0\xa4"
-				}
-			},
-			oDecimalFormats = {
-				"short": {
-					"1000-one": "0000",
-					"1000-other": "0000",
-					"10000-one": "00000",
-					"10000-other": "00000",
-					"100000-one": "0 Lk",
-					"100000-other": "0 Lk",
-					"1000000-one": "00 Lk",
-					"1000000-other": "00 Lk",
-					"10000000-one": "0 Cr",
-					"10000000-other": "0 Cr",
-					"100000000-one": "00 Cr",
-					"100000000-other": "00 Cr",
-					"1000000000-one": "000 Cr",
-					"1000000000-other": "000 Cr",
-					"10000000000-one": "0000 Cr",
-					"10000000000-other": "0000 Cr",
-					"100000000000-one": "00000 Cr",
-					"100000000000-other": "00000 Cr",
-					"1000000000000-one": "0 Lk Cr",
-					"1000000000000-other": "0 Lk Cr",
-					"10000000000000-one": "00 Lk Cr",
-					"10000000000000-other": "00 Lk Cr",
-					"100000000000000-one": "0 Cr Cr",
-					"100000000000000-other": "0 Cr Cr"
-				}
-			};
-		// decimal format for short and sap-short is the same
-		oDecimalFormats["sap-short"] = oDecimalFormats["short"];
-
-		// use the appropriate format (either decimal or currency)
-		var oTargetFormat = bDecimal ? oDecimalFormats : oCurrencyFormats;
-		var oStyledFormat = oTargetFormat[sStyle];
-		if (!oStyledFormat) {
-			oStyledFormat = oTargetFormat["short"];
-		}
-		if (sPlural !== "one") {
-			sPlural = "other";
-		}
-		sFormat = oStyledFormat[sKey + "-" + sPlural];
-		return sFormat;
-	}
+		return oFormatOptions?.trailingCurrencyCode !== undefined
+			? oFormatOptions.trailingCurrencyCode // overwritten by instance configuration
+			: Formatting.getTrailingCurrencyCode();
+	};
 
 	/**
 	 * Checks if grouping is performed correctly (decimal separator is not confused with grouping separator).
@@ -2609,54 +2888,63 @@ sap.ui.define([
 		return iInt;
 	}
 
-	function rounding(fValue, iMaxFractionDigits, sRoundingMode) {
-		if (typeof fValue !== "number") {
-			return NaN;
-		}
-
-		sRoundingMode = sRoundingMode || NumberFormat.RoundingMode.HALF_AWAY_FROM_ZERO;
+	/**
+	 * Rounds the given value by the given number of fraction digits based on the given rounding mode.
+	 *
+	 * @param {number|string} vValue
+	 *   The number to be rounded, may be a string or a number; has to be of type number if a custom rounding function
+	 *   is used
+	 * @param {int|string} iMaxFractionDigits
+	 *   The maximum number of fraction digits
+	 * @param {sap.ui.core.format.NumberFormat.RoundingMode|function(number,int):number} vRoundingMode
+	 *   The rounding mode or a custom function for rounding which is called with the number and the number of decimal
+	 *   digits that should be reserved; <b>using a function is deprecated since 1.121.0</b>; string based numbers are
+	 *   not rounded via this custom function.
+	 * @returns {number|string}
+	 *   The rounded value; the returned type is the same as the type of the given <code>vValue</code>
+	 */
+	function rounding(vValue, iMaxFractionDigits, vRoundingMode) {
+		vRoundingMode = vRoundingMode || NumberFormat.RoundingMode.HALF_AWAY_FROM_ZERO;
 		iMaxFractionDigits = parseInt(iMaxFractionDigits);
 
 		// only round if it is required (number of fraction digits is bigger than the maxFractionDigits option)
-		var sValue = "" + fValue;
+		var sValue = "" + vValue;
 		if (!isScientificNotation(sValue)) {
 			var iIndexOfPoint = sValue.indexOf(".");
 			if (iIndexOfPoint < 0) {
-				return fValue;
+				return vValue;
 			}
 			if (sValue.substring(iIndexOfPoint + 1).length <= iMaxFractionDigits) {
-				return fValue;
+				if (typeof vValue === "string") {
+					vValue = NumberFormat._shiftDecimalPoint(vValue, 0, true);
+				}
+				return vValue;
 			}
 		}
 
-		if (typeof sRoundingMode === "function") {
+		if (typeof vRoundingMode === "function") {
 			// Support custom function for rounding the number
-			fValue = sRoundingMode(fValue, iMaxFractionDigits);
+			vValue = vRoundingMode(vValue, iMaxFractionDigits);
 		} else {
 			// The NumberFormat.RoundingMode had all values in lower case before and later changed all values to upper case
 			// to match the key according to the UI5 guideline for defining enum. Therefore it's needed to support both
 			// lower and upper cases. Here checks whether the value has only lower case letters and converts it all to upper
 			// case if so.
-			if (sRoundingMode.match(/^[a-z_]+$/)) {
-				sRoundingMode = sRoundingMode.toUpperCase();
+			if (vRoundingMode.match(/^[a-z_]+$/)) {
+				vRoundingMode = vRoundingMode.toUpperCase();
 			}
 
-			if (!iMaxFractionDigits) {
-				return mRoundingFunction[sRoundingMode](fValue);
+			// 1. Move the decimal point to right by maxFactionDigits; e.g. 1.005 with maxFractionDigits 2 => 100.5
+			vValue = NumberFormat._shiftDecimalPoint(vValue, iMaxFractionDigits, true);
+			// 2. Use the rounding function to round the first digit after decimal point; e.g. ceil(100.5) => 101
+			vValue = mRoundingFunction[vRoundingMode](vValue);
+			// 3. Finally move the decimal point back to the original position; e.g. by 2 digits => 1.01
+			vValue = NumberFormat._shiftDecimalPoint(vValue, -iMaxFractionDigits, true);
+			if (typeof vValue === "string") {
+				vValue = vValue.replace(rRemoveMinusFromZero, "$1");
 			}
-
-			// First move the decimal point towards right by maxFactionDigits
-			// Then using the rounding function to round the first digit after decimal point
-			// In the end, move the decimal point back to the original position
-			//
-			// For example rounding 1.005 by maxFractionDigits 2
-			// 	1. Move the decimal point to right by 2 digits, result 100.5
-			// 	2. Using the round function, for example, Math.round(100.5) = 101
-			// 	3. Move the decimal point back by 2 digits, result 1.01
-			fValue = NumberFormat._shiftDecimalPoint(mRoundingFunction[sRoundingMode](NumberFormat._shiftDecimalPoint(fValue, iMaxFractionDigits)), -iMaxFractionDigits);
 		}
-
-		return fValue;
+		return vValue;
 	}
 
 	function quote(sRegex) {
@@ -2708,7 +2996,7 @@ sap.ui.define([
 				if (!sKey.startsWith("unitPattern")) {
 					continue;
 				}
-				sUnitPattern = mUnitPatterns[sUnitCode][sKey];
+				sUnitPattern = FormatUtils.normalize(mUnitPatterns[sUnitCode][sKey]);
 
 				// IMPORTANT:
 				// To increase performance we are using native string operations instead of regex,
@@ -2837,7 +3125,7 @@ sap.ui.define([
 			if (!sCurSymbol) {
 				continue;
 			}
-			sCurSymbol = sCurSymbol.replace(rAllWhiteSpaces, "\u0020");
+			sCurSymbol = FormatUtils.normalize(sCurSymbol);
 			if (sValue.indexOf(sCurSymbol) >= 0 && sSymbol.length <= sCurSymbol.length) {
 				sCode = sCurCode;
 				bDuplicate = false;
@@ -2845,7 +3133,7 @@ sap.ui.define([
 				sSymbol = sCurSymbol;
 				sRecognizedCurrency = sCurSymbol;
 			} else if (bCaseInsensitive) {
-				sLanguageTag = Configuration.getLanguageTag();
+				sLanguageTag = Localization.getLanguageTag().toString();
 				sCurSymbolToUpperCase = sCurSymbol.toLocaleUpperCase(sLanguageTag);
 				iIndex = sValue.toLocaleUpperCase(sLanguageTag).indexOf(sCurSymbolToUpperCase);
 				if (iIndex >= 0) {
@@ -2897,7 +3185,7 @@ sap.ui.define([
 	 */
 	function parseNumberAndCurrency(oConfig) {
 		var aIsoMatches,
-			sValue = oConfig.value.replace(rAllWhiteSpaces, "\u0020");
+			sValue = oConfig.value;
 
 		// Search for known symbols (longest match)
 		// no distinction between default and custom currencies
@@ -2913,7 +3201,7 @@ sap.ui.define([
 				// Match 3-letter iso code
 				aIsoMatches = sValue.match(/(^[A-Z]{3}|[A-Z]{3}$)/i);
 				oMatch.code = aIsoMatches
-					&& aIsoMatches[0].toLocaleUpperCase(Configuration.getLanguageTag());
+					&& aIsoMatches[0].toLocaleUpperCase(Localization.getLanguageTag().toString());
 				oMatch.recognizedCurrency = aIsoMatches && aIsoMatches[0];
 			}
 		}

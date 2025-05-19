@@ -1,6 +1,6 @@
 	/*!
 * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 
@@ -35,6 +35,7 @@ sap.ui.define([
 	"sap/ui/base/Object",
 	"sap/ui/core/StaticArea",
 	"sap/base/Log",
+	"sap/ui/core/library",
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "firstFocusableDomRef"
 	"sap/ui/dom/jquery/Focusable"
@@ -69,6 +70,7 @@ function(
 	BaseObject,
 	StaticArea,
 	Log,
+	coreLibrary,
 	jQuery
 ) {
 	"use strict";
@@ -87,6 +89,9 @@ function(
 
 	// shortcut for sap.m.ButtonType
 	var ButtonType = library.ButtonType;
+
+	// shortcut for sap.ui.core.TitleLevel
+	var TitleLevel = coreLibrary.TitleLevel;
 
 	var LIST_ITEM_SUFFIX = "-list-item";
 
@@ -150,7 +155,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -333,6 +338,15 @@ function(
 						 */
 						parentFilterItem: {type: "sap.m.ViewSettingsFilterItem"}
 					}
+				},
+
+				/**
+				 * Fired before the dialog is closed.
+				 * This event can be prevented which effectively prevents the dialog from closing.
+				 * @since 1.132
+				 */
+				beforeClose : {
+					allowPreventDefault : true
 				}
 			}
 		},
@@ -375,6 +389,8 @@ function(
 				listProp: "title"
 			},
 			selected: {
+			},
+			wrapping: {
 			}
 		}, {
 			tooltip: {}
@@ -484,16 +500,9 @@ function(
 			this._sortList = null;
 		}
 
-		if (this._ariaSortListInvisibleText) {
-			this._ariaSortListInvisibleText.destroy();
-			this._ariaSortListInvisibleText = null;
-		}
-
 		if (this._sortOrderList) {
 			this._sortOrderList.destroy();
 			this._sortOrderList = null;
-			this._ariaSortOrderInvisibleText.destroy();
-			this._ariaSortOrderInvisibleText = null;
 		}
 
 		if (this._oGroupingNoneItem) {
@@ -503,14 +512,10 @@ function(
 		if (this._groupList) {
 			this._groupList.destroy();
 			this._groupList = null;
-			this._ariaGroupListInvisibleText.destroy();
-			this._ariaGroupListInvisibleText = null;
 		}
 		if (this._groupOrderList) {
 			this._groupOrderList.destroy();
 			this._groupOrderList = null;
-			this._ariaGroupOrderInvisibleText.destroy();
-			this._ariaGroupOrderInvisibleText = null;
 		}
 
 		if (this._presetFilterList) {
@@ -520,11 +525,6 @@ function(
 		if (this._filterList) {
 			this._filterList.destroy();
 			this._filterList = null;
-		}
-
-		if (this._ariaFilterByInvisibleText) {
-			this._ariaFilterByInvisibleText.destroy();
-			this._ariaFilterByInvisibleText = null;
 		}
 
 		// page2 (filter details)
@@ -574,7 +574,7 @@ function(
 			oList = new List(sListId, this.mToList[sType].listOptions),
 			oGHI = this._createGroupHeaderItem(sType);
 
-		oList.addItem(oGHI);
+		oList.addItemGroup(undefined, oGHI);
 		this[this.mToList[sType].listName] = oList;
 
 		return oList;
@@ -781,7 +781,7 @@ function(
 			if (!oList) {
 				oList = this._createList(sType);
 			} else if (!oList.getItems().length) {
-				oList.addItem(this._createGroupHeaderItem(sType));
+				oList.addItemGroup(undefined, this._createGroupHeaderItem(sType));
 			}
 
 			oList.addItem(oListItem);
@@ -817,7 +817,7 @@ function(
 				oList = this._createList(sType);
 				oList.insertItem(oListItem, iIndex);
 			} else if (!oList.getItems().length) {
-				oList.addItem(this._createGroupHeaderItem(sType));
+				oList.addItemGroup(undefined, this._createGroupHeaderItem(sType));
 				oList.insertItem(oListItem, iIndex + 1);
 			} else {
 				oList.insertItem(oListItem, iIndex);
@@ -1198,7 +1198,7 @@ function(
 	 *
 	 * @override
 	 * @public
-	 * @param {sap.m.ViewSettingsItem|string} vItemOrKey The selected item, the item's string key
+	 * @param {sap.m.ViewSettingsItem|sap.ui.core.ID|string} vItemOrKey The selected item, the item's string key
 	 * or the item id
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
@@ -1243,7 +1243,7 @@ function(
 	 *
 	 * @override
 	 * @public
-	 * @param {sap.m.ViewSettingsItem|string} vItemOrKey The selected item, the item's string key
+	 * @param {sap.m.ViewSettingsItem|sap.ui.core.ID|string} vItemOrKey The selected item, the item's string key
 	 * or the item id
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
@@ -1292,7 +1292,7 @@ function(
 	 *
 	 * @override
 	 * @public
-	 * @param {sap.m.ViewSettingsItem|string|null} vItemOrKey The selected item or the item's key string
+	 * @param {sap.m.ViewSettingsItem|sap.ui.core.ID|string|null} vItemOrKey The selected item or the item's key string
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 */
 	ViewSettingsDialog.prototype.setSelectedPresetFilterItem = function(vItemOrKey) {
@@ -1396,6 +1396,7 @@ function(
 	ViewSettingsDialog.prototype._focusFirstListItem = function() {
 		var oCurrentPage = this._getNavContainer().getCurrentPage(),
 			$firstFocusable;
+
 		if (oCurrentPage) {
 			$firstFocusable = oCurrentPage.$("cont").firstFocusableDomRef();
 			if ($firstFocusable) {
@@ -1822,6 +1823,8 @@ function(
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._globalReset = function () {
+		var bHasCustomItems = this._checkForCustomItems();
+
 		// clear filters
 		this.clearFilters();
 
@@ -1836,9 +1839,9 @@ function(
 		this._updateListSelection(this._groupOrderList, this._oInitialState.groupDescending);
 
 		if (Device.system.desktop) {
-			if (this._filterList && this._filterList.getDomRef()) {
+			if (!bHasCustomItems && this._filterList && this._filterList.getDomRef()) {
 				this._getNavContainer().attachEventOnce("afterNavigate", this._focusFirstListItem, this);
-			} else if ((this._sortList && this._sortList.getDomRef()) || (this._groupList  && this._groupList.getDomRef())) {
+			} else if (!bHasCustomItems && ((this._sortList && this._sortList.getDomRef()) || (this._groupList  && this._groupList.getDomRef()))) {
 				this._focusFirstListItem();
 			}
 		}
@@ -1929,7 +1932,8 @@ function(
 	ViewSettingsDialog.prototype._getTitleLabel = function() {
 		if (this._titleLabel === undefined) {
 			this._titleLabel = new Title(this._sTitleLabelId, {
-				text : this._rb.getText("VIEWSETTINGS_TITLE")
+				text : this._rb.getText("VIEWSETTINGS_TITLE"),
+				level: TitleLevel.H1
 			}).addStyleClass("sapMVSDTitle");
 		}
 		return this._titleLabel;
@@ -1978,9 +1982,9 @@ function(
 	 */
 	ViewSettingsDialog.prototype._getDetailTitleLabel = function() {
 		if (this._detailTitleLabel === undefined) {
-			this._detailTitleLabel = new Title(this.getId() + "-detailtitle",
-				{
-					text : this._rb.getText("VIEWSETTINGS_TITLE_FILTERBY")
+			this._detailTitleLabel = new Title(this.getId() + "-detailtitle", {
+					text : this._rb.getText("VIEWSETTINGS_TITLE_FILTERBY"),
+					level: TitleLevel.H1
 				}).addStyleClass("sapMVSDTitle");
 		}
 		return this._detailTitleLabel;
@@ -2239,7 +2243,8 @@ function(
 				title : ManagedObject.escapeSettingsValue(aSubFilters[i].getText()),
 				type : ListType.Active,
 				selected : aSubFilters[i].getSelected(),
-				tooltip : aSubFilters[i].getTooltip()
+				tooltip : aSubFilters[i].getTooltip(),
+				wrapping: aSubFilters[i].getWrapping()
 			}).data("item", aSubFilters[i]);
 			this._filterDetailList.addItem(oListItem);
 		}
@@ -2279,11 +2284,6 @@ function(
 		}
 		this._vContentPage = -1;
 
-		// Aria - used to label the sort order list
-		this._ariaSortOrderInvisibleText = new InvisibleText(this.getId() + "-sortOrderLabel", {
-			text: this._rb.getText("VIEWSETTINGS_SORT_BY")
-		});
-
 		this._sortOrderList = new List(this.getId() + "-sortorderlist", {
 			mode : ListMode.SingleSelectLeft,
 			includeItemInSelection : true,
@@ -2292,10 +2292,10 @@ function(
 				// enable/disable reset button if necessary
 				this._checkResetStatus();
 			}.bind(this),
-			ariaLabelledBy: this._ariaSortOrderInvisibleText
+			ariaLabelledBy: this._sTitleLabelId
 		});
 
-		this._sortOrderList.addItem(new GroupHeaderListItem({title: this._rb.getText("VIEWSETTINGS_SORT_BY")}));
+		this._sortOrderList.addItemGroup(undefined, new GroupHeaderListItem({title: this._rb.getText("VIEWSETTINGS_SORT_BY")}));
 
 		this._sortOrderList.addItem(new StandardListItem({
 			title : this._rb.getText("VIEWSETTINGS_ASCENDING_ITEM")
@@ -2304,14 +2304,9 @@ function(
 			title : this._rb.getText("VIEWSETTINGS_DESCENDING_ITEM")
 		}).data("item", true));
 
-		// Aria - used to label the sort list
-		this._ariaSortListInvisibleText = new InvisibleText(this.getId() + "-sortListLabel", {
-			text: this._rb.getText("VIEWSETTINGS_SORT_OBJECT")
-		});
+		this._sortList.addAriaLabelledBy(this._sTitleLabelId);
 
-		this._sortList.addAriaLabelledBy(this._ariaSortListInvisibleText);
-
-		this._sortContent = [ this._ariaSortOrderInvisibleText, this._sortOrderList, this._ariaSortListInvisibleText, this._sortList ];
+		this._sortContent = [ this._sortOrderList, this._sortList ];
 	};
 
 	/**
@@ -2326,14 +2321,15 @@ function(
 
 		this._groupList.destroyItems();
 		if (aGroupItems.length) {
-			this._groupList.addItem(new GroupHeaderListItem({title: sTitleGroupObject}));
+			this._groupList.addItemGroup(undefined, new GroupHeaderListItem({title: sTitleGroupObject}));
 			aGroupItems.forEach(function (oItem) {
 				oListItem = new StandardListItem({
 					id: oItem.getId() + LIST_ITEM_SUFFIX,
 					title: ManagedObject.escapeSettingsValue(oItem.getText()),
 					type: ListType.Active,
 					selected: oItem.getSelected(),
-					tooltip : oItem.getTooltip()
+					tooltip : oItem.getTooltip(),
+					wrapping: oItem.getWrapping()
 				}).data("item", oItem);
 				this._groupList.addItem(oListItem);
 			}, this);
@@ -2361,7 +2357,8 @@ function(
 				id: this._oGroupingNoneItem.getId() + LIST_ITEM_SUFFIX,
 				title: this._oGroupingNoneItem.getText(),
 				type: ListType.Active,
-				selected: this._oGroupingNoneItem.getSelected()
+				selected: this._oGroupingNoneItem.getSelected(),
+				wrapping: this._oGroupingNoneItem.getWrapping()
 			}).data("item", this._oGroupingNoneItem);
 			this._groupList.addItem(oListItem);
 		}
@@ -2378,11 +2375,6 @@ function(
 		}
 		this._vContentPage = -1;
 
-		// Aria - used to label the group order
-		this._ariaGroupOrderInvisibleText = new InvisibleText(this.getId() + "-groupOrderLabel", {
-			text: this._rb.getText("VIEWSETTINGS_GROUP_BY")
-		});
-
 		this._groupOrderList = new List(this.getId() + "-grouporderlist", {
 			mode : ListMode.SingleSelectLeft,
 			includeItemInSelection : true,
@@ -2391,21 +2383,16 @@ function(
 				// enable/disable reset button if necessary
 				this._checkResetStatus();
 			}.bind(this),
-			ariaLabelledBy: this._ariaGroupOrderInvisibleText
+			ariaLabelledBy: this._sTitleLabelId
 		});
 
-		this._groupOrderList.addItem(new GroupHeaderListItem({title: this._rb.getText("VIEWSETTINGS_GROUP_BY")}));
+		this._groupOrderList.addItemGroup(undefined, new GroupHeaderListItem({title: this._rb.getText("VIEWSETTINGS_GROUP_BY")}));
 		this._groupOrderList.addItem(new StandardListItem({
 			title : this._rb.getText("VIEWSETTINGS_ASCENDING_ITEM")
 		}).data("item", false).setSelected(true));
 		this._groupOrderList.addItem(new StandardListItem({
 			title : this._rb.getText("VIEWSETTINGS_DESCENDING_ITEM")
 		}).data("item", true));
-
-		// Aria - used to label the group list
-		this._ariaGroupListInvisibleText = new InvisibleText(this.getId() + "-groupListLabel", {
-			text: this._rb.getText("VIEWSETTINGS_GROUP_OBJECT")
-		});
 
 		this._groupList = new List(this.getId() + "-grouplist",
 			{
@@ -2418,10 +2405,10 @@ function(
 					// enable/disable reset button if necessary
 					this._checkResetStatus();
 				}.bind(this),
-				ariaLabelledBy: this._ariaGroupListInvisibleText
+				ariaLabelledBy: this._sTitleLabelId
 			});
 
-		this._groupContent = [ this._ariaGroupOrderInvisibleText, this._groupOrderList, this._ariaGroupListInvisibleText, this._groupList ];
+		this._groupContent = [ this._groupOrderList, this._groupList ];
 	};
 
 	/**
@@ -2444,7 +2431,8 @@ function(
 					title: ManagedObject.escapeSettingsValue(oItem.getText()),
 					type: ListType.Active,
 					selected: oItem.getSelected(),
-					tooltip: oItem.getTooltip()
+					tooltip: oItem.getTooltip(),
+					wrapping: oItem.getWrapping()
 				}).data("item", oItem);
 				this._presetFilterList.addItem(oListItem);
 			}, this);
@@ -2462,7 +2450,7 @@ function(
 		this._filterList.destroyItems();
 		aFilterItems = this.getFilterItems();
 
-		this._filterList.addItem(new GroupHeaderListItem({title: sTitleFilterBy}));
+		this._filterList.addItemGroup(undefined, new GroupHeaderListItem({title: sTitleFilterBy}));
 
 		if (aFilterItems.length) {
 			aFilterItems.forEach(function(oItem) {
@@ -2472,6 +2460,7 @@ function(
 						title : ManagedObject.escapeSettingsValue(oItem.getText()),
 						type : ListType.Active,
 						tooltip : oItem.getTooltip(),
+						wrapping: oItem.getWrapping(),
 						press : (function(oItem) {
 							return function(oEvent) {
 								// navigate to details page
@@ -2504,11 +2493,6 @@ function(
 		}
 		this._vContentPage = -1;
 
-		// Aria - used to label the filter by list
-		this._ariaFilterByInvisibleText = new InvisibleText(this.getId() + "-filterByLabel", {
-			text: this._rb.getText("VIEWSETTINGS_FILTER_BY")
-		});
-
 		this._presetFilterList = new List(
 			this.getId() + "-predefinedfilterlist",
 			{
@@ -2527,10 +2511,10 @@ function(
 			});
 
 		this._filterList = new List(this.getId() + "-filterlist", {
-			ariaLabelledBy: this._ariaFilterByInvisibleText
+			ariaLabelledBy: this._sTitleLabelId
 		});
 
-		this._filterContent = [ this._ariaFilterByInvisibleText, this._presetFilterList, this._filterList ];
+		this._filterContent = [ this._presetFilterList, this._filterList ];
 	};
 
 	/**
@@ -2860,7 +2844,7 @@ function(
 	 *
 	 * @override
 	 * @public
-	 * @param { int| sap.m.ViewSettingsFilterItem | string } vFilterItem The filter item's index, or the item itself, or its id
+	 * @param { int| sap.m.ViewSettingsFilterItem | sap.ui.core.ID } vFilterItem The filter item's index, or the item itself, or its ID
 	 * @returns {sap.m.ViewSettingsFilterItem|null} The removed item or <code>null</code>
 	 */
 	ViewSettingsDialog.prototype.removeFilterItem = function (vFilterItem) {
@@ -2953,7 +2937,7 @@ function(
 
 		if (this.getTitle()) { // custom title
 			oTitleLabel.setText(this.getTitle());
-		} else { // default title
+		} else if (this._hasSubHeader()) { // default title if necessary
 			oTitleLabel.setText(this._rb.getText("VIEWSETTINGS_TITLE"));
 		}
 
@@ -3485,6 +3469,11 @@ function(
 				// fire confirm event
 				that.fireConfirm(oSettingsState);
 			};
+
+		// if beforeClose event is prevented do not close the dialog
+		if (!that.fireBeforeClose()) {
+			return;
+		}
 
 		// attach the reset function to afterClose to hide the dialog changes from
 		// the end user

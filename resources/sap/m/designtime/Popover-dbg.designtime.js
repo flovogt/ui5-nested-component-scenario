@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -26,25 +26,25 @@ sap.ui.define([],
 			},
 			aggregations: {
 				content: {
-					domRef: ":sap-domref > .sapMPopoverCont",
+					domRef: ":sap-domref > .sapMPopoverWrapper > .sapMPopoverCont",
 					actions: {
 						move: "moveControls"
 					}
 				},
 				customHeader: {
-					domRef: ":sap-domref > .sapMPopoverHeader"
+					domRef: ":sap-domref > .sapMPopoverWrapper > .sapMPopoverHeader"
 				},
 				subHeader: {
-					domRef: ":sap-domref > .sapMPopoverSubHeader"
+					domRef: ":sap-domref > .sapMPopoverWrapper > .sapMPopoverSubHeader"
 				},
 				footer: {
-					domRef: ":sap-domref > .sapMPopoverFooter"
+					domRef: ":sap-domref > .sapMPopoverWrapper > .sapMPopoverFooter"
 				},
 				beginButton: {
-					domRef: ":sap-domref > header.sapMPopoverHeader .sapMBarLeft"
+					domRef: ":sap-domref > .sapMPopoverWrapper > header.sapMPopoverHeader .sapMBarLeft"
 				},
 				endButton: {
-					domRef: ":sap-domref > header.sapMPopoverHeader .sapMBarRight"
+					domRef: ":sap-domref > .sapMPopoverWrapper > header.sapMPopoverHeader .sapMBarRight"
 				}
 			}
 		};

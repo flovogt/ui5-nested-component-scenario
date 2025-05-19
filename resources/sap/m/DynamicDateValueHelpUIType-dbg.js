@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define(['sap/ui/core/Element'],
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @public
 		 * @since 1.92
@@ -47,9 +47,14 @@ sap.ui.define(['sap/ui/core/Element'],
 					additionalText: { type: "string" },
 
 					/**
-					 * Describes the options in a radio button group.
+					 * Options are displayed into a select element.
  					 */
-					options: { type: "string[]", defaultValue: null }
+					options: { type: "string[]", defaultValue: null },
+
+					/**
+					 * Describes if the current period is included.
+ 					 */
+					included: { type: "string", defaultValue: null }
 				}
 			}
 		});

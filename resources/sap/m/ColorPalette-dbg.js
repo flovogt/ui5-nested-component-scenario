@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,6 +9,7 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/Device',
 	'sap/ui/base/DataType',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'sap/ui/core/delegate/ItemNavigation',
 	'./Button',
@@ -25,6 +26,7 @@ sap.ui.define([
 	Control,
 	Device,
 	DataType,
+	Library,
 	coreLibrary,
 	ItemNavigation,
 	Button,
@@ -55,6 +57,8 @@ sap.ui.define([
 		// The name of the class, corresponding to a single color item
 		var CSS_CLASS_SWATCH = "sapMColorPaletteSquare";
 
+		var CSS_CLASS_REGION = "sapMColorPaletteContent";
+
 		// Defines the exact count of swatches per row
 		var SWATCHES_PER_ROW = 5;
 
@@ -65,7 +69,7 @@ sap.ui.define([
 		var MAX_COLORS = 15;
 
 		// get resource translation bundle;
-		var oLibraryResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oLibraryResourceBundle = Library.getResourceBundleFor("sap.m");
 
 		/**
 		 * Constructor for a new <code>ColorPalette</code>.
@@ -104,7 +108,7 @@ sap.ui.define([
 		 * To prevent this, apps using the <code>ColorPalette</code> should also load the <code>sap.ui.unified</code> library in advance.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -137,7 +141,14 @@ sap.ui.define([
 							"dimgray",
 							"black"
 						]
-					}
+					},
+
+					/**
+					 * The last selected color in the ColorPalette.
+					 * @since 1.122
+					 * @experimental Since 1.122, this property is in a beta state.
+					 */
+					selectedColor: { type: "sap.ui.core.CSSColor", defaultValue: null }
 				},
 
 				aggregations: {
@@ -151,6 +162,8 @@ sap.ui.define([
 				events: {
 					/**
 					 * Fired when the user selects a color.
+					 * Note: The <code>selectedColor</code> property is updated after the event is fired.
+					 * Use the event parameter <code>value</code> to retrieve the new value for <code>selectedColor</code>.
 					 */
 					colorSelect: {
 						parameters: {
@@ -252,6 +265,12 @@ sap.ui.define([
 
 			// Queue of recently used colors
 			this._recentColors = [];
+
+			// If the last selected color is found in the main ColorPalette.
+			this._bMainRegionSelection = true;
+
+			// If "Default Color" was selected
+			this._bDefaultColorSelected = false;
 		};
 
 		ColorPalette.prototype.exit = function () {
@@ -286,7 +305,7 @@ sap.ui.define([
 		 * Sets a default displayMode.
 		 * @param {sap.ui.unified.ColorPickerDisplayMode} oDisplayMode the color
 		 * @private
-		 * @return {this} <code>this</code> for method chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 */
 		ColorPalette.prototype._setDisplayMode = function (oDisplayMode) {
 			var oColorPicker = this._getColorPicker();
@@ -306,16 +325,23 @@ sap.ui.define([
 		};
 
 		ColorPalette.prototype.ontap = function (oEvent) {
-			var $Target = jQuery(oEvent.target),
+			var oTarget = oEvent.target,
 				sColor,
-				$Swatch;
+				oSwatch,
+				oRegion,
+				sRegion;
 
-			$Swatch = $Target.closest("." + CSS_CLASS_SWATCH);
-			if (!$Swatch.length) {
+			oSwatch = oTarget.closest("." + CSS_CLASS_SWATCH);
+			oRegion = oTarget.closest("." + CSS_CLASS_REGION);
+
+			if (!(oSwatch && oRegion)) {
 				return;
 			}
 
-			sColor = $Swatch.attr("data-sap-ui-color");
+			sColor = oSwatch.getAttribute("data-sap-ui-color");
+			sRegion = oRegion.getAttribute("data-sap-ui-region");
+			this._bMainRegionSelection = sRegion === "main-colors-palette";
+
 			this._fireColorSelect(sColor, false, oEvent);
 		};
 
@@ -328,6 +354,7 @@ sap.ui.define([
 			}
 
 			if (oElementInfo.bIsDefaultColorButton) {
+				this._bMainRegionSelection = false;
 				this._fireColorSelect(this._getDefaultColor(), true, oEvent);
 				return;
 			}
@@ -355,6 +382,10 @@ sap.ui.define([
 		ColorPalette.prototype.pushToRecentColors = function (sColor) {
 			var iIndexOfColor = this._recentColors.indexOf(sColor);
 
+			if (!sColor) {
+				return;
+			}
+
 			if (iIndexOfColor > -1){
 				this._recentColors.splice(iIndexOfColor,1);
 			} else if (this._recentColors.length === 5) {
@@ -368,15 +399,22 @@ sap.ui.define([
 
 		/**
 		 * Sets a selected color for the ColorPicker control.
-		 * @param {sap.ui.core.CSSColor} color the selected color
+		 * @param {sap.ui.core.CSSColor} sColor the selected color
 		 * @public
-		 * @return {this} <code>this</code> for method chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 */
-		ColorPalette.prototype.setColorPickerSelectedColor = function (color) {
-			if (!CSSColor.isValid(color)) {
-				throw new Error("Cannot set the selected color - invalid value: " + color);
+		ColorPalette.prototype.setColorPickerSelectedColor = function (sColor) {
+			if (!CSSColor.isValid(sColor)) {
+				throw new Error("Cannot set the selected color - invalid value: " + sColor);
 			}
-			this._getColorPicker().setColorString(color);
+
+			const oColorPicker = this._getColorPicker();
+			oColorPicker.setColorString(sColor);
+			sColor = sColor.toLowerCase();
+			if (sColor.indexOf("rgba") === -1 && sColor.indexOf("hsla") === -1) {
+				oColorPicker._updateAlphaValue(1);
+			}
+
 			return this;
 		};
 
@@ -388,6 +426,7 @@ sap.ui.define([
 				text: oLibraryResourceBundle.getText("COLOR_PALETTE_DEFAULT_COLOR"),
 				visible: this._getShowDefaultColorButton(),
 				press: function (oEvent) {
+					this._bMainRegionSelection = false;
 					this._fireColorSelect(this._getDefaultColor(), true, oEvent);
 				}.bind(this)
 			});
@@ -402,7 +441,7 @@ sap.ui.define([
 		 * Sets a default color.
 		 * @param {sap.ui.core.CSSColor} color the color
 		 * @private
-		 * @return {this} <code>this</code> for method chaining
+		 * @returns {this} Reference to <code>this</code> for method chaining
 		 */
 		ColorPalette.prototype._setDefaultColor = function (color) {
 			if (!CSSColor.isValid(color)) {
@@ -411,7 +450,6 @@ sap.ui.define([
 			this._oDefaultColor = color;
 			return this;
 		};
-
 
 		ColorPalette.prototype._getShowDefaultColorButton = function () {
 			return this._bShowDefaultColorButton;
@@ -493,13 +531,37 @@ sap.ui.define([
 		};
 
 		/**
+		 * Returns <code>true</code> if the selected color is in the main Color Palette region
+		 * @private
+		 * @returns {boolean} <code>true</code> if the selected color is in the main region
+		 */
+		ColorPalette.prototype._isSelectedInMainRegion = function() {
+			return this._bMainRegionSelection;
+		};
+
+		/**
+		 * Returns <code>true</code> if the selected color is in the Recent Colors region
+		 * @private
+		 * @returns {boolean} <code>true</code> if the selected color is in the Recent Colors region
+		 */
+		 ColorPalette.prototype._isSelectedInRecentColors = function() {
+			return !(this._bDefaultColorSelected || this._bMainRegionSelection);
+		};
+
+		/**
 		 * Opens a color picker in a Dialog.
 		 * The function assumes that there is a "more colors.." button visible.
-		 * @return void
 		 * @private
 		 */
 		ColorPalette.prototype._openColorPicker = function () {
+			const sSelectedColor = this.getSelectedColor();
+
 			this.fireEvent("_beforeOpenColorPicker"); //hook for program consumers (i.e. ColorPalettePopover)
+
+			if (sSelectedColor !== '') {
+				this.setColorPickerSelectedColor(sSelectedColor);
+			}
+
 			this._ensureMoreColorsDialog().open();
 		};
 
@@ -539,9 +601,11 @@ sap.ui.define([
 			// OK button
 			oDialog.setBeginButton(new Button({
 				text: oLibraryResourceBundle.getText("COLOR_PALETTE_MORE_COLORS_CONFIRM"),
+				type: ButtonType.Emphasized,
 				press: function (oEvent) {
 					oDialog.close();
 					if (oDialog._oColorPicker.getColorString()) {
+						this._bMainRegionSelection = false;
 						this._fireColorSelect(oDialog._oColorPicker.getColorString(), false, oEvent);
 					}
 				}.bind(this)
@@ -570,6 +634,28 @@ sap.ui.define([
 		};
 
 		/**
+		 * Focuses the selected or first available element in the palette.
+		 * @private
+		 */
+	   ColorPalette.prototype._focusSelectedElement = function () {
+			var oSelectedElement,
+				oFirstRecentSwatch = this._getAllRecentColorSwatches()[0];
+
+			if (!this.getSelectedColor() || this._bDefaultColorSelected) {
+				this._focusFirstElement();
+				return;
+			}
+
+			if (this._bMainRegionSelection){
+				oSelectedElement = this._getAllPaletteColorSwatches().find((oDomRefs) => oDomRefs.classList.contains("sapMColorPaletteSquareSelected"));
+			} else {
+				oSelectedElement = oFirstRecentSwatch;
+			}
+
+			oSelectedElement ? oSelectedElement.focus() : this._focusFirstElement();
+	   };
+
+		/**
 		 * Helper function to fire the event "colorSelect"
 		 * @param {sap.ui.core.CSSColor} color the color
 		 * @param {boolean} [defaultAction=false] if the selection is performed via "Default color" button
@@ -578,6 +664,8 @@ sap.ui.define([
 		 */
 		ColorPalette.prototype._fireColorSelect = function (color, defaultAction, oOriginalEvent) {
 			this.fireColorSelect({value: color, defaultAction: defaultAction, _originalEvent: oOriginalEvent});
+			this._bDefaultColorSelected = defaultAction;
+			this.setSelectedColor(color);
 			this.pushToRecentColors(color);
 		};
 
@@ -846,7 +934,7 @@ sap.ui.define([
 		 * Analyzes if given DOM element is one of the <code>ColorPalette</code> artifacts (Default Color, More Colors,
 		 * swatch color).
 		 * @param {Element} oElement DOM Element
-		 * @return {{bIsDefaultColorButton: *, bIsMoreColorsButton: boolean|*, bIsASwatch: boolean|*}} result
+		 * @returns {{bIsDefaultColorButton: *, bIsMoreColorsButton: boolean|*, bIsASwatch: boolean|*}} result
 		 * @private
 		 */
 		ColorPalette.prototype._getElementInfo = function (oElement) {
@@ -921,7 +1009,7 @@ sap.ui.define([
 
 		/**
 		 * Returns the number of columns defined.
-		 * @return {*}
+		 * @returns {int} The number of columns.
 		 */
 		ItemNavigationHomeEnd.prototype.getColumns = function() {
 			return this.iColumns;
@@ -1063,7 +1151,7 @@ sap.ui.define([
 		/**
 		 * Analyzes the given item and produces information about its position.
 		 * @param {number} iIndex the item given by its position
-		 * @return {{bIsLastItem: boolean, bIsInTheLastColumn: boolean, bNextRowExists: boolean|*, bItemSameColumnNextRowExists: boolean|*}}
+		 * @returns {{bIsLastItem: boolean, bIsInTheLastColumn: boolean, bNextRowExists: boolean|*, bItemSameColumnNextRowExists: boolean|*}}
 		 * @private
 		 */
 		ItemNavigationHomeEnd.prototype._getItemInfo = function(iIndex) {
@@ -1091,7 +1179,7 @@ sap.ui.define([
 
 		/**
 		 * Calculates the index of the first item in the last row.
-		 * @return {int} the index(zero based) of the first/last item in the row.
+		 * @returns {int} the index(zero based) of the first/last item in the row.
 		 * @private
 		 */
 		ItemNavigationHomeEnd.prototype._getIndexOfTheFirstItemInLastRow = function () {
@@ -1147,7 +1235,7 @@ sap.ui.define([
 			/**
 			 * Returns a named color for given color. For example - "gold" for input "#FFB200".
 			 * @param {string} sColor the given color
-			 * @return {string|undefined} The named color, if such can really corresponds to the input color, or undefined otherwise.
+			 * @returns {string|undefined} The named color, if such can really correspond to the input color, or <code>undefined</code> otherwise.
 			 */
 			getNamedColor: function (sColor) {
 				var sHexColor = "";

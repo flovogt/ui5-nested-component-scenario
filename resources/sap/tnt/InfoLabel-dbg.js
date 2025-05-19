@@ -1,17 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.tnt.InfoLabel
 sap.ui.define([
 	"./library",
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Lib",
 	"sap/ui/core/library",
 	"sap/ui/core/Control",
-	"sap/ui/core/Core",
 	"./InfoLabelRenderer"
-], function (library, CoreLibrary, Control, Core, InfoLabelRenderer) {
+], function(library, ControlBehavior, Library, CoreLibrary, Control, InfoLabelRenderer) {
 	"use strict";
 
 	// shortcut for library.RenderMode
@@ -47,7 +48,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -64,7 +65,7 @@ sap.ui.define([
 				/**
 				 * Specifies the text inside the <code>InfoLabel</code> control.
 				 */
-				text: { type: "string", defaultValue: "", bindable: "bindable" },
+				text: { type: "string", group: "Data", defaultValue: "", bindable: "bindable" },
 				/**
 				 * Specifies the type of the <code>InfoLabel</code> paddings - loose or narrow.
 				 * <b>Note:</b> By default the padding is loose. It is recommended to use narrow (smaller) paddings for numeric texts.
@@ -111,8 +112,8 @@ sap.ui.define([
 
 	InfoLabel.prototype.init = function () {
 		// Init static text for ARIA
-		if (Core.getConfiguration().getAccessibility() && !InfoLabelRenderer._sAriaText) {
-			var oRB = Core.getLibraryResourceBundle("sap.tnt");
+		if (ControlBehavior.isAccessibilityEnabled() && !InfoLabelRenderer._sAriaText) {
+			var oRB = Library.getResourceBundleFor("sap.tnt");
 			InfoLabelRenderer._sAriaText = oRB.getText("INFOLABEL_DEFAULT");
 			InfoLabelRenderer._sAriaTextEmpty = oRB.getText("INFOLABEL_EMPTY");
 		}

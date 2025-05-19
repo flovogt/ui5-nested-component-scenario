@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /* global QUnit */
@@ -131,7 +131,7 @@
 		var fnXhrOpenOrig = XMLHttpRequest.prototype.open;
 		XMLHttpRequest.prototype.open = function(sMethod, sUrl) {
 			if (
-				typeof sap !== "undefined" && sap.ui && sap.ui.loader &&
+				globalThis.sap?.ui?.loader &&
 				sUrl && sUrl.endsWith(".js") && shouldBeInstrumented(sap.ui.loader._.guessResourceName(sUrl) || "")
 			) {
 				arguments[1] = appendUrlParameter(sUrl);

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -41,7 +41,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -73,13 +73,13 @@ sap.ui.define([
 				/**
 				 * The control to appear in the header area.
 				 */
-				header: {type: "sap.tnt.IToolHeader", multiple: false},
+				header: {type: "sap.ui.core.Control", multiple: false},
 
 				/**
 				 * The control to appear in the subheader area.
 				 * @since 1.93
 				 */
-				subHeader: {type: "sap.tnt.IToolHeader", multiple: false },
+				subHeader: {type: "sap.ui.core.Control", multiple: false },
 				/**
 				 * The side menu of the layout.
 				 */

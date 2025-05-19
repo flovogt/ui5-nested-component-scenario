@@ -1,14 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Label
 sap.ui.define([
 	'./library',
-	"sap/ui/core/Core",
 	'sap/ui/core/Control',
+	"sap/ui/core/Element",
 	'sap/ui/core/LabelEnablement',
 	'sap/m/HyphenationSupport',
 	'sap/ui/core/library',
@@ -16,8 +16,8 @@ sap.ui.define([
 ],
 function(
 	library,
-	Core,
 	Control,
+	Element,
 	LabelEnablement,
 	HyphenationSupport,
 	coreLibrary,
@@ -75,10 +75,10 @@ function(
 	 * <li> It is not recommended to use labels in Bold.</li>
 	 * </ul>
 	 * @extends sap.ui.core.Control
-	 * @implements sap.ui.core.Label, sap.ui.core.IShrinkable, sap.ui.core.IAccessKeySupport
+	 * @implements sap.ui.core.Label, sap.ui.core.IShrinkable, sap.ui.core.IAccessKeySupport, sap.ui.core.ILabelable
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -94,7 +94,8 @@ function(
 				"sap.m.IOverflowToolbarContent",
 				"sap.m.IToolbarInteractiveControl",
 				"sap.m.IHyphenation",
-				"sap.ui.core.IAccessKeySupport"
+				"sap.ui.core.IAccessKeySupport",
+				"sap.ui.core.ILabelable"
 			],
 			library : "sap.m",
 			properties : {
@@ -141,7 +142,7 @@ function(
 
 				/**
 				 * Determines the wrapping of the text within the <code>Label</code>.
-				 * If set to true the <code>Label</code> will wrap, when set to false the <code>Label</code> will be truncated and replaced with ellipsis which is the default behavior.
+				 * When set to <code>false</code> (default), the label text will be truncated and and an ellipsis will be added at the end. If set to <code>true</code>, the label text will wrap.
 				 *
 				 * @since 1.50
 				 */
@@ -225,10 +226,10 @@ function(
 			return;
 		}
 
-		var oLabeledControl = Core.byId(sLabelForId);
+		var oLabeledControl = Element.getElementById(sLabelForId);
 
 		if (oLabeledControl && oLabeledControl.isA("sap.m.Input") && oLabeledControl.getProperty("highlightAccKeysRef")) {
-			Core.byId(sLabelForId).setProperty("accesskey", (sText[0].toLowerCase()));
+			Element.getElementById(sLabelForId).setProperty("accesskey", (sText[0].toLowerCase()));
 		}
 	};
 
@@ -268,7 +269,7 @@ function(
 
 			// check that the label is for a control from the same toolbar
 			sLabelledControlId = oLabel.getLabelFor();
-			oLabelledControl = sLabelledControlId && sap.ui.getCore().byId(sLabelledControlId);
+			oLabelledControl = sLabelledControlId && Element.getElementById(sLabelledControlId);
 			if (!oLabelledControl || (oToolbar.indexOfContent(oLabelledControl) < 0)) {
 				return;
 			}
@@ -332,6 +333,16 @@ function(
 	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
 	 */
 	Label.prototype._getToolbarInteractive = function () {
+		return false;
+	};
+
+	/**
+	 * Returns if the control can be bound to a label
+	 *
+	 * @returns {boolean} <code>true</code> if the control can be bound to a label
+	 * @public
+	 */
+	Label.prototype.hasLabelableHTMLElement = function () {
 		return false;
 	};
 

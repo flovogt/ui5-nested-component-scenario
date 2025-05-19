@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,6 +28,7 @@ sap.ui.define([
 
 	ToolHeaderRenderer.renderBarContent = function (oRM, oToolbar) {
 		var bOverflowButtonRendered = false,
+			oFirstVisibleControl = null,
 			bIsUtilitySeparator;
 
 		if (oToolbar.getActive()) {
@@ -45,6 +46,12 @@ sap.ui.define([
 			}
 
 			if (oToolbar._getControlPriority(oControl) !== OverflowToolbarPriority.AlwaysOverflow) {
+				if (!oFirstVisibleControl && oControl.getVisible()) {
+					oControl.addStyleClass("sapMBarChildFirstChild");
+					oFirstVisibleControl = oControl;
+				} else {
+					oControl.removeStyleClass("sapMBarChildFirstChild");
+				}
 				oRM.renderControl(oControl);
 			}
 		}.bind(this));

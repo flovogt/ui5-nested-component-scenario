@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -171,15 +171,11 @@ sap.ui.define([
 					sPropertyCapability !== GenericTestCollection.ExcludeReason.SetterNeedsSpecificSettings &&
 					sPropertyCapability !== GenericTestCollection.ExcludeReason.OnlyChangeableViaBinding) {
 					try {
-						if (oProperty.type === "boolean") {
-							vValueToSet = false;
-						} else if (oProperty.type === "int") {
+						const oType = DataType.getType(oProperty.type);
+						vValueToSet = oType?.getDefaultValue();
+						if (oProperty.type === "int") {
 							vValueToSet = 100;
-						} else if (oProperty.type.startsWith("sap.")) {
-							var oEnum = require(oProperty.type.replace(/\./g, "\/"));
-							vValueToSet = oEnum[Object.keys(oEnum)[0]];
 						}
-
 						oControl[oProperty._sMutator](vValueToSet);
 					} catch (e) {
 						// type check error, ignore

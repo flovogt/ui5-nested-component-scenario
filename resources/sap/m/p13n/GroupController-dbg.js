@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
 	'sap/m/p13n/SelectionController', 'sap/m/p13n/GroupPanel', 'sap/m/p13n/modules/xConfigAPI'
-], function (BaseController, GroupPanel, xConfigAPI) {
+], (BaseController, GroupPanel, xConfigAPI) => {
 	"use strict";
 
 	/**
@@ -20,8 +20,6 @@ sap.ui.define([
 	 */
 
 	 /**
-
-	 /**
 	 * Constructor for a new <code>GroupController</code>.
 	 *
 	 * @param {object} mSettings Initial settings for the new controller
@@ -30,31 +28,31 @@ sap.ui.define([
 	 * @class
 	 * The <code>GroupController</code> entity serves as a base class to create group-specific personalization implementations.
 	 *
-	 * @extends sap.ui.base.Object
+	 * @extends sap.m.p13n.SelectionController
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @public
 	 * @since 1.104
 	 * @alias sap.m.p13n.GroupController
 	 */
-	var GroupController = BaseController.extend("sap.m.p13n.subcontroller.GroupController");
+	const GroupController = BaseController.extend("sap.m.p13n.GroupController");
 
-	GroupController.prototype.getStateKey = function () {
+	GroupController.prototype.getStateKey = () => {
 		return "groupLevels";
 	};
 
 	GroupController.prototype.getCurrentState = function(bExternalize) {
-		var oXConfig = xConfigAPI.readConfig(this.getAdaptationControl()) || {};
-		var aSortConditions = oXConfig.hasOwnProperty("properties") ? oXConfig.properties.groupConditions : [];
+		const oXConfig = xConfigAPI.readConfig(this.getAdaptationControl()) || {};
+		const aSortConditions = oXConfig.hasOwnProperty("properties") ? oXConfig.properties.groupConditions : [];
 
 		return aSortConditions || [];
 	};
 
-	GroupController.prototype.initAdaptationUI = function(oPropertyHelper){
-		var oGroupPanel = new GroupPanel();
-		var oAdaptationData = this.mixInfoAndState(oPropertyHelper);
-		var oAdaptationControl = this.getAdaptationControl();
+	GroupController.prototype.initAdaptationUI = function(oPropertyHelper) {
+		const oGroupPanel = new GroupPanel();
+		const oAdaptationData = this.mixInfoAndState(oPropertyHelper);
+		const oAdaptationControl = this.getAdaptationControl();
 
 		if (oAdaptationControl.isA("sap.m.Table")) {
 			oGroupPanel.setQueryLimit(1);
@@ -67,9 +65,9 @@ sap.ui.define([
 	};
 
 	GroupController.prototype.model2State = function() {
-		var aItems = [];
-		this._oPanel.getP13nData(true).forEach(function(oItem){
-			if (oItem.grouped){
+		const aItems = [];
+		this._oPanel.getP13nData(true).forEach((oItem) => {
+			if (oItem.grouped) {
 				aItems.push({
 					key: oItem.key
 				});
@@ -78,7 +76,7 @@ sap.ui.define([
 		return aItems;
 	};
 
-	GroupController.prototype.getChangeOperations = function () {
+	GroupController.prototype.getChangeOperations = () => {
 		return {
 			add: "addGroup",
 			remove: "removeGroup",
@@ -86,12 +84,12 @@ sap.ui.define([
 		};
 	};
 
-	GroupController.prototype._getPresenceAttribute = function () {
+	GroupController.prototype._getPresenceAttribute = () => {
 		return "grouped";
 	};
 
-	GroupController.prototype._createAddRemoveChange = function(oControl, sOperation, oContent){
-		var oAddRemoveChange = {
+	GroupController.prototype._createAddRemoveChange = (oControl, sOperation, oContent) => {
+		const oAddRemoveChange = {
 			selectorElement: oControl,
 			changeSpecificData: {
 				changeType: sOperation,
@@ -103,15 +101,15 @@ sap.ui.define([
 
 	GroupController.prototype.mixInfoAndState = function(oPropertyHelper) {
 
-		var aItemState = this.getCurrentState();
-		var mItemState = this.arrayToMap(aItemState);
-		var oController = this.getAdaptationControl();
-		var oAggregations = oController.getAggregateConditions ? oController.getAggregateConditions() || {} : {};
+		const aItemState = this.getCurrentState();
+		const mItemState = this.arrayToMap(aItemState);
+		const oController = this.getAdaptationControl();
+		const oAggregations = oController.getAggregateConditions ? oController.getAggregateConditions() || {} : {};
 
-		var oP13nData = this.prepareAdaptationData(oPropertyHelper, function(mItem, oProperty){
-			var oExisting = mItemState[oProperty.key];
+		const oP13nData = this.prepareAdaptationData(oPropertyHelper, (mItem, oProperty) => {
+			const oExisting = mItemState[oProperty.key];
 			mItem.grouped = !!oExisting;
-			mItem.position =  oExisting ? oExisting.position : -1;
+			mItem.position = oExisting ? oExisting.position : -1;
 			return !(oProperty.groupable === false || oAggregations[oProperty.key]);
 		});
 
@@ -121,12 +119,14 @@ sap.ui.define([
 		}, oP13nData.items);
 
 		oP13nData.presenceAttribute = this._getPresenceAttribute();
-		oP13nData.items.forEach(function(oItem){delete oItem.position;});
+		oP13nData.items.forEach((oItem) => {
+			delete oItem.position;
+		});
 
 		return oP13nData;
 	};
 
-	GroupController.prototype.applyChange = function(aSortState){
+	GroupController.prototype.applyChange = (aSortState) => {
 		return Promise.resolve();
 	};
 

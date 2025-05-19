@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -22,6 +22,7 @@ sap.ui.define([
 	"./ODataTreeBinding",
 	"sap/base/assert",
 	"sap/base/Log",
+	"sap/base/i18n/Localization",
 	"sap/base/security/encodeURL",
 	"sap/base/util/deepEqual",
 	"sap/base/util/deepExtend",
@@ -31,13 +32,11 @@ sap.ui.define([
 	"sap/base/util/isPlainObject",
 	"sap/base/util/merge",
 	"sap/base/util/uid",
-	"sap/base/util/UriParameters",
 	"sap/ui/base/SyncPromise",
-	"sap/ui/core/Configuration",
-	"sap/ui/core/library",
 	"sap/ui/core/Messaging",
 	"sap/ui/core/message/Message",
 	"sap/ui/core/message/MessageParser",
+	"sap/ui/core/message/MessageType",
 	"sap/ui/core/Supportability",
 	"sap/ui/model/_Helper",
 	"sap/ui/model/BindingMode",
@@ -56,23 +55,25 @@ sap.ui.define([
 	"sap/ui/thirdparty/datajs",
 	"sap/ui/thirdparty/URI",
 	"sap/ui/util/isCrossOriginURL"
-], function(_CreatedContextsCache, Context, ODataAnnotations, ODataContextBinding, ODataListBinding,
-		ODataTreeBinding, assert, Log, encodeURL, deepEqual, deepExtend, each, extend,
-		isEmptyObject, isPlainObject, merge, uid, UriParameters, SyncPromise, Configuration,
-		coreLibrary, Messaging, Message, MessageParser, Supportability,  _Helper, BindingMode,
-		BaseContext, FilterProcessor, Model, CountMode, MessageScope, ODataMetadata, ODataMetaModel,
-		ODataMessageParser,	ODataPropertyBinding, ODataUtils, OperationMode, UpdateMethod, OData,
-		URI, isCrossOriginURL
+], function(_CreatedContextsCache, Context, ODataAnnotations, ODataContextBinding, ODataListBinding, ODataTreeBinding,
+		assert, Log, Localization, encodeURL, deepEqual, deepExtend, each, extend, isEmptyObject, isPlainObject, merge,
+		uid, SyncPromise, Messaging, Message, MessageParser, MessageType, Supportability, _Helper, BindingMode,
+		BaseContext, FilterProcessor, Model, CountMode, MessageScope, ODataMetadata, ODataMetaModel, ODataMessageParser,
+		ODataPropertyBinding, ODataUtils, OperationMode, UpdateMethod, OData, URI, isCrossOriginURL
 ) {
 
 	"use strict";
+	/**
+	 * Whether the ODataModel is marked as final.
+	 * @ui5-transform-hint replace-local true
+	 */
+	const bFinal = false;
 
 	var sClassName = "sap.ui.model.odata.v2.ODataModel",
 		aDeepCreateParametersAllowlist = ["context", "properties"],
-		MessageType = coreLibrary.MessageType,
 		mMessageType2Severity = {},
 		aRequestSideEffectsParametersAllowList = ["groupId", "urlParameters"];
-	const rCacheBusterSegment = /\/~[\w\-]+~[A-Z0-9]?/;
+	const rCacheBusterSegment = /\/~[\w\-]+~[A-Z0-9]?\//;
 
 	mMessageType2Severity[MessageType.Error] = 0;
 	mMessageType2Severity[MessageType.Warning] = 1;
@@ -90,7 +91,7 @@ sap.ui.define([
 	 *   mandatory parameter.
 	 * @param {object} [mParameters]
 	 *   Map which contains the following parameter properties:
-	 * @param {string|string[]} [mParameters.annotationURI]
+	 * @param {string|string[]} [mParameters.annotationURI=[]]
 	 *   The URL (or an array of URLs) from which the annotation metadata should be loaded
 	 * @param {string[]} [mParameters.bindableResponseHeaders=null]
 	 *   Set this array to make custom response headers bindable via the entity's
@@ -124,7 +125,7 @@ sap.ui.define([
 	 *   Sets the default count mode for the model
 	 * @param {sap.ui.model.odata.OperationMode} [mParameters.defaultOperationMode=Default]
 	 *   Sets the default operation mode for the model
-	 * @param {sap.ui.model.odata.UpdateMethod} [mParameters.defaultUpdateMethod=Merge]
+	 * @param {sap.ui.model.odata.UpdateMethod} [mParameters.defaultUpdateMethod=MERGE]
 	 *   Default update method which is used for all update requests
 	 * @param {boolean} [mParameters.disableHeadRequestForToken=false]
 	 *   Set this flag to <code>true</code> if your service does not support <code>HEAD</code>
@@ -140,10 +141,9 @@ sap.ui.define([
 	 * @param {Object<string,string>} [mParameters.headers]
 	 *   Map of custom headers (name/value pairs) like {"myHeader":"myHeaderValue",...}
 	 * @param {boolean} [mParameters.ignoreAnnotationsFromMetadata]
-	 *   <b>Experimental</b> as of version 1.112.0; may change behavior or be removed in future versions.
 	 *   Whether to ignore all annotations from service metadata, so that they are not available as V4 annotations
 	 *   in this model's metamodel; see {@link #getMetaModel}. Only annotations from annotation files are loaded;
-	 *   see the <code>annotationURI</code> parameter.
+	 *   see the <code>annotationURI</code> parameter. Supported since 1.121.0
 	 * @param {boolean} [mParameters.json=true]
 	 *   If set to <code>true</code>, request payloads will be JSON, XML for <code>false</code>
 	 * @param {boolean} [mParameters.loadAnnotationsJoined]
@@ -177,7 +177,7 @@ sap.ui.define([
 	 *   Enable/disable automatic refresh after change operations
 	 * @param {boolean} [mParameters.sequentializeRequests=false]
 	 *   Whether to sequentialize all requests, needed in case the service cannot handle parallel
-	 *   requests
+	 *   requests. <b>Deprecated</b> as of version 1.128.0, the concept has been discarded.
 	 * @param {string} [mParameters.serviceUrl]
 	 *   Base URI of the service to request data from; this property is mandatory when the first
 	 *   method parameter <code>serviceUrl</code> is omitted, but ignored otherwise
@@ -194,9 +194,9 @@ sap.ui.define([
 	 *   Service in the backend.
 	 * @param {boolean} [mParameters.useBatch=true]
 	 *   Whether all requests should be sent in batch requests
-	 * @param {boolean} [mParameters.withCredentials]
-	 *   Experimental - <code>true</code> when user credentials are to be included in a cross-origin
-	 *   request; please note that this only works if all requests are asynchronous
+	 * @param {boolean} [mParameters.withCredentials=false]
+	 *   If set to <code>true</code>, the user credentials are included in a cross-origin request. <b>Note:</b> This
+	 *   only works if all requests are asynchronous.
 	 * @param {string} [mParameters.password]
 	 *   <b>Deprecated</b> for security reasons. Use strong server side authentication instead.
 	 *   Password for the service.
@@ -219,7 +219,7 @@ sap.ui.define([
 	 * This model is not prepared to be inherited from.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel
@@ -238,7 +238,7 @@ sap.ui.define([
 				sMaxDataServiceVersion,
 				bUseBatch,
 				bRefreshAfterChange,
-				sAnnotationURI,
+				aAnnotationURIs,
 				bLoadAnnotationsJoined,
 				sDefaultCountMode,
 				bPreliminaryContext,
@@ -271,7 +271,8 @@ sap.ui.define([
 			}
 
 			// Creates a parameters map to be used for the instantiation of the code list model,
-			// based on this OData model's parameters
+			// based on this OData model's parameters; createCodeListModelParameters has to be
+			// called before the service URL is modified
 			this.mCodeListModelParams = this.createCodeListModelParameters(mParameters);
 
 			if (mParameters) {
@@ -283,7 +284,7 @@ sap.ui.define([
 				sMaxDataServiceVersion = mParameters.maxDataServiceVersion;
 				bUseBatch = mParameters.useBatch;
 				bRefreshAfterChange = mParameters.refreshAfterChange;
-				sAnnotationURI = mParameters.annotationURI;
+				aAnnotationURIs = mParameters.annotationURI;
 				bLoadAnnotationsJoined = mParameters.loadAnnotationsJoined;
 				sDefaultBindingMode = mParameters.defaultBindingMode;
 				sDefaultCountMode = mParameters.defaultCountMode;
@@ -338,7 +339,9 @@ sap.ui.define([
 			this.mChangeHandles = {};
 			this.mDeferredGroups = {};
 			this.mLaunderingState = {};
-			this.sDefaultUpdateMethod = sDefaultUpdateMethod || UpdateMethod.Merge;
+			/** @deprecated As of version 1.133.0, reason sap.ui.model.odata.UpdateMethod.Merge|Put */
+			sDefaultUpdateMethod = ODataModel._fixUpdateMethod(sDefaultUpdateMethod);
+			this.sDefaultUpdateMethod = sDefaultUpdateMethod || UpdateMethod.MERGE;
 
 			this.bTokenHandling = vTokenHandling !== false;
 			this.bWithCredentials = bWithCredentials === true;
@@ -346,7 +349,13 @@ sap.ui.define([
 			this.bRefreshAfterChange = bRefreshAfterChange !== false;
 			this.sMaxDataServiceVersion = sMaxDataServiceVersion;
 			this.bLoadAnnotationsJoined = bLoadAnnotationsJoined !== false;
-			this.sAnnotationURI = sAnnotationURI;
+			this.aAnnotationURIs = [];
+			if (aAnnotationURIs) {
+				this.aAnnotationURIs = Array.isArray(aAnnotationURIs) ? aAnnotationURIs.slice() : [aAnnotationURIs];
+			}
+			// A promise that may resolves with an array of annotation changes, see ODataModel#_requestAnnotationChanges
+			// and ODataModel#setAnnotationChangePromise
+			this.pAnnotationChanges = null;
 			this.sDefaultCountMode = sDefaultCountMode || CountMode.Request;
 			this.sDefaultOperationMode = sDefaultOperationMode || OperationMode.Default;
 			this.sMetadataLoadEvent = null;
@@ -386,6 +395,9 @@ sap.ui.define([
 			this.oMetadata = null;
 			this.oAnnotations = null;
 			this.aUrlParams = [];
+			this.fnRetryAfter = null;
+			this.oRetryAfterError = null;
+			this.pRetryAfter = null;
 
 			// for sequentialized requests, keep a promise of the last request
 			this.pSequentialRequestCompleted = Promise.resolve();
@@ -450,7 +462,7 @@ sap.ui.define([
 			}
 
 			this.oAnnotations = new ODataAnnotations(this.oMetadata, {
-				source: this.sAnnotationURI,
+				source: this.aAnnotationURIs,
 				skipMetadata: this.bSkipMetadataAnnotationParsing || this.bIgnoreAnnotationsFromMetadata,
 				headers: this.mCustomHeaders,
 				combineEvents: true,
@@ -508,7 +520,7 @@ sap.ui.define([
 					this.securityTokenAvailable();
 				}
 			}
-			this.oHeaders["Accept-Language"] = Configuration.getLanguageTag();
+			this.oHeaders["Accept-Language"] = Localization.getLanguageTag().toString();
 
 			// set version to 2.0 because 1.0 does not support e.g. skip/top, inlinecount...
 			// states the version of the Open Data Protocol used by the client to generate the request.
@@ -533,7 +545,8 @@ sap.ui.define([
 			                 "setDefaultBindingMode", "getDefaultBindingMode", "getDefaultCountMode",
 			                 "setProperty", "getSecurityToken", "refreshSecurityToken", "setHeaders",
 			                 "getHeaders", "setUseBatch", "setDeferredBatchGroups", "getDeferredBatchGroups",
-			                 "setChangeBatchGroups", "getChangeBatchGroups"]
+			                 "setChangeBatchGroups", "getChangeBatchGroups"],
+			"final": bFinal
 		}
 	});
 
@@ -962,6 +975,24 @@ sap.ui.define([
 	};
 
 	/**
+	 * Maps "Put" to "PUT" and "Merge" to "MERGE" to fix wrong usage of deprecated enum keys as manifest entries. If
+	 * the given update method is neither "Put" nor "Merge", it is returned as is.
+	 *
+	 * @param {string} [sUpdateMethod] The update method to fix
+	 * @returns {string|undefined} The fixed update method
+	 * @deprecated As of version 1.133.0, reason sap.ui.model.odata.UpdateMethod.Merge|Put
+	 * @private
+	 */
+	ODataModel._fixUpdateMethod = function (sUpdateMethod) {
+		if (sUpdateMethod === "Put") {
+			return UpdateMethod.PUT;
+		} else if (sUpdateMethod === "Merge") {
+			return UpdateMethod.MERGE;
+		}
+		return sUpdateMethod;
+	};
+
+	/**
 	 * Get the shared data for the section and the key. If it doesn't exist yet, an empty shared
 	 * data object is created and stored under the section and the key.
 	 *
@@ -1013,18 +1044,13 @@ sap.ui.define([
 
 	/**
 	 * Refreshes the metadata for this model, for example when the request for metadata has failed.
-	 *
-	 * <b>Note</b>: Do not use <code>refreshMetadata</code> if the metadata is outdated or should be
-	 * updated. This will lead to inconsistent data in the application.
-	 *
-	 * Returns a new promise which can be resolved or rejected depending on the metadata loading
-	 * state.
+	 * Returns a new promise which can be resolved or rejected depending on the metadata loading state.
 	 *
 	 * @returns {Promise|undefined}
-	 *   A promise on metadata loaded state or <code>undefined</code> if metadata is not initialized
-	 *   or currently refreshed
+	 *   A promise on metadata loaded state or <code>undefined</code> if metadata is not initialized or currently
+	 *   refreshed
 	 *
-	 * @deprecated As of version 1.42.
+	 * @deprecated As of version 1.42, this API may cause data inconsistencies and should not be used.
 	 *
 	 * @public
 	 */
@@ -1405,13 +1431,11 @@ sap.ui.define([
 			sUrl = this.sServiceUrl + sUrl;
 		}
 
-		var oUriParameters = UriParameters.fromURL(sUrl || window.location.href);
-		//UriParameters returns an array of values - we use the first one as
-		//we assume only one per key should be passed
 		var mAllParams = Object.assign({}, this.mMetadataUrlParams);
-		Array.from(oUriParameters.keys()).forEach(function(sKey) {
-			mAllParams[sKey] = oUriParameters.get(sKey);
-		});
+		const oURLSearchParams = new URL(sUrl, "https://localhost").searchParams;
+		for (const [sKey] of oURLSearchParams) {
+			mAllParams[sKey] = oURLSearchParams.get(sKey);
+		}
 		var aMetadataUrlParams = ODataUtils._createUrlParamsArray(mAllParams);
 		var aUrlParts = sUrl.split("?");
 		if (aUrlParts.length > 1) {
@@ -1802,6 +1826,19 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns this model's base URI of the data service (as defined by the "serviceUrl" model parameter; see
+	 * {@link #constructor}), without query options.
+	 *
+	 * @returns {string} The service's base URI without query options
+	 *
+	 * @public
+	 * @since 1.130.0
+	 */
+	ODataModel.prototype.getServiceUrl = function () {
+		return this.sServiceUrl;
+	};
+
+	/**
 	 * Invalidate the model data.
 	 *
 	 * Mark all entries in the model cache as invalid. Next time a context or list is bound
@@ -2022,10 +2059,11 @@ sap.ui.define([
 	 * @param {string} sPath The binding path in the model
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context which is required as base for a relative path.
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters]
-	 *   Initial sort order, can be either a sorter or an array of sorters.
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters]
-	 *   Predefined filters, can be either a filter or an array of filters.
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters used initially; call {@link sap.ui.model.odata.v2.ODataListBinding#sort} to replace them
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call
+	 *   {@link sap.ui.model.odata.v2.ODataListBinding#filter} to replace them
 	 * @param {object} [mParameters] A map which contains additional parameters for the binding.
 	 * @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
 	 *   Defines the count mode of the binding; if not specified, the default count mode of the
@@ -2105,8 +2143,8 @@ sap.ui.define([
 	 * {@link sap.ui.model.odata.OperationMode}.
 	 *
 	 * <h4>OperationMode.Server</h4>
-	 * Filtering on the <code>ODataTreeBinding</code> is only supported with
-	 * {@link sap.ui.model.FilterType.Application application filters}. Be aware that this applies
+	 * Filtering on the <code>ODataTreeBinding</code> is only supported with filters of type
+	 * {@link sap.ui.model.FilterType.Application}. Be aware that this applies
 	 * only to filters which do not prevent the creation of a hierarchy. So filtering on a property
 	 * (e.g. a "Customer") is fine, as long as the application ensures that the responses from the
 	 * back end are sufficient to create a valid hierarchy on the client. Subsequent paging requests
@@ -2127,13 +2165,17 @@ sap.ui.define([
 	 * <b>not</b> support the operation modes <code>Client</code> and <code>Auto</code>.
 	 * <b>Note:</b> {@link sap.ui.model.odata.OperationMode.Auto} is deprecated since 1.102.0.
 	 *
+	 * <b>Note:</b> OData tree bindings do neither support
+	 * {@link sap.ui.model.Binding#suspend suspend} nor {@link sap.ui.model.Binding#resume resume}.
+	 *
 	 * @param {string} sPath
 	 *   The binding path, either absolute or relative to a given <code>oContext</code>
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The parent context which is required as base for a relative path
-	 * @param {sap.ui.model.Filter | sap.ui.model.Filter[]} [vFilters]
-	 *   The application filters to be used initially; depending on the operation mode, there are
-	 *   restrictions for using filters, see above
+	 * @param {sap.ui.model.Filter | sap.ui.model.Filter[]} [vFilters=[]]
+	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call
+	 *   {@link sap.ui.model.odata.v2.ODataTreeBinding#filter} to replace them; depending on the operation mode, there
+	 *   are restrictions for using filters; see above
 	 * @param {object} [mParameters]
 	 *   Map of binding parameters
 	 * @param {boolean} [mParameters.transitionMessagesOnly=false]
@@ -2195,14 +2237,12 @@ sap.ui.define([
 	 *     OperationMode.Client}, and</li>
 	 *   <li>the {@link sap.ui.table.TreeTable} is used.</li>
 	 *   </ul>
-	 *   The feature is only available when using the <code>ODataTreeBindingAdapter</code>, which is
-	 *   automatically applied when using the <code>sap.ui.table.TreeTable</code>. The tree state
-	 *   handle will contain all necessary information to expand the tree to the given state.
+	 *   The feature is only available when using the {@link sap.ui.table.TreeTable}. The tree
+	 *   state handle will contain all necessary information to expand the tree to the given state.
 	 *
 	 *   This feature is not supported if
 	 *   {@link sap.ui.model.odata.OperationMode.Server OperationMode.Server} or
-	 *   {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto} is used. See also
-	 *   {@link sap.ui.model.odata.ODataTreeBindingAdapter#getCurrentTreeState}
+	 *   {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto} is used.
 	 *  @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
 	 *    Defines the count mode of this binding; if not specified, the default count mode of the
 	 *    binding's model is applied. The resulting count mode must not be
@@ -2222,8 +2262,8 @@ sap.ui.define([
 	 *   <b>Deprecated: since 1.44</b> The use of navigation properties to build up the hierarchy
 	 *   structure is deprecated. It is recommended to use the hierarchy annotations mentioned above
 	 *   instead.
-	 * @param {sap.ui.model.Sorter | sap.ui.model.Sorter[]} [vSorters]
-	 *   The dynamic sorters to be used initially
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [vSorters=[]]
+	 *   The sorters used initially; call {@link sap.ui.model.odata.v2.ODataTreeBinding#sort} to replace them
 	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
 	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
 	 *   <code>vFilters</code> together with other filters
@@ -2231,8 +2271,7 @@ sap.ui.define([
 	 * @returns {sap.ui.model.odata.v2.ODataTreeBinding}
 	 *   The new tree binding
 	 * @public
-	 * @see {@link http://www.sap.com/protocols/SAPData
-	 *   "SAP Annotations for OData Version 2.0" Specification}
+	 * @see {@link http://www.sap.com/protocols/SAPData "SAP Annotations for OData Version 2.0" Specification}
 	 */
 	ODataModel.prototype.bindTree = function(sPath, oContext, vFilters, mParameters, vSorters) {
 		var oBinding = new ODataTreeBinding(this, sPath, oContext, vFilters, mParameters, vSorters);
@@ -3154,9 +3193,13 @@ sap.ui.define([
 			bUseUndefinedIfUnresolved) {
 		var oChangedNode, oCodeListPromise, sCodeListTerm, sDataPath, sKey, oMetaContext,
 			oMetaModel, sMetaPath, oOrigNode, sResolvedPath, iSeparator,
-			vUnresolvedDefault = bUseUndefinedIfUnresolved ? undefined : null,
-			oNode = this.isLegacySyntax() ? this.oData : vUnresolvedDefault;
+			vUnresolvedDefault = bUseUndefinedIfUnresolved ? undefined : null;
+		let oNode = vUnresolvedDefault;
 
+		/** @deprecated As of version 1.88.0 */
+		if (this.isLegacySyntax()) {
+			oNode = this.oData;
+		}
 		sResolvedPath = this.resolve(sPath, oContext, this.bCanonicalRequests);
 		if (!sResolvedPath && this.bCanonicalRequests) {
 			sResolvedPath = this.resolve(sPath, oContext);
@@ -3327,8 +3370,8 @@ sap.ui.define([
 				this.pSecurityToken = new Promise(function(resolve, reject) {
 					this.refreshSecurityToken(function() {
 						resolve(this.oSharedServiceData.securityToken);
-					}.bind(this),function(){
-						reject();
+					}.bind(this), function(oError) {
+						reject(oError);
 					}, true);
 				}.bind(this));
 			}
@@ -3350,13 +3393,16 @@ sap.ui.define([
 	 */
 	ODataModel.prototype.refreshSecurityToken = function(fnSuccess, fnError, bAsync) {
 		var oRequest, sToken,
-			mTokenRequest = {
+			that = this,
+			oRequestHandle = {
 				abort: function() {
+					if (that.pRetryAfter) {
+						throw new Error("abort() during HTTP 503 'Retry-after' processing not supported");
+					}
 					this.request.abort();
 				}
 			},
-			sUrl = this._createRequestUrlWithNormalizedPath("/"),
-			that = this;
+			sUrl = this._createRequestUrlWithNormalizedPath("/");
 
 		function handleSuccess(oData, oResponse) {
 			if (oResponse) {
@@ -3384,6 +3430,12 @@ sap.ui.define([
 		}
 
 		function handleGetError(oError) {
+			if (oError.$rejected) {
+				// request answered with a 503 "Retry-After" error and was rejected later on
+				that.resetSecurityToken();
+				fnError(oError);
+				return;
+			}
 			// Disable token handling, if token request returns an error
 			that.resetSecurityToken();
 			that.bTokenHandling = false;
@@ -3395,8 +3447,15 @@ sap.ui.define([
 		}
 
 		function handleHeadError(oError) {
+			if (oError.$rejected) {
+				// request answered with a 503 "Retry-After" error and was rejected later on
+				// -> no fallback to requestToken via "GET"
+				that.resetSecurityToken();
+				fnError(oError);
+				return;
+			}
 			// Disable token handling, if token request returns an error
-			mTokenRequest.request = requestToken("GET", handleGetError);
+			oRequestHandle.request = requestToken("GET", handleGetError);
 		}
 
 		function requestToken(sRequestType, fnError) {
@@ -3410,20 +3469,119 @@ sap.ui.define([
 
 		// Initially try method "HEAD", error handler falls back to "GET" unless the flag forbids HEAD request
 		if (this.bDisableHeadRequestForToken) {
-			mTokenRequest.request = requestToken("GET", handleGetError);
+			oRequestHandle.request = requestToken("GET", handleGetError);
 		} else {
-			mTokenRequest.request = requestToken("HEAD", handleHeadError);
+			oRequestHandle.request = requestToken("HEAD", handleHeadError);
 		}
-		return mTokenRequest;
+		return oRequestHandle;
 
+	};
+
+	/**
+	 * Checks for a 503 HTTP "Retry-After" error response. Invokes the "Retry-After" handler if registered
+	 * and remembers the <code>pRetryAfter</code> returned by the handler. Repeats the failed request once
+	 * the promise resolves, or calls the given error handler once the promise rejects.
+	 *
+	 * @param {object} oRequest The request object
+	 * @param {object} oErrorResponse The error response from the back end
+	 * @param {function} fnSuccess The success callback function
+	 * @param {function} fnError The error callback function
+	 * @param {object} oHandler The request handler object
+	 * @param {object} oHttpClient The HttpClient object
+	 * @param {object} oMetadata The metadata object
+	 * @param {object} oRequestHandle
+	 *   The preliminary created request handle whose abort function is replaced with the abort function
+	 *   of the repeated request
+	 * @param {boolean} [bSkipHandleTracking] Whether the request is excluded from the tracking of request handles
+	 * @returns {boolean}
+	 *   Whether it is a 503 "Retry-After" error response and the error is processed by the "Retry-After" handler
+	 * @private
+	 */
+	ODataModel.prototype.checkAndProcessRetryAfterError = function(oRequest, oErrorResponse, fnSuccess, fnError,
+			oHandler, oHttpClient, oMetadata, oRequestHandle, bSkipHandleTracking) {
+		if (oErrorResponse.response?.statusCode === 503
+			&& this._getHeader("retry-after", oErrorResponse.response.headers)
+			&& this.fnRetryAfter
+			&& !this.bSequentializeRequests) {
+			if (!this.pRetryAfter) {
+				this.oRetryAfterError = this.createRetryAfterError(oErrorResponse);
+				this.pRetryAfter = this.fnRetryAfter(this.oRetryAfterError);
+			}
+			this.pRetryAfter.then(() => {
+				this.pRetryAfter = this.oRetryAfterError = null;
+				oRequestHandle.abort =
+					this._request(oRequest, fnSuccess, fnError, oHandler, oHttpClient, oMetadata, bSkipHandleTracking)
+						.abort;
+			}, (oReason) => {
+				this.pRetryAfter = null; // this.oRetryAfterError must not be reset!
+				this.onRetryAfterRejected(fnError, oErrorResponse, oReason);
+			});
+			return true;
+		}
+		return false;
+	};
+
+	/**
+	 * Creates an {@link module:sap/ui/model/odata/v2/RetryAfterError} for a 503 "Retry-After" error response.
+	 *
+	 * @param {object} oErrorResponse The 503 "Retry-After" error response from the back end
+	 * @returns {module:sap/ui/model/odata/v2/RetryAfterError} The created "Retry-After" error object
+	 * @private
+	 */
+	ODataModel.prototype.createRetryAfterError = function (oErrorResponse) {
+		const oError = new Error(oErrorResponse.message);
+		const sRetryAfter = this._getHeader("retry-after", oErrorResponse.response.headers);
+		const iRetryAfter = parseInt(sRetryAfter);
+		oError.retryAfter
+			= new Date(Number.isNaN(iRetryAfter) ? sRetryAfter : Date.now() + iRetryAfter * 1000);
+		return oError;
+	};
+
+	/**
+	 * Reject handler for <code>this.pRetryAfter</code>.
+	 *
+	 * If the given <code>oReason</code> and <code>this.oRetryAfterError</code> originally passed to the "Retry-After"
+	 * handler are the same, then the <code>fnError</code> callback is called with <code>oErrorResponse</code> and
+	 * <code>this.oRetryAfterError</code> is logged and reported to the message model. Otherwise the given
+	 * <code>oReason</code> is only logged.
+	 * Note:
+	 * An undefined <code>oErrorResponse</code> results from those requests that are NOT sent out at all because
+	 * they were just registered for an already existing <code>this.pRetryAfter</code> in order to be send out
+	 * later on once the promise will be resolved. In case the promise is rejected, the inline error response here
+	 * passed to <code>fnError</code> ensures that nothing is reported/logged but further error processing happens
+	 * (e.g. call error callback).
+	 *
+	 * @param {function} fnError The error callback function
+	 * @param {object} [oErrorResponse] The 503 "Retry-After" error response from the back end
+	 * @param {Error} [oReason] The <code>Error</code> reason the promise was rejected with
+	 * @private
+	 */
+	ODataModel.prototype.onRetryAfterRejected = function(fnError, oErrorResponse, oReason) {
+		if (this.bDestroyed) {
+			// Analog to ODM#_request we do nothing once the Model is destroyed
+			return;
+		}
+
+		const sReason = oReason?.message
+			? "Retry-After handler rejected with: " + oReason.message
+			: "Retry-After handler rejected w/o reason";
+		if (oErrorResponse) {
+			oErrorResponse.$rejected = true; // skip fallback in #refreshSecurityToken
+			if (this.oRetryAfterError !== oReason) {
+				oErrorResponse.$ownReason = true;
+				oErrorResponse.$reported = true;
+				Log.error(sReason, oReason?.stack, sClassName);
+			}
+		}
+		fnError(oErrorResponse || {$ownReason: true, $rejected: true, $reported: true, message: sReason});
 	};
 
 	/**
 	 * Submit changes from the request queue (queue can currently have only one request).
 	 *
 	 * @param {object} oRequest The request object
-	 * @param {function} [fnSuccess] Success callback function
-	 * @param {function} [fnError] Error callback function
+	 * @param {function} fnSuccess Success callback function
+	 * @param {function} fnError Error callback function
 	 * @returns {object} request handle
 	 * @private
 	 */
@@ -3487,7 +3645,13 @@ sap.ui.define([
 					oRequest.headers["x-csrf-token"] = sToken;
 				}
 				submit();
-			}, function() {
+			}, function(oError) {
+				if (oError.$rejected) {
+					// request answered with a 503 "Retry-After" error and was rejected later on
+					// -> no fallback on submit() w/o token
+					handleError(oError);
+					return;
+				}
 				submit();
 			});
 		}
@@ -3783,8 +3947,8 @@ sap.ui.define([
 			if (bAborted) {
 				that._processAborted(oBatchRequest, oError, true);
 			} else {
-				// ensure that the error is reported for the complete $batch
-				oError.$reported = false;
+				// ensure that the error is reported for the complete $batch, except for those rejected with own reason
+				oError.$reported = oError.$ownReason || false;
 				that._processError(oBatchRequest, oError, fnError, true, aRequests);
 			}
 		}
@@ -3963,7 +4127,7 @@ sap.ui.define([
 	 * @param {map} mRequests Request queue
 	 * @param {string} sGroupId ID of a request group; requests belonging to the same group will be bundled in one batch request
 	 * @param {string} [sChangeSetId] The changeSet Id
-	 * @param {oRequest} oRequest The request
+	 * @param {object} oRequest The request
 	 * @param {function} fnSuccess The success callback function
 	 * @param {function} fnError The error callback function
 	 * @param {object} requestHandle Handle for the requests
@@ -4014,7 +4178,7 @@ sap.ui.define([
 				oStoredRequest.data = oRequest.data;
 				oStoredRequest.sideEffects = oRequest.sideEffects;
 
-				if (oRequest.method === "PUT") {
+				if (oRequest.method === UpdateMethod.PUT) {
 					// if stored request was a MERGE before (created by setProperty) but is now sent via PUT
 					// (by submitChanges) the merge header must be removed
 					delete oStoredRequest.headers["x-http-method"];
@@ -4608,8 +4772,8 @@ sap.ui.define([
 	 *   The entry data
 	 * @param {string} sGroupId
 	 *   The group ID
-	 * @param {boolean} [sUpdateMethod]
-	 *   Sets <code>MERGE/PUT</code> method, defaults to <code>MERGE</code> if not provided
+	 * @param {sap.ui.model.odata.UpdateMethod} [sUpdateMethod]
+	 *   The update method, defaults to the model's default update method
 	 * @returns {object}
 	 *   The request object
 	 *
@@ -4651,12 +4815,12 @@ sap.ui.define([
 				//delete the uri flag when a new entity was created, since the uri for the create request is generated and does not point to a valid resource
 				delete oPayload.__metadata['uri'];
 			}
-		} else if (sUpdateMethod === "MERGE") {
-			sMethod = "MERGE";
+		} else if (sUpdateMethod === UpdateMethod.MERGE) {
+			sMethod = UpdateMethod.MERGE;
 			// get original unmodified entry for diff
 			oUnModifiedEntry = this._getEntity(sKey);
 		} else {
-			sMethod = "PUT";
+			sMethod = UpdateMethod.PUT;
 		}
 
 		// remove metadata, navigation properties to reduce payload
@@ -4676,7 +4840,7 @@ sap.ui.define([
 			});
 		}
 
-		if (sMethod === "MERGE" && oEntityType && oUnModifiedEntry) {
+		if (sMethod === UpdateMethod.MERGE && oEntityType && oUnModifiedEntry) {
 			each(oPayload, function(sPropName, oPropValue) {
 				if (sPropName !== '__metadata') {
 					// remove unmodified properties and keep only modified properties for delta MERGE
@@ -4967,11 +5131,14 @@ sap.ui.define([
 	 *   supports message scope.
 	 * @param {boolean} [bSideEffects]
 	 *   Whether the request is to read side effects
+	 * @param {function} [fnRequest]
+	 *   Request function which can handle 503 "Retry-After" responses,
+	 *   see {@link sap.ui.model.odata.v2.ODataModel#_request}
 	 * @return {object} Request object
 	 * @private
 	 */
 	ODataModel.prototype._createRequest = function(sUrl, sDeepPath, sMethod, mHeaders, oData, sETag,
-			bAsync, bUpdateAggregatedMessages, bSideEffects) {
+			bAsync, bUpdateAggregatedMessages, bSideEffects, fnRequest) {
 		var oRequest;
 
 		bAsync = bAsync !== false;
@@ -4996,8 +5163,8 @@ sap.ui.define([
 			mHeaders["Accept"] = "text/plain, */*;q=0.5";
 		}
 
-		if (sMethod === "MERGE" && !this.bUseBatch) {
-			mHeaders["x-http-method"] = "MERGE";
+		if (sMethod === UpdateMethod.MERGE && !this.bUseBatch) {
+			mHeaders["x-http-method"] = UpdateMethod.MERGE;
 			sMethod = "POST";
 		}
 
@@ -5031,6 +5198,9 @@ sap.ui.define([
 		};
 		if (bSideEffects) {
 			oRequest.sideEffects = true;
+		}
+		if (fnRequest) {
+			oRequest.fnRequest = fnRequest;
 		}
 		if (oData) {
 			oRequest.data = oData;
@@ -5076,6 +5246,9 @@ sap.ui.define([
 		}
 		oRequestHandle = {
 				abort : function () {
+					if (that.pRetryAfter) {
+						throw new Error("abort() during HTTP 503 'Retry-after' processing not supported");
+					}
 					if (bDeferred && !bAborted){
 						// Since in some scenarios no request object was created yet, the counter is
 						// decreased manually
@@ -5112,7 +5285,7 @@ sap.ui.define([
 	 * Trigger a <code>PUT/MERGE</code> request to the OData service that was specified in the model constructor.
 	 *
 	 * The update method used is defined by the global <code>defaultUpdateMethod</code> parameter which is
-	 * <code>sap.ui.model.odata.UpdateMethod.Merge</code> by default. Please note that deep updates are not
+	 * <code>sap.ui.model.odata.UpdateMethod.MERGE</code> by default. Please note that deep updates are not
 	 * supported and may not work. These should be done separately and directly on the corresponding entry.
 	 *
 	 * @param {string} sPath A string containing the path to the data that should be updated.
@@ -5160,7 +5333,7 @@ sap.ui.define([
 			bCanonical = mParameters.canonicalRequest;
 			// ensure merge parameter backwards compatibility
 			if (mParameters.merge !== undefined) {
-				sMethod =  mParameters.merge ? "MERGE" : "PUT";
+				sMethod = mParameters.merge ? UpdateMethod.MERGE : UpdateMethod.PUT;
 			}
 		}
 
@@ -5228,9 +5401,9 @@ sap.ui.define([
 	 */
 	ODataModel.prototype.create = function(sPath, oData, mParameters) {
 		var oRequest, sUrl, oEntityMetadata,
-		oContext, fnSuccess, fnError, mUrlParams, mRequests,
-		mHeaders, aUrlParams, sEtag, sGroupId, sMethod, sChangeSetId, bRefreshAfterChange,
-		bDeferred, that = this, sNormalizedPath, sDeepPath, bCanonical;
+			oContext, fnSuccess, fnError, mUrlParams, mRequests,
+			mHeaders, aUrlParams, sGroupId, sMethod, sChangeSetId, bRefreshAfterChange,
+			bDeferred, that = this, sNormalizedPath, sDeepPath, bCanonical;
 
 		// The object parameter syntax has been used.
 		if (mParameters) {
@@ -5240,7 +5413,6 @@ sap.ui.define([
 			fnError    = mParameters.error;
 			sGroupId	= mParameters.groupId || mParameters.batchGroupId;
 			sChangeSetId	= mParameters.changeSetId;
-			sEtag		= mParameters.eTag;
 			mHeaders	= mParameters.headers;
 			bRefreshAfterChange = mParameters.refreshAfterChange;
 			bCanonical = mParameters.canonicalRequest;
@@ -5261,7 +5433,7 @@ sap.ui.define([
 
 		return this._processRequest(function(requestHandle) {
 			sUrl = that._createRequestUrlWithNormalizedPath(sNormalizedPath, aUrlParams, that.bUseBatch);
-			oRequest = that._createRequest(sUrl, sDeepPath, sMethod, mHeaders, oData, sEtag);
+			oRequest = that._createRequest(sUrl, sDeepPath, sMethod, mHeaders, oData);
 			oRequest.created = true;
 
 			oEntityMetadata = that.oMetadata._getEntityTypeByPath(sNormalizedPath);
@@ -5811,13 +5983,15 @@ sap.ui.define([
 	 *   The parameters as specified in {@link #read}
 	 * @param {boolean} [bSideEffects]
 	 *   Whether to read data as side effects
+	 * @param {function} [fnRequest] Request function which can handle 503 "Retry-After" responses,
+	 *   see {@link sap.ui.model.odata.v2.ODataModel#_request}
 	 * @return {object}
 	 *   An object which has an <code>abort</code> function to abort the current request.
 	 *
 	 * @private
 	 */
-	 ODataModel.prototype._read = function(sPath, mParameters, bSideEffects) {
-		var bCanonical, oContext, fnError, sETag, aFilters, sGroupId, mHeaders, sMethod, oRequest,
+	 ODataModel.prototype._read = function(sPath, mParameters, bSideEffects, fnRequest) {
+		var bCanonical, oContext, fnError, aFilters, sGroupId, mHeaders, sMethod, oRequest,
 			aSorters, fnSuccess, bUpdateAggregatedMessages, aUrlParams, mUrlParams,
 			that = this;
 
@@ -5849,7 +6023,6 @@ sap.ui.define([
 		mHeaders = this._getHeaders(mHeaders, true);
 
 		sMethod = "GET";
-		sETag = this._getETag(sPath, oContext);
 
 		var oRequestHandle = {
 			abort: function() {
@@ -5880,8 +6053,8 @@ sap.ui.define([
 
 			sUrl = that._createRequestUrlWithNormalizedPath(sResourcePath, aUrlParams,
 				that.bUseBatch);
-			oRequest = that._createRequest(sUrl, sDeepPath, sMethod, mHeaders, null, sETag,
-				undefined, bUpdateAggregatedMessages, bSideEffects);
+			oRequest = that._createRequest(sUrl, sDeepPath, sMethod, mHeaders, null, /*sETag*/undefined,
+				undefined, bUpdateAggregatedMessages, bSideEffects, fnRequest);
 
 			mRequests = that.mRequests;
 			if (sGroupId in that.mDeferredGroups) {
@@ -6081,9 +6254,9 @@ sap.ui.define([
 	 * loaded annotations.
 	 *
 	 * <b>Important</b>: This covers the annotations that were given to the model constructor, not
-	 * the ones that might have been added later on using the protected API method
-	 * {@link #addAnnotationUrl}. In order to get information about those, the event
-	 * <code>annotationsLoaded</code> can be used.
+	 * the ones that might have been added later on using the API method
+	 * {@link sap.ui.model.odata.ODataMetaModel#getODataValueLists}.
+	 * In order to get information about those, the event <code>annotationsLoaded</code> can be used.
 	 *
 	 * @returns {Promise}
 	 *   A promise that resolves with an array containing information about the initially loaded
@@ -6142,7 +6315,7 @@ sap.ui.define([
 	 * 								 The structure is the same as in the metadata object reached by the <code>getServiceMetadata()</code> method.
 	 * 								 For non-<code>$metadata</code> requests the array will be empty.
 	 *
-	 * @protected
+	 * @private
 	 */
 	ODataModel.prototype.addAnnotationUrl = function(vUrl) {
 		var aUrls = [].concat(vUrl),
@@ -6161,7 +6334,7 @@ sap.ui.define([
 			}
 		});
 
-		return this.oMetadata._addUrl(aMetadataUrls).then(function(aParams) {
+		return this.oMetadata._addUrl(aMetadataUrls, this._request.bind(this)).then(function(aParams) {
 			return Promise.all(aParams.map(function(oParam) {
 				aEntitySets = aEntitySets.concat(oParam.entitySets);
 				return that.oAnnotations.addSource({
@@ -6171,7 +6344,7 @@ sap.ui.define([
 			}));
 		}).then(function() {
 			return that.oAnnotations.addSource(aAnnotationUrls);
-		}).then(function(oParam) {
+		}).then(function() {
 			return {
 				annotations: that.oAnnotations.getData(),
 				entitySets: aEntitySets
@@ -6186,7 +6359,7 @@ sap.ui.define([
 	 * @param {string} sXMLContent - The string that should be parsed as annotation XML
 	 * @param {boolean} [bSuppressEvents=false] - Whether not to fire annotationsLoaded event on the annotationParser
 	 * @return {Promise} The Promise to parse the given XML-String, resolved if parsed without errors, rejected if errors occur
-	 * @protected
+	 * @private
 	 */
 	ODataModel.prototype.addAnnotationXML = function(sXMLContent, bSuppressEvents) {
 		return this.oAnnotations.addSource({
@@ -6199,7 +6372,8 @@ sap.ui.define([
 	 * Submits the collected changes which were collected by the {@link #setProperty} method and other deferred requests.
 	 *
 	 * The update method is defined by the global <code>defaultUpdateMethod</code> parameter which is
-	 * <code>sap.ui.model.odata.UpdateMethod.Merge</code> by default. In case of a <code>sap.ui.model.odata.UpdateMethod.Merge</code>
+	 * <code>sap.ui.model.odata.UpdateMethod.MERGE</code> by default. In case of a
+	 * <code>sap.ui.model.odata.UpdateMethod.MERGE</code>
 	 * request only the changed properties will be updated.
 	 * If a URI with a <code>$expand</code> query option was used then the expand entries will be removed from the collected changes.
 	 * Changes to this entries should be done on the entry itself. So no deep updates are supported.
@@ -6224,8 +6398,8 @@ sap.ui.define([
 	 * @param {boolean} [mParameters.merge]
 	 *   <b>Deprecated</b> since 1.38.0; use the <code>defaultUpdateMethod</code> constructor parameter instead.
 	 *   If unset, the update method is determined from the <code>defaultUpdateMethod</code> constructor parameter.
-	 *   If <code>true</code>, <code>sap.ui.model.odata.UpdateMethod.Merge</code> is used for update operations;
-	 *   if set to <code>false</code>, <code>sap.ui.model.odata.UpdateMethod.Put</code> is used.
+	 *   If <code>true</code>, <code>sap.ui.model.odata.UpdateMethod.MERGE</code> is used for update operations;
+	 *   if set to <code>false</code>, <code>sap.ui.model.odata.UpdateMethod.PUT</code> is used.
 	 * @return {object} An object which has an <code>abort</code> function to abort the current request or requests
 	 *
 	 * @public
@@ -6258,8 +6432,8 @@ sap.ui.define([
 	 * @param {string} [mParameters.batchGroupId]
 	 *   <b>Deprecated</b>, use <code>groupId</code> instead
 	 * @param {boolean} [mParameters.merge]
-	 *   <b>Deprecated</b> since 1.38.0; whether the update method <code>sap.ui.model.odata.UpdateMethod.Merge</code>
-	 *   is used
+	 *   <b>Deprecated</b> since 1.38.0; whether the update method
+	 *   <code>sap.ui.model.odata.UpdateMethod.MERGE</code> is used
 	 * @returns {object}
 	 *   An object which has an <code>abort</code> function
 	 * @throws {Error}
@@ -6283,7 +6457,7 @@ sap.ui.define([
 		fnError = mParameters.error;
 		// ensure merge parameter backwards compatibility
 		if (mParameters.merge !== undefined) {
-			sMethod =  mParameters.merge ? "MERGE" : "PUT";
+			sMethod = mParameters.merge ? UpdateMethod.MERGE : UpdateMethod.PUT;
 		}
 		sPrivateHeader = Object.keys(mParameters.changeHeaders || {}).find(function (sHeader) {
 			return that._isHeaderPrivate(sHeader);
@@ -6376,6 +6550,10 @@ sap.ui.define([
 
 		oRequestHandle = {
 			abort: function() {
+				if (that.pRetryAfter) {
+					throw new Error("abort() during HTTP 503 'Retry-after' processing not supported");
+				}
+
 				if (vRequestHandleInternal) {
 					if (Array.isArray(vRequestHandleInternal)) {
 						vRequestHandleInternal.forEach(function(oRequestHandle) {
@@ -6523,7 +6701,7 @@ sap.ui.define([
 	 *   <li>{@link #callFunction}.</li>
 	 * </ul>
 	 *
-	 * @param {array} [aPath]
+	 * @param {string[]} [aPath]
 	 *   Paths to be reset; if no array is passed, all changes are reset
 	 * @param {boolean} [bAll=false]
 	 *   Whether also deferred requests are taken into account so that they are aborted
@@ -6538,6 +6716,50 @@ sap.ui.define([
 	 * @see #hasPendingChanges
 	 */
 	ODataModel.prototype.resetChanges = function (aPath, bAll, bDeleteCreatedEntities) {
+		return this._resetChanges(aPath, bAll, bDeleteCreatedEntities);
+	};
+
+	/**
+	 * Resets pending changes and aborts corresponding requests as specified by {@link #resetChanges}, but does not
+	 * enforce a control update after resetting the changes.
+	 *
+	 * @param {string[]} [aPath]
+	 *   Paths to be reset; if no array is passed, all changes are reset
+	 * @param {boolean} [bAll=false]
+	 *   Whether also deferred requests are taken into account so that they are aborted
+	 * @param {boolean} [bDeleteCreatedEntities=false]
+	 *   Whether to delete the entities created via {@link #createEntry} or {@link #callFunction};
+	 *   since 1.95.0
+	 * @returns {Promise}
+	 *   Resolves when all regarded changes have been reset.
+	 *
+	 * @private
+	 * @since 1.125.0
+	 * @ui5-restricted sap.ui.comp.smartmultiinput
+	 */
+	ODataModel.prototype.resetChangesWithoutUpdate = function (aPath, bAll, bDeleteCreatedEntities) {
+		return this._resetChanges(aPath, bAll, bDeleteCreatedEntities, false);
+	};
+
+	/**
+	 * Resets pending changes and aborts corresponding requests as specified by {@link #resetChanges}, but in addition
+	 * allows to specify whether to enforce a control update after resetting the changes.
+	 *
+	 * @param {string[]} [aPath]
+	 *   Paths to be reset; if no array is passed, all changes are reset
+	 * @param {boolean} [bAll=false]
+	 *   Whether also deferred requests are taken into account so that they are aborted
+	 * @param {boolean} [bDeleteCreatedEntities=false]
+	 *   Whether to delete the entities created via {@link #createEntry} or {@link #callFunction};
+	 *   since 1.95.0
+	 * @param {boolean} [bForceUpdate=true]
+	 *   Whether to enforce a control update after resetting the changes
+	 * @returns {Promise}
+	 *   Resolves when all regarded changes have been reset.
+	 *
+	 * @private
+	 */
+	ODataModel.prototype._resetChanges = function (aPath, bAll, bDeleteCreatedEntities, bForceUpdate) {
 		var aRemoveKeys,
 			pMetaDataLoaded = this.oMetadata.loaded(),
 			aRemoveRootKeys = [],
@@ -6612,7 +6834,7 @@ sap.ui.define([
 				oBinding._resetChanges(aPath);
 			}
 		});
-		this.checkUpdate(true);
+		this.checkUpdate(bForceUpdate === undefined ? true : bForceUpdate);
 
 		return pMetaDataLoaded;
 	};
@@ -7189,7 +7411,7 @@ sap.ui.define([
 	 */
 	ODataModel.prototype.createEntry = function (sPath, mParameters) {
 		var bCanonical, sChangeSetId, oContext, fnCreated, pCreate, fnCreatedPromiseResolve,
-			bDeepCreate, sDeepPath, oEntityMetadata, fnError, sETag, sExpand, sGroupId, mHeaders,
+			bDeepCreate, sDeepPath, oEntityMetadata, fnError, sExpand, sGroupId, mHeaders,
 			bInactive, bIsCollection, sKey, sNormalizedPath, vProperties, bRefreshAfterChange,
 			oRequest, mRequests, fnSuccess, sUrl, aUrlParams, mUrlParams,
 			oEntity = {},
@@ -7243,15 +7465,16 @@ sap.ui.define([
 				assert(oEntityMetadata, "No Metadata for collection " + sNormalizedPath + " found");
 				return undefined;
 			}
+			oEntity = bDeepCreate ? {} : that.getForeignKeysFromReferentialConstraints(sNormalizedPath);
 			if (typeof vProperties === "object" && !Array.isArray(vProperties)) {
-				oEntity = merge({}, vProperties);
+				oEntity = merge(oEntity, vProperties);
 			}
-			sEntityType = "" + oEntityMetadata.entityType;
+			sEntityType = oEntityMetadata.entityType;
 			oEntitySetMetadata = that.oMetadata._getEntitySetByType(oEntityMetadata);
 			sUID = uid();
 			sKey = oEntitySetMetadata.name + "('" + sUID + "')";
 			sEntityUri = that.sServiceUrl + '/' + sKey;
-			if (sDeepPath && bIsCollection) {
+			if (bIsCollection) {
 				sDeepPath = sDeepPath + "('" + sUID + "')";
 			}
 			if (bDeepCreate) {
@@ -7343,7 +7566,6 @@ sap.ui.define([
 				created : {
 					changeSetId : sChangeSetId,
 					error : fnError,
-					eTag : sETag,
 					groupId : sGroupId,
 					headers : mHeaders,
 					key : sNormalizedPath.substring(1), //store path for later POST
@@ -7379,7 +7601,7 @@ sap.ui.define([
 			});
 			oCreatedContext = addEntityToCacheAndCreateContext();
 			sUrl = that._createRequestUrlWithNormalizedPath(sNormalizedPath, aUrlParams, that.bUseBatch);
-			oRequest = that._createRequest(sUrl, sDeepPath, sMethod, mHeaders, oEntity, sETag);
+			oRequest = that._createRequest(sUrl, sDeepPath, sMethod, mHeaders, oEntity);
 
 			if (sExpand) {
 				mExpandHeaders = that._getHeaders(undefined, true);
@@ -7434,7 +7656,6 @@ sap.ui.define([
 			fnSuccess = mParameters.success;
 			fnError   = mParameters.error;
 			fnCreated = mParameters.created;
-			sETag     = mParameters.eTag;
 			mHeaders  = mParameters.headers;
 			mUrlParams = mParameters.urlParameters;
 			bRefreshAfterChange = mParameters.refreshAfterChange;
@@ -7473,6 +7694,36 @@ sap.ui.define([
 		return undefined;
 	};
 
+	/**
+	 * Gets an object with the values for the foreign keys defined by referential constraints for the given path.
+	 *
+	 * @param {string} sNormalizedPath
+	 *   The absolute normalized path to create an entity, see {@link #_normalizePath}
+	 * @returns {Object<string, any>}
+	 *   An object containing the values from the parent entity for the properties defined in the association's
+	 *   referential constraints; if there are no referential constraints defined an empty object is returned
+	 * @private
+	 */
+	ODataModel.prototype.getForeignKeysFromReferentialConstraints = function (sNormalizedPath) {
+		const mSplitPath = this.oMetadata._splitByLastNavigationProperty(sNormalizedPath);
+
+		if (mSplitPath.lastNavigationProperty) {
+			// check referential constraints
+			const oParentEntityType = this.oMetadata._getEntityTypeByName(mSplitPath.pathBeforeLastNavigationProperty);
+			const mSource2TargetProperty = this.oMetadata._getReferentialConstraintsMapping(oParentEntityType,
+				mSplitPath.lastNavigationProperty.slice(1));
+			const oData = this._getObject(mSplitPath.pathBeforeLastNavigationProperty);
+			if (oData) {
+				return Object.keys(mSource2TargetProperty).reduce((oResult, sSourcePropertyName) => {
+					if (oData[sSourcePropertyName]) {
+						oResult[mSource2TargetProperty[sSourcePropertyName]] = oData[sSourcePropertyName];
+					}
+					return oResult;
+				}, {});
+			}
+		}
+		return {};
+	};
 	/**
 	 * Returns whether the given entity has been created using createEntry.
 	 * @param {object} oEntity The entity to check
@@ -7532,6 +7783,45 @@ sap.ui.define([
 	};
 
 	/**
+	 * The error object passed to the retry after callback.
+	 *
+	 * @typedef {Error} module:sap/ui/model/odata/v2/RetryAfterError
+	 *
+	 * @property {string} message Error message returned by the 503 HTTP status response
+	 * @property {Date} retryAfter The earliest point in time the request may be repeated
+	 *
+	 * @public
+	 * @since 1.134.0
+	 */
+
+	/**
+	 * Sets a "Retry-After" handler, which is called when an OData request fails with HTTP status
+	 * 503 (Service Unavailable) and the response has a "Retry-After" header.
+	 *
+	 * The handler is called with an <code>Error</code> having a property <code>retryAfter</code> of
+	 * type <code>Date</code>, which is the earliest point in time when the request should be
+	 * repeated. The handler has to return a promise. With this promise, you can control the
+	 * repetition of all pending requests including the failed HTTP request. If the promise is
+	 * resolved, the requests are repeated; if it is rejected, the requests are not repeated. If it
+	 * is rejected with the same <code>Error</code> reason as previously passed to the handler, then
+	 * this reason is reported to the message model.
+	 *
+	 * <b>Note:</b>
+	 * For APIs, like e.g. {@link #submitChanges}, which return an object having an <code>abort</code>
+	 * function to abort the request triggered by the API, this abort function must not be called as
+	 * long as the above promise is pending. Otherwise an error will be thrown.
+	 *
+	 * @param {function(module:sap/ui/model/odata/v2/RetryAfterError):Promise<undefined>} fnRetryAfter
+	 *   A "Retry-After" handler
+	 *
+	 * @public
+	 * @since 1.134.0
+	 */
+	ODataModel.prototype.setRetryAfterHandler = function (fnRetryAfter) {
+		this.fnRetryAfter = fnRetryAfter;
+	};
+
+	/**
 	 * Checks if the given path points to a list or to a single entry
 	 * @param {string} sPath The binding path
 	 * @param {sap.ui.model.Context} [oContext] The binding context
@@ -7578,11 +7868,20 @@ sap.ui.define([
 	 * @param {object} oHandler The request handler object
 	 * @param {object} oHttpClient The HttpClient object
 	 * @param {object} oMetadata The metadata object
+	 * @param {boolean} [bSkipHandleTracking] Whether the request is excluded from the tracking of request handles
 	 * @returns {object} The request handle
 	 * @private
 	 */
-	ODataModel.prototype._request = function(oRequest, fnSuccess, fnError, oHandler, oHttpClient, oMetadata) {
+	ODataModel.prototype._request = function(oRequest, fnSuccess, fnError, oHandler, oHttpClient, oMetadata,
+			bSkipHandleTracking) {
 		var oRequestHandle;
+
+		if (oRequest.fnRequest) {
+			const fnRequest = oRequest.fnRequest;
+			delete oRequest.fnRequest;
+			return fnRequest(oRequest, fnSuccess, fnError, oHandler, oHttpClient, oMetadata,
+				/*bSkipHandleTracking*/true);
+		}
 
 		if (this.bDestroyed) {
 			return {
@@ -7609,19 +7908,39 @@ sap.ui.define([
 			};
 		}
 
-		// create request with wrapped handlers
-		oRequestHandle = OData.request(
+		function handle503Error(fnError0) {
+			return function (oErrorResponse) {
+				if (that.checkAndProcessRetryAfterError(oRequest, oErrorResponse, fnSuccess, fnError0, oHandler,
+						oHttpClient, oMetadata, oRequestHandle, bSkipHandleTracking)) {
+					return;
+				}
+				fnError0(oErrorResponse);
+			};
+		}
+
+		if (this.pRetryAfter) {
+			oRequestHandle = {abort() {}};
+			this.pRetryAfter.then(() => {
+				oRequestHandle.abort =
+					this._request(oRequest, fnSuccess, fnError, oHandler, oHttpClient, oMetadata,
+						bSkipHandleTracking).abort;
+			}, (oReason) => {
+				this.onRetryAfterRejected(fnError, undefined, oReason);
+			});
+		} else {
+			// create request with wrapped handlers
+			oRequestHandle = OData.request(
 				oRequest,
 				wrapHandler(fnSuccess || OData.defaultSuccess),
-				wrapHandler(fnError || OData.defaultError),
+				wrapHandler(handle503Error(fnError || OData.defaultError)),
 				oHandler,
 				oHttpClient,
 				oMetadata
-		);
+			);
 
-		// add request handle to array and return it (only for async requests)
-		if (oRequest.async !== false) {
-			this.aPendingRequestHandles.push(oRequestHandle);
+			if (!bSkipHandleTracking && oRequest.async !== false) {
+				this.aPendingRequestHandles.push(oRequestHandle);
+			}
 		}
 
 		return oRequestHandle;
@@ -7701,12 +8020,12 @@ sap.ui.define([
 
 	/**
 	 * Setting request groups as deferred. <b>Note:</b> This will overwrite existing deferred
-	 * groups, including the default group "changes".
+	 * groups, including the default deferred group "changes".
 	 *
 	 * Requests that belong to a deferred group will be sent by explicitly calling
 	 * {@link #submitChanges}.
 	 *
-	 * @param {array} aGroupIds Array of group IDs that should be set as deferred
+	 * @param {array} aGroupIds The array of deferred group IDs; the default is: <code>["changes"]</code>
 	 * @public
 	 */
 	ODataModel.prototype.setDeferredGroups = function(aGroupIds) {
@@ -7742,31 +8061,18 @@ sap.ui.define([
 	 * Definition of a change group.
 	 *
 	 * @typedef {object} sap.ui.model.odata.v2.ODataModel.ChangeGroupDefinition
-	 * @property {string} groupId Id of the batch group
-	 * @property {string} [changeSetId] ID of a <code>ChangeSet</code> which bundles the changes for the entity type.
-	 * @property {boolean} [single=true] Defines if every change will get an own change set
+	 * @property {string} groupId The ID of the batch group
+	 * @property {string} [changeSetId] The ID of a change set which bundles the changes for the entity type
+	 * @property {boolean} [single=false] Defines whether every change is put in a change set of its own
 	 * @public
 	 */
 
 	/**
 	 * Definition of batch groups per entity type for two-way binding changes.
 	 *
-	 * @param {Object<string,sap.ui.model.odata.v2.ODataModel.ChangeGroupDefinition>} mGroups A map containing the definition of batch groups for two-way binding changes. The map has the
-	 * following format:
-	 * <pre>
-	 * {
-	 *   "EntityTypeName": {
-	 *     batchGroupId: "ID",
-	 *     [changeSetId: "ID",]
-	 *     [single: true/false,]
-	 *   }
-	 * }
-	 * </pre>
-	 * <ul>
-	 * <li><code>batchGroupId</code>: Defines the batch group for changes of the defined <i>EntityTypeName</i></li>
-	 * <li><code>changeSetId</code>: ID of a <code>ChangeSet</code> which bundles the changes for the entity type.</li>
-	 * <li><code>single</code>: Defines if every change will get an own change set (defaults to <code>true</code>)</li>
-	 * </ul>
+	 * @param {Object<string,sap.ui.model.odata.v2.ODataModel.ChangeGroupDefinition>} mGroups
+	 *   A map containing the definition of batch groups for two-way binding changes, see {@link #setChangeGroups}
+	 *
 	 * @deprecated Since 1.32 Use {@link #setChangeGroups} instead
 	 * @public
 	 */
@@ -7778,25 +8084,12 @@ sap.ui.define([
 	};
 
 	/**
-	 * Definition of groups per entity type for two-way binding changes.
+	 * Definition of groups per entity type for two-way binding changes. <b>Note:</b> This will overwrite the existing
+	 * change group definition, including the default <code>{"*":{groupId: "changes"}}</code>.
 	 *
 	 * @param {Object<string,sap.ui.model.odata.v2.ODataModel.ChangeGroupDefinition>} mGroups
-	 *   A map containing the definition of batch groups for two-way binding changes, keyed by entity names.
-	 *   The map has the following format:
-	 * <pre>
-	 * {
-	 *   "EntityTypeName": {
-	 *     groupId: "ID",
-	 *     [changeSetId: "ID",]
-	 *     [single: true/false,]
-	 *   }
-	 * }
-	 * </pre>
-	 * <ul>
-	 * <li><code>groupId</code>: Defines the group for changes of the defined <i>EntityTypeName</i></li>
-	 * <li><code>changeSetId</code>: ID of a <code>ChangeSet</code> which bundles the changes for the entity type.</li>
-	 * <li><code>single</code>: Defines if every change will get an own change set (defaults to <code>true</code>)</li>
-	 * </ul>
+	 *   Maps an entity name to the definition of the batch group for two-way binding changes; use "*" as entity name to
+	 *   define a default for all entities not contained in the map
 	 * @public
 	 */
 	ODataModel.prototype.setChangeGroups = function(mGroups) {
@@ -7828,9 +8121,9 @@ sap.ui.define([
 	/**
 	 * Sets the {@link sap.ui.core.message.MessageParser} that is invoked upon every back-end request.
 	 *
-	 * This message parser analyzes the response and notifies {@link sap.ui.core.Messaging} about added and deleted messages.
+	 * This message parser analyzes the response and notifies {@link module:sap/ui/core/Messaging} about added and deleted messages.
 	 *
-	 * @param {object|null} [oParser] The {@link sap.ui.core.message.MessageParser} instance that parses the responses and adds messages to {@link sap.ui.core.Messaging}
+	 * @param {object|null} [oParser] The {@link sap.ui.core.message.MessageParser} instance that parses the responses and adds messages to {@link module:sap/ui/core/Messaging}
 	 * @return {this} Model instance for method chaining
 	 */
 	ODataModel.prototype.setMessageParser = function(oParser) {
@@ -8207,23 +8500,45 @@ sap.ui.define([
 	};
 
 	/**
-	 * Check if Caching is supported. All URLs must at least provide a 'sap-context-token' query
-	 * parameter or a valid cache buster token segment.
+	 * Checks if the given URL contains a sap-context-token URL parameter with a value.
+	 *
+	 * @param {string} sUrl The URL to check
+	 * @returns {boolean} Whether the given URL contains a sap-context-token parameter with a value
+	 *
+	 * @private
+	 */
+	ODataModel.hasContextToken = function (sUrl) {
+		const sParams = sUrl.split("?")[1];
+		return sParams
+			? !!new URLSearchParams(sParams).get("sap-context-token")
+			: false;
+	};
+
+	/**
+	 * Returns whether each of the given annotation URIs is cacheable.
+	 *
+	 * @param {string[]} aAnnotationURIs The annotation URIs
+	 * @returns {boolean} Whether the given annotation URIs are cacheable
+	 *
+	 * @private
+	 */
+	ODataModel.isAnnotationsCacheable = function (aAnnotationURIs) {
+		return aAnnotationURIs.every((sURI) => ODataModel.hasContextToken(sURI) || rCacheBusterSegment.test(sURI));
+	};
+
+	/**
+	 * Checks for the given metadata URL and the annotation URIs of this model if caching of metadata and annotations
+	 * is supported.
 	 *
 	 * @param {string} sMetadataUrl The metadata URL
 	 * @returns {boolean} Whether caching is supported
 	 *
 	 * @private
 	 */
-	ODataModel.prototype._cacheSupported = function(sMetadataUrl) {
-		const bCacheMetadata = sMetadataUrl.includes("sap-context-token");
-		if (this.sAnnotationURI && !Array.isArray(this.sAnnotationURI)) {
-			this.sAnnotationURI = [this.sAnnotationURI];
-		}
-		const aAnnotationURIs = this.sAnnotationURI ?? [];
+	ODataModel.prototype._cacheSupported = function (sMetadataUrl) {
+		const aAnnotationURIs = this.aAnnotationURIs;
 
-		return bCacheMetadata
-			&& aAnnotationURIs.every((sUrl) => sUrl.includes("sap-context-token") || rCacheBusterSegment.test(sUrl));
+		return ODataModel.hasContextToken(sMetadataUrl) && ODataModel.isAnnotationsCacheable(aAnnotationURIs);
 	};
 
 	/**
@@ -8244,18 +8559,16 @@ sap.ui.define([
 				sCacheKey = sMetadataUrl + "#annotations";
 			}
 
-			if (this.sAnnotationURI) {
-				if (!Array.isArray(this.sAnnotationURI)) {
-					this.sAnnotationURI = [this.sAnnotationURI];
-				}
-				this.sAnnotationURI = this.sAnnotationURI.map(function(sUrl) {
-					return sUrl + "#annotations";
-				});
+			this.aAnnotationURIs = this.aAnnotationURIs.map(function(sUrl) {
+				return sUrl + "#annotations";
+			});
+			if (this.aAnnotationURIs.length) {
 				sCacheKey = bIgnoreAnnotationsFromMetadata
-					? this.sAnnotationURI.join("_")
-					: sCacheKey + "_" + this.sAnnotationURI.join("_");
+					? this.aAnnotationURIs.join("_")
+					: sCacheKey + "_" + this.aAnnotationURIs.join("_");
 			}
 		}
+
 		return sCacheKey;
 	};
 
@@ -8644,7 +8957,8 @@ sap.ui.define([
 			message : "Request aborted",
 			responseText : "",
 			statusCode : 0,
-			statusText : "abort"
+			statusText : "abort",
+			$rejected : true // prevent fallback in handleHeadError to fetch-token via GET
 		};
 	};
 
@@ -8754,6 +9068,85 @@ sap.ui.define([
 		var sOperation = bTransitionMessagesOnly ? "add" : "delete";
 
 		this.oTransitionMessagesOnlyGroups[sOperation](sGroupId);
+	};
+
+	/**
+	 * @typedef {object} sap.ui.model.odata.v2.ODataModel.AnnotationChange
+	 *
+	 * A change to an annotation which is to be applied to this model's metamodel.
+	 *
+	 * @property {string} path
+	 *   The meta path pointing to the annotation to be changed
+	 * @property {any} value
+	 *   The new annotation value; the object structure depends on the annotation being changed
+	 *
+	 * @example <caption>Change the label of a the business partner ID property</caption>
+	 * {
+	 *    path : "/dataServices/schema/0/entityType/[${name}==='BusinessPartner']/property/"
+	 *        + "[${name}==='BusinessPartnerID']/Label",
+	 *    value : {String : "*My* Business Partner ID"}
+	 * }
+	 * @example <caption>Change the label of a the business partner ID in a <code>LineItem</code> annotation</caption>
+	 * {
+	 *    path : "/dataServices/schema/0/entityType/[${name}==='BusinessPartner']/com.sap.vocabularies.UI.v1.LineItem/"
+	 *        + "[${Value/Path}==='BusinessPartnerID']/Label",
+	 *    value : {String : "*My* Business Partner ID"}
+	 * }
+	 * @private
+	 * @see sap.ui.model.odata.v2.ODataModel#setAnnotationChangePromise
+	 * @since 1.129.0
+	 * @ui5-restricted sap.ui.fl
+	 */
+
+	/**
+	 * Sets a promise resolving with changes which are applied to all annotations loaded by this model, either as part
+	 * of service metadata or from annotation files given via parameter "annotationURI" (see {@link #constructor}).
+	 *
+	 * @param {Promise<sap.ui.model.odata.v2.ODataModel.AnnotationChange[]>} pAnnotationChanges
+	 *   A promise resolving with an array of annotation changes
+	 * @throws {Error}
+	 *   In case the promise has already been set, or it is set after {@link #getMetaModel} has been called and the meta
+	 *   model data and the annotations have been loaded
+	 *
+	 * @private
+	 * @see sap.ui.model.odata.v2.ODataModel.AnnotationChange
+	 * @since 1.129.0
+	 * @ui5-restricted sap.ui.fl
+	 */
+	ODataModel.prototype.setAnnotationChangePromise = function (pAnnotationChanges) {
+		if (this.pAnnotationChanges) {
+			throw Error("Promise is set too late; an annotation change promise has already been set or the meta model"
+				+ " is already used");
+		}
+		this.pAnnotationChanges = pAnnotationChanges;
+	};
+
+	/**
+	 * Requests changes to annotations.
+	 *
+	 * @returns {Promise<sap.ui.model.odata.v2.ODataModel.AnnotationChange[]>|sap.ui.base.SyncPromise<undefined>}
+	 *   A promise resolving with an optional array of annotation changes
+	 *
+	 * @private
+	 * @see #setAnnotationChangePromise
+	 * @see sap.ui.model.odata.v2.ODataModel.AnnotationChange
+	 */
+	ODataModel.prototype._requestAnnotationChanges = function () {
+		this.pAnnotationChanges ??= SyncPromise.resolve(); // now it's too late for the setter
+
+		return this.pAnnotationChanges;
+	};
+	/** @deprecated */
+	const fnOriginalExtend = ODataModel.extend;
+	/**
+	 * DO NOT EXTEND THIS CLASS.
+	 *
+	 * @returns {function} The created class / constructor function
+	 * @deprecated
+	 */
+	ODataModel.extend = function () {
+		Log.error("[FUTURE FATAL] sap.ui.model.odata.v2.ODataModel must not be extended");
+		return fnOriginalExtend.apply(this, arguments);
 	};
 
 	return ODataModel;

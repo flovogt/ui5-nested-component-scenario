@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/ui/base/EventProvider"
-], function (EventProvider) {
+], (EventProvider) => {
 	"use strict";
 
-	var ERROR_INSTANCING = "StateHandlerRegistry: This class is a singleton and should not be used without an AdaptationProvider. Please use 'Engine.getInstance().stateHandlerRegistry' instead";
+	const ERROR_INSTANCING = "StateHandlerRegistry: This class is a singleton and should not be used without an AdaptationProvider. Please use 'Engine.getInstance().stateHandlerRegistry' instead";
 
 	//Singleton storage
-	var oStateHandlerRegistry;
+	let oStateHandlerRegistry;
 
 	/**
 	 * Constructor for a new StateHandlerRegistry.
@@ -21,13 +21,13 @@ sap.ui.define([
 	 * @extends sap.ui.base.EventProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @private
 	 * @since 1.104
 	 * @alias sap.m.p13n.modules.StateHandlerRegistry
 	 */
-	var StateHandlerRegistry = EventProvider.extend("sap.m.p13n.modules.StateHandlerRegistry", {
+	const StateHandlerRegistry = EventProvider.extend("sap.m.p13n.modules.StateHandlerRegistry", {
 		constructor: function() {
 
 			if (oStateHandlerRegistry) {
@@ -91,7 +91,7 @@ sap.ui.define([
 	 *
 	 * @returns {this} Returns the <code>StateHandlerRegistry</code> instance.
 	 */
-	StateHandlerRegistry.getInstance = function () {
+	StateHandlerRegistry.getInstance = () => {
 		if (!oStateHandlerRegistry) {
 			oStateHandlerRegistry = new StateHandlerRegistry();
 		}

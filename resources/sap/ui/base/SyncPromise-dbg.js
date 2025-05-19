@@ -1,16 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([], function () {
 	"use strict";
 
-	var oResolved = new SyncPromise(function (resolve, reject) {
+	var oResolved = new SyncPromise(function (resolve, _reject) {
 			resolve();
 		}), // a SyncPromise which is resolved w/o arguments
-		oResolvedNull = new SyncPromise(function (resolve, reject) {
+		oResolvedNull = new SyncPromise(function (resolve, _reject) {
 			resolve(null);
 		}); // a SyncPromise which is resolved w/ null
 
@@ -66,7 +66,7 @@ sap.ui.define([], function () {
 		}
 	}
 
-	/**
+	/*
 	 * Tells whether the given value is a function or object with a "then" property. These are the
 	 * candidates for "thenables".
 	 *
@@ -81,20 +81,24 @@ sap.ui.define([], function () {
 	}
 
 	/**
-	 * Constructor for a {@link sap.ui.base.SyncPromise} which may wrap a thenable (e.g. native
-	 * <code>Promise</code>) in order to observe settlement and later provide synchronous access to
-	 * the result.
+	 * Constructor for a {@link sap.ui.base.SyncPromise} which may wrap a thenable in order to
+	 * observe settlement and later provide synchronous access to the result.
 	 *
-	 * Implements https://promisesaplus.com except "2.2.4. onFulfilled or onRejected must not be
-	 * called until the execution context stack contains only platform code."
+	 * @alias sap.ui.base.SyncPromise
+	 * @author SAP SE
+	 * @class
+	 * @classdesc
+	 * A wrapper around a thenable (for example, a native <code>Promise</code>) in order to observe
+	 * settlement and later provide synchronous access to the result.
+	 *
+	 * Implements <a href="https://promisesaplus.com">Promises/A+</a> except "2.2.4. onFulfilled or
+	 * onRejected must not be called until the execution context stack contains only platform code."
+	 * @private
+	 * @since 1.53.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 *
 	 * @param {function} fnExecutor
 	 *   A function that is passed with the arguments resolve and reject...
-	 *
-	 * @alias sap.ui.base.SyncPromise
-	 * @class
-	 * @private
-	 * @ui5-restricted sap.ui.core,sap.ui.dt,sap.ui.model
 	 */
 	function SyncPromise(fnExecutor) {
 		var bCaught = false,
@@ -137,14 +141,14 @@ sap.ui.define([], function () {
 				if (vResult0.isFulfilled()) {
 					resolve(vResult0.getResult());
 					return;
-				} else if (vResult0.isRejected()) {
+				}
+				if (vResult0.isRejected()) {
 					vResult0.caught(); // might have been uncaught so far
 					reject(vResult0.getResult());
 					return;
-				} else {
-					vResult0.caught(); // make sure it will never count as uncaught
-					vResult0 = vResult0.getResult(); // unwrap to access native thenable
 				}
+				vResult0.caught(); // make sure it will never count as uncaught
+				vResult0 = vResult0.getResult(); // unwrap to access native thenable
 			}
 
 			iState = 0;
@@ -176,6 +180,10 @@ sap.ui.define([], function () {
 		 * {@link #catch}, but with less overhead. Use it together with {@link #isRejected} and
 		 * {@link #getResult} in cases where the rejection is turned into <code>throw</code>; or
 		 * simply use {@link #unwrap} instead.
+		 *
+		 * @private
+		 * @since 1.53.0
+		 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 		 */
 		this.caught = function () {
 			if (!bCaught) {
@@ -192,6 +200,10 @@ sap.ui.define([], function () {
 		 * @returns {any}
 		 *   The result in case this {@link sap.ui.base.SyncPromise} is already fulfilled, the
 		 *   reason if it is already rejected, or the wrapped thenable if it is still pending
+		 *
+		 * @private
+		 * @since 1.53.0
+		 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 		 */
 		this.getResult = function () {
 			return vResult;
@@ -202,6 +214,10 @@ sap.ui.define([], function () {
 		 *
 		 * @returns {boolean}
 		 *   Whether this {@link sap.ui.base.SyncPromise} is fulfilled
+		 *
+		 * @private
+		 * @since 1.53.0
+		 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 		 */
 		this.isFulfilled = function () {
 			return iState === 1;
@@ -212,6 +228,10 @@ sap.ui.define([], function () {
 		 *
 		 * @returns {boolean}
 		 *   Whether this {@link sap.ui.base.SyncPromise} is still pending
+		 *
+		 * @private
+		 * @since 1.53.0
+		 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 		 */
 		this.isPending = function () {
 			return !iState;
@@ -222,6 +242,10 @@ sap.ui.define([], function () {
 		 *
 		 * @returns {boolean}
 		 *   Whether this {@link sap.ui.base.SyncPromise} is rejected
+		 *
+		 * @private
+		 * @since 1.53.0
+		 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 		 */
 		this.isRejected = function () {
 			return iState === -1;
@@ -231,9 +255,9 @@ sap.ui.define([], function () {
 
 		if (iState === undefined) {
 			// make sure we wrap a native Promise while pending
-			vResult = new Promise(function (resolve, reject) {
-				fnResolve = resolve;
-				fnReject = reject;
+			vResult = new Promise(function (resolve0, reject0) {
+				fnResolve = resolve0;
+				fnReject = reject0;
 			});
 			vResult.catch(function () {}); // avoid "Uncaught (in promise)"
 		}
@@ -249,7 +273,10 @@ sap.ui.define([], function () {
 	 *   A new {@link sap.ui.base.SyncPromise}, or <code>this</code> in case it is settled and no
 	 *   corresponding callback function is given
 	 *
+	 * @private
 	 * @see #then
+	 * @since 1.53.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 	SyncPromise.prototype.catch = function (fnOnRejected) {
 		return this.then(undefined, fnOnRejected);
@@ -265,7 +292,10 @@ sap.ui.define([], function () {
 	 *   A new {@link sap.ui.base.SyncPromise}, or <code>this</code> in case it is settled and no
 	 *   callback function is given
 	 *
+	 * @private
 	 * @see #then
+	 * @since 1.59.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 	SyncPromise.prototype.finally = function (fnOnFinally) {
 		if (typeof fnOnFinally === "function") {
@@ -297,6 +327,10 @@ sap.ui.define([], function () {
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A new {@link sap.ui.base.SyncPromise}, or <code>this</code> in case it is settled and no
 	 *   corresponding callback function is given
+	 *
+	 * @private
+	 * @since 1.53.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 	SyncPromise.prototype.then = function (fnOnFulfilled, fnOnRejected) {
 		var fnCallback = this.isFulfilled() ? fnOnFulfilled : fnOnRejected,
@@ -310,7 +344,7 @@ sap.ui.define([], function () {
 
 		if (!bPending) {
 			return bCallbackIsFunction
-				? new SyncPromise(function (resolve, reject) {
+				? new SyncPromise(function (resolve, _reject) {
 					resolve(fnCallback(that.getResult())); // Note: try/catch is present in c'tor!
 				})
 				: this;
@@ -324,6 +358,10 @@ sap.ui.define([], function () {
 	 * of the reason is returned.
 	 *
 	 * @return {string} A string description of this {@link sap.ui.base.SyncPromise}
+	 *
+	 * @private
+	 * @since 1.53.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 	SyncPromise.prototype.toString = function () {
 		if (this.isPending()) {
@@ -344,7 +382,10 @@ sap.ui.define([], function () {
 	 * @throws {any}
 	 *   The reason if this promise is already rejected
 	 *
+	 * @private
 	 * @see #getResult
+	 * @since 1.57.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 	SyncPromise.prototype.unwrap = function () {
 		this.caught(); // make sure it will never count as uncaught
@@ -363,6 +404,10 @@ sap.ui.define([], function () {
 	 *   which is supported by <code>Array.prototype.slice</code>
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   The {@link sap.ui.base.SyncPromise}
+	 *
+	 * @private
+	 * @since 1.53.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 	SyncPromise.all = function (aValues) {
 		return new SyncPromise(function (resolve, reject) {
@@ -398,14 +443,17 @@ sap.ui.define([], function () {
 
 	/**
 	 * Tells whether the given value is a function or object with a "then" property which can be
-	 * retrieved without an exception being thrown and which is a function.
+	 * retrieved without an exception being thrown and which is a function; see
+	 * <a href="https://promisesaplus.com">step 2.3.3.</a>.
 	 *
 	 * @param {any} vValue
 	 *   Any value
 	 * @returns {boolean}
 	 *   See above
 	 *
-	 * @see step 2.3.3. of https://promisesaplus.com
+	 * @private
+	 * @since 1.72.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 	SyncPromise.isThenable = function (vValue) {
 		try {
@@ -431,6 +479,10 @@ sap.ui.define([], function () {
 	 * @param {boolean} bCaught
 	 *   <code>false</code> if the {@link sap.ui.base.SyncPromise} instance just became "uncaught",
 	 *   <code>true</code> if it just became "caught"
+	 *
+	 * @private
+	 * @since 1.53.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 
 	/**
@@ -440,9 +492,13 @@ sap.ui.define([], function () {
 	 *   The reason for rejection
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   The {@link sap.ui.base.SyncPromise}
+	 *
+	 * @private
+	 * @since 1.53.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 	SyncPromise.reject = function (vReason) {
-		return new SyncPromise(function (resolve, reject) {
+		return new SyncPromise(function (_resolve, reject) {
 			reject(vReason);
 		});
 	};
@@ -457,6 +513,10 @@ sap.ui.define([], function () {
 	 *   The thenable to wrap or the result to synchronously fulfill with
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   The {@link sap.ui.base.SyncPromise}
+	 *
+	 * @private
+	 * @since 1.53.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
 	 */
 	SyncPromise.resolve = function (vResult) {
 		if (vResult === undefined) {
@@ -469,10 +529,61 @@ sap.ui.define([], function () {
 			return vResult;
 		}
 
-		return new SyncPromise(function (resolve, reject) {
+		return new SyncPromise(function (resolve, _reject) {
 				resolve(vResult);
 			});
 	};
+
+	/**
+	 * An object holding a new {@link sap.ui.base.SyncPromise} object and two functions to resolve
+	 * or reject it.
+	 *
+	 * @typedef {object} sap.ui.base.SyncPromise.WithResolvers
+	 * @property {sap.ui.base.SyncPromise} promise - A promise object
+	 * @property {function} resolve - A function that resolves the promise
+	 * @property {function} reject - A function that rejects the promise
+	 *
+	 * @private
+	 * @see sap.ui.base.SyncPromise.withResolvers
+	 * @since 1.133.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
+	 */
+
+	/**
+	 * Returns an object holding a new {@link sap.ui.base.SyncPromise} object and two functions to
+	 * resolve or reject it.
+	 *
+	 * @returns {sap.ui.base.SyncPromise.WithResolvers}
+	 *   An object holding a new promise object and two functions to resolve or reject it
+	 *
+	 * @private
+	 */
+	SyncPromise._withResolvers = function () {
+		var fnReject, fnResolve;
+
+		return {
+			promise : new SyncPromise((resolve, reject) => {
+				fnResolve = resolve;
+				fnReject = reject;
+			}),
+			resolve : fnResolve,
+			reject : fnReject
+		};
+	};
+
+	/**
+	 * Returns an object holding a new {@link sap.ui.base.SyncPromise} object and two functions to
+	 * resolve or reject it.
+	 *
+	 * @returns {sap.ui.base.SyncPromise.WithResolvers}
+	 *   An object holding a new promise object and two functions to resolve or reject it
+	 *
+	 * @function
+	 * @private
+	 * @since 1.133.0
+	 * @ui5-restricted sap.ui.core (Lib),sap.m,sap.ui.comp,sap.ui.dt,sap.ui.mdc
+	 */
+	SyncPromise.withResolvers = Promise.withResolvers ?? SyncPromise._withResolvers;
 
 	return SyncPromise;
 }, /* bExport= */ true);

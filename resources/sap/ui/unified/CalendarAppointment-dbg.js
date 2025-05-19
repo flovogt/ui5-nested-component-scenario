@@ -1,34 +1,34 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.CalendarAppointment.
 sap.ui.define([
 	'./DateTypeRange',
+	"sap/base/i18n/Formatting",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Locale",
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/core/format/NumberFormat',
-	'sap/ui/core/format/TimezoneUtil',
-	'sap/ui/core/Core',
 	'./calendar/CalendarUtils',
 	'./library',
 	"sap/base/Log",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/date/UI5Date"
 ],
 	function(
 		DateTypeRange,
+		Formatting,
+		Library,
+		Locale,
 		DateFormat,
 		NumberFormat,
-		TimezoneUtil,
-		Core,
 		CalendarUtils,
 		library,
 		Log,
-		Configuration,
 		UI5Date
-		) {
+	) {
 	"use strict";
 
 	/**
@@ -43,7 +43,7 @@ sap.ui.define([
 	 *
 	 * Applications could inherit from this element to add own fields.
 	 * @extends sap.ui.unified.DateTypeRange
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -116,7 +116,6 @@ sap.ui.define([
 			 * </ul>
 			 *
 			 * @since 1.93.0
-			 * @experimental Since 1.93, providing only limited functionality. Also, the API might be changed in the future.
 			 */
 			customContent: { type: "sap.ui.core.Control", multiple: true }
 		}
@@ -145,21 +144,22 @@ sap.ui.define([
 	 * @returns {object} An object with a start and end fields, which represent how the appointment intersects with the given date
 	 * @private
 	 */
-	CalendarAppointment.prototype._getDateRangeIntersectionText = function (oCurrentlyDisplayedDate) {
+	CalendarAppointment.prototype._getDateRangeIntersectionText = function (oCurrentlyDisplayedDate, bUse12HourFormat) {
 		var oStartDate = this.getStartDate(),
 			oEndDate = this.getEndDate() ? this.getEndDate() : UI5Date.getInstance(864000000000000), //in case of emergency call this number
+			sPattern = bUse12HourFormat ? "h:mm a" : "HH:mm",
 			sFirstLineText,
 			sSecondLineText,
 			oCurrentDayStart = UI5Date.getInstance(oCurrentlyDisplayedDate.getFullYear(), oCurrentlyDisplayedDate.getMonth(), oCurrentlyDisplayedDate.getDate(), 0, 0, 0),
 			oNextDayStart = UI5Date.getInstance(oCurrentDayStart.getFullYear(), oCurrentDayStart.getMonth(), oCurrentDayStart.getDate() + 1),
-			oTimeFormat = DateFormat.getTimeInstance({pattern: "HH:mm"}),
-			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+			oTimeFormat = DateFormat.getTimeInstance({pattern: sPattern}),
+			oResourceBundle = Library.getResourceBundleFor("sap.m"),
 			oHourFormat = NumberFormat.getUnitInstance({
 				allowedUnits: ["duration-hour"]
-			}, Configuration.getFormatSettings().getFormatLocale()),
+			}, new Locale(Formatting.getLanguageTag())),
 			oMinuteFormat = NumberFormat.getUnitInstance({
 				allowedUnits: ["duration-minute"]
-			}, Configuration.getFormatSettings().getFormatLocale()),
+			}, new Locale(Formatting.getLanguageTag())),
 			iHour, iMinute, sHour, sMinute;
 
 		//have no intersection with the given day
@@ -251,11 +251,15 @@ sap.ui.define([
 	 * @private
 	 */
 	CalendarAppointment.prototype._getCSSColorForBackground = function(sHex) {
+		if (sHex.length === 4) {
+			// normalize shortened hex values (#abc -> #aabbcc) in order to work properly with them
+			sHex = '#' + sHex.charAt(1) + sHex.charAt(1) + sHex.charAt(2) + sHex.charAt(2) + sHex.charAt(3) + sHex.charAt(3);
+		}
 		return "rgba(" + [
 				parseInt(sHex.substr(1, 2), 16), // Red
 				parseInt(sHex.substr(3, 2), 16), // Green
 				parseInt(sHex.substr(5, 2), 16) // Blue
-			].join(",") + ", 0.2)";
+			].join(", ") + ", 0.2)";
 	};
 
 	CalendarAppointment.prototype._setAppointmentPartSuffix = function (sSuffix) {

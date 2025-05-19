@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.PlanningCalendarLegend.
-sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointment', 'sap/ui/core/Core', './PlanningCalendarLegendRenderer'],
-	function(CalendarLegend, CalendarAppointment, Core, PlanningCalendarLegendRenderer) {
+sap.ui.define(["sap/ui/core/Lib", 'sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointment', './PlanningCalendarLegendRenderer'],
+	function(Library, CalendarLegend, CalendarAppointment, PlanningCalendarLegendRenderer) {
 		"use strict";
 
 
@@ -23,7 +23,7 @@ sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointm
 		 * @extends sap.ui.unified.CalendarLegend
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -116,7 +116,7 @@ sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointm
 			var sItemsHeader = this.getItemsHeader();
 
 			if (sItemsHeader == undefined) {
-				return Core.getLibraryResourceBundle('sap.m').getText("PLANNING_CALENDAR_LEGEND_ITEMS_HEADER");
+				return Library.getResourceBundleFor('sap.m').getText("PLANNING_CALENDAR_LEGEND_ITEMS_HEADER");
 			}
 
 			return sItemsHeader;
@@ -126,10 +126,21 @@ sap.ui.define(['sap/ui/unified/CalendarLegend', 'sap/ui/unified/CalendarAppointm
 			var sAppointmentItemsHeader = this.getAppointmentItemsHeader();
 
 			if (sAppointmentItemsHeader == undefined) {
-				return Core.getLibraryResourceBundle('sap.m').getText("PLANNING_CALENDAR_LEGEND_APPOINTMENT_ITEMS_HEADER");
+				return Library.getResourceBundleFor('sap.m').getText("PLANNING_CALENDAR_LEGEND_APPOINTMENT_ITEMS_HEADER");
 			}
 
 			return sAppointmentItemsHeader;
+		};
+
+		/**
+		 * @override
+		 * @returns {sap.ui.unified.CalendarLegendItem[]} All items in the legend.
+		 */
+		PlanningCalendarLegend.prototype._getAllItems = function() {
+			var aStandardItems = this.getAggregation("_standardItems") || [],
+				aAppointmentItems = this.getAppointmentItems() || [],
+				aCustomItems = this.getItems() || [];
+			return aStandardItems.concat(aAppointmentItems).concat(aCustomItems);
 		};
 
 		return PlanningCalendarLegend;

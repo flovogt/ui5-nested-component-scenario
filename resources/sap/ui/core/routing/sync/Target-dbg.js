@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(["sap/base/Log", "sap/ui/core/Element"], function(Log, Element) {
@@ -128,9 +128,12 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/Element"], function(Log, Element) {
 
 			var oViewOptions = {
 				name : sViewName,
-				type : oOptions.viewType,
 				id : oOptions.viewId
 			};
+
+			if (!sViewName.startsWith("module:")) {
+				oViewOptions.type = oOptions.viewType;
+			}
 
 			oView = this._oCache._get(oViewOptions, "View",
 				// Hook in the route for deprecated global view id, it has to be supported to stay compatible

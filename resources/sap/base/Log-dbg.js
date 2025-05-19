@@ -1,13 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	"sap/base/config",
 	"sap/base/util/now"
 ], function(
-	BaseConfig,
 	now
 ) {
 	"use strict";
@@ -215,8 +213,8 @@ sap.ui.define([
 	 *   Name of the component that produced the log entry
 	 * @param {function} [fnSupportInfo]
 	 *   Callback that returns an additional support object to be logged in support mode.
-	 *   This function is only called if support info mode is turned on with
-	 *   <code>logSupportInfo(true)</code>. To avoid negative effects regarding execution times and
+	 *   This function is only called if support info mode is turned on via
+	 *   the Support Assistant. To avoid negative effects regarding execution times and
 	 *   memory consumption, the returned object should be a simple immutable JSON object with mostly
 	 *   static and stable content.
 	 * @public
@@ -238,8 +236,8 @@ sap.ui.define([
 	 *   Name of the component that produced the log entry
 	 * @param {function} [fnSupportInfo]
 	 *   Callback that returns an additional support object to be logged in support mode.
-	 *   This function is only called if support info mode is turned on with
-	 *   <code>logSupportInfo(true)</code>. To avoid negative effects regarding execution times and
+	 *   This function is only called if support info mode is turned on via
+	 *   the Support Assistant. To avoid negative effects regarding execution times and
 	 *   memory consumption, the returned object should be a simple immutable JSON object with mostly
 	 *   static and stable content.
 	 * @public
@@ -261,8 +259,8 @@ sap.ui.define([
 	 *   Name of the component that produced the log entry
 	 * @param {function} [fnSupportInfo]
 	 *   Callback that returns an additional support object to be logged in support mode.
-	 *   This function is only called if support info mode is turned on with
-	 *   <code>logSupportInfo(true)</code>. To avoid negative effects regarding execution times and
+	 *   This function is only called if support info mode is turned on via
+	 *   the Support Assistant. To avoid negative effects regarding execution times and
 	 *   memory consumption, the returned object should be a simple immutable JSON object with mostly
 	 *   static and stable content.
 	 * @public
@@ -284,8 +282,8 @@ sap.ui.define([
 	 *   Name of the component that produced the log entry
 	 * @param {function} [fnSupportInfo]
 	 *   Callback that returns an additional support object to be logged in support mode.
-	 *   This function is only called if support info mode is turned on with
-	 *   <code>logSupportInfo(true)</code>. To avoid negative effects regarding execution times and
+	 *   This function is only called if support info mode is turned on via
+	 *   the Support Assistant. To avoid negative effects regarding execution times and
 	 *   memory consumption, the returned object should be a simple immutable JSON object with mostly
 	 *   static and stable content.
 	 * @public
@@ -307,8 +305,8 @@ sap.ui.define([
 	 *   Name of the component that produced the log entry
 	 * @param {function} [fnSupportInfo]
 	 *   Callback that returns an additional support object to be logged in support mode.
-	 *   This function is only called if support info mode is turned on with
-	 *   <code>logSupportInfo(true)</code>. To avoid negative effects regarding execution times and
+	 *   This function is only called if support info mode is turned on via
+	 *   the Support Assistant. To avoid negative effects regarding execution times and
 	 *   memory consumption, the returned object should be a simple immutable JSON object with mostly
 	 *   static and stable content.
 	 * @public
@@ -330,8 +328,8 @@ sap.ui.define([
 	 *   Name of the component that produced the log entry
 	 * @param {function} [fnSupportInfo]
 	 *   Callback that returns an additional support object to be logged in support mode.
-	 *   This function is only called if support info mode is turned on with
-	 *   <code>logSupportInfo(true)</code>. To avoid negative effects regarding execution times and
+	 *   This function is only called if support info mode is turned on via
+	 *   the Support Assistant. To avoid negative effects regarding execution times and
 	 *   memory consumption, the returned object should be a simple immutable JSON object with mostly
 	 *   static and stable content.
 	 * @public
@@ -431,8 +429,8 @@ sap.ui.define([
 	 * @param {string} [sComponent]
 	 *   The log component under which the message should be logged
 	 * @param {function} [fnSupportInfo] Callback that returns an additional support object to be
-	 *   logged in support mode. This function is only called if support info mode is turned on with
-	 *   <code>logSupportInfo(true)</code>. To avoid negative effects regarding execution times and
+	 *   logged in support mode. This function is only called if support info mode is turned on via
+	 *   the Support Assistant. To avoid negative effects regarding execution times and
 	 *   memory consumption, the returned object should be a simple immutable JSON object with mostly
 	 *   static and stable content.
 	 * @returns {module:sap/base/Log.Entry}
@@ -720,20 +718,6 @@ sap.ui.define([
 		}
 		return new Logger(sComponent);
 	};
-
-	// set LogLevel
-	const sLogLevel = BaseConfig.get({
-		name: "sapUiLogLevel",
-		type: BaseConfig.Type.String,
-		defaultValue: undefined,
-		external: true
-	});
-
-	if (sLogLevel) {
-		Log.setLevel(Log.Level[sLogLevel.toUpperCase()] || parseInt(sLogLevel));
-	} else if (!globalThis["sap-ui-optimized"]) {
-		Log.setLevel(Log.Level.DEBUG);
-	}
 
 	return Log;
 });

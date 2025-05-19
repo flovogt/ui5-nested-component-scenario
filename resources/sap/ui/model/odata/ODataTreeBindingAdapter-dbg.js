@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -265,6 +265,7 @@ sap.ui.define(['sap/ui/model/TreeBinding', './v2/ODataTreeBinding', 'sap/ui/mode
 			}
 
 			sKey = this.oModel._getKey(oEntry);
+			// deep path not needed here, it gets updated in ODataTreeBinding#_getContextsForNodeId
 			oContext = this.oModel.getContext("/" + sKey);
 
 			sParentGroupID = mParentGroupIDs[sParentNodeID];

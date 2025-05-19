@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -62,7 +62,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @alias sap.m.FlexBox
@@ -110,7 +110,7 @@ function(
 				/**
 				 * Determines whether the layout is rendered as a series of divs or as an unordered list (ul).<br>
 				 * <br>
-				 * We recommend to use <code>Bare</code> in most cases to avoid layout issues due to browser inconsistencies.
+				 * <b>Note:</b> We recommend to use <code>Bare</code> in most cases to avoid layout issues due to browser inconsistencies.
 				 */
 				renderType : {type : "sap.m.FlexRendertype", group : "Misc", defaultValue : FlexRendertype.Div},
 
@@ -151,7 +151,29 @@ function(
 				 *
 				 * @since 1.38.5
 				 */
-				backgroundDesign: {type: "sap.m.BackgroundDesign", group: "Appearance", defaultValue: BackgroundDesign.Transparent}
+				backgroundDesign: {type: "sap.m.BackgroundDesign", group: "Appearance", defaultValue: BackgroundDesign.Transparent},
+
+				/**
+				 * The size of the gap between columns and rows.
+				 * It serves as a shorthand property for <code>rowGap</code> and <code>columnGap</code> properties. If either of the properties is set, the <code>gap</code> value will have lower priority and will be overwritten.
+				 *
+				 * @since 1.134
+				 */
+				gap: {type: "sap.ui.core.CSSGapShortHand", group: "Appearance", defaultValue: ""},
+
+				/**
+				 * The size of the gap between rows.
+				 *
+				 * @since 1.134
+				 */
+				rowGap: {type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: ""},
+
+				/**
+				 * The size of the gap between columns.
+				 *
+				 * @since 1.134
+				 */
+				columnGap: {type: "sap.ui.core.CSSSize", group: "Appearance", defaultValue: ""}
 			},
 			defaultAggregation : "items",
 			aggregations : {
@@ -277,7 +299,7 @@ function(
 	 * Sets the render type of the FlexBox.
 	 *
 	 * @public
-	 * @param {string} sValue Render type in string format.
+	 * @param {sap.m.FlexRendertype} sValue Render type in string format.
 	 * @returns {this} <code>this</code> FlexBox reference for chaining.
 	 */
 	FlexBox.prototype.setRenderType = function(sValue) {

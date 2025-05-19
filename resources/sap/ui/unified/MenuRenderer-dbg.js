@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.ui.unified.Menu
-sap.ui.define(["sap/ui/core/Configuration"],
-	function(Configuration) {
+sap.ui.define(["sap/ui/core/ControlBehavior"],
+	function(ControlBehavior) {
 	"use strict";
 
 
@@ -15,7 +15,7 @@ sap.ui.define(["sap/ui/core/Configuration"],
 	 * Menu renderer.
 	 * @author SAP - TD Core UI&AM UI Infra
 	 *
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @namespace
 	 */
 	var MenuRenderer = {
@@ -32,7 +32,7 @@ sap.ui.define(["sap/ui/core/Configuration"],
 	 *            oMenu An object representation of the control that should be rendered
 	 */
 	MenuRenderer.render = function(oRm, oMenu) {
-		var bAccessible = Configuration.getAccessibility(),
+		var bAccessible = ControlBehavior.isAccessibilityEnabled(),
 			oRootMenu = oMenu.getRootMenu();
 
 		if (oMenu.oHoveredItem && oMenu.indexOfItem(oMenu.oHoveredItem) < 0) {
@@ -66,38 +66,35 @@ sap.ui.define(["sap/ui/core/Configuration"],
 			oRm.class("sapUiMnuTop");
 		}
 
-		if (oRootMenu.isCozy()) {
-			oRm.class("sapUiSizeCozy");
-		}
-
-		if (oMenu.bCozySupported) {
-			oRm.class("sapUiMnuCozySupport");
-		}
-
 		oRm.openEnd();
 		MenuRenderer.renderItems(oRm, oMenu);
 		oRm.close("div");
 	};
 
 	MenuRenderer.renderItems = function(oRm, oMenu) {
-		var aItems = oMenu.getItems(),
-			bAccessible = Configuration.getAccessibility(),
+		var aItems = oMenu._getItems(),
+			bAccessible = ControlBehavior.isAccessibilityEnabled(),
 			bHasIcons = false,
 			bHasSubMenus = false,
 			iNumberOfVisibleItems = 0,
 			index = 0,
 			i,
-			oItem;
+			oItem,
+			sCurrentGroup = null,
+			sItemGroup = null,
+			bGroupOpened = false,
+			oSubmenu;
 
 		oRm.openStart("ul");
 		oRm.attr("role", "menu");
 		oRm.class("sapUiMnuLst");
 
 		for (i = 0; i < aItems.length; i++) {
+			oSubmenu = aItems[i].getSubmenu();
 			if (aItems[i].getIcon && aItems[i].getIcon()) {
 				bHasIcons = true;
 			}
-			if (aItems[i].getSubmenu()) {
+			if (oSubmenu && oSubmenu._getItems().length) {
 				bHasSubMenus = true;
 			}
 		}
@@ -111,7 +108,6 @@ sap.ui.define(["sap/ui/core/Configuration"],
 
 		oRm.openEnd();
 
-		iNumberOfVisibleItems = 0;
 		for (i = 0; i < aItems.length; i++) {
 			if (aItems[i].getVisible() && aItems[i].render) {
 				iNumberOfVisibleItems++;
@@ -123,35 +119,57 @@ sap.ui.define(["sap/ui/core/Configuration"],
 			oItem = aItems[i];
 			if (oItem.getVisible() && oItem.render) {
 				index++;
+				sItemGroup = oItem.getAssociation("_group");
 
-				if (oItem.getStartsSection()) {
-					oRm.openStart("li");
-					if (bAccessible) {
-						oRm.attr("role", "separator");
-					}
-					oRm.class("sapUiMnuDiv");
-					oRm.openEnd();
-
-					oRm.openStart("div");
-					oRm.class("sapUiMnuDivL");
-					oRm.openEnd();
+				if (bGroupOpened && sCurrentGroup !== sItemGroup) {
+					// group closing tag
 					oRm.close("div");
-
-					oRm.voidStart("hr").voidEnd();
-
-					oRm.openStart("div");
-					oRm.class("sapUiMnuDivR");
-					oRm.openEnd();
-					oRm.close("div");
-
-					oRm.close("li");
+					bGroupOpened = false;
 				}
+				if (sItemGroup && !bGroupOpened) {
+					oRm.openStart("div");
+					oRm.attr("role", "group");
+					oRm.openEnd();
+					bGroupOpened = true;
+				}
+
+				if ((sCurrentGroup !== sItemGroup || oItem.getStartsSection()) && index !== 1) {
+					MenuRenderer.renderSeparator(oRm, bAccessible);
+				}
+				sCurrentGroup = sItemGroup;
 
 				oItem.render(oRm, oItem, oMenu, {bAccessible: bAccessible, iItemNo: index, iTotalItems: iNumberOfVisibleItems});
 			}
 		}
 
+		if (bGroupOpened) {
+			oRm.close("div");
+		}
+
 		oRm.close("ul");
+	};
+
+	MenuRenderer.renderSeparator = function(oRm, bAccessible) {
+		oRm.openStart("li");
+		if (bAccessible) {
+			oRm.attr("role", "separator");
+		}
+		oRm.class("sapUiMnuDiv");
+		oRm.openEnd();
+
+		oRm.openStart("div");
+		oRm.class("sapUiMnuDivL");
+		oRm.openEnd();
+		oRm.close("div");
+
+		oRm.voidStart("hr").voidEnd();
+
+		oRm.openStart("div");
+		oRm.class("sapUiMnuDivR");
+		oRm.openEnd();
+		oRm.close("div");
+
+		oRm.close("li");
 	};
 
 	return MenuRenderer;

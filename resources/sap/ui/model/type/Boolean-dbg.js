@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
 // Provides the base implementation for all model implementations
-sap.ui.define(['sap/ui/model/SimpleType', 'sap/ui/model/FormatException', 'sap/ui/model/ParseException'],
-	function(SimpleType, FormatException, ParseException) {
+sap.ui.define(["sap/ui/core/Lib", 'sap/ui/model/SimpleType', 'sap/ui/model/FormatException', 'sap/ui/model/ParseException'],
+	function(Library, SimpleType, FormatException, ParseException) {
 	"use strict";
 
 
@@ -19,7 +19,7 @@ sap.ui.define(['sap/ui/model/SimpleType', 'sap/ui/model/FormatException', 'sap/u
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions]
@@ -66,7 +66,7 @@ sap.ui.define(['sap/ui/model/SimpleType', 'sap/ui/model/FormatException', 'sap/u
 				if (oValue.toLowerCase() == "false" || oValue == "" || oValue == " ") {
 					return false;
 				}
-				oBundle = sap.ui.getCore().getLibraryResourceBundle();
+				oBundle = Library.getResourceBundleFor("sap.ui.core");
 				throw new ParseException(oBundle.getText("Boolean.Invalid"));
 			default:
 				throw new ParseException("Don't know how to parse Boolean from " + sInternalType);

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,13 +24,12 @@ sap.ui.define([
 	'sap/ui/Global',
 	'sap/ui/base/Object',
 	'sap/ui/core/Element',
-	'sap/ui/core/StaticArea',
 	'sap/ui/core/mvc/View',
 	'sap/ui/test/matchers/Ancestor',
 	'sap/ui/test/matchers/MatcherFactory',
 	'sap/ui/test/pipelines/MatcherPipeline',
 	'sap/ui/test/_OpaLogger'
-], function (extend, ObjectPath, $, Global, UI5Object, UI5Element, StaticArea, View, Ancestor, MatcherFactory,
+], function (extend, ObjectPath, $, Global, UI5Object, UI5Element, View, Ancestor, MatcherFactory,
 			MatcherPipeline, _OpaLogger) {
 
 		/**
@@ -59,7 +58,7 @@ sap.ui.define([
 			 * @public
 			 */
 			getAllControls : function (fnConstructorType, sControlType) {
-				var aControls = UI5Element.registry.filter( makeTypeFilterFn(fnConstructorType) );
+				var aControls = OpaPlugin.getElementRegistry().filter( makeTypeFilterFn(fnConstructorType) );
 				this._oLogger.debug("Found " + aControls.length + " controls" +
 					(fnConstructorType ? " of type '" + (sControlType || fnConstructorType) + "'" : "") + " in page");
 				return aControls;
@@ -109,7 +108,7 @@ sap.ui.define([
 				}
 
 				if (oOptions.viewId) {
-					var oCoreElement = UI5Element.getElementById(oOptions.viewId);
+					var oCoreElement = OpaPlugin.getElementById(oOptions.viewId);
 					if (oCoreElement instanceof View && (!sViewName || oCoreElement.getViewName() === sViewName)) {
 						oView = oCoreElement;
 					}
@@ -243,8 +242,8 @@ sap.ui.define([
 
 			// get control in static area that matches a control type, ID (string, array, regex), viewId, viewName, fragmentId
 			_getControlsInStaticArea: function (oOptions) {
-				var oStaticArea = $(StaticArea.getDomRef());
-				var vControls = this._getControlsInContainer(oStaticArea) || [];
+				var oStaticAreaDomRef = $(OpaPlugin.getStaticAreaDomRef());
+				var vControls = this._getControlsInContainer(oStaticAreaDomRef) || [];
 
 				if (oOptions.id) {
 					vControls = this._filterUniqueControlsByCondition(vControls, function (oControl) {
@@ -300,17 +299,7 @@ sap.ui.define([
 
 			// get controls whose roots are in the subtree of oJQueryElement
 			_getControlsInContainer: function (oJQueryElement) {
-				var aAllControls = oJQueryElement.find("*").control();
-				var aResult = [];
-				aAllControls.forEach(function (oControl) {
-					var bUnique = !aResult.filter(function (oUniqueControl) {
-						return oUniqueControl.getId() === oControl.getId();
-					}).length;
-					if (bUnique) {
-						aResult.push(oControl);
-					}
-				});
-				return aResult;
+				return toUniqueControls(oJQueryElement.find("*"));
 			},
 
 			_isControlInView: function (oControl, sViewName) {
@@ -519,7 +508,7 @@ sap.ui.define([
 				var hasExpectedType = makeTypeFilterFn(oOptions.controlType);
 
 				if (typeof oOptions.id === "string") {
-					var oControl = UI5Element.getElementById(oOptions.id) || null;
+					var oControl = OpaPlugin.getElementById(oOptions.id) || null;
 
 					if (oControl && !hasExpectedType(oControl)) {
 						this._oLogger.error("A control with global ID '" + oOptions.id + "' is found but does not have required controlType '" +
@@ -536,7 +525,7 @@ sap.ui.define([
 
 				if (bMatchById) {
 					//Performance critical
-					UI5Element.registry.forEach(function(oElement, sId) {
+					OpaPlugin.getElementRegistry().forEach(function(oElement, sId) {
 						if (oOptions.id.test(sId)) {
 							aMatchIds.push(sId);
 						}
@@ -549,7 +538,7 @@ sap.ui.define([
 				var aUnmatchedIds = [];
 
 				aMatchIds.forEach(function (sId) {
-					var oControl = UI5Element.getElementById(sId);
+					var oControl = OpaPlugin.getElementById(sId);
 					// only return defined controls
 					if (oControl && hasExpectedType(oControl) && !oControl.bIsDestroyed) {
 						aMatchingControls.push(oControl);
@@ -712,6 +701,134 @@ sap.ui.define([
 
 		// delimiter after view or fragment prefix in control IDs
 		OpaPlugin.VIEW_ID_DELIMITER = "--";
+
+		/**
+		 * Returns <code>true</code> if there are any pending rendering tasks or when
+		 * such rendering tasks are currently being executed.
+		 * Internally forwards to {@link sap.ui.core.Rendering#isPending} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @returns {boolean} true if there are pending (or executing) rendering tasks.
+		 * @protected
+		 */
+		OpaPlugin.isUIDirty = function() {
+			var oRendering = sap.ui.require("sap/ui/core/Rendering");
+			if (typeof oRendering?.isPending === "function") {
+				return oRendering.isPending();
+			}
+			var oCore = sap.ui.require("sap/ui/core/Core");
+			if (typeof oCore?.getUIDirty === "function") {
+				return oCore.getUIDirty();
+			}
+		};
+
+		/**
+		 * Retrieves a resource bundle for the given library and locale.
+		 * Internally forwards to {@link sap.ui.core.Lib#getResourceBundleFor} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @param {string} sLibraryName
+		 * @protected
+		 */
+		OpaPlugin.getLibraryResourceBundle = function(sLibraryName) {
+			var oLibrary = sap.ui.require("sap/ui/core/Lib");
+			if (typeof oLibrary?.getResourceBundleFor === "function") {
+				return oLibrary.getResourceBundleFor(sLibraryName);
+			}
+			var oCore = sap.ui.require("sap/ui/core/Core");
+			if (typeof oCore?.getLibraryResourceBundle === "function") {
+				return oCore.getLibraryResourceBundle(sLibraryName);
+			}
+		};
+
+		/**
+		 * Returns the registered element with the given ID, if any.
+		 * Internally forwards to {@link sap.ui.core.Element#getElementById} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @param {sap.ui.core.ID|null|undefined} sId ID of the element to search for
+		 * @returns {sap.ui.core.Element|undefined} Element with the given ID or <code>undefined</code>
+		 * @protected
+		 */
+		OpaPlugin.getElementById = function(sId) {
+			var oUI5Element = sap.ui.require("sap/ui/core/Element");
+
+			if (typeof oUI5Element.getElementById === "function") {
+				return oUI5Element.getElementById(sId);
+			}
+			if (typeof oUI5Element.registry?.get === "function") {
+				return oUI5Element.registry.get(sId);
+			}
+		};
+
+		/**
+		 * Returns the root element of the static, hidden area.
+		 * Internally forwards to {@link sap.ui.core.StaticArea#getDomRef} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @returns {Element} the root DOM element of the static, hidden area
+		 * @protected
+		 */
+		OpaPlugin.getStaticAreaDomRef = function() {
+			var oStaticArea = sap.ui.require("sap/ui/core/StaticArea");
+			if (typeof oStaticArea?.getDomRef === "function") {
+				return oStaticArea.getDomRef();
+			}
+			var oCore = sap.ui.require("sap/ui/core/Core");
+			if (typeof oCore?.getStaticAreaRef === "function") {
+				return oCore.getStaticAreaRef();
+			}
+		};
+
+		/**
+		 * Return an object with all instances of <code>sap.ui.core.Element</code>,
+	 	 * keyed by their ID.
+		 * Internally requires {@link sap.ui.core.ElementRegistry} or the corresponsing legacy API.
+		 * The legacy API is used when the tested app is loaded in an iframe that uses a lower UI5 version.
+		 *
+		 * @returns {Object<sap.ui.core.ID,sap.ui.core.Element>}
+		 */
+		OpaPlugin.getElementRegistry = function() {
+			var oElementRegistry = sap.ui.require("sap/ui/core/ElementRegistry");
+
+			if (oElementRegistry) {
+				return oElementRegistry;
+			}
+			return sap.ui.require("sap/ui/core/Element").registry;
+		};
+
+		let toUniqueControls = function($DOMElements) {
+			const aControls = [];
+			$DOMElements.each((_idx, oDomRef) => {
+				const oUI5Element = UI5Element.closestTo(oDomRef);
+				if (oUI5Element && !aControls.includes(oUI5Element)) {
+					aControls.push(oUI5Element);
+				}
+			});
+			return aControls;
+		};
+
+		/**
+		 * Fallback to an implementation based on jQuery plugin when UI5Element.closestTo does not
+		 * exist yet (when the application under test is executed with a much older UI5 version).
+		 *
+		 * @deprecated Since 1.106
+		 */
+		if (typeof UI5Element.closestTo !== "function") {
+			toUniqueControls = function ($DOMElements) {
+				var aAllControls = $DOMElements.control();
+				var aResult = [];
+				aAllControls.forEach(function (oControl) {
+					var bUnique = !aResult.filter(function (oUniqueControl) {
+						return oUniqueControl.getId() === oControl.getId();
+					}).length;
+					if (bUnique) {
+						aResult.push(oControl);
+					}
+				});
+				return aResult;
+			};
+		}
 
 		return OpaPlugin;
 	});

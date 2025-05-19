@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/core/library",
+	"sap/base/i18n/Formatting",
+	"sap/base/i18n/date/CalendarType",
+	"sap/ui/core/Lib",
 	"sap/ui/core/Control",
 	"sap/ui/model/type/Date",
 	"sap/ui/model/odata/type/ODataType",
@@ -15,11 +17,12 @@ sap.ui.define([
 	"./library",
 	"./Button",
 	"sap/ui/core/date/UI5Date",
-	"./TimePickerInternalsRenderer",
-	"sap/ui/core/Configuration"
+	"./TimePickerInternalsRenderer"
 ],
 	function(
-		coreLibrary,
+		Formatting,
+		CalendarType,
+		Library,
 		Control,
 		SimpleDateType,
 		ODataType,
@@ -28,15 +31,13 @@ sap.ui.define([
 		Locale,
 		library,
 		Button,
-        UI5Date,
-		TimePickerInternalsRenderer,
-		Configuration
+		UI5Date,
+		TimePickerInternalsRenderer
 	) {
 		"use strict";
 
 		var DEFAULT_STEP = 1,
-			ButtonType = library.ButtonType,
-			CalendarType = coreLibrary.CalendarType;
+			ButtonType = library.ButtonType;
 
 		/**
 		 * Constructor for a new <code>TimePickerInternals</code>.
@@ -49,7 +50,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
@@ -136,12 +137,12 @@ sap.ui.define([
 		 * @private
 		 */
 		TimePickerInternals.prototype.init = function () {
-			var oLocale = Configuration.getFormatSettings().getFormatLocale(),
+			var oLocale = new Locale(Formatting.getLanguageTag()),
 				oLocaleData = LocaleData.getInstance(oLocale),
 				aPeriods = oLocaleData.getDayPeriods("abbreviated"),
 				sDefaultDisplayFormat = oLocaleData.getTimePattern("medium");
 
-			this._oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			this._oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 			this._sAM = aPeriods[0];
 			this._sPM = aPeriods[1];
@@ -333,7 +334,7 @@ sap.ui.define([
 		 */
 		TimePickerInternals.prototype._getLocaleBasedPattern = function (sPlaceholder) {
 			return LocaleData.getInstance(
-				Configuration.getFormatSettings().getFormatLocale()
+				new Locale(Formatting.getLanguageTag())
 			).getTimePattern(sPlaceholder);
 		};
 
@@ -374,7 +375,7 @@ sap.ui.define([
 			}
 
 			if (!sCalendarType) {
-				sCalendarType = Configuration.getCalendarType();
+				sCalendarType = Formatting.getCalendarType();
 			}
 
 			return this._getFormatterInstance(sPattern, bRelative, sCalendarType);
@@ -512,7 +513,10 @@ sap.ui.define([
 		 */
 		TimePickerInternals._replaceZeroHoursWith24 = function (sValue, iIndexOfHH, iIndexOfH) {
 			var iHoursDigits = 2,
-				iSubStringIndex = iIndexOfHH;
+				sTrailingSpaces = ' ',
+				iSubStringIndex = iIndexOfHH,
+				bTrailingSpaces = sValue.charAt(iIndexOfH) === sTrailingSpaces,
+				iExtraIndex = bTrailingSpaces ? 1 : 0;
 			var oSignificantNumbers = /[1-9]/g;
 
 			if (iIndexOfH === -1) {
@@ -524,7 +528,7 @@ sap.ui.define([
 				iSubStringIndex = iIndexOfH;
 			}
 
-			var sValueWithoutHours = sValue.substr(0, iSubStringIndex) + sValue.substr(iSubStringIndex + iHoursDigits);
+			var sValueWithoutHours = sValue.substring(0, iSubStringIndex) + sValue.substring(iSubStringIndex + iExtraIndex + iHoursDigits);
 
 			if (oSignificantNumbers.test(sValueWithoutHours)) {
 				return sValue;
@@ -532,7 +536,7 @@ sap.ui.define([
 
 			sValue = sValue.replace(/[0-9]/g, "0");
 
-			return sValue.substr(0, iSubStringIndex) + "24" + sValue.substr(iSubStringIndex + iHoursDigits);
+			return sValue.substring(0, iSubStringIndex) + "24" + sValue.substring(iSubStringIndex + iExtraIndex + iHoursDigits);
 		};
 
 		/**

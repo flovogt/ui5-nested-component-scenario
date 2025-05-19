@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -27,8 +27,38 @@ sap.ui.define(['sap/ui/base/Object'], function(BaseObject) {
 	 * <b>Note:</b> If a class returns a facade in its constructor, only the defined functions will be visible,
 	 * no internals of the class can be accessed.
 	 *
+	 * @example
+	 * <code>sap.ui.define([
+	 *   "sap/ui/base/Object",
+	 *   "sap/ui/base/Interface"
+	 * ], (BaseObject, Interface) => {
+	 *   "use strict";
+	 *   const MyModule = BaseObject.extend("MyModule", {
+	 *     constructor: function() {
+	 *       this._limitedModuleInterface = new Interface(this, [
+	 *         "doSomething",
+	 *         "doSomethingElse"
+	 *       ]);
+	 *     },
+	 *     doSomething() {
+	 *       // Can be called on a MyModule instance and on the facade
+	 *     },
+	 *     doSomethingElse() {
+	 *       // Can be called on a MyModule instance and on the facade
+	 *     },
+	 *     doSomethingNot() {
+	 *      // Can be called only on a MyModule instance and not on the facade
+	 *     },
+	 *     getFacade() {
+	 *       return this._limitedModuleInterface;
+	 *     }
+	 *   });
+	 *   return MyModule;
+	 * });
+	 * </code>
+	 *
 	 * @author Malte Wedel, Daniel Brinkmann
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @param {sap.ui.base.Object} oObject
 	 *   Object for which a facade should be created
 	 * @param {string[]} aMethods

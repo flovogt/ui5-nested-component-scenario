@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -35,16 +35,16 @@ sap.ui.define([], function () {
 		// '*' or '*/$ref'
 		sStarPath = sStar + "(?:/\\$ref)?",
 		// a path (ABNF rules expandPath, selectPath, ...)
-		sPath = sNamedPath + "|" + sStarPath,
+		sPathExpression = sNamedPath + "|" + sStarPath,
 		// The pattern for a token with ID "VALUE"
 		// All other characters in expressions
 		// (constants of type double/date/time/dateTimeOffset/GUID), '/' as part of rootExpr or
 		// implicitVariableExpr, '+' and ':' may be %-encoded
-		sValue = '(?:[-+:./\\w"]|%2[bB]|%3[aA])+',
+		sValueExpression = '(?:[-+:./\\w"]|%2[bB]|%3[aA])+',
 		// A Token: either an operator, a delimiter, a GUID (in aMatches[4]), a path (in
 		// aMatches[5]), a value (in aMatches[6]) or a system query option (in aMatches[7])
 		rToken = new RegExp("^(?:" + sOperators + "|" + sDelimiters + "|(" + sGuid + ")|("
-			+ sPath + ")|(" + sValue + ")|(" + sSystemQueryOption + "))"),
+			+ sPathExpression + ")|(" + sValueExpression + ")|(" + sSystemQueryOption + "))"),
 		// The two hex digits of a %-escape
 		rEscapeDigits = /^[0-9a-f]{2}$/i,
 		// The list of built-in functions
@@ -174,7 +174,7 @@ sap.ui.define([], function () {
 	 * @param {number} iLbp The "left binding power"
 	 */
 	function addInfixOperator(sId, iLbp) {
-		// Note: this function is executed at load time only!
+		// Note: this function is run at load time only!
 		mFilterParserSymbols[sId] = {
 			lbp : iLbp,
 			led : function (oToken, oLeft) {
@@ -193,7 +193,7 @@ sap.ui.define([], function () {
 	 * @param {string} sId The token ID
 	 */
 	function addLeafSymbol(sId) {
-		// Note: this function is executed at load time only!
+		// Note: this function is run at load time only!
 		mFilterParserSymbols[sId] = {
 			lbp : 0,
 			nud : function (oToken) {

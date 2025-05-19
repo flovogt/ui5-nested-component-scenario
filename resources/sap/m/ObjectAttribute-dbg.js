@@ -1,23 +1,24 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.ObjectAttribute.
 sap.ui.define([
 	'./library',
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/ui/core/library',
 	'sap/m/Text',
 	'sap/ui/core/Element',
+	"sap/ui/core/Locale",
 	'sap/ui/events/KeyCodes',
 	'./ObjectAttributeRenderer',
 	'sap/base/Log',
-	'sap/ui/base/ManagedObjectObserver',
-	'sap/ui/core/Core'
+	'sap/ui/base/ManagedObjectObserver'
 ],
-function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttributeRenderer, Log, ManagedObjectObserver, oCore) {
+function(library, Localization, Control, coreLibrary, Text, Element, Locale, KeyCodes, ObjectAttributeRenderer, Log, ManagedObjectObserver) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TextDirection
@@ -28,6 +29,9 @@ function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttribute
 
 	// shortcut for sap.ui.core.aria.HasPopup
 	var AriaHasPopup = coreLibrary.aria.HasPopup;
+
+	// shortcut for sap.m.ReactiveAreaMode
+	var ReactiveAreaMode = library.ReactiveAreaMode;
 
 	/**
 	 * Constructor for a new <code>ObjectAttribute</code>.
@@ -43,7 +47,7 @@ function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttribute
 	 * <code>text</code> property is styled and acts as a link. In this case the <code>text</code>
 	 * property must also be set, as otherwise there will be no link displayed for the user.
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -74,6 +78,20 @@ function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttribute
 				 * <b>Note:</b> When <code>active</code> property is set to <code>true</code>, and the text direction of the <code>title</code> or the <code>text</code> does not match the text direction of the application, the <code>textDirection</code> property should be set to ensure correct display.
 				 */
 				active : {type : "boolean", group : "Misc", defaultValue : null},
+
+				/**
+				 * Defines the size of the reactive area of the link:<ul>
+				 * <li><code>ReactiveAreaMode.Inline</code> - The link is displayed as part of a sentence.</li>
+				 * <li><code>ReactiveAreaMode.Overlay</code> - The link is displayed as an overlay on top of other interactive parts of the page.</li></ul>
+				 *
+				 * <b>Note:</b>It is designed to make links easier to activate and helps meet the WCAG 2.2 Target Size requirement. It is applicable only for the SAP Horizon themes.
+				 * <b>Note:</b>The Reactive area size is sufficiently large to help users avoid accidentally selecting (clicking or tapping) on unintented UI elements.
+				 * UI elements positioned over other parts of the page may need an invisible active touch area.
+				 * This will ensure that no elements beneath are activated accidentally when the user tries to interact with the overlay element.
+				 *
+				 * @since 1.133.0
+				 */
+				reactiveAreaMode : {type : "sap.m.ReactiveAreaMode", group : "Appearance", defaultValue : ReactiveAreaMode.Inline},
 
 				/**
 				 * Determines the direction of the text.
@@ -173,7 +191,7 @@ function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttribute
 			sText = this.getAggregation('customContent') ? this.getAggregation('customContent').getText() : this.getText(),
 			sTextDir = this.getTextDirection(),
 			oParent = this.getParent(),
-			bPageRTL = oCore.getConfiguration().getRTL(),
+			bPageRTL = Localization.getRTL(),
 			iMaxLines,
 			bWrap = true,
 			oppositeDirectionMarker = '',
@@ -191,7 +209,7 @@ function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttribute
 
 		if (sTitle) {
 			sResult = sTitle;
-			if (oCore.getConfiguration().getLocale().getLanguage().toLowerCase() === "fr") {
+			if (new Locale(Localization.getLanguageTag()).getLanguage().toLowerCase() === "fr") {
 				sResult += " ";
 			}
 			sResult += ": " + sText;
@@ -375,7 +393,9 @@ function(library, Control, coreLibrary, Text, Element, KeyCodes, ObjectAttribute
 	 * @private
 	 */
 	ObjectAttribute.prototype._isClickable = function() {
-		return (this.getActive() && this.getText() !== "") || ( this.getAggregation('customContent') && this.getAggregation('customContent').isA('sap.m.Link'));
+		return this.getAggregation('customContent')
+			? this.getAggregation('customContent').isA('sap.m.Link')
+			: this.getActive() && this.getText() !== "";
 	};
 
 	return ObjectAttribute;

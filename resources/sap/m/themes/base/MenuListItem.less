@@ -4,17 +4,9 @@
 /* =================================== */
 
 /* phone */
-
 .sapMRespMenuDialog .sapMLIB {
 	position: relative;
-}
-
-.sapMRespMenuDialog .sapMSLIIcon {
-	padding-left: 0;
-}
-
-.sapMRespMenuDialog .sapMSLIIcon > .sapMLIBContent {
-	margin-left: 0;
+	padding: 0 0.875rem;
 }
 
 .sapMRespMenuDialog .sapMSLITitleOnly {
@@ -24,33 +16,35 @@
 }
 
 .sapMMenuLIHasChildren .sapMSLITitleDiv {
-	margin-right: 2rem;
 	text-overflow: ellipsis;
+}
+
+.sapMMenuLIImgThumbWrapper {
+	font-size: 1.375rem;
+	min-width: 1rem;
+	max-width: 1rem;
+	padding-inline-end: 0.875rem;
+	text-align: center;
 }
 
 .sapMMenuLIImgThumbIcon {
 	font-size: 1.375rem;
-	width: 3rem;
-	height: 3rem;
-	line-height: 3rem;
-	-webkit-box-flex: 0;
-	flex: none;
 }
 
 .sapMMenuLIArrowRightIcon {
-	position:absolute;
-	right:0;
-	top:0;
 	font-size: .75rem;
-	width: 3rem;
+	width: 1.875rem;
 	height: 3rem;
 	line-height: 3rem;
-	-webkit-box-flex: 0;
-	flex: none;
 }
 
 .sapMRespMenuDialog .sapUiMnuDiv {
 	height: 1px;
+	width: 100%;
+	position: absolute;
+	left: 0;
+	top: 0;
+	display: block;
 }
 
 .sapMRespMenuDialog .sapUiMnuDiv > hr {
@@ -62,71 +56,50 @@
 
 .sapMMLIDisabled .sapMSLITitle,
 .sapMMLIDisabled .sapMSLITitleOnly {
-	color: @sapUiContentDisabledTextColor;
+	color: var(--sapContent_DisabledTextColor);
 }
 
 html.sap-phone .sapMMLIDisabled .sapMMenuLIImgThumbIcon,
 html.sap-tablet .sapMMLIDisabled .sapMMenuLIImgThumbIcon {
-	color: @sapUiContentDisabledTextColor;
+	color: var(--sapContent_DisabledTextColor);
 }
 
-/* end phone */
+.sapMMenuLISel {
+	padding-inline-start: 0.5rem;
+	padding-inline-end: 0;
+	font-weight: normal;
+	text-align: center;
+
+	&::after {
+		color: var(--sapSelectedColor);
+		content: '\e05b';
+		font-family: var(--sapContent_IconFontFamily);
+		outline: none;
+		line-height: inherit;
+		padding-inline-end: 0.125rem;
+		width: 2rem;
+		height: 2rem;
+	}
+}
 
 /* desktop and tablet */
-
 .sapMMenu .sapUiMnuDiv > hr {
 	height: 0;
 	margin: 0;
 }
 
-.sapMMenu .sapUiMnuItm .sapUiMnuItmIco {
-	position: absolute;
-}
-
-.sapMMenu .sapUiMnuLst .sapUiMnuItm {
-	.sapUiMnuItmIco + .sapUiMnuItmTxt {
-		margin-left: 2.25rem;
-	}
-}
-
-.sapMMenu.sapUiMnu.sapUiMnuCozySupport.sapUiSizeCozy .sapUiMnuItmTxt {
-	padding-right: 3rem;
-	text-overflow: ellipsis;
-}
-
-//really strong selector in the sapUiMnu demands this
+/* really strong selector in the sapUiMnu demands this */
 .sapMMenu.sapUiMnu.sapUiMnuCozySupport .sapUiMnuItmTxt {
 	text-overflow: ellipsis;
 	max-width: 100%;
-	max-width: -moz-available;          /* WebKit-based browsers will ignore this. */
-	max-width: -webkit-fill-available;  /* Mozilla-based browsers will ignore this. */
+	max-width: -moz-available; /* WebKit-based browsers will ignore this. */
+	max-width: -webkit-fill-available; /* Mozilla-based browsers will ignore this. */
 	max-width: fill-available;
 }
 
-/* end cozy */
-
 /* compact */
-
-
 .sapUiSizeCompact .sapMMenuLIArrowRightIcon {
 	width: 2rem;
 	height: 2rem;
 	line-height: 2rem;
 }
-
-.sapUiSizeCompact {
-	.sapMMenu .sapUiMnuLst .sapUiMnuItm {
-		.sapUiMnuItmIco + .sapUiMnuItmTxt {
-			margin-left: 2rem;
-		}
-	}
-	.sapMMenu.sapUiMnu.sapUiMnuCozySupport .sapUiMnuItmTxt {
-		padding-right: 2.5rem;
-	}
-	.sapMMenu .sapUiMnuLst.sapUiMnuNoSbMnu .sapUiMnuItm .sapUiMnuItmTxt {
-		padding-right: 0.5rem;
-	}
-}
-/* end compact */
-
-/* end desktop and tablet */

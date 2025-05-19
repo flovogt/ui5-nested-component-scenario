@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/core/Renderer', 'sap/ui/core/Core', 'sap/ui/core/library'],
-	function(ComboBoxBaseRenderer, ComboBoxTextFieldRenderer, Renderer, Core, coreLibrary) {
+sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', "sap/ui/core/Lib", 'sap/ui/core/Renderer', 'sap/ui/core/library'],
+	function(ComboBoxBaseRenderer, ComboBoxTextFieldRenderer, Library, Renderer, coreLibrary) {
 	"use strict";
 
 	var ValueState = coreLibrary.ValueState;
@@ -64,7 +64,7 @@ sap.ui.define(['./ComboBoxBaseRenderer','./ComboBoxTextFieldRenderer', 'sap/ui/c
 	 */
 	MultiComboBoxRenderer.getAccessibilityState = function (oControl) {
 		var mAccessibilityState = ComboBoxBaseRenderer.getAccessibilityState.apply(this, arguments),
-			oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+			oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 		mAccessibilityState.roledescription = oResourceBundle.getText("MULTICOMBOBOX_ARIA_ROLE_DESCRIPTION");
 

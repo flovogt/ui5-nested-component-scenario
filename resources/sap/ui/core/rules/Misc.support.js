@@ -1,26 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines miscellaneous support rules.
  */
 sap.ui.define([
+	"sap/base/Log",
 	"sap/ui/core/ComponentRegistry",
-	"sap/ui/support/library",
-	"./CoreHelper.support",
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/dom/jquery/control" // jQuery Plugin "control"
-], function(ComponentRegistry, SupportLib, CoreHelper, jQuery) {
+	"sap/ui/support/library"
+], function(Log, ComponentRegistry, SupportLib) {
 	"use strict";
-
-	// support rules can get loaded within a ui5 version which does not have module "sap/base/Log" yet
-	// therefore load the jQuery.sap.log fallback if not available
-	var Log = sap.ui.require("sap/base/Log");
-	if (!Log) {
-		Log = jQuery.sap.log;
-	}
 
 	// shortcuts
 	var Categories = SupportLib.Categories; // Accessibility, Performance, Memory, ...

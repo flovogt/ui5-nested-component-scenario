@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,7 +15,9 @@ sap.ui.define([
 	'./SinglePlanningCalendarRenderer',
 	'sap/base/Log',
 	'sap/ui/core/Control',
+	"sap/ui/core/Element",
 	'sap/ui/core/InvisibleText',
+	"sap/ui/core/Lib",
 	'sap/ui/core/ResizeHandler',
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/unified/calendar/CalendarDate',
@@ -25,7 +27,7 @@ sap.ui.define([
 	'sap/ui/base/ManagedObjectObserver',
 	"sap/ui/core/date/UI5Date",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/date/CalendarWeekNumbering"
+	"sap/base/i18n/date/CalendarWeekNumbering"
 ],
 function(
 	library,
@@ -37,7 +39,9 @@ function(
 	SinglePlanningCalendarRenderer,
 	Log,
 	Control,
+	Element,
 	InvisibleText,
+	Library,
 	ResizeHandler,
 	DateFormat,
 	CalendarDate,
@@ -47,7 +51,7 @@ function(
 	ManagedObjectObserver,
 	UI5Date,
 	jQuery,
-	CalendarWeekNumbering
+	_CalendarWeekNumbering // type of `calendarWeekNumbering`
 ) {
 	"use strict";
 
@@ -107,7 +111,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -183,6 +187,25 @@ function(
 				 * The drag and drop interaction is visualized by a placeholder highlighting the area where the
 				 * appointment can be dropped by the user.
 				 *
+				 * <b>Note:</b> Additional application-level code will be needed to provide a keyboard alternative to drag and drop mouse interactions.
+				 * One possible option is by handling {@link sap.m.SinglePlanningCalendar#event:appointmentSelect appointmentSelect} event of the
+				 * <code>sap.m.SinglePlanningCalendar</code>, as shown in the following simplified example:
+				 *
+				 * <pre>
+				 * 	new sap.m.SinglePlanningCalendar({
+				 * 		...
+		 		 *		enableAppointmentsDragAndDrop: true,
+		 		 * 		...
+				 *		appointmentSelect: function(event) {
+				 *			// Open edit {@link sap.m.Dialog Dialog} to modify the appointment properties
+				 *			new sap.m.Dialog({ ... }).openBy(event.getParameter("appointment"));
+				 *		}
+				 *	});
+				 * </pre>
+				 *
+				 * For a complete example, you can check out the following Demokit sample:
+				 * {@link https://ui5.sap.com/#/entity/sap.m.SinglePlanningCalendar/sample/sap.m.sample.SinglePlanningCalendarCreateApp Single Planning Calendar - Create and Modify Appointments}
+				 *
 				 * @since 1.64
 				 */
 				enableAppointmentsDragAndDrop: { type: "boolean", group: "Misc", defaultValue: false },
@@ -196,6 +219,9 @@ function(
 				 * of 30 minutes. After the resize is finished, the {@link #event:appointmentResize appointmentResize} event is fired, containing
 				 * the new start and end UI5Date or JavaScript Date objects.
 				 *
+				 * <b>Note:</b> Additional application-level code will be needed to provide a keyboard alternative to appointments resizing interactions with mouse.
+				 * It can be done in a similar way as described in the <code>enableAppointmentsDragAndDrop</code> property documentation.
+				 *
 				 * @since 1.65
 				 */
 				enableAppointmentsResize: { type: "boolean", group: "Misc", defaultValue: false },
@@ -203,7 +229,7 @@ function(
 				/**
 				 * Determines whether the appointments can be created by dragging on empty cells.
 				 *
-				 * See {@link #property:enableAppointmentsResize enableAppointmentsResize} for the specific points for events snapping
+				 * See <code>enableAppointmentsResize</code> property documentation for the specific points for events snapping.
 				 *
 				 * @since 1.65
 				 */
@@ -227,7 +253,7 @@ function(
 				 * Note: This property should not be used with firstDayOfWeek property.
 				 * @since 1.110.0
 				 */
-				calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
+				calendarWeekNumbering : { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
 
 				/**
 				 * Determines whether more than one day will be selectable.
@@ -255,9 +281,6 @@ function(
 				 * The appointments to be displayed in the grid. Appointments outside the visible time frame are not rendered.
 				 * Appointments, longer than a day, will be displayed in all of the affected days.
 				 * To display an all-day appointment, the appointment must start at 00:00 and end on any day in the future in 00:00h.
-				 *
-				 * Note: The <code>customContent</code> functionality of the <code>CalendarAppointment</code> is not available
-				 * in the <code>SinglePlanningCalendar</code>. If set, it will not make any effect.
 				 */
 				appointments : {
 					type: "sap.ui.unified.CalendarAppointment",
@@ -268,7 +291,20 @@ function(
 						aggregation: "appointments"
 					}
 				},
-
+				/**
+				 * Sets the provided period to be displayed as a non-working.
+				 *
+				 * <b>Note:</b> The visualization of non-working periods is present in all views that include hours representation.
+				 * @since 1.128
+				 */
+				nonWorkingPeriods: {
+					type: "sap.ui.unified.NonWorkingPeriod",
+					multiple: true,
+					forwarding: {
+						getter: "_getCurrentGrid",
+						aggregation: "nonWorkingPeriods"
+					}
+				},
 				/**
 				 * Views of the <code>SinglePlanningCalendar</code>.
 				 *
@@ -279,7 +315,35 @@ function(
 				/**
 				 * Special days in the header visualized as a date range with type.
 				 *
-				 * <b>Note:</b> If one day is assigned to more than one type, only the first type is used.
+				 * <b>Note:</b> In case there are multiple <code>sap.ui.unified.DateTypeRange</code> instances given for a single date,
+				 * only the first <code>sap.ui.unified.DateTypeRange</code> instance will be used.
+				 * For example, using the following sample, the 1st of November will be displayed as a working day of type "Type10":
+				 *
+				 *
+				 *	<pre>
+				 *	new DateTypeRange({
+				 *		startDate: UI5Date.getInstance(2023, 10, 1),
+				 *		type: CalendarDayType.Type10,
+				 *	}),
+				 *	new DateTypeRange({
+				 *		startDate: UI5Date.getInstance(2023, 10, 1),
+				 *		type: CalendarDayType.NonWorking
+				 *	})
+				 *	</pre>
+				 *
+				 * If you want the first of November to be displayed as a non-working day and also as "Type10," the following should be done:
+				 *	<pre>
+				 *	new DateTypeRange({
+				 *		startDate: UI5Date.getInstance(2023, 10, 1),
+				 *		type: CalendarDayType.Type10,
+				 *		secondaryType: CalendarDayType.NonWorking
+				 *	})
+				 *	</pre>
+				 *
+				 * You can use only one of the following types for a given date: <code>sap.ui.unified.CalendarDayType.NonWorking</code>,
+				 * <code>sap.ui.unified.CalendarDayType.Working</code> or <code>sap.ui.unified.CalendarDayType.None</code>.
+				 * Assigning more than one of these values in combination for the same date will lead to unpredictable results.
+				 *
 				 * @since 1.66
 				 */
 				specialDates : {type : "sap.ui.unified.DateTypeRange",
@@ -494,7 +558,11 @@ function(
 						 * The date as a UI5Date or JavaScript Date object of the cell with the
 						 * pressed more link.
 						 */
-						date: { type: "object" }
+						date: {type: "object"},
+						/**
+						 * The link that has been triggered
+						 */
+						sourceLink: {type: "sap.m.Link"}
 					}
 				},
 
@@ -502,7 +570,38 @@ function(
 				 * The view was changed by user interaction.
 				 * @since 1.71.0
 				 */
-				viewChange : {}
+				viewChange : {},
+
+				/**
+				 * Fired when the week number selection changes. If <code>dateSelectionMode</code> is <code>SinglePlanningCalendarSelectionMode.Multiselect</code>, clicking on the week number will select the corresponding week.
+				 * If the week has already been selected, clicking the week number will deselect it.
+				 *
+				 * @since 1.123
+				 */
+				weekNumberPress : {
+					parameters: {
+						/**
+						 * Тhe number of the pressed calendar week.
+						 */
+						weekNumber: {type: "int"}
+					}
+				},
+				/**
+				 * Fired when the selected dates change.
+				 * The default behavior can be prevented using the <code>preventDefault</code> method.
+				 *
+				 * <b>Note:</b> If the event is prevented, the changes in the aggregation <code>selectedDates</code> will be canceled and it will revert to its previous state.
+				 * @since 1.123
+				 */
+				selectedDatesChange : {
+					allowPreventDefault: true,
+					parameters: {
+						/**
+						 * The array of all selected days.
+						 */
+						selectedDates: {type: "sap.ui.unified.DateRange[]"}
+					}
+				}
 			}
 
 		},
@@ -513,7 +612,7 @@ function(
 	SinglePlanningCalendar.prototype.init = function() {
 		var sOPCId = this.getId();
 
-		this._oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRB = Library.getResourceBundleFor("sap.m");
 		this._oDefaultView = new SinglePlanningCalendarWeekView({
 			key: "DEFAULT_INNER_WEEK_VIEW_CREATED_FROM_CONTROL",
 			title: ""
@@ -605,6 +704,15 @@ function(
 
 		return this;
 	};
+
+	/**
+	 * Gets current value of property <code>startDate</code>.
+	 *
+	 * @method
+	 * @public
+	 * @name sap.m.SinglePlanningCalendar#getStartDate
+	 * @returns {Date|module:sap/ui/core/date/UI5Date} The startDate as a UI5Date or JavaScript Date object
+	 */
 
 	SinglePlanningCalendar.prototype.setTitle = function (sTitle) {
 		this._getHeader().setTitle(sTitle);
@@ -699,7 +807,7 @@ function(
 
 	/**
 	 * Removes the selected dates of the grid.
-	 * @returns {object} An array of the removed DateRange objects
+	 * @returns {sap.ui.unified.DateRange[]} An array of the removed DateRange objects
 	 * @public
 	 */
 	SinglePlanningCalendar.prototype.removeAllSelectedDates = function () {
@@ -708,7 +816,7 @@ function(
 
 	/**
 	 * Gets the selected dates of the grid.
-	 * @returns {object} An array of DateRange objects
+	 * @returns {sap.ui.unified.DateRange[]} An array of DateRange objects
 	 * @public
 	 */
 	SinglePlanningCalendar.prototype.getSelectedDates = function () {
@@ -717,7 +825,7 @@ function(
 
 	/**
 	 * Adds a selected date to the grid.
-	 * @param {object} oSelectedDate A DateRange object
+	 * @param {sap.ui.unified.DateRange} oSelectedDate A DateRange object
 	 * @returns {this} Reference to <code>this</code> for method chaining
 	 * @public
 	 */
@@ -919,7 +1027,7 @@ function(
 	 * @private
 	 */
 	SinglePlanningCalendar.prototype._viewsObserverCallbackFunction = function (oChanges) {
-		sap.ui.getCore().byId(oChanges.object.getId() + SEGMENTEDBUTTONITEM__SUFFIX).setText(oChanges.current);
+		Element.getElementById(oChanges.object.getId() + SEGMENTEDBUTTONITEM__SUFFIX).setText(oChanges.current);
 	};
 
 	/**
@@ -1007,7 +1115,7 @@ function(
 		if (sLegend) {
 			this.getAggregation("_grid")._sLegendId = sLegend;
 			this.getAggregation("_mvgrid")._sLegendId = sLegend;
-			oLegend = sap.ui.getCore().byId(sLegend);
+			oLegend = Element.getElementById(sLegend);
 		}
 
 		if (oLegend) { //destroy of the associated legend should rerender the SPC
@@ -1051,12 +1159,14 @@ function(
 		this.getViews().forEach(function (oView) {
 			oView.setCalendarWeekNumbering(sCalendarWeekNumbering);
 		});
+
 		var oHeader = this._getHeader(),
 			oPicker = oHeader.getAggregation("_calendarPicker") ? oHeader.getAggregation("_calendarPicker") : oHeader._oPopup.getContent()[0],
 			oMonthGrid = this.getAggregation("_mvgrid");
 
-		oMonthGrid.setCalendarWeekNumbering(this.getCalendarWeekNumbering());
-		oPicker.setCalendarWeekNumbering(this.getCalendarWeekNumbering());
+		oHeader.setCalendarWeekNumbering(sCalendarWeekNumbering);
+		oMonthGrid.setCalendarWeekNumbering(sCalendarWeekNumbering);
+		oPicker.setCalendarWeekNumbering(sCalendarWeekNumbering);
 
 		this._alignColumns();
 
@@ -1150,7 +1260,7 @@ function(
 	SinglePlanningCalendar.prototype._getSelectedView = function () {
 		var oSelectedView,
 			aViews = this.getViews(),
-			sCurrentViewKey = sap.ui.getCore().byId(this.getAssociation("selectedView")).getKey();
+			sCurrentViewKey = Element.getElementById(this.getAssociation("selectedView")).getKey();
 
 		for (var i = 0; i < aViews.length; i++) {
 			if (sCurrentViewKey === aViews[i].getKey()) {
@@ -1266,9 +1376,22 @@ function(
 		};
 		var fnHandleMoreLinkPress = function(oEvent) {
 			this.fireEvent("moreLinkPress", {
-				date: oEvent.getParameter("date")
+				date: oEvent.getParameter("date"),
+				sourceLink: oEvent.getParameter("sourceLink")
 			});
 		};
+		var fnHandleWeekNumberPress = function(oEvent) {
+			this.fireEvent("weekNumberPress", {
+				weekNumber: oEvent.getParameter("weekNumber")
+			});
+		};
+		var fnHandleSelectedDatesChange = function(oEvent) {
+			const bExecuteDefault = this.fireSelectedDatesChange({ selectedDates: oEvent.getParameter("selectedDates")});
+			if (!bExecuteDefault) {
+				oEvent.preventDefault();
+			}
+		};
+
 		var fnHandleBorderReached = function(oEvent) {
 			var oGrid = this.getAggregation("_grid"),
 				oFormat = oGrid._getDateFormatter(),
@@ -1320,6 +1443,8 @@ function(
 		oGrid.attachEvent("cellPress", fnHandleCellPress, this);
 		oGridMV.attachEvent("cellPress", fnHandleCellPress, this);
 		oGridMV.attachEvent("moreLinkPress", fnHandleMoreLinkPress, this);
+		oGridMV.attachEvent("weekNumberPress", fnHandleWeekNumberPress, this);
+		oGridMV.attachEvent("selectedDatesChange", fnHandleSelectedDatesChange, this);
 
 		oGrid.attachEvent("borderReached", fnHandleBorderReached, this);
 		oGridMV.attachEvent("borderReached", fnHandleBorderReachedMonthView, this);
@@ -1515,6 +1640,16 @@ function(
 			oStartDate: oCalViewStartDate,
 			oEndDate: oCalViewEndDate
 		};
+	};
+
+	/**
+	 * Finds the start and end dates in the visible range.
+	 * @public
+	 * @since 1.133
+	 * @returns {Object} returns an object that stores both the start and end date within the currently visible range.
+	 */
+	SinglePlanningCalendar.prototype.getFirstAndLastVisibleDates = function () {
+		return this._getCurrentGrid()._getFirstAndLastVisibleDates();
 	};
 
 	/**

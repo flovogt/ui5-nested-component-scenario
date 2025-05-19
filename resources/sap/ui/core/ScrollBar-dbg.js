@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.core.ScrollBar.
 sap.ui.define([
+	"sap/base/i18n/Localization",
 	'sap/ui/Device',
 	'./Control',
 	'./library',
@@ -13,10 +14,10 @@ sap.ui.define([
 	"sap/ui/performance/trace/Interaction",
 	"sap/base/Log",
 	"sap/ui/events/jquery/EventSimulation",
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration"
+	"sap/ui/thirdparty/jquery"
 ],
 	function(
+		Localization,
 		Device,
 		Control,
 		library,
@@ -24,8 +25,7 @@ sap.ui.define([
 		Interaction,
 		Log,
 		EventSimulation,
-		jQuery,
-		Configuration
+		jQuery
 	) {
 	"use strict";
 
@@ -44,10 +44,10 @@ sap.ui.define([
 	 * The ScrollBar control can be used for virtual scrolling of a certain area.
 	 * This means: to simulate a very large scrollable area when technically the area is small and the control takes care of displaying the respective part only. E.g. a Table control can take care of only rendering the currently visible rows and use this ScrollBar control to make the user think he actually scrolls through a long list.
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
-	 * @deprecated as of version 1.56
+	 * @deprecated As of version 1.56, the concept has been discarded.
 	 * @alias sap.ui.core.ScrollBar
 	 */
 	var ScrollBar = Control.extend("sap.ui.core.ScrollBar", /** @lends sap.ui.core.ScrollBar.prototype */ {
@@ -147,7 +147,7 @@ sap.ui.define([
 		this._bScrollPosIsChecked = false;
 
 		// RTL mode
-		this._bRTL = Configuration.getRTL();
+		this._bRTL = Localization.getRTL();
 
 		// suppress scroll event
 		this._bSuppressScroll = false;
@@ -742,7 +742,7 @@ sap.ui.define([
 	};
 
 	ScrollBar.prototype.onThemeChanged = function() {
-		this.rerender();
+		this.invalidate();
 	};
 
 	/**

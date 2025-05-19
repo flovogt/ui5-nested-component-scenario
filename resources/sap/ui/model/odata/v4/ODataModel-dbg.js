@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -34,14 +34,14 @@ sap.ui.define([
 	"./lib/_Requestor",
 	"sap/base/assert",
 	"sap/base/Log",
+	"sap/base/i18n/Localization",
 	"sap/ui/base/SyncPromise",
-	"sap/ui/core/Configuration",
-	"sap/ui/core/library",
 	"sap/ui/core/Messaging",
 	"sap/ui/core/Rendering",
 	"sap/ui/core/Supportability",
 	"sap/ui/core/cache/CacheManager",
 	"sap/ui/core/message/Message",
+	"sap/ui/core/message/MessageType",
 	"sap/ui/model/BindingMode",
 	"sap/ui/model/Context",
 	"sap/ui/model/Model",
@@ -49,9 +49,15 @@ sap.ui.define([
 	"sap/ui/thirdparty/URI"
 ], function (ODataContextBinding, ODataListBinding, ODataMetaModel, ODataPropertyBinding,
 		SubmitMode, _GroupLock, _Helper, _MetadataRequestor, _Parser, _Requestor, assert, Log,
-		SyncPromise, Configuration, coreLibrary, Messaging, Rendering, Supportability,
-		CacheManager, Message, BindingMode, BaseContext, Model, OperationMode, URI) {
+		Localization, SyncPromise, Messaging, Rendering, Supportability, CacheManager,
+		Message, MessageType, BindingMode, BaseContext, Model, OperationMode, URI) {
 	"use strict";
+
+	/**
+	 * Whether the ODataModel is marked as final.
+	 * @ui5-transform-hint replace-local true
+	 */
+	const bFinal = false;
 
 	var sClassName = "sap.ui.model.odata.v4.ODataModel",
 		// system query options allowed within a $expand query option
@@ -59,7 +65,6 @@ sap.ui.define([
 			"$select"],
 		// binding-specific parameters allowed in getKeepAliveContext
 		aGetKeepAliveParameters = ["$$groupId", "$$patchWithoutSideEffects", "$$updateGroupId"],
-		MessageType = coreLibrary.MessageType,
 		aMessageTypes = [
 			undefined,
 			MessageType.Success,
@@ -88,6 +93,7 @@ sap.ui.define([
 			serviceUrl : true,
 			sharedRequests : true,
 			supportReferences : true,
+			/** @deprecated As of version 1.110.0 */
 			synchronizationMode : true,
 			updateGroupId : true,
 			withCredentials : true
@@ -141,7 +147,7 @@ sap.ui.define([
 		 *   Whether to ignore all annotations from service metadata and "cross-service references";
 		 *   only the value <code>true</code> is allowed. Only annotations from annotation files
 		 *   (see parameter "annotationURI") are loaded. This parameter is not inherited by value
-		 *   list models. @experimental as of version 1.111.0
+		 *   list models. Supported since 1.121.0
 		 * @param {object} [mParameters.metadataUrlParams]
 		 *   Additional map of URL parameters used specifically for $metadata requests. Note that
 		 *   "sap-context-token" applies only to the service's root $metadata, but not to
@@ -174,15 +180,15 @@ sap.ui.define([
 		 *   are supported in order to load schemas on demand from other $metadata documents and
 		 *   include them into the current service ("cross-service references").
 		 * @param {string} [mParameters.synchronizationMode]
+		 *   <b>deprecated:</b> As of Version 1.110.0, this parameter is obsolete; see also
+		 *   {@link topic:648e360fa22d46248ca783dc6eb44531 Data Reuse}
 		 *   (Controls synchronization between different bindings which refer to the same data for
 		 *   the case data changes in one binding. Must be set to 'None' which means bindings are
 		 *   not synchronized at all; all other values are not supported and lead to an error.)
-		 *   <b>deprecated:</b> As of Version 1.110.0, this parameter is optional; see also
-		 *   {@link topic:648e360fa22d46248ca783dc6eb44531 Data Reuse}
 		 * @param {string} [mParameters.updateGroupId]
 		 *   The group ID that is used for update requests. If no update group ID is specified,
 		 *   <code>mParameters.groupId</code> is used. Valid update group IDs are
-		 *   <code>undefined</code>, '$auto', '$direct' or an application group ID.
+		 *   <code>undefined</code>, '$auto', '$auto.*', '$direct' or an application group ID.
 		 * @param {boolean} [mParameters.withCredentials]
 		 *   Whether the XMLHttpRequest is called with <code>withCredentials</code>, so that user
 		 *   credentials are included in cross-origin requests by the browser (since 1.120.0)
@@ -234,11 +240,12 @@ sap.ui.define([
 		 * @extends sap.ui.model.Model
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 */
 		ODataModel = Model.extend("sap.ui.model.odata.v4.ODataModel",
 			/** @lends sap.ui.model.odata.v4.ODataModel.prototype */{
-				constructor : constructor
+				constructor : constructor,
+				metadata : {final : bFinal}
 			});
 
 	//*********************************************************************************************
@@ -257,10 +264,9 @@ sap.ui.define([
 	 *   annotation file cannot be merged into the service metadata, if an unsupported value for
 	 *   <code>odataVersion</code> is given.
 	 */
-	function constructor(mParameters) {
-		var sGroupId,
-			oGroupProperties,
-			sLanguageTag = Configuration.getLanguageTag(),
+	function constructor(mParameters = {}) {
+		var oGroupProperties,
+			sLanguageTag = Localization.getLanguageTag().toString(),
 			sODataVersion,
 			sParameter,
 			mQueryParams,
@@ -272,7 +278,7 @@ sap.ui.define([
 		// do not pass any parameters to Model
 		Model.call(this);
 
-		mParameters = mParameters || {};
+		/** @deprecated As of version 1.110.0 */
 		if ("synchronizationMode" in mParameters && mParameters.synchronizationMode !== "None") {
 			throw new Error("Synchronization mode must be 'None'");
 		}
@@ -315,10 +321,10 @@ sap.ui.define([
 		if (this.sGroupId !== "$auto" && this.sGroupId !== "$direct") {
 			throw new Error("Group ID must be '$auto' or '$direct'");
 		}
-		_Helper.checkGroupId(mParameters.updateGroupId, false, "Invalid update group ID: ");
+		_Helper.checkGroupId(mParameters.updateGroupId, false, false, "Invalid update group ID: ");
 		this.sUpdateGroupId = mParameters.updateGroupId || this.getGroupId();
 		this.mGroupProperties = {};
-		for (sGroupId in mParameters.groupProperties) {
+		for (const sGroupId in mParameters.groupProperties) {
 			_Helper.checkGroupId(sGroupId, true);
 			oGroupProperties = mParameters.groupProperties[sGroupId];
 			if (typeof oGroupProperties !== "object"
@@ -351,10 +357,11 @@ sap.ui.define([
 		this.mMetadataHeaders = {"Accept-Language" : sLanguageTag};
 
 		mQueryParams = Object.assign({}, mUriParameters, mParameters.metadataUrlParams);
+		const fnGetOrCreateRetryAfterPromise = this.getOrCreateRetryAfterPromise.bind(this);
 		this.oMetaModel = new ODataMetaModel(
 			_MetadataRequestor.create(this.mMetadataHeaders, sODataVersion,
 				mParameters.ignoreAnnotationsFromMetadata, mQueryParams,
-				mParameters.withCredentials),
+				mParameters.withCredentials, fnGetOrCreateRetryAfterPromise),
 			this.sServiceUrl + "$metadata", mParameters.annotationURI, this,
 			mParameters.supportReferences, mQueryParams["sap-language"]);
 		this.oInterface = {
@@ -368,6 +375,7 @@ sap.ui.define([
 			getGroupProperty : this.getGroupProperty.bind(this),
 			getMessagesByPath : this.getMessagesByPath.bind(this),
 			getOptimisticBatchEnabler : this.getOptimisticBatchEnabler.bind(this),
+			getOrCreateRetryAfterPromise : fnGetOrCreateRetryAfterPromise,
 			getReporter : this.getReporter.bind(this),
 			isIgnoreETag : function () {
 				return that.bIgnoreETag;
@@ -377,6 +385,11 @@ sap.ui.define([
 					that.addPrerenderingTask(that._submitBatch.bind(that, sGroupId, true));
 				}
 			},
+			onHttpResponse : function (mHeaders) {
+				const fnHttpListener = that.fnHttpListener; // avoid "this" when calling
+				fnHttpListener?.({responseHeaders : mHeaders});
+			},
+			reportError : this.reportError.bind(this),
 			reportStateMessages : this.reportStateMessages.bind(this),
 			reportTransitionMessages : this.reportTransitionMessages.bind(this),
 			updateMessages : function (aOldMessages, aNewMessages) {
@@ -394,6 +407,7 @@ sap.ui.define([
 		}
 
 		this.aAllBindings = [];
+		this.oAnnotationChangePromise = null; // @see #_requestAnnotationChanges
 		// The bindings holding keep-alive contexts without a $$getKeepAlive binding
 		this.mKeepAliveBindingsByPath = {};
 		this.mSupportedBindingModes = {
@@ -407,13 +421,32 @@ sap.ui.define([
 			this.mSupportedBindingModes.TwoWay = true;
 		}
 		this.aPrerenderingTasks = null; // @see #addPrerenderingTask
+		this.fnHttpListener = null;
 		this.fnOptimisticBatchEnabler = null;
 		// maps the path to the error for the next dataReceived event
 		this.mPath2DataReceivedError = {};
 		// maps a path to the difference between fireDataRequested and fireDataReceived calls, to
 		// ensure the events are respectively fired once for a GET request
 		this.mPath2DataRequestedCount = {};
+		this.fnRetryAfter = null;
+		this.oRetryAfterPromise = null;
 	}
+
+	/**
+	 * Requests changes to annotations.
+	 *
+	 * @returns {Promise<Array<object>>|sap.ui.base.SyncPromise<undefined>}
+	 *   A promise resolving with an optional array of change objects defining a metamodel path and
+	 *   a value to be set for that path
+	 *
+	 * @private
+	 * @see #setAnnotationChangePromise
+	 */
+	ODataModel.prototype._requestAnnotationChanges = function () {
+		this.oAnnotationChangePromise ??= SyncPromise.resolve(); // now it's too late for the setter
+
+		return this.oAnnotationChangePromise;
+	};
 
 	/**
 	 * Submits the requests associated with this group ID in one batch request.
@@ -450,9 +483,9 @@ sap.ui.define([
 	 * <code>data : {}</code> is provided: "In error cases it will be undefined", but otherwise it
 	 * is not. For additional property requests, the absolute path to the entity is also available.
 	 *
-	 * The 'dataReceived' event can be triggered by a binding or by additional property requests for
-	 * an entity that already has been requested. Events triggered by a binding may be bubbled up to
-	 * the model, while events triggered by additional property requests are fired directly by the
+	 * The 'dataReceived' event can be initiated by a binding or by additional property requests for
+	 * an entity that already has been requested. Events initiated by a binding may be bubbled up to
+	 * the model, while events initiated by additional property requests are fired directly by the
 	 * model.
 	 *
 	 * If a back-end request fails, the 'dataReceived' event provides an <code>Error</code> in the
@@ -491,9 +524,9 @@ sap.ui.define([
 	 * For additional property requests, the absolute path to the entity is available as an event
 	 * parameter.
 	 *
-	 * The 'dataRequested' event can be triggered by a binding or by additional property requests
+	 * The 'dataRequested' event can be initiated by a binding or by additional property requests
 	 * for an entity that already has been requested.
-	 * Events triggered by a binding may be bubbled up to the model, while events triggered by
+	 * Events initiated by a binding may be bubbled up to the model, while events initiated by
 	 * additional property requests are fired directly by the model. Every GET request caused by
 	 * additional properties is causing one 'dataRequested' event.
 	 *
@@ -501,7 +534,7 @@ sap.ui.define([
 	 * <ul>
 	 *   <li> When a binding requests initial data, or a list binding requests data for additional
 	 *     rows, the event is fired at the binding and may be bubbled up to the model. This includes
-	 *     refreshes except those triggered by
+	 *     refreshes except those initiated by
 	 *     {@link sap.ui.model.odata.v4.Context#requestSideEffects}.
 	 *   <li> For additional property requests for an entity that already has been requested, the
 	 *     event is only fired at the model.
@@ -598,8 +631,8 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Adds a task that is guaranteed to run once, just before the next rendering without triggering
-	 * a rendering request. A watchdog ensures that the task is executed soon, even if no rendering
+	 * Adds a task that is guaranteed to run once, just before the next rendering without initiating
+	 * a rendering request. A watchdog ensures that the task is run soon, even if no rendering
 	 * occurs.
 	 *
 	 * @param {function} fnPrerenderingTask
@@ -741,23 +774,23 @@ sap.ui.define([
 	 * @param {string|string[]} [mParameters.$select]
 	 *   A comma separated list or an array of items which determine the value for the
 	 *   "5.1.3 System Query Option $select". Since 1.75.0, when using the "autoExpandSelect" model
-	 *   parameter (see {@link sap.ui.model.odata.v4.ODataModel#constructor}), paths with navigation
-	 *   properties can be included and will contribute to the "5.1.2 System Query Option $expand".
+	 *   parameter (see {@link #constructor}), paths with navigation properties can be included and
+	 *   will contribute to the "5.1.2 System Query Option $expand".
 	 * @param {boolean} [mParameters.$$canonicalPath]
 	 *   Whether a binding relative to an {@link sap.ui.model.odata.v4.Context} uses the canonical
 	 *   path computed from its context's path for data service requests; only the value
 	 *   <code>true</code> is allowed.
 	 * @param {string} [mParameters.$$groupId]
-	 *   The group ID to be used for <b>read</b> requests triggered by this binding; if not
+	 *   The group ID to be used for <b>read</b> requests initiated by this binding; if not
 	 *   specified, either the parent binding's group ID (if the binding is relative) or the
-	 *   model's group ID is used, see {@link sap.ui.model.odata.v4.ODataModel#constructor}.
+	 *   model's group ID is used, see {@link #constructor}.
 	 *   Valid values are <code>undefined</code>, '$auto', '$auto.*', '$direct' or application group
 	 *   IDs as specified in {@link sap.ui.model.odata.v4.ODataModel}.
 	 * @param {boolean} [mParameters.$$inheritExpandSelect]
 	 *   For operation bindings only: Whether $expand and $select from the parent binding are used
-	 *   in the request sent on {@link #execute}. If set to <code>true</code>, the binding must not
-	 *   set the $expand itself, the operation must be bound, and the return value and the binding
-	 *   parameter must belong to the same entity set.
+	 *   in the request sent on {@link sap.ui.model.odata.v4.ODataContextBinding#invoke}. If set to
+	 *   <code>true</code>, the binding must not set the $expand itself, the operation must be
+	 *   bound, and the return value and the binding parameter must belong to the same entity set.
 	 * @param {boolean} [mParameters.$$ownRequest]
 	 *   Whether the binding always uses an own service request to read its data; only the value
 	 *   <code>true</code> is allowed.
@@ -767,10 +800,9 @@ sap.ui.define([
 	 *   service to return an ETag header for "204 No Content" responses. If not specified, the
 	 *   value of the parent binding is used.
 	 * @param {string} [mParameters.$$updateGroupId]
-	 *   The group ID to be used for <b>update</b> requests triggered by this binding;
+	 *   The group ID to be used for <b>update</b> requests initiated by this binding;
 	 *   if not specified, either the parent binding's update group ID (if the binding is relative)
-	 *   or the model's update group ID is used, see
-	 *   {@link sap.ui.model.odata.v4.ODataModel#constructor}.
+	 *   or the model's update group ID is used, see {@link #constructor}.
 	 *   For valid values, see parameter "$$groupId".
 	 * @returns {sap.ui.model.odata.v4.ODataContextBinding}
 	 *   The context binding
@@ -827,16 +859,16 @@ sap.ui.define([
 	 *   The binding path in the model; must not end with a slash
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context which is required as base for a relative path
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [vSorters]
+	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [vSorters=[]]
 	 *   The dynamic sorters to be used initially. Call
 	 *   {@link sap.ui.model.odata.v4.ODataListBinding#sort} to replace them. Static sorters, as
-	 *   defined in the '$orderby' binding parameter, are always executed after the dynamic sorters.
+	 *   defined in the '$orderby' binding parameter, are always applied after the dynamic sorters.
 	 *   Supported since 1.39.0.
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [vFilters]
-	 *   The dynamic application filters to be used initially. Call
-	 *   {@link sap.ui.model.odata.v4.ODataListBinding#filter} to replace them. Static filters, as
-	 *   defined in the '$filter' binding parameter, are always combined with the dynamic filters
-	 *   using a logical <code>AND</code>.
+	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [vFilters=[]]
+	 *   The dynamic {@link sap.ui.model.FilterType.Application application} filters to be used
+	 *   initially. Call {@link sap.ui.model.odata.v4.ODataListBinding#filter} to replace them.
+	 *   Static filters, as defined in the '$filter' binding parameter, are always combined with the
+	 *   dynamic filters using a logical <code>AND</code>.
 	 *   Supported since 1.39.0.
 	 * @param {object} [mParameters]
 	 *   Map of binding parameters which can be OData query options as specified in <a href=
@@ -884,8 +916,8 @@ sap.ui.define([
 	 * @param {string|string[]} [mParameters.$select]
 	 *   A comma separated list or an array of items which determine the value for the
 	 *   "5.1.3 System Query Option $select". Since 1.75.0, when using the "autoExpandSelect" model
-	 *   parameter (see {@link sap.ui.model.odata.v4.ODataModel#constructor}), paths with navigation
-	 *   properties can be included and will contribute to the "5.1.2 System Query Option $expand".
+	 *   parameter (see {@link #constructor}), paths with navigation properties can be included and
+	 *   will contribute to the "5.1.2 System Query Option $expand".
 	 * @param {object} [mParameters.$$aggregation]
 	 *   An object holding the information needed for data aggregation, see
 	 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation} for details.
@@ -896,7 +928,11 @@ sap.ui.define([
 	 * @param {boolean} [mParameters.$$clearSelectionOnFilter]
 	 *   Whether the selection state of the list binding is cleared when a filter is changed; this
 	 *   includes dynamic filters, '$filter', '$search', and <code>$$aggregation.search</code>.
-	 *   Supported since 1.120.13.
+	 *   Supported since 1.120.13. Since 1.135.0, the selection state is validated when reloading
+	 *   the list binding's data. The
+	 *   {@link sap.ui.model.odata.v4.Context#isSelected selection states of contexts} which no
+	 *   longer match the current filter are reset. <b>Note:</b> The selection state is not
+	 *   validated if the <code>$$aggregation</code> parameter is used.
 	 * @param {boolean} [mParameters.$$getKeepAliveContext]
 	 *   Whether this binding is considered for a match when {@link #getKeepAliveContext} is called;
 	 *   only the value <code>true</code> is allowed. Must not be combined with <code>$apply</code>,
@@ -905,9 +941,9 @@ sap.ui.define([
 	 *   1.99.0; since 1.113.0 it can be combined with <code>$$aggregation</code> for a recursive
 	 *   hierarchy.
 	 * @param {string} [mParameters.$$groupId]
-	 *   The group ID to be used for <b>read</b> requests triggered by this binding; if not
+	 *   The group ID to be used for <b>read</b> requests initiated by this binding; if not
 	 *   specified, either the parent binding's group ID (if the binding is relative) or the
-	 *   model's group ID is used, see {@link sap.ui.model.odata.v4.ODataModel#constructor}.
+	 *   model's group ID is used, see {@link #constructor}.
 	 *   Valid values are <code>undefined</code>, '$auto', '$auto.*', '$direct' or application group
 	 *   IDs as specified in {@link sap.ui.model.odata.v4.ODataModel}.
 	 * @param {sap.ui.model.odata.OperationMode} [mParameters.$$operationMode]
@@ -925,11 +961,19 @@ sap.ui.define([
 	 * @param {boolean} [mParameters.$$ownRequest]
 	 *   Whether the binding always uses an own service request to read its data; only the value
 	 *   <code>true</code> is allowed.
+	 * @param {string[]} [mParameters.$$separate]
+	 *   An array of navigation property names which are omitted from the main list request and
+	 *   loaded in a separate request instead (@experimental as of version 1.129.0). This results in
+	 *   the main list becoming available faster, while the separate properties are merged as soon
+	 *   as the data is received. Note that the separate properties must be single valued and part
+	 *   of the '$expand' system query option, either automatically via the "autoExpandSelect" model
+	 *   parameter (see {@link #constructor}) or manually. The <code>$$separate</code> parameter
+	 *   must not be combined with <code>$$aggregation</code>.
 	 * @param {boolean} [mParameters.$$sharedRequest]
 	 *   Whether multiple bindings for the same resource path share the data, so that it is
 	 *   requested only once.
 	 *   This parameter can be inherited from the model's parameter "sharedRequests", see
-	 *   {@link sap.ui.model.odata.v4.ODataModel#constructor}. Supported since 1.80.0
+	 *   {@link #constructor}. Supported since 1.80.0
 	 *   <b>Note:</b> These bindings are read-only, so they may be especially useful for value
 	 *   lists; state messages (since 1.108.0) and the following APIs are <b>not</b> allowed
 	 *   <ul>
@@ -953,8 +997,8 @@ sap.ui.define([
 	 *         <li> {@link sap.ui.model.odata.v4.Context#requestSideEffects}
 	 *         <li> {@link sap.ui.model.odata.v4.Context#setKeepAlive}
 	 *         <li> {@link sap.ui.model.odata.v4.Context#setProperty}
-	 *         <li> executing a bound operation using <code>bReplaceWithRVC</code>, see
-	 *           {@link sap.ui.model.odata.v4.ODataContextBinding#execute}
+	 *         <li> invoking a bound operation using <code>bReplaceWithRVC</code>, see
+	 *           {@link sap.ui.model.odata.v4.ODataContextBinding#invoke}
 	 *       </ul>
 	 *     <li> for a dependent property binding of the list binding:
 	 *       <ul>
@@ -962,10 +1006,9 @@ sap.ui.define([
 	 *       </ul>
 	 *   </ul>
 	 * @param {string} [mParameters.$$updateGroupId]
-	 *   The group ID to be used for <b>update</b> requests triggered by this binding;
+	 *   The group ID to be used for <b>update</b> requests initiated by this binding;
 	 *   if not specified, either the parent binding's update group ID (if the binding is relative)
-	 *   or the model's update group ID is used,
-	 *   see {@link sap.ui.model.odata.v4.ODataModel#constructor}.
+	 *   or the model's update group ID is used, see {@link #constructor}.
 	 *   For valid values, see parameter "$$groupId".
 	 * @returns {sap.ui.model.odata.v4.ODataListBinding}
 	 *   The list binding
@@ -1002,7 +1045,17 @@ sap.ui.define([
 	 * If the target type specified in the corresponding control property's binding info is "any"
 	 * and the binding is relative or points to metadata, the binding may have an object value;
 	 * in this case and unless the binding refers to an action advertisement the binding's mode must
-	 * be {@link sap.ui.model.BindingMode.OneTime}.
+	 * be {@link sap.ui.model.BindingMode.OneTime}. {@link sap.ui.model.BindingMode.OneWay OneWay}
+	 * is also supported (since 1.130.0) for complex types and collections thereof; for entity
+	 * types, use {@link #bindContext} instead.
+	 *
+	 * Since 1.135.0, the binding may also point to an array element inside a collection of
+	 * primitive type, for example in the context of geography locations. Let's assume
+	 * "GeoLocation" is a structural property of type "Edm.GeographyPoint", then "coordinates" is a
+	 * structural property of type "Collection(Edm.Double)":
+	 * <pre>
+	 * &lt;Text id="longitude" text="{Address/GeoLocation/coordinates/0}"/>
+	 * </pre>
 	 *
 	 * @param {string} sPath
 	 *   The binding path in the model; must not end with a slash
@@ -1036,9 +1089,9 @@ sap.ui.define([
 	 *   The value for the "5.1.7 System Query Option $search", if the path ends with a "$count"
 	 *   segment
 	 * @param {string} [mParameters.$$groupId]
-	 *   The group ID to be used for <b>read</b> requests triggered by this binding; if not
+	 *   The group ID to be used for <b>read</b> requests initiated by this binding; if not
 	 *   specified, either the parent binding's group ID (if the binding is relative) or the
-	 *   model's group ID is used, see {@link sap.ui.model.odata.v4.ODataModel#constructor}.
+	 *   model's group ID is used, see {@link #constructor}.
 	 *   Valid values are <code>undefined</code>, '$auto', '$auto.*', '$direct' or application group
 	 *   IDs as specified in {@link sap.ui.model.odata.v4.ODataModel}.
 	 * @param {boolean} [mParameters.$$ignoreMessages]
@@ -1055,6 +1108,9 @@ sap.ui.define([
 	 * @param {boolean} [mParameters.$$noPatch]
 	 *   Whether changing the value of this property binding is not causing a PATCH request; only
 	 *   the value <code>true</code> is allowed.
+	 * @param {any} [mParameters.scope]
+	 *   The scope for {@link sap.ui.model.odata.v4.ODataMetaModel#requestObject} if it is an
+	 *   object; a custom query option otherwise
 	 * @returns {sap.ui.model.odata.v4.ODataPropertyBinding}
 	 *   The property binding
 	 * @throws {Error}
@@ -1072,7 +1128,8 @@ sap.ui.define([
 	};
 
 	/**
-	 * Method not supported
+	 * Method not supported, use {@link #bindList} with <code>mParameters.$$aggregation</code>
+	 * instead.
 	 *
 	 * @param {string} _sPath
 	 * @param {sap.ui.model.Context} [_oContext]
@@ -1323,7 +1380,7 @@ sap.ui.define([
 	 *
 	 * It is possible to create binding contexts pointing to metadata. A '##' is recognized
 	 * as separator in the resolved path and splits it into two parts; note that '#' may also be
-	 * used as separator but is deprecated since 1.51.
+	 * used as separator but is <b>deprecated</b> since 1.51.
 	 * The part before the separator is transformed into a metadata context (see
 	 * {@link sap.ui.model.odata.v4.ODataMetaModel#getMetaContext}). The part following the
 	 * separator is then interpreted relative to this metadata context, even if it starts with
@@ -1366,7 +1423,6 @@ sap.ui.define([
 	ODataModel.prototype.createBindingContext = function (sPath, oContext) {
 		var sDataPath,
 			oMetaContext,
-			sMetaPath,
 			sResolvedPath,
 			iSeparator;
 
@@ -1399,7 +1455,7 @@ sap.ui.define([
 		iSeparator = sResolvedPath.indexOf("#");
 		if (iSeparator >= 0) {
 			sDataPath = sResolvedPath.slice(0, iSeparator);
-			sMetaPath = sResolvedPath.slice(iSeparator + 1);
+			let sMetaPath = sResolvedPath.slice(iSeparator + 1);
 			if (sMetaPath[0] === "#") {
 				sMetaPath = sMetaPath.slice(1);
 			} else if (sDataPath.length > 1 && sMetaPath[0] !== "@"
@@ -1472,7 +1528,7 @@ sap.ui.define([
 		}
 
 		if (bIsBound) {
-			sResourcePath = sResourcePath && sResourcePath.split("?")[0]; // remove query string
+			sResourcePath &&= sResourcePath.split("?")[0]; // remove query string
 			aTargets = [resolveTarget(oRawMessage.target)];
 			if (oRawMessage.additionalTargets) {
 				oRawMessage.additionalTargets.forEach(function (sTarget) {
@@ -1520,7 +1576,9 @@ sap.ui.define([
 	 * @param {string} [sGroupId]
 	 *   The group ID that is used for the DELETE request; if not specified, the model's
 	 *   {@link #getUpdateGroupId update group ID} is used; the resulting group ID must not have
-	 *   {@link sap.ui.model.odata.v4.SubmitMode.API}
+	 *   {@link sap.ui.model.odata.v4.SubmitMode.API}. You can use the '$single' group ID to send a
+	 *   DELETE request as fast as possible; it will be wrapped in a batch request as for a '$auto'
+	 *   group (since 1.121.0).
 	 * @param {boolean} [bRejectIfNotFound]
 	 *   If <code>true</code>, deletion fails if the entity does not exist (HTTP status code 404 or
 	 *   412 due to the <code>If-Match: *</code> header); otherwise we assume that it has already
@@ -1556,8 +1614,8 @@ sap.ui.define([
 				vCanonicalPath.fetchValue("@odata.etag", /*oListener*/null, /*bCached*/true)
 			]);
 		}
-		_Helper.checkGroupId(sGroupId);
-		sGroupId = sGroupId || this.getUpdateGroupId();
+		_Helper.checkGroupId(sGroupId, false, true);
+		sGroupId ??= this.getUpdateGroupId();
 		if (this.isApiGroup(sGroupId)) {
 			throw new Error("Illegal update group ID: " + sGroupId);
 		}
@@ -1596,6 +1654,8 @@ sap.ui.define([
 		this.oRequestor.destroy();
 		this.mHeaders = undefined;
 		this.mMetadataHeaders = undefined;
+		this.oRetryAfterPromise = undefined;
+
 		return Model.prototype.destroy.apply(this, arguments);
 	};
 
@@ -1707,7 +1767,7 @@ sap.ui.define([
 		}
 		this.mPath2DataRequestedCount[sPath] -= 1;
 		// first error wins
-		this.mPath2DataReceivedError[sPath] = this.mPath2DataReceivedError[sPath] || oError;
+		this.mPath2DataReceivedError[sPath] ??= oError;
 		if (this.mPath2DataRequestedCount[sPath] === 0) {
 			this.fireEvent("dataReceived", this.mPath2DataReceivedError[sPath]
 				? {error : this.mPath2DataReceivedError[sPath], path : sPath}
@@ -1772,6 +1832,8 @@ sap.ui.define([
 	 *   A list of all dependent bindings, never <code>null</code>
 	 *
 	 * @private
+	 * @since 1.122.0
+	 * @ui5-restricted sap.fe
 	 */
 	ODataModel.prototype.getDependentBindings = function (oParent) {
 		return this.aAllBindings.filter(function (oBinding) {
@@ -1790,7 +1852,7 @@ sap.ui.define([
 	 *   The group ID
 	 *
 	 * @public
-	 * @see sap.ui.model.odata.v4.ODataModel#constructor
+	 * @see #constructor
 	 * @since 1.41.0
 	 */
 	ODataModel.prototype.getGroupId = function () {
@@ -1809,13 +1871,16 @@ sap.ui.define([
 	 * @throws {Error} If the name of the group property is not 'submit'
 	 *
 	 * @private
-	 * @see sap.ui.model.odata.v4.ODataModel#constructor
+	 * @see #constructor
 	 */
 	ODataModel.prototype.getGroupProperty = function (sGroupId, sPropertyName) {
 		switch (sPropertyName) {
 			case "submit":
 				if (sGroupId.startsWith("$auto.")) {
 					return SubmitMode.Auto;
+				}
+				if (sGroupId === "$single") {
+					return "Single";
 				}
 				return this.mGroupProperties[sGroupId]
 					? this.mGroupProperties[sGroupId].submit
@@ -1828,16 +1893,16 @@ sap.ui.define([
 	/**
 	 * Returns a map of HTTP headers used for data and metadata requests. While the "X-CSRF-Token"
 	 * header is not used for metadata requests, it is still included here if available. The
-	 * "SAP-ContextId" header is only included if requested explicitly (@since 1.86.0).
+	 * "SAP-ContextId" header is only included if requested explicitly (since 1.86.0).
 	 *
 	 * @param {boolean} [bIncludeContextId]
-	 *   Whether to include the "SAP-ContextId" header (@since 1.86.0)
+	 *   Whether to include the "SAP-ContextId" header (since 1.86.0)
 	 * @returns {Object<string>}
 	 *   The map of HTTP headers
 	 *
 	 * @public
 	 * @see #changeHttpHeaders
-	 * @since 1.71
+	 * @since 1.71.0
 	 */
 	ODataModel.prototype.getHttpHeaders = function (bIncludeContextId) {
 		var mHeadersCopy = Object.assign({}, this.mHeaders);
@@ -1850,6 +1915,96 @@ sap.ui.define([
 		}
 
 		return mHeadersCopy;
+	};
+
+	/**
+	 * Returns a context with the given path belonging to a matching list binding that has been
+	 * marked with <code>$$getKeepAliveContext</code> (see {@link #bindList}). If such a matching
+	 * binding can be found, a context is returned and kept alive (see
+	 * {@link sap.ui.model.odata.v4.ODataListBinding#getKeepAliveContext}). Since 1.100.0 a
+	 * temporary binding is used if no such binding could be found. If such a binding is created or
+	 * resolved later, the context and its data are transferred to it, and the temporary binding is
+	 * destroyed again.
+	 *
+	 * A <code>$$getKeepAliveContext</code> binding matches if its resolved binding path is the
+	 * collection path of the context. If the context is created using a temporary binding and the
+	 * parameters of the <code>$$getKeepAliveContext</code> binding differ from the given
+	 * <code>mParameters</code> (except <code>$$groupId</code> which is especially used for the
+	 * context), that binding later runs into an error when trying to read data.
+	 *
+	 * <b>Note</b>: The context received by this function may change its
+	 * {@link sap.ui.model.odata.v4.Context#getBinding binding} during its lifetime.
+	 *
+	 * @param {string} sPath
+	 *   A list context path to an entity, see also {@link #requestKeyPredicate}
+	 * @param {boolean} [bRequestMessages]
+	 *   Whether to request messages for the context's entity
+	 * @param {object} [mParameters]
+	 *   Parameters for the context or the temporary binding; supported since 1.100.0. All custom
+	 *   query options and the following binding-specific parameters for a list binding may be given
+	 *   (see {@link #bindList} for details).
+	 * @param {string} [mParameters.$$groupId]
+	 *   The group ID used for read requests for the context's entity or its properties. If not
+	 *   given, the model's {@link #getGroupId group ID} is used
+	 * @param {boolean} [mParameters.$$patchWithoutSideEffects]
+	 *   Whether implicit loading of side effects via PATCH requests is switched off
+	 * @param {string} [mParameters.$$updateGroupId]
+	 *   The group ID to be used for <b>update</b> requests initiated by the context's binding
+	 * @returns {sap.ui.model.odata.v4.Context}
+	 *   The kept-alive context
+	 * @throws {Error} If
+	 *   <ul>
+	 *     <li> the model does not use the <code>autoExpandSelect</code> parameter,
+	 *     <li> an invalid parameter was supplied,
+	 *     <li> the path is not a list context path to an entity,
+	 *     <li> multiple list bindings with <code>$$getKeepAliveContext</code> match,
+	 *     <li> a suspended binding already having contexts matches, or
+	 *     <li> {@link sap.ui.model.odata.v4.Context#setKeepAlive} fails
+	 *   </ul>
+	 *
+	 * @public
+	 * @since 1.99.0
+	 */
+	ODataModel.prototype.getKeepAliveContext = function (sPath, bRequestMessages,
+			mParameters = {}) {
+		var oListBinding,
+			aListBindings,
+			sListPath;
+
+		if (!this.bAutoExpandSelect) {
+			throw new Error("Missing parameter autoExpandSelect");
+		}
+		if (sPath[0] !== "/") {
+			throw new Error("Not a list context path to an entity: " + sPath);
+		}
+		// Only excess parameters are rejected here; the correctness is checked by ODLB
+		Object.keys(mParameters).forEach(function (sParameter) {
+			if (sParameter.startsWith("sap-") && !sParameter.startsWith("sap-valid-")
+					|| sParameter[0] === "$" && !aGetKeepAliveParameters.includes(sParameter)) {
+				throw new Error("Invalid parameter: " + sParameter);
+			}
+		});
+		sListPath = sPath.slice(0, _Helper.getPredicateIndex(sPath));
+		oListBinding = this.mKeepAliveBindingsByPath[sListPath];
+		if (!oListBinding) {
+			aListBindings = this.aAllBindings.filter(function (oBinding) {
+				if (oBinding.mParameters && oBinding.mParameters.$$getKeepAliveContext) {
+					oBinding.removeCachesAndMessages(sListPath.slice(1), true);
+				}
+				return oBinding.isKeepAliveBindingFor && oBinding.isKeepAliveBindingFor(sListPath);
+			});
+			if (aListBindings.length > 1) {
+				throw new Error("Multiple bindings with $$getKeepAliveContext for: " + sPath);
+			}
+			oListBinding = aListBindings[0];
+			if (!oListBinding) {
+				oListBinding = this.bindList(sListPath, undefined, undefined, undefined,
+					mParameters);
+				this.mKeepAliveBindingsByPath[sListPath] = oListBinding;
+			}
+		}
+
+		return oListBinding.getKeepAliveContext(sPath, bRequestMessages, mParameters.$$groupId);
 	};
 
 	/**
@@ -1936,6 +2091,51 @@ sap.ui.define([
 	};
 
 	/**
+	 * Getter for the optimistic batch enabler callback function; see
+	 * {@link #setOptimisticBatchEnabler}.
+	 *
+	 *
+	 * @returns {function(string)}
+	 *   The optimistic batch enabler callback function
+	 *
+	 * @private
+	 * @since 1.100.0
+	 * @ui5-restricted sap.fe
+	 */
+	ODataModel.prototype.getOptimisticBatchEnabler = function () {
+		return this.fnOptimisticBatchEnabler;
+	};
+
+	/**
+	 * Returns the promise that is currently being used for "Retry-After" handling. Returns
+	 * <code>null</code> if no "Retry-After" is currently known. Creates a new promise if there is
+	 * none, an error is given, and a {@link #setRetryAfterHandler handler} is known.
+	 *
+	 * @param {Error} [oRetryAfterError] - A "Retry-After" error from a back-end call
+	 * @returns {Promise|null} The current "Retry-After" promise
+	 *
+	 * @private
+	 */
+	ODataModel.prototype.getOrCreateRetryAfterPromise = function (oRetryAfterError) {
+		if (!this.oRetryAfterPromise && this.fnRetryAfter && oRetryAfterError) {
+			this.oRetryAfterPromise = this.fnRetryAfter(oRetryAfterError);
+			this.oRetryAfterPromise.finally(() => {
+				this.oRetryAfterPromise = null;
+			}).catch(() => { /* catch is only needed due to finally */ });
+			this.oRetryAfterPromise.catch((oError) => {
+				// own error reason is not reported to the message model
+				if (oError === oRetryAfterError) {
+					this.reportError(oError.message, sClassName, oError);
+				} else {
+					oError.$reported = true;
+				}
+			});
+		}
+
+		return this.oRetryAfterPromise;
+	};
+
+	/**
 	 * Method not supported
 	 *
 	 * @throws {Error}
@@ -1962,110 +2162,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns a context with the given path belonging to a matching list binding that has been
-	 * marked with <code>$$getKeepAliveContext</code> (see {@link #bindList}). If such a matching
-	 * binding can be found, a context is returned and kept alive (see
-	 * {@link sap.ui.model.odata.v4.ODataListBinding#getKeepAliveContext}). Since 1.100.0 a
-	 * temporary binding is used if no such binding could be found. If such a binding is created or
-	 * resolved later, the context and its data are transferred to it, and the temporary binding is
-	 * destroyed again.
-	 *
-	 * A <code>$$getKeepAliveContext</code> binding matches if its resolved binding path is the
-	 * collection path of the context. If the context is created using a temporary binding and the
-	 * parameters of the <code>$$getKeepAliveContext</code> binding differ from the given
-	 * <code>mParameters</code> (except <code>$$groupId</code> which is especially used for the
-	 * context), that binding later runs into an error when trying to read data.
-	 *
-	 * <b>Note</b>: The context received by this function may change its
-	 * {@link sap.ui.model.odata.v4.Context#getBinding binding} during its lifetime.
-	 *
-	 * @param {string} sPath
-	 *   A list context path to an entity, see also {@link #requestKeyPredicate}
-	 * @param {boolean} [bRequestMessages]
-	 *   Whether to request messages for the context's entity
-	 * @param {object} [mParameters]
-	 *   Parameters for the context or the temporary binding; supported since 1.100.0. All custom
-	 *   query options and the following binding-specific parameters for a list binding may be given
-	 *   (see {@link #bindList} for details).
-	 * @param {string} [mParameters.$$groupId]
-	 *   The group ID used for read requests for the context's entity or its properties. If not
-	 *   given, the model's {@link #getGroupId group ID} is used
-	 * @param {boolean} [mParameters.$$patchWithoutSideEffects]
-	 *   Whether implicit loading of side effects via PATCH requests is switched off
-	 * @param {string} [mParameters.$$updateGroupId]
-	 *   The group ID to be used for <b>update</b> requests triggered by the context's binding
-	 * @returns {sap.ui.model.odata.v4.Context}
-	 *   The kept-alive context
-	 * @throws {Error} If
-	 *   <ul>
-	 *     <li> the model does not use the <code>autoExpandSelect</code> parameter,
-	 *     <li> an invalid parameter was supplied,
-	 *     <li> the path is not a list context path to an entity,
-	 *     <li> multiple list bindings with <code>$$getKeepAliveContext</code> match,
-	 *     <li> a suspended binding already having contexts matches, or
-	 *     <li> {@link sap.ui.model.odata.v4.Context#setKeepAlive} fails
-	 *   </ul>
-	 *
-	 * @public
-	 * @since 1.99.0
-	 */
-	ODataModel.prototype.getKeepAliveContext = function (sPath, bRequestMessages, mParameters) {
-		var oListBinding,
-			aListBindings,
-			sListPath;
-
-		if (!this.bAutoExpandSelect) {
-			throw new Error("Missing parameter autoExpandSelect");
-		}
-		if (sPath[0] !== "/") {
-			throw new Error("Not a list context path to an entity: " + sPath);
-		}
-		mParameters = mParameters || {};
-		// Only excess parameters are rejected here; the correctness is checked by ODLB
-		Object.keys(mParameters).forEach(function (sParameter) {
-			if (sParameter.startsWith("sap-") && !sParameter.startsWith("sap-valid-")
-					|| sParameter[0] === "$" && !aGetKeepAliveParameters.includes(sParameter)) {
-				throw new Error("Invalid parameter: " + sParameter);
-			}
-		});
-		sListPath = sPath.slice(0, _Helper.getPredicateIndex(sPath));
-		oListBinding = this.mKeepAliveBindingsByPath[sListPath];
-		if (!oListBinding) {
-			aListBindings = this.aAllBindings.filter(function (oBinding) {
-				if (oBinding.mParameters && oBinding.mParameters.$$getKeepAliveContext) {
-					oBinding.removeCachesAndMessages(sListPath.slice(1), true);
-				}
-				return oBinding.isKeepAliveBindingFor && oBinding.isKeepAliveBindingFor(sListPath);
-			});
-			if (aListBindings.length > 1) {
-				throw new Error("Multiple bindings with $$getKeepAliveContext for: " + sPath);
-			}
-			oListBinding = aListBindings[0];
-			if (!oListBinding) {
-				oListBinding = this.bindList(sListPath, undefined, undefined, undefined,
-					mParameters);
-				this.mKeepAliveBindingsByPath[sListPath] = oListBinding;
-			}
-		}
-
-		return oListBinding.getKeepAliveContext(sPath, bRequestMessages, mParameters.$$groupId);
-	};
-
-	/**
-	 * Returns the model's update group ID.
-	 *
-	 * @returns {string}
-	 *   The update group ID
-	 *
-	 * @public
-	 * @see sap.ui.model.odata.v4.ODataModel#constructor
-	 * @since 1.41.0
-	 */
-	ODataModel.prototype.getUpdateGroupId = function () {
-		return this.sUpdateGroupId;
-	};
-
-	/**
 	 * Returns a function to be used as a Promise catch handler in order to report not yet reported
 	 * errors.
 	 *
@@ -2087,8 +2183,7 @@ sap.ui.define([
 
 	/**
 	 * Returns this model's root URL of the service to request data from (as defined by the
-	 * "serviceUrl" model parameter, see {@link sap.ui.model.odata.v4.ODataModel#constructor}),
-	 * without query options.
+	 * "serviceUrl" model parameter, see {@link #constructor}), without query options.
 	 *
 	 * @returns {string} The service URL
 	 *
@@ -2097,6 +2192,20 @@ sap.ui.define([
 	 */
 	ODataModel.prototype.getServiceUrl = function () {
 		return this.sServiceUrl;
+	};
+
+	/**
+	 * Returns the model's update group ID.
+	 *
+	 * @returns {string}
+	 *   The update group ID
+	 *
+	 * @public
+	 * @see #constructor
+	 * @since 1.41.0
+	 */
+	ODataModel.prototype.getUpdateGroupId = function () {
+		return this.sUpdateGroupId;
 	};
 
 	/**
@@ -2198,7 +2307,7 @@ sap.ui.define([
 	/**
 	 * Creates a lock for the given group ID. Even an automatic {@link #submitBatch} has to wait
 	 * until all such locks are unlocked. The goal of such a lock is to wait with automatic PATCH
-	 * requests triggered by user input until an event handler is called and executes an action.
+	 * requests initiated by user input until an event handler is called and runs an action.
 	 *
 	 * @param {string} sGroupId
 	 *   A group ID
@@ -2237,7 +2346,7 @@ sap.ui.define([
 	 *
 	 * The goal of such a lock is to allow using an API that creates a request in a batch group and
 	 * immediately calling {@link #submitBatch} for this group. In such cases that request has to be
-	 * sent with the batch request triggered by {@link #submitBatch}, even if that request is
+	 * sent with the batch request initiated by {@link #submitBatch}, even if that request is
 	 * created later asynchronously. To achieve this, the API function creates a lock that blocks
 	 * the batch request until that request is created.
 	 *
@@ -2265,10 +2374,88 @@ sap.ui.define([
 	};
 
 	/**
+	 * Normalizes the key predicates of a message's target using the sort order from the metadata,
+	 * including proper URI encoding, e.g. "(Sector='A%2FB%26C',ID='42')" or "('42')".
+	 *
+	 * @param {string} sTarget
+	 *   The message target
+	 * @returns {string}
+	 *   The normalized message target
+	 *
+	 * @private
+	 */
+	ODataModel.prototype.normalizeMessageTarget = function (sTarget) {
+		var sCandidate,
+			bFailed,
+			sMetaPath = "",
+			that = this;
+
+		if (sTarget.includes("$uid=")) {
+			// target containing a transient path is ignored
+			return sTarget;
+		}
+		sCandidate = sTarget.split("/").map(function (sSegment) {
+			var sCollectionName,
+				iBracketIndex = sSegment.indexOf("("),
+				aParts,
+				mProperties,
+				oType;
+
+			/*
+			 * Normalizes the value for the given alias.
+			 * @param {string} sAlias
+			 *   The property name/alias
+			 * @returns {string|undefined}
+			 *   The normalized value
+			 */
+			function getNormalizedValue(sAlias) {
+				if (sAlias in mProperties) {
+					return encodeURIComponent(decodeURIComponent(mProperties[sAlias]));
+				}
+				bFailed = true;
+			}
+
+			if (iBracketIndex < 0) {
+				sMetaPath = _Helper.buildPath(sMetaPath, sSegment);
+				return sSegment;
+			}
+
+			sCollectionName = sSegment.slice(0, iBracketIndex);
+			sMetaPath = _Helper.buildPath(sMetaPath, sCollectionName);
+			mProperties = _Parser.parseKeyPredicate(sSegment.slice(iBracketIndex));
+
+			if ("" in mProperties) {
+				return sCollectionName + "(" + getNormalizedValue("") + ")";
+			}
+
+			// could be async, but normally in this state we should already have
+			// loaded the needed metadata
+			oType = that.oMetaModel.getObject("/" + sMetaPath + "/");
+
+			if (!(oType && oType.$Key)) {
+				bFailed = true;
+				return sSegment;
+			}
+
+			aParts = oType.$Key.map(function (sAlias) {
+				var sValue = getNormalizedValue(sAlias);
+
+				return oType.$Key.length > 1
+					? sAlias + "=" + sValue
+					: sValue;
+			});
+
+			return sCollectionName + "(" + aParts.join(",") + ")";
+		}).join("/");
+
+		return bFailed ? sTarget : sCandidate;
+	};
+
+	/**
 	 * Refreshes the model by calling refresh on all bindings which have a change event handler
 	 * attached.
 	 *
-	 * Note: When calling {@link #refresh} multiple times, the result of the request triggered by
+	 * Note: When calling {@link #refresh} multiple times, the result of the request initiated by
 	 * the last call determines the model's data; it is <b>independent</b> of the order of calls to
 	 * {@link #submitBatch} with the given group ID.
 	 *
@@ -2447,10 +2634,19 @@ sap.ui.define([
 	 *   The resource path of the cache that saw the messages; used to resolve the longtext URL and
 	 *   for adjusting a message target in case it is an operation parameter, except the binding
 	 *   parameter
+	 * @param {boolean} [bSilent]
+	 *   Whether the created UI5 messages should only be returned without reporting them
+	 * @param {string} [sOriginalResourcePath]
+	 *   The "original resource path" to be used to build the target path for bound messages that
+	 *   do not address "$Parameter/...", useful in case of a return value context (R.V.C.)
+	 * @returns {sap.ui.core.message.Message[]|undefined}
+	 *   An array of <code>aMessages</code> transformed to UI5 message instances, or
+	 *   <code>undefined</code> in case there are no messages
 	 *
 	 * @private
 	 */
-	ODataModel.prototype.reportTransitionMessages = function (aMessages, sResourcePath) {
+	ODataModel.prototype.reportTransitionMessages = function (aMessages, sResourcePath, bSilent,
+			sOriginalResourcePath) {
 		var sContextPath, oOperationMetadata;
 
 		if (!aMessages.length) {
@@ -2470,95 +2666,23 @@ sap.ui.define([
 			}
 		}
 
-		Messaging.updateMessages(undefined, aMessages.map((oMessage) => {
+		const aUI5Messages = aMessages.map((oMessage) => {
 			const oOriginalMessage = oMessage;
 			if (oOperationMetadata) {
 				oMessage = _Helper.clone(oMessage);
 				// make targets absolute, will not be adjusted again in #createUI5Message
-				_Helper.adjustTargets(oMessage, oOperationMetadata, undefined, sContextPath);
+				_Helper.adjustTargets(oMessage, oOperationMetadata, undefined, sContextPath,
+					sOriginalResourcePath);
 			}
 			oMessage.transition = true;
 
 			return this.createUI5Message(oMessage, sResourcePath, undefined, oOriginalMessage);
-		}));
-	};
-
-	/**
-	 * Normalizes the key predicates of a message's target using the sort order from the metadata,
-	 * including proper URI encoding, e.g. "(Sector='A%2FB%26C',ID='42')" or "('42')".
-	 *
-	 * @param {string} sTarget
-	 *   The message target
-	 * @returns {string}
-	 *   The normalized message target
-	 *
-	 * @private
-	 */
-	ODataModel.prototype.normalizeMessageTarget = function (sTarget) {
-		var sCandidate,
-			bFailed,
-			sMetaPath = "",
-			that = this;
-
-		if (sTarget.includes("$uid=")) {
-			// target containing a transient path is ignored
-			return sTarget;
+		});
+		if (!bSilent) {
+			Messaging.updateMessages(undefined, aUI5Messages);
 		}
-		sCandidate = sTarget.split("/").map(function (sSegment) {
-			var sCollectionName,
-				iBracketIndex = sSegment.indexOf("("),
-				aParts,
-				mProperties,
-				oType;
 
-			/*
-			 * Normalizes the value for the given alias.
-			 * @param {string} sAlias
-			 *   The property name/alias
-			 * @returns {string|undefined}
-			 *   The normalized value
-			 */
-			function getNormalizedValue(sAlias) {
-				if (sAlias in mProperties) {
-					return encodeURIComponent(decodeURIComponent(mProperties[sAlias]));
-				}
-				bFailed = true;
-			}
-
-			if (iBracketIndex < 0) {
-				sMetaPath = _Helper.buildPath(sMetaPath, sSegment);
-				return sSegment;
-			}
-
-			sCollectionName = sSegment.slice(0, iBracketIndex);
-			sMetaPath = _Helper.buildPath(sMetaPath, sCollectionName);
-			mProperties = _Parser.parseKeyPredicate(sSegment.slice(iBracketIndex));
-
-			if ("" in mProperties) {
-				return sCollectionName + "(" + getNormalizedValue("") + ")";
-			}
-
-			// could be async, but normally in this state we should already have
-			// loaded the needed metadata
-			oType = that.oMetaModel.getObject("/" + sMetaPath + "/");
-
-			if (!(oType && oType.$Key)) {
-				bFailed = true;
-				return sSegment;
-			}
-
-			aParts = oType.$Key.map(function (sAlias) {
-				var sValue = getNormalizedValue(sAlias);
-
-				return oType.$Key.length > 1
-					? sAlias + "=" + sValue
-					: sValue;
-			});
-
-			return sCollectionName + "(" + aParts.join(",") + ")";
-		}).join("/");
-
-		return bFailed ? sTarget : sCandidate;
+		return aUI5Messages;
 	};
 
 	/**
@@ -2577,7 +2701,7 @@ sap.ui.define([
 	 *   in case of success, or rejected with an instance of <code>Error</code> in case of failure,
 	 *   e.g. when the given context does not point to an entity
 	 *
-	 * @deprecated since 1.39.0
+	 * @deprecated As of version 1.39.0
 	 *   Use {@link sap.ui.model.odata.v4.Context#requestCanonicalPath} instead.
 	 * @public
 	 * @since 1.37.0
@@ -2641,8 +2765,8 @@ sap.ui.define([
 	 * group ID which have not been successfully submitted via {@link #submitBatch}. Resets also
 	 * invalid user input for the same group ID and (since 1.111.0) inactive contexts which had
 	 * their activation prevented (see {@link sap.ui.model.odata.v4.Context#isInactive}). This
-	 * function does not reset the execution of OData operations
-	 * (see {@link sap.ui.model.odata.v4.ODataContextBinding#execute}).
+	 * function does not reset the invocation of OData operations
+	 * (see {@link sap.ui.model.odata.v4.ODataContextBinding#invoke}).
 	 *
 	 * @param {string} [sGroupId]
 	 *   A valid group ID as specified in {@link sap.ui.model.odata.v4.ODataModel}. If it is
@@ -2655,12 +2779,12 @@ sap.ui.define([
 	 *   given group ID are running.
 	 *
 	 * @public
-	 * @see sap.ui.model.odata.v4.ODataModel#constructor
+	 * @see #constructor
 	 * @see #hasPendingChanges
 	 * @since 1.39.0
 	 */
 	ODataModel.prototype.resetChanges = function (sGroupId) {
-		sGroupId = sGroupId || this.sUpdateGroupId;
+		sGroupId ??= this.sUpdateGroupId;
 		this.checkBatchGroupId(sGroupId);
 
 		if (this.isAutoGroup(sGroupId)) {
@@ -2721,6 +2845,74 @@ sap.ui.define([
 	};
 
 	/**
+	 * Sets a promise resolving with changes which are applied to all annotations loaded by this
+	 * model, either as part of service metadata or from annotation files given via parameter
+	 * "annotationURI" (see {@link #constructor}).
+	 *
+	 * @param {Promise<Array<object>>} oAnnotationChangePromise
+	 *   A promise resolving with an array of change objects defining a metamodel path (pointing to
+	 *   an annotation) and a value to be set for that annotation
+	 * @throws {Error}
+	 *   In case the promise is set too late or has already been set
+	 *
+	 * @private
+	 * @since 1.127.0
+	 * @ui5-restricted sap.ui.fl
+	 */
+	ODataModel.prototype.setAnnotationChangePromise = function (oAnnotationChangePromise) {
+		if (this.oAnnotationChangePromise) {
+			throw Error("Too late");
+		}
+		this.oAnnotationChangePromise = oAnnotationChangePromise;
+	};
+
+	/**
+	 * Sets the "odata.continue-on-error" preference once for the <b>current</b> batch request
+	 * associated with the given group ID. This method can be called early on, when that batch queue
+	 * is still empty, or even synchronously after {@link #submitBatch} - just as long as the $batch
+	 * request is not already being sent to the server. It needs to be called again for future
+	 * batch requests with the same group ID.
+	 *
+	 * @param {string} sGroupId
+	 *   A valid group ID as specified in {@link sap.ui.model.odata.v4.ODataModel}. Note that
+	 *   '$auto' should be avoided to control exactly which requests are affected by this
+	 *   preference. Using a {@link module:sap/base/util/uid UID} may be one way to achieve this,
+	 *   but take care to replace dashes with underscores.
+	 * @throws {Error}
+	 *   If the given group ID is not a valid group ID or has
+	 *   {@link sap.ui.model.odata.v4.SubmitMode.Direct}
+	 *
+	 * @private
+	 * @since 1.134.0
+	 * @ui5-restricted sap.fe
+	 */
+	ODataModel.prototype.setContinueOnError = function (sGroupId) {
+		this.checkBatchGroupId(sGroupId);
+		this.oRequestor.setContinueOnError(sGroupId);
+	};
+
+	/**
+	 * Sets a listener for HTTP responses which is called every time with the full set of headers
+	 * received.
+	 *
+	 * @param {function(object)} fnListener
+	 *   A function which is called with an object containing the following properties. This
+	 *   function must never fail!
+	 *   <ul>
+	 *     <li> <code>responseHeaders</code> A map from HTTP response header names (in all lower
+	 *       case) to their string values. Of course, "Set-Cookie" is not available here.
+	 *   </ul>
+	 *
+	 * @private
+	 * @see #changeHttpHeaders
+	 * @since 1.126.0
+	 * @ui5-restricted sap.payroll
+	 */
+	ODataModel.prototype.setHttpListener = function (fnListener) {
+		this.fnHttpListener = fnListener;
+	};
+
+	/**
 	 * Tells whether an entity's ETag should be actively ignored (If-Match:*) for PATCH requests.
 	 * Ignored if there is no ETag. Decided at the point in time when the PATCH is actually being
 	 * sent.
@@ -2749,22 +2941,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Getter for the optimistic batch enabler callback function; see
-	 * {@link #setOptimisticBatchEnabler}.
-	 *
-	 *
-	 * @returns {function(string)}
-	 *   The optimistic batch enabler callback function
-	 *
-	 * @experimental As of version 1.100.0
-	 * @private
-	 * @ui5-restricted sap.fe
-	 */
-	ODataModel.prototype.getOptimisticBatchEnabler = function () {
-		return this.fnOptimisticBatchEnabler;
-	};
-
-	/**
 	 * Setter for the optimistic batch enabler callback function. Setting this callback activates
 	 * the optimistic batch feature. Via the callback the optimistic batch behavior can be enabled
 	 * or disabled by returning either a boolean or a promise resolving with a boolean.
@@ -2774,14 +2950,14 @@ sap.ui.define([
 	 * If the callback returns or resolves with <code>true</code>, the OData model remembers the
 	 * first sent $batch request. With the next model instantiation for the same key, this
 	 * remembered $batch request will be sent at the earliest point in time in order to have the
-	 * response already available when the first $batch request is triggered from the UI or the
+	 * response already available when the first $batch request is initiated from the UI or the
 	 * binding. If the returned promise is rejected, this error will be reported and the optimistic
 	 * batch will be disabled.
 	 *
 	 * There are several preconditions on the usage of this API:
 	 * <ul>
 	 *   <li> Optimistic batch handling requires the "earlyRequests" model parameter; see
-	 *     {@link sap.ui.model.odata.v4.ODataModel#constructor},
+	 *     {@link #constructor},
 	 *   <li> the setter has to be called before the first $batch request is sent,
 	 *   <li> the setter may only be called once for an OData model,
 	 *   <li> the callback has to return a boolean, or a <code>Promise</code> resolving with a
@@ -2800,9 +2976,9 @@ sap.ui.define([
 	 *   <li> the setter is called more than once
 	 * </ul>
 	 *
-	 * @experimental As of version 1.100.0
 	 * @private
 	 * @see #cleanUpOptimisticBatch
+	 * @since 1.100.0
 	 * @ui5-restricted sap.fe
 	 */
 	ODataModel.prototype.setOptimisticBatchEnabler = function (fnOptimisticBatchEnabler) {
@@ -2820,6 +2996,28 @@ sap.ui.define([
 		}
 
 		this.fnOptimisticBatchEnabler = fnOptimisticBatchEnabler;
+	};
+
+	/**
+	 * Sets a "Retry-After" handler, which is called when an OData request fails with HTTP status
+	 * 503 (Service Unavailable) and the response has a "Retry-After" header.
+	 *
+	 * The handler is called with an <code>Error</code> having a property <code>retryAfter</code> of
+	 * type <code>Date</code>, which is the earliest point in time when the request should be
+	 * repeated. The handler has to return a promise. With this promise, you can control the
+	 * repetition of all pending requests including the failed HTTP request. If the promise is
+	 * resolved, the requests are repeated; if it is rejected, the requests are not repeated. If it
+	 * is rejected with the same <code>Error</code> reason as previously passed to the handler, then
+	 * this reason is reported to the message model.
+	 *
+	 * @param {function(Error):Promise<undefined>} fnRetryAfter
+	 *   A "Retry-After" handler
+	 *
+	 * @public
+	 * @since 1.134.0
+	 */
+	ODataModel.prototype.setRetryAfterHandler = function (fnRetryAfter) {
+		this.fnRetryAfter = fnRetryAfter;
 	};
 
 	/**
@@ -2890,7 +3088,7 @@ sap.ui.define([
 			// $$canonicalPath is not allowed, binding path and resource path are (almost) identical
 			const oTemporaryBinding = this.mKeepAliveBindingsByPath[oBinding.getResolvedPath()];
 			if (oTemporaryBinding) {
-				return oTemporaryBinding.oCachePromise;
+				return oTemporaryBinding.ready();
 			}
 		}
 		return SyncPromise.resolve();
@@ -2933,9 +3131,9 @@ sap.ui.define([
 	 *   A promise which is resolved without a defined result, or rejected with an error if
 	 *   deletion fails.
 	 *
-	 * @experimental As of version 1.102.0
 	 * @private
 	 * @see #setOptimisticBatchEnabler
+	 * @since 1.102.0
 	 * @ui5-restricted sap.fe
 	 */
 	ODataModel.cleanUpOptimisticBatch = function (dOlderThan) {
@@ -2944,6 +3142,21 @@ sap.ui.define([
 			prefix : "sap.ui.model.odata.v4.optimisticBatch:"
 		});
 	};
+
+	/** @deprecated As of version 1.120.0 */
+	(() => {
+		const fnOriginalExtend = ODataModel.extend;
+		/**
+		 * DO NOT EXTEND THIS CLASS.
+		 *
+		 * @returns {function} The created class / constructor function
+		 * @deprecated As of version 1.120.0
+		 */
+		ODataModel.extend = function () {
+			Log.error("[FUTURE FATAL] sap.ui.model.odata.v4.ODataModel must not be extended");
+			return fnOriginalExtend.apply(this, arguments);
+		};
+	})();
 
 	return ODataModel;
 });

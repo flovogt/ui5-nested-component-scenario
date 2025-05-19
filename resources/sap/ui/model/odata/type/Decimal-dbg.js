@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
+	"sap/ui/core/Lib",
 	"sap/ui/core/format/NumberFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/ODataUtils",
 	"sap/ui/model/odata/type/ODataType"
-], function (Log, NumberFormat, FormatException, ParseException, ValidateException, BaseODataUtils,
-		ODataType) {
+], function(Log, Library, NumberFormat, FormatException, ParseException, ValidateException, BaseODataUtils, ODataType) {
 	"use strict";
 
 	var rDecimal = /^[-+]?(\d+)(?:\.(\d+))?$/,
@@ -42,7 +42,7 @@ sap.ui.define([
 	 *   the message
 	 */
 	function getText(sKey, aParams) {
-		return sap.ui.getCore().getLibraryResourceBundle().getText(sKey, aParams);
+		return Library.getResourceBundleFor("sap.ui.core").getText(sKey, aParams);
 	}
 
 	/**
@@ -171,7 +171,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @alias sap.ui.model.odata.type.Decimal
 	 * @param {object} [oFormatOptions]
@@ -213,6 +213,7 @@ sap.ui.define([
 	 *
 	 *   The number is always displayed with exactly <code>scale</code> digits to the right of the
 	 *   decimal point (unless <code>scale</code> is "variable").
+	 * @throws {Error} If the <code>oFormatOptions.decimalPadding</code> is set but is not allowed
 	 * @public
 	 * @since 1.27.0
 	 */
@@ -322,7 +323,7 @@ sap.ui.define([
 			case "string":
 				sResult = this.getFormat().parse(vValue);
 				if (!sResult) {
-					throw new ParseException(sap.ui.getCore().getLibraryResourceBundle()
+					throw new ParseException(Library.getResourceBundleFor("sap.ui.core")
 						.getText("EnterNumber"));
 				}
 				// NumberFormat.parse does not remove trailing decimal zeroes and separator

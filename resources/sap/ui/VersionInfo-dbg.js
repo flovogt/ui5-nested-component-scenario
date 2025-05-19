@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 	"use strict";
+
+	let oVersionInfo;
 
 	/**
 	 * @alias module:sap/ui/VersionInfo
@@ -13,7 +15,16 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 	 * @since 1.56.0
 	 * @public
 	 */
-	var VersionInfo = {};
+	var VersionInfo = {
+		/**
+		 * Retrieves the version info in case it was already loaded.
+		 * @private
+		 * @ui5-restricted sap.ui.core
+		 */
+		get _content() {
+			return oVersionInfo;
+		}
+	};
 
 	/**
 	 * Loads the version info asynchronously from resource "sap-ui-version.json".
@@ -49,8 +60,6 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 	 */
 	var oVersionInfoPromise = null;
 
-	var oVersionInfo;
-
 	/**
 	 * Mapping of library name to it's dependencies.
 	 * Extracted from the loaded version info.
@@ -71,6 +80,9 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 		mKnownComponents = null;
 	}
 
+	/**
+	 * @deprecated since 1.120
+	 */
 	Object.defineProperty(sap.ui, "versioninfo", {
 		configurable: true,
 		enumerable: true,
@@ -241,9 +253,9 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 	/**
 	 * Gets all additional transitive dependencies for the given list of libraries.
 	 * Returns a new array.
-	 * @param {string[]} aLibraries a list of libraries for which the transitive
+	 * @param {object[]} aLibraries a list of libraries for which the transitive
 	 * dependencies will be extracted from the loaded version info
-	 * @returns {string[]} the list of all transitive dependencies for the given initial
+	 * @returns {object[]} the list of all transitive dependencies for the given initial
 	 * list of libraries
 	 * @static
 	 * @private
@@ -253,15 +265,30 @@ sap.ui.define(['sap/base/util/LoaderExtensions'], function (LoaderExtensions) {
 
 		transformVersionInfo();
 
-		if (mKnownLibs) {
-			var mClosure = aLibraries.reduce(function(all, lib) {
-				all[lib] = true;
-				return Object.assign(all, mKnownLibs[lib]);
-			}, {});
-			aLibraries = Object.keys(mClosure);
+		const closure = Object.create(null);
+
+		function addLibDependency(name, lazy) {
+			if (closure[name] == null ) {
+				closure[name] = {name, ...lazy && {lazy}};
+			} else {
+				if (closure[name].lazy && !lazy) {
+					delete closure[name].lazy;
+				}
+			}
 		}
 
-		return aLibraries;
+		for (const {name, lazy} of aLibraries) {
+			addLibDependency(name, lazy);
+			if (mKnownLibs?.[name]) {
+				for (const depName in mKnownLibs[name]) {
+					// Dependencies in `mKnownLibs` are always eager.
+					// They only inherit lazyness from the entry in aLibraries
+					addLibDependency(depName, lazy);
+				}
+			}
+		}
+
+		return Object.values(closure);
 	};
 
 	/**

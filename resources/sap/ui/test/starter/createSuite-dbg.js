@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -134,7 +134,7 @@
 
 		render(sLinkHTML).then(function() {
 			// Note: we use a 0.1 second timer resolution so that the blocking div disappears quickly
-			var count = 10 * (parseInt(utils.getAttribute("data-sap-ui-delay")) || 2) + 9;
+			var count = 10 * (parseInt(utils.getAttribute("data-sap-ui-delay")) || -1) + 9;
 
 			function countDown() {
 				if ( count === 6 ) {

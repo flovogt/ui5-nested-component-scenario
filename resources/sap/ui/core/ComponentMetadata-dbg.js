@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,13 +8,14 @@
 sap.ui.define([
 	'sap/ui/base/ManagedObjectMetadata',
 	'sap/ui/core/Manifest',
+	'sap/base/future',
 	'sap/base/Log',
 	'sap/base/util/extend',
 	'sap/base/util/deepExtend',
 	'sap/base/util/isPlainObject',
 	'sap/base/util/LoaderExtensions'
 ],
-	function(ManagedObjectMetadata, Manifest, Log, extend, deepExtend, isPlainObject, LoaderExtensions) {
+	function(ManagedObjectMetadata, Manifest, future, Log, extend, deepExtend, isPlainObject, LoaderExtensions) {
 	"use strict";
 
 	var syncCallBehavior = sap.ui.loader._.getSyncCallBehavior();
@@ -30,7 +31,7 @@ sap.ui.define([
 	 * @public
 	 * @class
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @since 1.9.2
 	 * @alias sap.ui.core.ComponentMetadata
 	 * @extends sap.ui.base.ManagedObjectMetadata
@@ -46,6 +47,10 @@ sap.ui.define([
 	ComponentMetadata.prototype = Object.create(ManagedObjectMetadata.prototype);
 	ComponentMetadata.prototype.constructor = ComponentMetadata;
 
+	/**
+	 * Synchronous loading Component metadata from "component.json" is deprecated.
+	 * @deprecated since 1.120
+	 */
 	ComponentMetadata.preprocessClassInfo = function(oClassInfo) {
 		// if the component is a string we convert this into a "_src" metadata entry
 		// the specific metadata object can decide to support this or gracefully ignore it
@@ -62,28 +67,35 @@ sap.ui.define([
 
 		var oStaticInfo = this._oStaticInfo = oClassInfo.metadata;
 
-		// if the component metadata loadFromFile feature is active then
-		// the component metadata will be loaded from the specified file
-		// which needs to be located next to the Component.js file.
 		var sName = this.getName(),
 		    sPackage = sName.replace(/\.\w+?$/, "");
-		if (oStaticInfo._src) {
-			if (oStaticInfo._src == "component.json") {
-				Log.warning("Usage of declaration \"metadata: 'component.json'\" is deprecated (component " + sName + "). Use \"metadata: 'json'\" instead.");
-			} else if (oStaticInfo._src != "json") {
-				throw new Error("Invalid metadata declaration for component " + sName + ": \"" + oStaticInfo._src + "\"! Use \"metadata: 'json'\" to load metadata from component.json.");
-			}
 
-			var sResource = sPackage.replace(/\./g, "/") + "/component.json";
-			Log.info("The metadata of the component " + sName + " is loaded from file " + sResource + ".");
-			try {
-				var oResponse = LoaderExtensions.loadResource(sResource, {
-					dataType: "json"
-				});
-				extend(oStaticInfo, oResponse);
-			} catch (err) {
-				Log.error("Failed to load component metadata from \"" + sResource + "\" (component " + sName + ")! Reason: " + err);
-			}
+		/**
+		 * @ui5-transform-hint replace-local false
+		 */
+		const bLegacyMetadata = !!oStaticInfo._src;
+
+		if (bLegacyMetadata || oClassInfo && typeof oClassInfo.metadata === "string") {
+			future.errorThrows("Component Metadata must not be a string. Please use \"metadata: { manifest: 'json' }\" instead.");
+
+			/**
+			 * if the component metadata loadFromFile feature is active then
+			 * the component metadata will be loaded from the specified file
+			 * which needs to be located next to the Component.js file.
+			 * @deprecated
+			 */
+			(() => {
+				var sResource = sPackage.replace(/\./g, "/") + "/component.json";
+				Log.info("The metadata of the component " + sName + " is loaded from file " + sResource + ".");
+				try {
+					var oResponse = LoaderExtensions.loadResource(sResource, {
+						dataType: "json"
+					});
+					extend(oStaticInfo, oResponse);
+				} catch (err) {
+					Log.error("Failed to load component metadata from \"" + sResource + "\" (component " + sName + ")! Reason: " + err);
+				}
+			})();
 		}
 
 		ManagedObjectMetadata.prototype.applySettings.call(this, oClassInfo);
@@ -136,10 +148,13 @@ sap.ui.define([
 	 * - {@link sap.ui.component} / {@link sap.ui.component.load} with an existing manifest to prevent the sync request
 	 *
 	 * @param {object} oManifestJson manifest object (will be modified internally!)
+	 * @param {boolean} [bSkipProcess=false] whether the sync processing of the manifest should be skipped.
+	 *  This needs to be set to true when the processing of manifest should be done asynchronously with
+	 *  separated code
 	 * @private
 	 * @ui5-restricted sap.ui.core.Component
 	 */
-	ComponentMetadata.prototype._applyManifest = function(oManifestJson) {
+	ComponentMetadata.prototype._applyManifest = function(oManifestJson, bSkipProcess = false) {
 		// Make sure to not create the manifest object twice!
 		// This could happen when the manifest is accessed (via #getManifestObject) while sap.ui.component is loading it.
 		// Then the async request wouldn't be cancelled and the manifest already loaded (sync) should not be be overridden.
@@ -166,8 +181,9 @@ sap.ui.define([
 		this._oManifest = new Manifest(oManifestJson, {
 			componentName: this.getComponentName(),
 			baseUrl: sap.ui.require.toUrl(this.getComponentName().replace(/\./g, "/")) + "/",
-			process: this._oStaticInfo.__metadataVersion === 2
+			process: !bSkipProcess && this._oStaticInfo.__metadataVersion === 2
 		});
+
 	};
 
 	/**

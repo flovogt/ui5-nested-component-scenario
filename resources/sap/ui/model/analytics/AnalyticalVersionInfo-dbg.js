@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
@@ -9,7 +9,7 @@
  * @namespace
  * @name sap.ui.model.analytics
  * @public
- * @deprecated As of version 1.117.0
+ * @deprecated As of version 1.117, the concept has been discarded.
  */
 
 sap.ui.define(["sap/base/Log"], function(Log) {

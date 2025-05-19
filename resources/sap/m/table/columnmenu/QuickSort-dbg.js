@@ -1,13 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/m/table/columnmenu/QuickActionBase"
+	"sap/m/table/columnmenu/QuickActionBase",
+	"sap/m/table/columnmenu/QuickSortItem",
+	"sap/m/library"
 ], function (
-	QuickActionBase
+	QuickActionBase,
+	QuickSortItem,
+	library
 ) {
 	"use strict";
 
@@ -24,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.QuickActionBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @since 1.110
@@ -39,7 +43,7 @@ sap.ui.define([
 				/**
 				 * The sortable properties and the initial state.
 				 */
-				items: { type: "sap.m.table.columnmenu.QuickSortItem", multiple: true }
+				items: { type: "sap.m.table.columnmenu.QuickSortItem", defaultClass: QuickSortItem, multiple: true }
 			},
 			events: {
 				/**
@@ -62,13 +66,16 @@ sap.ui.define([
 	});
 
 	QuickSort.prototype.getEffectiveQuickActions = function() {
-		var aItems = this.getItems();
 		var aEffectiveQuickActions = [];
 
 		if (this.getVisible()) {
-			aItems.forEach(function(oItem) {
+			var aItems = this.getItems().filter((oItem) => {
+				return oItem.getVisible();
+			});
+
+			aItems.forEach((oItem) => {
 				aEffectiveQuickActions.push(oItem._getAction());
-			}, this);
+			});
 		}
 
 		return aEffectiveQuickActions;

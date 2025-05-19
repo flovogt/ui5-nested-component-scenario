@@ -1,17 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides control sap.ui.unified.Calendar.
 sap.ui.define([
+	"sap/base/i18n/Formatting",
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/ui/Device',
+	"sap/ui/core/Lib",
 	'sap/ui/core/LocaleData',
 	'sap/ui/unified/calendar/CalendarUtils',
-	'sap/ui/core/format/TimezoneUtil',
-	'sap/ui/core/Core',
 	'sap/ui/core/date/UniversalDate',
 	'./library',
 	'sap/ui/core/InvisibleText',
@@ -22,17 +23,16 @@ sap.ui.define([
 	"sap/ui/dom/containsOrEquals",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/unified/CalendarAppointment",
-	'sap/ui/core/InvisibleMessage',
 	'sap/ui/core/library',
-	'sap/ui/core/Configuration',
 	"sap/ui/core/date/UI5Date"
 ], function(
+	Formatting,
+	Localization,
 	Control,
 	Device,
+	Library,
 	LocaleData,
 	CalendarUtils,
-	TimezoneUtil,
-	Core,
 	UniversalDate,
 	library,
 	InvisibleText,
@@ -43,9 +43,7 @@ sap.ui.define([
 	containsOrEquals,
 	jQuery,
 	CalendarAppointment,
-	InvisibleMessage,
 	corelibrary,
-	Configuration,
 	UI5Date
 ) {
 	"use strict";
@@ -86,7 +84,7 @@ sap.ui.define([
 	 * @class
 	 * A calendar row with a header and appointments. The Appointments will be placed in the defined interval.
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -228,8 +226,7 @@ sap.ui.define([
 
 			/**
 			 * Defines rounding of the width of <code>CalendarAppoinment<code>
-			 * <b>Note:</b> This property is applied, when the calendar interval type is day and the view shows more than 20 days
-			 * @experimental Since 1.81.0
+			 * <b>Note:</b> This property is applied, when the calendar interval type is Day and the view shows more than 20 days
 			 * @since 1.81.0
 			 */
 			appointmentRoundWidth: { type: "sap.ui.unified.CalendarAppointmentRoundWidth", group: "Appearance", defaultValue: CalendarAppointmentRoundWidth.None},
@@ -250,7 +247,13 @@ sap.ui.define([
 			 *
 			 * <b>Note:</b> For performance reasons, only appointments in the visible time range or nearby should be assigned.
 			 */
-			appointments : {type : "sap.ui.unified.CalendarAppointment", multiple : true, singularName : "appointment"},
+			appointments : {type : "sap.ui.unified.CalendarAppointment", defaultClass: CalendarAppointment, multiple : true, singularName : "appointment"},
+
+			/**
+			 * Sets the provided period to be displayed as a non-working.
+			 * @since 1.128
+			 */
+			nonWorkingPeriods: {type: "sap.ui.unified.NonWorkingPeriod", multiple: true},
 
 			/**
 			 * Appointments to be displayed in the top of the intervals. The <code>intervalHeaders</code> are used to visualize
@@ -359,10 +362,10 @@ sap.ui.define([
 
 	CalendarRow.prototype.init = function(){
 
-		this._bRTL  = Configuration.getRTL();
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
-
+		this._bRTL  = Localization.getRTL();
+		this._oRb = Library.getResourceBundleFor("sap.ui.unified");
 		var pattern = this._oRb.getText("APPOINTMENT_DATE_TIME_DESCRIPTION", [_getLocaleData.call(this).getDatePattern("long"), _getLocaleData.call(this).getTimePattern("medium")]);
+
 		this._oFormatAria = DateFormat.getDateTimeInstance({
 			pattern: "EEEE " + pattern
 		});
@@ -414,8 +417,6 @@ sap.ui.define([
 				this._updateSelectedAppointmentsArray(oApp);
 			}.bind(this));
 		}
-
-		this._oInvisibleMessage = InvisibleMessage.getInstance();
 	};
 
 	CalendarRow.prototype.onAfterRendering = function(){
@@ -1019,7 +1020,7 @@ sap.ui.define([
 	function _getLocale(){
 
 		if (!this._sLocale) {
-			this._sLocale = Configuration.getFormatSettings().getFormatLocale().toString();
+			this._sLocale = new Locale(Formatting.getLanguageTag()).toString();
 		}
 
 		return this._sLocale;
@@ -1679,6 +1680,24 @@ sap.ui.define([
 
 	}
 
+	function _updateAppointmentBackgroundColor(oAppointment, bSelected) {
+		var oAppointmentColor = oAppointment.getColor();
+
+		if (!oAppointmentColor) {
+			return;
+		}
+
+		var sBackgroundColor = bSelected ? "transparent" : oAppointment._getCSSColorForBackground(oAppointmentColor),
+			oAppointmentDomRef = oAppointment.getDomRef();
+
+		if (oAppointmentDomRef) {
+			var oAppointmentCont = oAppointmentDomRef.querySelector('.sapUiCalendarAppCont');
+			if (oAppointmentCont) {
+				oAppointmentCont.style.backgroundColor = sBackgroundColor;
+			}
+		}
+	}
+
 	function _selectAppointment(oAppointment, bRemoveOldSelection) {
 
 		var i = 0;
@@ -1690,6 +1709,7 @@ sap.ui.define([
 		var sCurrentAriaDescribedByNotSelected;
 		var sSelectedTextId = InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT_SELECTED");
 		var bSelect = !oAppointment.getSelected();
+		var bUpdateBackgroundColor = this.getAppointmentsVisualization() === CalendarAppointmentVisualization.Filled;
 
 		if (bRemoveOldSelection) {
 			var aAppointments = this.getAppointments();
@@ -1702,9 +1722,9 @@ sap.ui.define([
 				if (oApp.getId() !== oAppointment.getId() && oApp.getSelected()) {
 					oApp.setProperty("selected", false, true); // do not invalidate CalendarRow
 					oApp.$().removeClass("sapUiCalendarAppSel");
-					for (var i = 0; i < this.aSelectedAppointments.length; i++) {
-						if (this.aSelectedAppointments[i] !== oApp.getId()){
-							this.aSelectedAppointments.splice(i);
+					for (var j = 0; j < this.aSelectedAppointments.length; j++) {
+						if (this.aSelectedAppointments[j] !== oApp.getId()){
+							this.aSelectedAppointments.splice(j);
 						}
 					}
 					sAriaDescribedBy = oApp.$().attr("aria-describedby");
@@ -1720,6 +1740,7 @@ sap.ui.define([
 
 		if (oAppointment.getSelected()) {
 			oAppointment.setProperty("selected", false, true); // do not invalidate CalendarRow
+			bUpdateBackgroundColor && _updateAppointmentBackgroundColor(oAppointment, false);
 			oAppointment.$().removeClass("sapUiCalendarAppSel");
 			if (sCurrentAriaDescribedByNotSelected) {
 				oAppointment.$().attr("aria-describedby", sCurrentAriaDescribedByNotSelected);
@@ -1729,6 +1750,7 @@ sap.ui.define([
 			_removeAllAppointmentSelections(this, bRemoveOldSelection);
 		} else {
 			oAppointment.setProperty("selected", true, true); // do not invalidate CalendarRow
+			bUpdateBackgroundColor && _updateAppointmentBackgroundColor(oAppointment, true);
 			oAppointment.$().addClass("sapUiCalendarAppSel");
 			oAppointment.$().attr("aria-describedby", sCurrentAriaDescribedBySelected);
 			_removeAllAppointmentSelections(this, bRemoveOldSelection);
@@ -1890,6 +1912,20 @@ sap.ui.define([
 			}
 			oParent = oParent.getParent();
 		}
+	};
+
+	/**
+	 * Hook for controls that extend the sap.ui.unified.CalendarRow control.
+	 * Checks whether an interval representing a day as part of a row will be displayed as non working.
+	 * @private
+	 * @param {int} iInterval The interval number representing a day as part of a row.
+	 * @param {array} aNonWorkingItems The interval number representing a day as part of a row.
+	 * @param {int} iStartOffset The interval index based on the start date of the view.
+	 * @param {int} iNonWorkingMax The non working maximal index based on the view.
+	 * @returns {boolean}
+	 */
+	CalendarRow.prototype._isNonWorkingInterval = function (iInterval, aNonWorkingItems, iStartOffset, iNonWorkingMax) {
+		return aNonWorkingItems.includes((iInterval + iStartOffset) % iNonWorkingMax);
 	};
 
 	/**

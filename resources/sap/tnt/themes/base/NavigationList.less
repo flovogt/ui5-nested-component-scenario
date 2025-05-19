@@ -5,7 +5,6 @@
 
 @_sap_tnt_NavigationList_CollapsedWidth: 3rem;
 @_sap_tnt_NavigationList_IconColor: @sapUiContentIconColor;
-@_sap_tnt_NavigationList_IconFontSize: 1rem;
 @_sap_tnt_NavigationList_ExpandIconColor: @sapUiContentIconColor;
 @_sap_tnt_NavigationList_HoverBorderStyleColor: none;
 @_sap_tnt_NavigationList_HoverBorderWidth: 0;
@@ -18,43 +17,61 @@
 @_sap_tnt_NavigationList_LastItemBorderStyleColor: none;
 @_sap_tnt_NavigationList_ItemBorderRadius: 0;
 @_sap_tnt_NavigationList_ItemBottomMargin: 0;
-@_sap_tnt_NavigationList_ItemBottomMarginCompact: 0;
+@_sap_tnt_NavigationList_ItemBottomMarginInOverflowPopup: 0.1875rem;
 @_sap_tnt_NavigationList_ItemTransition: none;
+@_sap_tnt_NavigationList_ItemTextFontFamily: var(--sapFontFamily);
 @_sap_tnt_NavigationList_NoIconsGroupPadding: 1rem;
 @_sap_tnt_NavigationList_NoIconsNestedItemPadding: 1rem;
 @_sap_tnt_NavigationList_ItemFocusBorderOffset: 1px;
 @_sap_tnt_NavigationList_ItemFocusBorderRadius: @_sap_tnt_NavigationList_ItemBorderRadius;
 @_sap_tnt_NavigationList_Collapsed_SelectedItemBackground: ~"0 100% / 100% 0.125rem" no-repeat linear-gradient(0deg, @sapUiListSelectionBorderColor, @sapUiListSelectionBorderColor), @sapUiListSelectionBackgroundColor;
+@_sap_tnt_NavigationList_Collapsed_SelectedItemBackgroundHover: @_sap_tnt_NavigationList_Collapsed_SelectedItemBackground;
+@_sap_tnt_NavigationList_Collapsed_SelectedItemBackgroundRTL: @_sap_tnt_NavigationList_Collapsed_SelectedItemBackground;
 @_sap_tnt_NavigationList_SelectedItemBorderColor: @sapUiListSelectionBorderColor;
 @_sap_tnt_NavigationList_SelectedBorderStyleColor: solid @_sap_tnt_NavigationList_SelectedItemBorderColor;
 @_sap_tnt_NavigationList_SelectedBorderWidth: 0 0 0.0625rem 0;
 @_sap_tnt_NavigationList_SelectedAndFocusedBorderStyleColor: @_sap_tnt_NavigationList_SelectedBorderStyleColor;
 @_sap_tnt_NavigationList_Collapsed_SelectedItemBorderStyleColor: solid @_sap_tnt_NavigationList_SelectedItemBorderColor;
 @_sap_tnt_NavigationList_Collapsed_SelectedGroupBorderColor: @_sap_tnt_NavigationList_SelectedItemBorderColor;
-@_sap_tnt_NavigationList_Collapsed_GroupBorderWidth: @sapUiListBorderColor;
+@_sap_tnt_NavigationList_Collapsed_GroupBorderWidth: 0;
 @_sap_tnt_NavigationList_GroupExpandedBorderWidth: @_sap_tnt_NavigationList_GroupBorderWidth;
 @_sap_tnt_NavigationList_GroupIconWidth: @_sap_tnt_NavigationList_CollapsedWidth;
+@_sap_tnt_NavigationList_GroupIconWidthExpanded: @_sap_tnt_NavigationList_CollapsedWidth;
+@_sap_tnt_NavigationList_GroupIconMarginLeft: 0;
+@_sap_tnt_NavigationList_GroupIconMarginRight: 0;
 @_sap_tnt_NavigationList_GroupTextWeight: unset;
-@_sap_tnt_NavigationList_GroupBottomMarginInPopup: 0;
+@_sap_tnt_NavigationList_GroupPadding: 0.5rem;
+@_sap_tnt_NavigationList_ParentItemBottomMarginInPopup: 0;
 @_sap_tnt_NavigationList_Padding: 0;
-@_sap_tnt_NavigationList_PaddingCompact: 0;
-@_sap_tnt_NavigationList_ParentPopupPadding: 0;
-@_sap_tnt_NavigationList_ParentPopupBorderRadius: @sapUiPopoverBorderCornerRadius;
+@_sap_tnt_NavigationList_PaddingFixed: 0;
+@_sap_tnt_NavigationList_PaddingInlineEnd: 0.375rem;
+@_sap_tnt_NavigationList_ArrowPadding: 0.6875rem;
+@_sap_tnt_NavigationList_ArrowPaddingCompact: 0.3125rem;
+@_sap_tnt_NavigationList_PopupPadding: 0;
 @_sap_tnt_NavigationList_PopupItemPadding: 0 1rem;
-@_sap_tnt_NavigationList_PopupIconWidth: 1rem;
-@_sap_tnt_NavigationList_PopupBoxShadow: @sapUiContentShadow2;
-@_sap_tnt_NavigationList_PopupArrowBoxShadow: @sapUiContentShadow2;
 @_sap_tnt_NavigationList_PopupTitleTextSize: @sapMFontMediumSize;
 @_sap_tnt_NavigationList_PopupTitleLineHeight: normal;
-@_sap_tnt_NavigationList_SelectionIndicatorDisplay: none;
 @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemPadding: 0;
 @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemPaddingCompact: 0;
 @_sap_tnt_NavigationList_Collapsed_HoverOrFocusTextDisplay: none;
 @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemZIndex: 0;
 @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemPosition: relative;
 @_sap_tnt_NavigationList_Collapsed_ItemHoverBoxShadow: @_sap_tnt_SideNavigation_BoxShadow;
+@_sap_tnt_NavigationList_CollapsedIconPaddingLeft: 0;
+@_sap_tnt_NavigationList_CollapsedHiddenExpanderPadding: 0;
+@_sap_tnt_NavigationList_NavigationIndicator: "";
+@_sap_tnt_NavigationList_ExpandIconWidth: 2rem;
+@_sap_tnt_NavigationList_ExpandIconMarginRight: 0;
+@_sap_tnt_NavigationList_ExpandIconMarginLeft: 0;
+@_sap_tnt_NavigationList_ExpandIconPaddingLeft: 0;
+@_sap_tnt_NavigationList_ExpandIconFontSize: 0.875rem;
+@_sap_tnt_NavigationList_ActionItemBorderHover: none;
+@_sap_tnt_NavigationList_ActionItemBorderPosition: auto;
+@_sap_tnt_NavigationList_ActionItemBorderHeight: 100%;
+@_sap_tnt_NavigationList_ActionItemBorderPaddingLeft: @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemPadding;
+@_sap_tnt_NavigationList_ActionItemBorder: @sapUiButtonBorderWidth solid @sapUiButtonBorderColor;
 
-.sapTntNavLI {
+.sapTntNL {
 	margin: 0;
 	padding: @_sap_tnt_NavigationList_Padding;
 	list-style: none;
@@ -62,207 +79,238 @@
 	overflow: hidden auto;
 }
 
-.sapTntNavLI.sapTntNavLICollapsed {
+.sapTntSideNavigationFixed .sapTntNL {
+	padding: @_sap_tnt_NavigationList_PaddingFixed;
+}
+
+.sapTntSideNavigation:not(.sapTntSideNavigationNotExpanded) .sapTntSideNavigationFixed .sapTntNLI.sapTntNLIFirstLevel:first-of-type {
+	// add 2px margin to make focus border visible
+	margin-top: 0.125rem;
+}
+
+.sapTntNL.sapTntNLCollapsed {
 	overflow: visible;
 	display: flex;
 	flex-direction: column;
 	height: 100%;
 }
 
-.sapTnTNavLIOverflow {
+.sapTntNLOverflow {
 	flex: 1;
 	display: flex;
 	flex-direction: column-reverse;
 }
 
-.sapTntNavLI ul {
+.sapUiIcon > .sapUiIconTitle {
+	padding-inline-end: @_sap_tnt_NavigationList_PaddingInlineEnd;
+	padding-block: @_sap_tnt_NavigationList_ArrowPadding;
+	top: -@_sap_tnt_NavigationList_ArrowPadding;
+}
+
+.sapTntNL ul {
 	margin: 0;
 	padding: 0;
 	list-style: none;
 }
 
-.sapTntNavLI.sapTntNavLICollapsed li {
+.sapTntNL.sapTntNLCollapsed li:not(.sapTntNLSeparator) {
 	min-height: @_sap_tnt_NavigationList_ItemHeight + @_sap_tnt_NavigationList_ItemBottomMargin;
 }
 
-.sapTntNavLIItem {
+.sapTntNLI {
 	height: @_sap_tnt_NavigationList_ItemHeight;
 	box-sizing: border-box;
 	cursor: pointer;
 	background-color: @sapUiListBackground;
 	border-radius: @_sap_tnt_NavigationList_ItemBorderRadius;
-	transition: @_sap_tnt_NavigationList_ItemTransition;
 
 	// borders are drawn using a pseudo element.
 	// in some themes, the border is drawn only on the bottom.
 	// in high contrast themes the border is on all sides and there is extra border on hover
 	&::before {
+		pointer-events: none;
 		content: "";
 		position: absolute;
 		inset: 0;
-		pointer-events: none;
 	}
 
 	span {
 		cursor: pointer;
 	}
 
-	&.sapTntNavLIItemDisabled {
-		cursor: auto;
-		opacity: @sapContent_DisabledOpacity;
+	&.sapTntNLIDisabled {
+		cursor: default;
+		opacity: @sapUiContentDisabledOpacity;
 
 		span {
-			cursor: auto;
+			cursor: default;
+		}
+	}
+
+	&.sapTntNLIFirstLevel.sapTntNLIInPopover.sapTntNLIUnselectable {
+		cursor: default;
+
+		span {
+			cursor: text;
 		}
 	}
 
 	.sapMText {
 		color: @sapUiListTextColor;
+		font-family: @_sap_tnt_NavigationList_ItemTextFontFamily;
 	}
 
-	.sapTntNavLIGroupIcon {
+	.sapTntNLIIcon {
 		color: @_sap_tnt_NavigationList_IconColor;
-		font-size: @_sap_tnt_NavigationList_IconFontSize;
+		font-size: 1rem;
 	}
 
-	.sapTntNavLIExpandIcon {
+	.sapTntNLIExpandIcon,
+	.sapTntNLIExternalLinkIcon {
 		color: @_sap_tnt_NavigationList_ExpandIconColor;
 	}
 
 	a {
-		width: 100%;
+		min-width: 100%;
 		height: 100%;
 		text-decoration: none;
 		outline: none;
+		background: inherit;
+		border-radius: inherit;
+		transition: @_sap_tnt_NavigationList_ItemTransition;
 		display: flex;
 		align-items: center;
+		box-sizing: border-box;
 	}
 }
 
-.sapTntNavLI.sapTntNavLICollapsed {
-	.sapTntNavLIItem a {
+.sapTntNL.sapTntNLCollapsed {
+	.sapTntNLI a {
 		justify-content: center;
 	}
 }
 
 // defines the styles for border when selected, border when hovering (hover used in high contrast themes)
-.sapTntNavLI li .sapTntNavLIItem:not(.sapTntNavLIItemDisabled) {
-	&.sapTntNavLIItemSelected::before {
+.sapTntNL li .sapTntNLI:not(.sapTntNLIDisabled):not(.sapTntNLIAction) {
+	&.sapTntNLISelected::before {
 		border: @_sap_tnt_NavigationList_SelectedBorderStyleColor;
 		border-width: @_sap_tnt_NavigationList_SelectedBorderWidth;
 	}
 
 	&:hover,
 	&:active,
-	.sapTntNavLIPopover &:last-child:hover,
-	.sapTntNavLIPopover &:last-child:active {
-		&:not(.sapTntNavLIItemSelected)::before {
+	.sapTntNLPopover &:last-child:hover,
+	.sapTntNLPopover &:last-child:active {
+		&:not(.sapTntNLISelected):not(.sapTntNLIAction):before {
 			border: @_sap_tnt_NavigationList_HoverBorderStyleColor;
 			border-width: @_sap_tnt_NavigationList_HoverBorderWidth;
 		}
 	}
 }
 
-.sapTntNavLI li:focus .sapTntNavLIItem:not(.sapTntNavLIItemDisabled).sapTntNavLIItemSelected,
-.sapTntNavLI .sapTntNavLIItem:not(.sapTntNavLIItemDisabled).sapTntNavLIItemSelected:focus {
+.sapTntNL .sapTntNLI:not(.sapTntNLIDisabled).sapTntNLISelected [tabindex]:focus {
+// .sapTntNL .sapTntNLI:not(.sapTntNLIDisabled).sapTntNLISelected:focus {
 	&::before {
 		border: @_sap_tnt_NavigationList_SelectedAndFocusedBorderStyleColor;
 	}
 }
 
-
-.sapTntNavLIGroupItem {
-	&::before {
-		border: @_sap_tnt_NavigationList_ItemBorderStyleColor;
-		border-width: @_sap_tnt_NavigationList_ItemBorderWidth;
-	}
+.sapTntNLISecondLevel::before {
+	border: @_sap_tnt_NavigationList_ItemBorderStyleColor;
+	border-width: @_sap_tnt_NavigationList_ItemBorderWidth;
 }
 
-.sapTntNavLIGroup::before {
+.sapTntNLIFirstLevel::before {
 	border: @_sap_tnt_NavigationList_GroupBorderStyleColor;
 	border-width: @_sap_tnt_NavigationList_GroupBorderWidth;
 
-	.sapTntNavLICollapsed & {
+	.sapTntNLCollapsed & {
 		border-width: @_sap_tnt_NavigationList_Collapsed_GroupBorderWidth;
 	}
 }
 
+.sapTntNLIFirstLevel.sapTntNLIAction::before {
+	border: none;
+}
+
 // When a group is expanded, defines the border of the group and of its last item
-.sapTntNavLI:not(.sapTntNavLIPopup) {
-	.sapTntNavLIGroup[aria-expanded="true"]::before {
+.sapTntNL:not(.sapTntNLPopup) {
+	.sapTntNLIFirstLevel[aria-expanded="true"]::before {
 		border-width: @_sap_tnt_NavigationList_GroupExpandedBorderWidth;
 	}
 
-	.sapTntNavLIGroupItem:last-child::before {
+	.sapTntNLISecondLevel:last-child::before {
 		border: @_sap_tnt_NavigationList_GroupBorderStyleColor;
 		border-width: @_sap_tnt_NavigationList_GroupBorderWidth;
 	}
 }
 
-.sapTntNavLIPopover .sapTntNavLIGroupItem:last-child::before {
+.sapTntNLPopover .sapTntNLISecondLevel:last-child::before {
 	border: @_sap_tnt_NavigationList_LastItemBorderStyleColor;
 }
 
-.sapTntNavLIText {
+.sapTntNLIText {
 	flex: 1;
 	min-width: 0;
 }
 
-.sapTntNavLIPopover .sapTntNavLIPopup.sapTntNavLI {
-	padding: @_sap_tnt_NavigationList_ParentPopupPadding;
+.sapTntNLPopover .sapTntNLPopup.sapTntNL {
+	padding: @_sap_tnt_NavigationList_PopupPadding;
 
-	.sapTntNavLIItem.sapTntNavLIGroup {
-		margin-bottom: @_sap_tnt_NavigationList_GroupBottomMarginInPopup;
+	.sapTntNLI {
+
+		&.sapTntNLIFirstLevel {
+			margin-bottom: @_sap_tnt_NavigationList_ParentItemBottomMarginInPopup;
+		}
+
+		&:not(:last-child) {
+			margin-bottom: @_sap_tnt_NavigationList_ItemBottomMargin;
+		}
 	}
 }
 
-.sapTntNavLIPopup .sapTntNavLIGroupItem .sapMText {
+.sapTntNLPopup .sapTntNLISecondLevel .sapMText {
 	padding: @_sap_tnt_NavigationList_PopupItemPadding;
 }
 
-.sapTntNavLIPopup .sapTntNavLIGroup .sapMText {
+.sapTntNLPopup .sapTntNLIFirstLevel .sapMText {
 	margin: 0 1rem 0 0;
 	font-size: @_sap_tnt_NavigationList_PopupTitleTextSize;
 	line-height: @_sap_tnt_NavigationList_PopupTitleLineHeight;
 }
 
-.sapTntNavLI {
-	span.sapTntNavLIGroupIcon {
+.sapTntNL {
+	span.sapTntNLIIcon {
 		outline: none;
 		-webkit-user-select: none; /* Chrome all / Safari all */
 		-moz-user-select: none; /* Firefox all */
 		user-select: none;
 	}
-
-	img.sapTntNavLIGroupIcon {
-		height: 1.125rem;
-		width: 1.125rem;
-		padding: 0.6875rem 0.9375rem;
-	}
 }
 
-.sapTnTNavLIHiddenItem {
+.sapTntNLIHidden {
 	display: none;
 }
 
-.sapTntNavLIPopup {
-	span.sapTntNavLIGroupIcon {
-		width: @_sap_tnt_NavigationList_PopupIconWidth;
-		min-width: @_sap_tnt_NavigationList_PopupIconWidth;
-		visibility: hidden;
+.sapTntNLPopup .sapTntNLI {
+
+	a {
+		padding-left: 1rem;
 	}
 
-	img.sapTntNavLIGroupIcon {
-		width: @_sap_tnt_NavigationList_PopupIconWidth;
-		min-width: @_sap_tnt_NavigationList_PopupIconWidth;
-		visibility: hidden;
-		padding: 0;
+	.sapTntNLIIcon {
+		display: none;
 	}
 }
 
-.sapTntNavLI .sapTntNavLIExpandIcon {
-	min-width: 2rem;
-	font-size: 0.875rem;
+.sapTntNL .sapTntNLIExpandIcon,
+.sapUiMnuItmSbMnu.sapTntNLIExpandIcon,
+.sapTntNLIExternalLinkIcon {
+	min-width: @_sap_tnt_NavigationList_ExpandIconWidth;
+	margin-right: @_sap_tnt_NavigationList_ExpandIconMarginRight;
+	margin-left: @_sap_tnt_NavigationList_ExpandIconMarginLeft;
+	padding-left: @_sap_tnt_NavigationList_ExpandIconPaddingLeft;
+	font-size: @_sap_tnt_NavigationList_ExpandIconFontSize;
 
 	pointer-events: all;
 
@@ -272,57 +320,109 @@
 	user-select: none;
 }
 
-.sapTntNavLIHiddenGroupItems {
+.sapTntNL:not(.sapTntNLCollapsed) .sapTntNLI.sapTntNLIWithExpander.sapTntNLITwoClickAreas .sapTntNLIExpandIcon {
+	margin-left: 1rem;
+}
+
+.sapTntNLIItemsContainer.sapTntNLIItemsContainerHidden {
 	display: none;
 }
 
-.sapTntNavLICollapsed {
+.sapTntNLCollapsed {
 	width: @_sap_tnt_NavigationList_CollapsedWidth;
 }
 
-.sapTntNavLI li,
-.sapTntNavLIItem {
+.sapTntNL li,
+.sapTntNLI {
 	position: relative;
 }
 
-.sapTntNavLIGroup .sapTntNavLIText {
+.sapTntNLIFirstLevel .sapTntNLIText {
 	font-weight: @_sap_tnt_NavigationList_GroupTextWeight;
 }
 
-.sapTntNavLICollapsed {
+.sapTntNLCollapsed {
 
-	.sapTntNavLIText {
+	.sapTntNLIText {
 		display: none;
 	}
 
-	.sapTntNavLIItem:not(.sapTntNavLIItemDisabled):not(.sapTntNavLIActive):hover,
-	&.sapTntNavLI li:focus .sapTntNavLIItem,
-	.sapTntNavLIItem:not(.sapTntNavLIItemDisabled):not(.sapTntNavLIActive):focus {
+	.sapTntNLIExternalLinkIcon,
+	.sapTntNLIExpandIcon {
+		display: none;
+	}
 
-		&:not(.sapTntNavLIItemNoHoverEffect) {
+	.sapTntNLI:not(.sapTntNLIDisabled):not(.sapTntNLIActive):not(.sapTntNLINoHoverEffect) {
+		[tabindex]:hover,
+		[tabindex]:focus {
 			position: @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemPosition;
 			padding: @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemPadding;
 			z-index: @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemZIndex;
 
-			.sapTntNavLIText {
+			.sapTntNLIText {
 				display: @_sap_tnt_NavigationList_Collapsed_HoverOrFocusTextDisplay;
+			}
+
+			.sapTntNLIText:last-child {
+				padding-right: 1rem;
+			}
+
+			.sapTntNLIExternalLinkIcon,
+			.sapTntNLIExpandIcon {
+				display: @_sap_tnt_NavigationList_Collapsed_HoverOrFocusTextDisplay;
+			}
+
+			.sapUiIcon:first-of-type::after {
+				display: none;
+			}
+
+			.sapUiIcon:first-of-type {
+				padding-left: 0;
+			}
+		}
+
+		&.sapTntNLIAction {
+			[tabindex]:not(:focus):hover {
+				border: @_sap_tnt_NavigationList_ActionItemBorderHover;
+
+				//border should be considered for the positioning in Horizon - the following styles are used to keep the icon in the same position when the border is added
+				top: @_sap_tnt_NavigationList_ActionItemBorderPosition;
+				bottom: @_sap_tnt_NavigationList_ActionItemBorderPosition;
+				left: @_sap_tnt_NavigationList_ActionItemBorderPosition;
+				height: @_sap_tnt_NavigationList_ActionItemBorderHeight;
+				padding-left: @_sap_tnt_NavigationList_ActionItemBorderPaddingLeft;
+			}
+
+			[tabindex]:focus {
+				padding-left: @_sap_tnt_NavigationList_ActionItemBorderPaddingLeft;
+				outline: @_sap_tnt_NavigationList_ActionItemBorder;
+			}
+		}
+
+		&.sapTntNLITwoClickAreas:not(.sapTntNLIWithExpander) {
+			[tabindex]:hover,
+			[tabindex]:focus {
+				padding-right: @_sap_tnt_NavigationList_CollapsedHiddenExpanderPadding;
 			}
 		}
 	}
 
-	.sapTntNavLIItem:not(.sapTntNavLIItemDisabled):not(.sapTntNavLIActive):hover {
+	.sapTntNLI:not(.sapTntNLIDisabled):not(.sapTntNLIActive) [tabindex]:hover {
 		box-shadow: @_sap_tnt_NavigationList_Collapsed_ItemHoverBoxShadow;
 	}
 }
 
-.sapTntNavLIItem:not(.sapTntNavLIItemDisabled):hover {
+.sapTntNLI:not(.sapTntNLIDisabled, .sapTntNLIFirstLevel.sapTntNLIInPopover.sapTntNLIUnselectable):hover {
 	background-color: @sapUiListHoverBackground;
 }
 
-.sapTntNavLIItem:not(.sapTntNavLIItemDisabled).sapTntNavLIActive,
-.sapTntNavLICollapsed.sapTntNavLIGroup.sapTntNavLIItemSelected,
-.sapTntNavLI .sapTntNavLIGroup.sapTntNavLIItem:not(.sapTntNavLIItemDisabled):active,
-.sapTntNavLI .sapTntNavLIGroupItem.sapTntNavLIItem:not(.sapTntNavLIItemDisabled):active {
+.sapTntNLI:not(.sapTntNLIDisabled).sapTntNLIActive:not(:hover),
+.sapTntNLIActive .sapTntNLIFirstLevel.sapTntNLI:not(.sapTntNLIDisabled),
+.sapTntNLCollapsed.sapTntNLIFirstLevel.sapTntNLISelected,
+.sapTntNL .sapTntNLGroup.sapTntNLI:not(.sapTntNLIDisabled):active,
+.sapTntNL .sapTntNLIFirstLevel.sapTntNLI:not(.sapTntNLIDisabled, .sapTntNLIInPopover.sapTntNLIUnselectable):not(.sapTntNLIAction):active,
+.sapTntNL .sapTntNLISecondLevel.sapTntNLI:not(.sapTntNLIDisabled):not(.sapTntNLIAction):active,
+.sapTntNL .sapTntNLISecondLevel.sapTntNLI:not(.sapTntNLIDisabled):not(.sapTntNLIAction).sapTntNLIActive {
 	background: @sapUiListActiveBackground;
 
 	&::before {
@@ -330,7 +430,8 @@
 		border-width: @_sap_tnt_NavigationList_SelectedBorderWidth;
 	}
 
-	.sapMText {
+	.sapMText,
+	.sapTntNLGroupText {
 		color: @sapUiListActiveTextColor;
 	}
 
@@ -339,118 +440,169 @@
 	}
 }
 
-.sapTntNavLISelectionIndicator {
-	display: none;
-	font-size: 0.5rem;
-	color: @sapUiListSelectionBorderColor;
-}
-
-.sapTntNavLIItemSelected.sapTntNavLIItem,
-.sapTntNavLIItemSelected .sapTntNavLIGroup,
-.sapTntNavLIItemSelected.sapTntNavLIGroupItem,
-.sapTntNavLIItemSelected.sapTntNavLIGroupItem.sapTntNavLIItem {
+.sapTntNLISelected.sapTntNLI,
+.sapTntNLISelected .sapTntNLIFirstLevel,
+.sapTntNLISelected.sapTntNLISecondLevel,
+.sapTntNLISelected.sapTntNLISecondLevel.sapTntNLI {
 	background-color: @sapUiListSelectionBackgroundColor;
-
-	.sapTntNavLISelectionIndicator {
-		display: @_sap_tnt_NavigationList_SelectionIndicatorDisplay;
-	}
 }
 
-.sapTntNavLIGroup.sapTntNavLIItemWithExpander {
-	.sapTntNavLISelectionIndicator {
-		margin: 0 0 0 0.5rem;
-	}
+.sapTntSideNavigationNotExpanded .sapTntNLIFirstLevel.sapTntNLIWithExpander .sapUiIcon {
+	padding-left: @_sap_tnt_NavigationList_CollapsedIconPaddingLeft; // to center the icon. Value is the width of the expander.
 }
 
-.sapTntNavLIGroup:not(.sapTntNavLIItemWithExpander) {
-	.sapTntNavLISelectionIndicator {
+
+.sapTntSideNavigationNotExpanded .sapTntNLIFirstLevel.sapTntNLIWithExpander .sapUiIcon:first-of-type::after {
+	font-family: SAP-icons;
+	content: @_sap_tnt_NavigationList_NavigationIndicator;
+	font-size: 0.75rem;
+	position: relative;
+	bottom: 0.125rem;
+	left: 0.25rem;;
+}
+
+.sapTntNLIAction {
+	border: @_sap_tnt_NavigationList_ActionItemBorder;
+}
+
+.sapTntNLIAction .sapMText,
+.sapTntNLIAction .sapUiIcon {
+	color: @sapButton_Lite_TextColor;
+}
+
+.sapTntNLIFirstLevel:not(.sapTntNLIWithExpander) {
+	.sapTntNLISelectionIndicator {
 		margin: 0 0.5rem;
 	}
 }
 
-.sapTntNavLIGroupItem .sapTntNavLISelectionIndicator {
+.sapTntNLIWithExpander.sapTntNLITwoClickAreas .sapUiIcon:last-of-type {
+	height: @sapUiElementCondensedHeight;
+	line-height: @sapUiElementCondensedHeight;
+}
+
+.sapTntNL:not(.sapTntNLCollapsed) .sapTntNLIWithExpander.sapTntNLITwoClickAreas .sapUiIcon:last-of-type {
+	border-left: 0.0625rem solid @sapTextColor;
+}
+
+.sapTntNLIWithExpander.sapTntNLITwoClickAreas .sapUiIcon:last-of-type::before {
+	line-height: @sapUiElementCondensedHeight;
+}
+
+.sapTntNLISecondLevel .sapTntNLISelectionIndicator {
 	margin: 0 0.5rem;
 }
 
-.sapTntNavLIItemSelected .sapTntNavLIItem:hover,
-.sapTntNavLIItemSelected.sapTntNavLIItem.sapTntNavLIGroup:hover,
-.sapTntNavLIItemSelected.sapTntNavLIGroupItem.sapTntNavLIGroupItem:hover {
+.sapTntNLISelected .sapTntNLI:hover,
+.sapTntNLISelected.sapTntNLI.sapTntNLIFirstLevel:hover,
+.sapTntNLISelected.sapTntNLISecondLevel.sapTntNLISecondLevel:hover {
 	background-color: @sapUiListSelectionHoverBackground;
 }
 
-.sapTntNavLI:not(.sapTntNavLIPopup) li .sapTntNavLIItem {
+.sapTntNL:not(.sapTntNLPopup) .sapTntNLI {
 	margin-bottom: @_sap_tnt_NavigationList_ItemBottomMargin;
 }
 
-.sapTntNavLICollapsed .sapTntNavLIItemSelected:not(.sapTntNavLIItemDisabled):not(.sapTntNavLIActive) {
+.sapTntNLISelected:not(.sapTntNLIDisabled) {
 	background: @_sap_tnt_NavigationList_Collapsed_SelectedItemBackground;
 }
 
-.sapTntNavLI li:focus,
-.sapTntNavLIItem:focus {
-	outline: none;
+.sapTntNLCollapsed .sapTntNLISelected:not(.sapTntNLIDisabled):not(.sapTntNLINoHoverEffect):hover {
+	background: @_sap_tnt_NavigationList_Collapsed_SelectedItemBackgroundHover;
 }
 
-.sapTntNavLI li:focus .sapTntNavLIItem::after,
-.sapTntNavLIItem:focus::after {
-	border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
-	position: absolute;
-	content: "";
-	inset: @_sap_tnt_NavigationList_ItemFocusBorderOffset;
-	z-index: 2;
-	pointer-events: none;
-	border-radius: @_sap_tnt_NavigationList_ItemFocusBorderRadius;
+html[dir=rtl] .sapTntNLISelected:not(.sapTntNLIDisabled) {
+	background: @_sap_tnt_NavigationList_Collapsed_SelectedItemBackgroundRTL;
+}
+
+.sapTntNLGroup {
+	padding-inline-start: 1rem;
+	padding-inline-end: @_sap_tnt_NavigationList_GroupPadding;
+	border-radius: @_sap_tnt_NavigationList_ItemBorderRadius;
+	transition: @_sap_tnt_NavigationList_ItemTransition;
+	color: @sapUiContentLabelColor;
+	display: flex;
+	cursor: pointer;
+	box-sizing: border-box;
+	align-items: center;
+
+	&::before {
+		border: @_sap_tnt_NavigationList_GroupBorderStyleColor;
+		border-width: @_sap_tnt_NavigationList_GroupBorderWidth;
+	}
+
+	.sapTntNLGroupText {
+		flex: 1 1 auto;
+		font-size: @sapFontSize;
+		font-family: @sapFontFamily;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sapTntNLGroupIcon {
+		flex: 0 0 0%;
+	}
+
+	&:focus {
+		outline: none;
+	}
+}
+
+.sapTntNLSeparator {
+	min-height: 0.625rem;
+}
+
+.sapTntNL > .sapTntNLSeparator:last-child {
+	display: none;
+}
+
+.sapTntNL .sapTntNLI:not(.sapTntNLIFirstLevel.sapTntNLIInPopover.sapTntNLIUnselectable) {
+	&[tabindex]:focus::after,
+	[tabindex]:focus::after {
+		border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+		position: absolute;
+		content: "";
+		inset: @_sap_tnt_NavigationList_ItemFocusBorderOffset;
+		z-index: 2;
+		pointer-events: none;
+		border-radius: @_sap_tnt_NavigationList_ItemFocusBorderRadius;
+	}
 }
 
 // NavigationList with icons
-.sapTntNavLI:not(.sapTntNavLINoIcons) {
-	span.sapTntNavLIGroupIcon {
-		min-width: @_sap_tnt_NavigationList_GroupIconWidth;
-	}
+.sapTntNL:not(.sapTntNLNoIcons) span.sapTntNLIIcon {
+	min-width: @_sap_tnt_NavigationList_GroupIconWidth;
+}
 
-	.sapTntNavLIGroupItem .sapMText {
-		padding-left: @_sap_tnt_NavigationList_GroupIconWidth;
-	}
+.sapTntNL:not(.sapTntNLNoIcons):not(.sapTntNLCollapsed) span.sapTntNLIIcon {
+	min-width: @_sap_tnt_NavigationList_GroupIconWidthExpanded;
+	margin-left: @_sap_tnt_NavigationList_GroupIconMarginLeft;
+	margin-right: @_sap_tnt_NavigationList_GroupIconMarginRight
 }
 
 // NavigationList without icons
-.sapTntNavLI.sapTntNavLINoIcons:not(.sapTntNavLIPopup) {
+.sapTntNL.sapTntNLNoIcons:not(.sapTntNLPopup) {
 
-	.sapTntNavLIGroup {
+	.sapTntNLIFirstLevel .sapMText {
 		padding-left: @_sap_tnt_NavigationList_NoIconsGroupPadding;
 	}
 
 	// nested items
-	.sapTntNavLIGroupItem .sapMText {
+	.sapTntNLISecondLevel .sapMText {
 		padding-left: @_sap_tnt_NavigationList_NoIconsNestedItemPadding;
 	}
 }
 
-.sapTntNavLIPopover {
-	&.sapMPopover {
-		box-shadow: @_sap_tnt_NavigationList_PopupBoxShadow;
-		border-radius: @_sap_tnt_NavigationList_ParentPopupBorderRadius;
-
-		.sapMPopoverCont {
-			border-radius: @_sap_tnt_NavigationList_ParentPopupBorderRadius;
-		}
-	}
-
-	.sapMPopoverArr:after {
-		box-shadow: @_sap_tnt_NavigationList_PopupArrowBoxShadow;
-	}
-}
-
-.sapTntNavLIMenu.sapUiMnu {
-	box-shadow: @_sap_tnt_NavigationList_PopupBoxShadow;
+.sapTntNLMenu.sapUiMnu {
 
 	&:not(.sapUiSubmenu) {
-		padding: @_sap_tnt_NavigationList_ParentPopupPadding;
-		border-radius: @_sap_tnt_NavigationList_ParentPopupBorderRadius;
+		padding: @_sap_tnt_NavigationList_PopupPadding;
 	}
 
-	&.sapUiSubmenu {
-		padding: 0.5rem;
+	.sapUiMnuItmSbMnu:empty {
+		min-width: initial;
+		padding-inline-end: initial;
 	}
 
 	// parent menu
@@ -460,28 +612,32 @@
 		.sapUiMnuItmIco {
 			position: relative !important;
 			width: auto;
-			padding-inline: 0 0.5rem;
 
 			.sapUiIcon {
 				color: @_sap_tnt_NavigationList_IconColor;
 				display: block;
-				width: 1rem;
-				height: 1rem;
 			}
 		}
 
 		.sapUiMnuItmSbMnu {
-			position: relative;
+			position: static; // default one
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			width: 0.75rem;
 			height: 100%;
 			padding-inline-start: 0.5rem;
+			padding-inline-end: 0;
+			min-width: @_sap_tnt_NavigationList_ExpandIconWidth;
+			min-height: inherit;
+
+			&:empty {
+				min-width: 0.75rem;
+			}
 
 			.sapUiIconMirrorInRTL::after {
 				content: "\e1ed";
-				font-size: 0.75rem;
+				font-size: @_sap_tnt_NavigationList_ExpandIconFontSize;
 				color: @_sap_tnt_NavigationList_IconColor;
 			}
 		}
@@ -492,6 +648,9 @@
 
 		&.sapUiMnuItmSubMnuOpen,
 		&.sapUiMnuItmSubMnuOpen.sapUiMnuItmHov {
+			border-bottom: none;
+			background-color: @sapUiListHoverBackground;
+
 			&::before {
 				position: absolute;
 				content: "";
@@ -507,10 +666,10 @@
 			display: flex;
 			align-items: center;
 			height: @_sap_tnt_NavigationList_ItemHeight;
-			padding-inline: 0.5rem;
+			padding-inline: 1rem 0.375rem;
 			border-radius: @_sap_tnt_NavigationList_ItemBorderRadius;
 			transition: @_sap_tnt_NavigationList_ItemTransition;
-			font-size: 0.875rem; // @sapUiFontSize; // todo fix it when @sapUiFontSize gets correct value in Horizon
+			font-size: @sapMFontMediumSize;
 
 			.sapUiMnuItmL {
 				display: none;
@@ -532,68 +691,118 @@
 			outline-offset: 0;
 
 			&:not(:last-child) {
-				margin-bottom: 0.1875rem;
+				margin-bottom: @_sap_tnt_NavigationList_ItemBottomMarginInOverflowPopup;
 				border: @_sap_tnt_NavigationList_ItemBorderStyleColor;
 				border-width: @_sap_tnt_NavigationList_ItemBorderWidth;
 			}
+
+			.sapTntNLIExpandIcon {
+				margin: 0;
+			}
+
+			.sapTntNLIExternalLinkIcon {
+				margin-right: 0;
+			}
 		}
 	}
+
+	.sapUiMnuItmIco {
+		min-width: 1rem;
+		max-width: 1rem;
+		padding-inline-end: 0.5rem;
+	}
+}
+
+.sapTntNLMenu.sapUiMnu.sapUiSubmenu {
+	padding: 0.5rem;
+
+	.sapUiMnuLst .sapUiMnuItm {
+		padding-inline: 1rem;
+
+		.sapUiMnuItmIco {
+			position: relative !important;
+			width: auto;
+
+			.sapUiIcon {
+				color: @_sap_tnt_NavigationList_IconColor;
+				display: block;
+			}
+		}
+
+		.sapTntNLIExtLinkOverflowIcon {
+			color: @_sap_tnt_NavigationList_ExpandIconColor;
+			padding-left: 0.5rem;
+			font-size: 0.875rem;
+			pointer-events: all;
+			outline: none;
+			-webkit-user-select: none;  /* Chrome all / Safari all */
+			-moz-user-select: none;     /* Firefox all */
+			user-select: none;
+		}
+	}
+}
+
+.sapTntNLPopup .sapTntNLISecondLevel .sapMText{
+	padding-left: 0;
+}
+
+.sapUiMnuItmExternalLink a{
+	min-width: 100%;
+	height: 100%;
+	text-decoration: none;
+	outline: none;
+	background: inherit;
+	border-radius: inherit;
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+	color: @_sap_tnt_NavigationList_ExpandIconColor;
 }
 
 /* Compact size */
 .sapUiSizeCompact {
 
-	.sapTntNavLI {
-		padding: @_sap_tnt_NavigationList_PaddingCompact;
+	.sapUiIcon > .sapUiIconTitle {
+		padding-block: @_sap_tnt_NavigationList_ArrowPaddingCompact;
+		top: -@_sap_tnt_NavigationList_ArrowPaddingCompact;
 	}
 
-	.sapTntNavLI.sapTntNavLICollapsed li {
-		min-height: @_sap_tnt_NavigationList_ItemHeightCompact + @_sap_tnt_NavigationList_ItemBottomMarginCompact;
+	.sapTntNL.sapTntNLCollapsed li:not(.sapTntNLSeparator) {
+		min-height: @_sap_tnt_NavigationList_ItemHeightCompact + @_sap_tnt_NavigationList_ItemBottomMargin;
 	}
 
-	.sapTntNavLIMenu.sapUiMnu li.sapUiMnuItm,
-	.sapTntNavLIItem {
+	.sapTntNLMenu.sapUiMnu li.sapUiMnuItm,
+	.sapTntNLI {
 		height: @_sap_tnt_NavigationList_ItemHeightCompact;
 	}
 
-	.sapTntNavLIPopup .sapTntNavLIGroupItem .sapMText {
+	.sapTntNLPopup .sapTntNLISecondLevel .sapMText {
 		padding: 0 0.5rem;
 	}
 
-	.sapTntNavLIPopup .sapTntNavLIGroup .sapMText {
+	.sapTntNLPopup .sapTntNLIFirstLevel .sapMText {
 		margin: 0 0.5rem 0 0;
 	}
 
-	.sapTntNavLI.sapTntNavLIPopup span.sapTntNavLIGroupIcon {
+	.sapTntNL.sapTntNLPopup span.sapTntNLIIcon {
 		padding: 0.5rem 0;
 	}
 
-	.sapTntNavLI img.sapTntNavLIGroupIcon {
-	  padding: 0.5rem 0.4375rem;
-	}
-
-	.sapTntNavLIPopup span.sapTntNavLIGroupIcon {
+	.sapTntNLPopup span.sapTntNLIIcon {
 		width: 0.5rem;
 		min-width: 0.5rem;
 	}
 
-	// NavigationList with icons
-	.sapTntNavLI:not(.sapTntNavLINoIcons) {
-
-		span.sapTntNavLIGroupIcon {
-			width: @_sap_tnt_NavigationList_GroupIconWidth;
-		}
+	.sapTntNLPopup .sapTntNLISecondLevel .sapMText{
+		padding-left: 0;
 	}
 
-	.sapTntNavLI:not(.sapTntNavLIPopup) li .sapTntNavLIItem {
-		margin-bottom: @_sap_tnt_NavigationList_ItemBottomMarginCompact;
-	}
-
-	.sapTntNavLICollapsed {
-		.sapTntNavLIItem:not(.sapTntNavLIItemDisabled):not(.sapTntNavLIActive):hover,
-		&.sapTntNavLI li:focus .sapTntNavLIItem,
-		.sapTntNavLIItem:not(.sapTntNavLIItemDisabled):not(.sapTntNavLIActive):focus {
-			padding: @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemPaddingCompact;
+	.sapTntNLCollapsed {
+		.sapTntNLI:not(.sapTntNLIDisabled):not(.sapTntNLIActive):not(.sapTntNLINoHoverEffect) {
+			[tabindex]:hover,
+			[tabindex]:focus {
+				padding: @_sap_tnt_NavigationList_Collapsed_HoverOrFocusItemPaddingCompact;
+			}
 		}
 	}
 }

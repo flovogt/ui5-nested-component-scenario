@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,9 +11,10 @@ sap.ui.define([
 	'sap/ui/core/mvc/ControllerMetadata',
 	'sap/ui/core/mvc/OverrideExecution',
 	'sap/base/util/uid',
+	"sap/base/future",
 	"sap/base/Log"
 ],
-	function(BaseObject, Metadata, ControllerMetadata, OverrideExecution, uid, Log) {
+	function(BaseObject, Metadata, ControllerMetadata, OverrideExecution, uid, future, Log) {
 	"use strict";
 
 		/**
@@ -204,7 +205,7 @@ sap.ui.define([
 					} else if (typeof fnCust === "function") {
 						oOrigDef[sMemberName] = fnCust;
 					} else {
-						Log.error("[FUTURE FATAL] Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
+						future.errorThrows("Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
 					}
 					break;
 				case OverrideExecution.After:
@@ -213,7 +214,7 @@ sap.ui.define([
 					} else if (typeof fnCust === "function") {
 						oOrigDef[sMemberName] = fnCust;
 					} else {
-						Log.error("[FUTURE FATAL] Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
+						future.errorThrows("Controller extension failed: lifecycleMethod '" + sMemberName + "', is not a function");
 					}
 					break;
 				case OverrideExecution.Instead:
@@ -223,7 +224,7 @@ sap.ui.define([
 						if (!this.getMetadata().isMethodFinal(sMemberName)) {
 							oOrigDef[sMemberName] = fnCust;
 						}  else {
-							Log.error("[FUTURE FATAL] Error in ControllerExtension.override: Method '" + sMemberName + "' of extension '" + this.getMetadata().getName() + "' is flagged final and cannot be overridden!");
+							future.errorThrows("Error in ControllerExtension.override: Method '" + sMemberName + "' of extension '" + this.getMetadata().getName() + "' is flagged final and cannot be overridden!");
 						}
 					} else {
 						oOrigDef[sMemberName] = fnCust;

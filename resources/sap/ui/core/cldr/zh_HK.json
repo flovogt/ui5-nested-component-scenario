@@ -1,7 +1,7 @@
 {
 	"__license": "This file has been derived from Unicode Common Locale Data Repository (CLDR) files (http://cldr.unicode.org). See the copyright and permission notice in the Unicode-Data-Files-LICENSE.txt available at the same location as this file or visit http://www.unicode.org/copyright.html",
-	"__version": "43.0.0",
-	"__buildtime": "2023-09-28T11:39:07.908Z",
+	"__version": "46.1.0",
+	"__buildtime": "2025-01-28T09:40:27.437Z",
 	"languages": {
 		"aa": "阿法尔语",
 		"ab": "阿布哈西亚语",
@@ -53,6 +53,7 @@
 		"bez": "贝纳语",
 		"bfd": "巴非特语",
 		"bg": "保加利亚语",
+		"bgc": "哈里亚纳语",
 		"bgn": "西俾路支语",
 		"bho": "博杰普尔语",
 		"bi": "比斯拉马语",
@@ -60,6 +61,7 @@
 		"bin": "比尼语",
 		"bkm": "科姆语",
 		"bla": "西克西卡语",
+		"blo": "阿尼语",
 		"bm": "班巴拉语",
 		"bn": "孟加拉语",
 		"bo": "藏语",
@@ -96,8 +98,7 @@
 		"ckb_alt-menu": "中库尔德语",
 		"ckb_alt-variant": "索拉尼库尔德语",
 		"clc": "奇尔科廷语",
-		"cnr": "塞尔维亚语 (黑山)",
-		"cnr_ME": "塞尔维亚语 (黑山)",
+		"cnr": "蒙特內哥羅語",
 		"co": "科西嘉语",
 		"cop": "科普特语",
 		"cr": "克里语",
@@ -209,7 +210,8 @@
 		"hax": "南海达语",
 		"he": "希伯来语",
 		"hi": "印地语",
-		"hi_Latn-alt-variant": "印式英语",
+		"hi_Latn": "印地语（拉丁字母）",
+		"hi_Latn-alt-variant": "印地英语",
 		"hil": "希利盖农语",
 		"hit": "赫梯语",
 		"hmn": "苗语",
@@ -229,7 +231,7 @@
 		"id": "印度尼西亚语",
 		"ie": "国际文字（E）",
 		"ig": "伊博语",
-		"ii": "四川彝语",
+		"ii": "凉山彝语",
 		"ik": "伊努皮克语",
 		"ikt": "西加拿大因纽特语",
 		"ilo": "伊洛卡诺语",
@@ -291,6 +293,7 @@
 		"kv": "科米语",
 		"kw": "康沃尔语",
 		"kwk": "夸夸瓦拉语",
+		"kxv": "库维语",
 		"ky": "柯尔克孜语",
 		"la": "拉丁语",
 		"lad": "拉迪诺语",
@@ -304,6 +307,7 @@
 		"lij": "利古里亚语",
 		"lil": "利洛埃特语",
 		"lkt": "拉科塔语",
+		"lmo": "伦巴第语",
 		"ln": "林加拉语",
 		"lo": "老挝语",
 		"lol": "蒙戈语",
@@ -335,7 +339,7 @@
 		"mfe": "毛里求斯克里奥尔语",
 		"mg": "马拉加斯语",
 		"mga": "中古爱尔兰语",
-		"mgh": "马库阿语",
+		"mgh": "马库阿-梅托语",
 		"mgo": "梅塔语",
 		"mh": "马绍尔语",
 		"mi": "毛利语",
@@ -403,7 +407,7 @@
 		"om": "奥罗莫语",
 		"or": "奥里亚语",
 		"os": "奥塞梯语",
-		"osa": "奥塞治语",
+		"osa": "欧塞奇语",
 		"ota": "奥斯曼土耳其语",
 		"pa": "旁遮普语",
 		"pag": "邦阿西南语",
@@ -431,6 +435,7 @@
 		"rap": "拉帕努伊语",
 		"rar": "拉罗汤加语",
 		"rhg": "罗兴亚语",
+		"rif": "里夫语",
 		"rm": "罗曼什语",
 		"rn": "隆迪语",
 		"ro": "罗马尼亚语",
@@ -446,7 +451,7 @@
 		"sah": "萨哈语",
 		"sam": "萨马利亚阿拉姆语",
 		"saq": "桑布鲁语",
-		"sas": "萨萨克文",
+		"sas": "萨萨克语",
 		"sat": "桑塔利语",
 		"sba": "甘拜语",
 		"sbp": "桑古语",
@@ -469,6 +474,7 @@
 		"si": "僧伽罗语",
 		"sid": "悉达摩语",
 		"sk": "斯洛伐克语",
+		"skr": "色莱基语",
 		"sl": "斯洛文尼亚语",
 		"slh": "南卢舒特种子语",
 		"sm": "萨摩亚语",
@@ -498,6 +504,7 @@
 		"swb": "科摩罗语",
 		"syc": "古典叙利亚语",
 		"syr": "叙利亚语",
+		"szl": "西里西亚语",
 		"ta": "泰米尔语",
 		"tce": "南塔穹语",
 		"te": "泰卢固语",
@@ -525,6 +532,7 @@
 		"tpi": "托克皮辛语",
 		"tr": "土耳其语",
 		"trv": "赛德克语",
+		"trw": "托尔瓦利语",
 		"ts": "聪加语",
 		"tsi": "钦西安语",
 		"tt": "鞑靼语",
@@ -549,6 +557,7 @@
 		"vec": "威尼斯语",
 		"vep": "维普森语",
 		"vi": "越南语",
+		"vmw": "马库阿语",
 		"vo": "沃拉普克语",
 		"vot": "沃提克语",
 		"vun": "温旧语",
@@ -562,8 +571,9 @@
 		"wuu": "吴语",
 		"xal": "卡尔梅克语",
 		"xh": "科萨语",
+		"xnr": "康格里语",
 		"xog": "索加语",
-		"yao": "瑶族语",
+		"yao": "尧语",
 		"yap": "雅浦语",
 		"yav": "洋卞语",
 		"ybb": "耶姆巴语",
@@ -592,7 +602,7 @@
 		"Adlm": "阿德拉姆文",
 		"Afak": "阿法卡文",
 		"Aghb": "高加索阿尔巴尼亚文",
-		"Ahom": "Ahom",
+		"Ahom": "阿豪姆文",
 		"Arab": "阿拉伯文",
 		"Arab-alt-variant": "波斯阿拉伯文",
 		"Aran": "波斯体",
@@ -606,7 +616,7 @@
 		"Beng": "孟加拉文",
 		"Bhks": "拜克舒克文",
 		"Blis": "布列斯符号",
-		"Bopo": "汉语拼音",
+		"Bopo": "注音符号",
 		"Brah": "婆罗米文字",
 		"Brai": "布莱叶盲文",
 		"Bugi": "布吉文",
@@ -644,7 +654,7 @@
 		"Grek": "希腊文",
 		"Gujr": "古吉拉特文",
 		"Guru": "果鲁穆奇文",
-		"Hanb": "汉语注音",
+		"Hanb": "注音汉字",
 		"Hang": "谚文",
 		"Hani": "汉字",
 		"Hano": "汉奴罗文",
@@ -658,7 +668,7 @@
 		"Hluw": "安那托利亚象形文字",
 		"Hmng": "杨松录苗文",
 		"Hmnp": "尼亚肯蒲丘苗文",
-		"Hrkt": "假名表",
+		"Hrkt": "假名",
 		"Hung": "古匈牙利文",
 		"Inds": "印度河文字",
 		"Ital": "古意大利文",
@@ -945,6 +955,8 @@
 		"IM": "马恩岛",
 		"IN": "印度",
 		"IO": "英属印度洋领地",
+		"IO-alt-biot": "英属印度洋领地",
+		"IO-alt-chagos": "查戈斯群岛",
 		"IQ": "伊拉克",
 		"IR": "伊朗",
 		"IS": "冰岛",
@@ -1258,17 +1270,17 @@
 					"m": "HH:mm–HH:mm"
 				},
 				"hmv": {
-					"a": "v ah:mm至ah:mm",
-					"h": "v ah:mm至h:mm",
-					"m": "v ah:mm至h:mm"
+					"a": "vah:mm至ah:mm",
+					"h": "vah:mm至h:mm",
+					"m": "vah:mm至h:mm"
 				},
 				"Hmv": {
 					"H": "vHH:mm–HH:mm",
 					"m": "vHH:mm–HH:mm"
 				},
 				"hv": {
-					"a": "v ah时至ah时",
-					"h": "v ah时至h时"
+					"a": "vah时至ah时",
+					"h": "vah时至h时"
 				},
 				"Hv": {
 					"H": "vHH–HH"
@@ -1701,11 +1713,11 @@
 				"y": "Gy年",
 				"yyyy": "Gy年",
 				"yyyyM": "M/yGGGGG",
-				"yyyyMd": "d/M/yGGGGG",
-				"yyyyMEd": "E, d/M/yGGGGG",
+				"yyyyMd": "Gy/M/d",
+				"yyyyMEd": "Gy/M/dE",
 				"yyyyMMM": "Gy年M月",
 				"yyyyMMMd": "Gy年M月d日",
-				"yyyyMMMEd": "Gy年MM月d日E",
+				"yyyyMMMEd": "Gy年M月d日E",
 				"yyyyMMMM": "Gy年M月",
 				"yyyyQQQ": "Gy年第Q季度",
 				"yyyyQQQQ": "Gy年第Q季度"
@@ -3388,7 +3400,7 @@
 				},
 				"h": {
 					"a": "ah时至ah时",
-					"h": "ah时至h时"
+					"h": "ah至h时"
 				},
 				"H": {
 					"H": "HH–HH"
@@ -3408,8 +3420,8 @@
 					"m": "v ah:mm至h:mm"
 				},
 				"Hmv": {
-					"H": "v HH:mm – HH:mm",
-					"m": "v HH:mm – HH:mm"
+					"H": "vHH:mm–HH:mm",
+					"m": "vHH:mm–HH:mm"
 				},
 				"hv": {
 					"a": "v ah时至ah时",
@@ -3444,18 +3456,18 @@
 					"y": "Gy–y年"
 				},
 				"yM": {
-					"M": "Gy年M月至M月",
+					"M": "y年M月至y年M月",
 					"y": "Gy年M月至y年M月"
 				},
 				"yMd": {
-					"d": "Gy/M/d – y/M/d",
-					"M": "Gy/M/d – y/M/d",
-					"y": "Gy/M/d – y/M/d"
+					"d": "d/M/y至d/M/y",
+					"M": "d/M/y至d/M/y",
+					"y": "d/M/y至d/M/y"
 				},
 				"yMEd": {
-					"d": "Gy/M/dE至y/M/dE",
-					"M": "Gy/M/dE至y/M/dE",
-					"y": "Gy/M/dE至y/M/dE"
+					"d": "d/M/yE至d/M/yE",
+					"M": "d/M/yE至d/M/yE",
+					"y": "d/M/yE至d/M/yE"
 				},
 				"yMMM": {
 					"M": "Gy年M月至M月",
@@ -3467,7 +3479,7 @@
 					"y": "Gy年M月d日至y年M月d日"
 				},
 				"yMMMEd": {
-					"d": "Gy年M月d日E至d日E",
+					"d": "y年M月d日E至M月d日E",
 					"M": "Gy年M月d日E至M月d日E",
 					"y": "Gy年M月d日E至y年M月d日E"
 				},
@@ -3981,7 +3993,7 @@
 			}
 		},
 		"weekday": {
-			"displayName": "工作日"
+			"displayName": "星期"
 		},
 		"hour-wide": {
 			"displayName": "小时",
@@ -4242,7 +4254,6 @@
 			"Montserrat": "蒙特塞拉特",
 			"Nassau": "拿骚",
 			"New_York": "纽约",
-			"Nipigon": "尼皮贡",
 			"Nome": "诺姆",
 			"Noronha": "洛罗尼亚",
 			"North_Dakota": {
@@ -4253,7 +4264,6 @@
 			"Nuuk": "努克",
 			"Ojinaga": "奥希纳加",
 			"Panama": "巴拿马",
-			"Pangnirtung": "旁涅唐",
 			"Paramaribo": "帕拉马里博",
 			"Phoenix": "凤凰城",
 			"Port-au-Prince": "太子港",
@@ -4261,13 +4271,11 @@
 			"Porto_Velho": "波多韦柳",
 			"Puerto_Rico": "波多黎各",
 			"Punta_Arenas": "蓬塔阿雷纳斯",
-			"Rainy_River": "雷尼河",
 			"Rankin_Inlet": "兰今湾",
 			"Recife": "累西腓",
 			"Regina": "里贾纳",
 			"Resolute": "雷索卢特",
 			"Rio_Branco": "里奥布郎库",
-			"Santa_Isabel": "圣伊萨贝尔",
 			"Santarem": "圣塔伦",
 			"Santiago": "圣地亚哥",
 			"Santo_Domingo": "圣多明各",
@@ -4283,7 +4291,6 @@
 			"Swift_Current": "斯威夫特卡伦特",
 			"Tegucigalpa": "特古西加尔巴",
 			"Thule": "图勒",
-			"Thunder_Bay": "桑德贝",
 			"Tijuana": "蒂华纳",
 			"Toronto": "多伦多",
 			"Tortola": "托尔托拉",
@@ -4291,7 +4298,6 @@
 			"Whitehorse": "怀特霍斯",
 			"Winnipeg": "温尼伯",
 			"Yakutat": "亚库塔特",
-			"Yellowknife": "耶洛奈夫",
 			"_parent": "美洲"
 		},
 		"Antarctica": {
@@ -4329,7 +4335,6 @@
 			"Bishkek": "比什凯克",
 			"Brunei": "文莱",
 			"Chita": "赤塔",
-			"Choibalsan": "乔巴山",
 			"Colombo": "科伦坡",
 			"Damascus": "大马士革",
 			"Dhaka": "达卡",
@@ -4417,7 +4422,7 @@
 			"Eucla": "尤克拉",
 			"Hobart": "霍巴特",
 			"Lindeman": "林德曼",
-			"Lord_Howe": "豪勋爵",
+			"Lord_Howe": "豪勋爵岛",
 			"Melbourne": "墨尔本",
 			"Perth": "珀斯",
 			"Sydney": "悉尼",
@@ -4478,7 +4483,6 @@
 			"Tallinn": "塔林",
 			"Tirane": "地拉那",
 			"Ulyanovsk": "乌里扬诺夫斯克",
-			"Uzhgorod": "乌日哥罗德",
 			"Vaduz": "瓦杜兹",
 			"Vatican": "梵蒂冈",
 			"Vienna": "维也纳",
@@ -4486,7 +4490,6 @@
 			"Volgograd": "伏尔加格勒",
 			"Warsaw": "华沙",
 			"Zagreb": "萨格勒布",
-			"Zaporozhye": "扎波罗热",
 			"Zurich": "苏黎世",
 			"_parent": "欧洲"
 		},
@@ -4514,7 +4517,7 @@
 			"Fakaofo": "法考福",
 			"Fiji": "斐济",
 			"Funafuti": "富纳富提",
-			"Galapagos": "加拉帕戈斯",
+			"Galapagos": "科隆群岛",
 			"Gambier": "甘比尔",
 			"Guadalcanal": "瓜达尔卡纳尔",
 			"Guam": "关岛",
@@ -4586,21 +4589,15 @@
 	},
 	"currencyFormat": {
 		"standard": "¤#,##0.00",
+		"standard-noCurrency": "#,##0.00",
 		"accounting": "¤#,##0.00;(¤#,##0.00)",
-		"currencySpacing": {
-			"beforeCurrency": {
-				"currencyMatch": "[[:^S:]&[:^Z:]]",
-				"surroundingMatch": "[:digit:]",
-				"insertBetween": " "
-			},
-			"afterCurrency": {
-				"currencyMatch": "[[:^S:]&[:^Z:]]",
-				"surroundingMatch": "[:digit:]",
-				"insertBetween": " "
-			}
-		},
+		"accounting-alphaNextToNumber": "¤ #,##0.00;(¤ #,##0.00)",
+		"accounting-noCurrency": "#,##0.00;(#,##0.00)",
 		"sap-standard": "#,##0.00¤",
-		"sap-accounting": "#,##0.00¤;(#,##0.00¤)"
+		"sap-accounting": "#,##0.00¤;(#,##0.00¤)",
+		"sap-accounting-alphaNextToNumber": "#,##0.00 ¤;(#,##0.00 ¤)",
+		"sap-standard-noCurrency": "#,##0.00",
+		"sap-accounting-noCurrency": "#,##0.00;(#,##0.00)"
 	},
 	"miscPattern": {
 		"approximately": "~{0}",
@@ -4647,7 +4644,7 @@
 		"ILS": "₪",
 		"INR": "₹",
 		"JPY": "JP¥",
-		"KRW": "￦",
+		"KRW": "₩",
 		"MXN": "MX$",
 		"NZD": "NZ$",
 		"TWD": "NT$",
@@ -4655,6 +4652,7 @@
 		"VND": "₫",
 		"XAF": "FCFA",
 		"XCD": "EC$",
+		"XCG": "Cg.",
 		"XOF": "F CFA",
 		"XPF": "CFPF"
 	},
@@ -4715,6 +4713,12 @@
 			"10p-24": {
 				"unitPrefixPattern": "y{0}"
 			},
+			"10p-27": {
+				"unitPrefixPattern": "r{0}"
+			},
+			"10p-30": {
+				"unitPrefixPattern": "q{0}"
+			},
 			"10p1": {
 				"unitPrefixPattern": "da{0}"
 			},
@@ -4744,6 +4748,12 @@
 			},
 			"10p24": {
 				"unitPrefixPattern": "Y{0}"
+			},
+			"10p27": {
+				"unitPrefixPattern": "R{0}"
+			},
+			"10p30": {
+				"unitPrefixPattern": "Q{0}"
 			},
 			"1024p1": {
 				"unitPrefixPattern": "Ki{0}"
@@ -5038,7 +5048,7 @@
 			},
 			"energy-foodcalorie": {
 				"displayName": "大卡",
-				"unitPattern-count-other": "{0}大卡"
+				"unitPattern-count-other": "{0} Cal"
 			},
 			"energy-kilojoule": {
 				"displayName": "千焦",
@@ -5121,8 +5131,8 @@
 				"unitPattern-count-other": "{0} dpi"
 			},
 			"graphics-dot": {
-				"displayName": "px",
-				"unitPattern-count-other": "{0} px"
+				"displayName": "点",
+				"unitPattern-count-other": "{0}点"
 			},
 			"length-earth-radius": {
 				"displayName": "R⊕",
@@ -5377,6 +5387,10 @@
 				"displayName": "kn",
 				"unitPattern-count-other": "{0} kn"
 			},
+			"speed-beaufort": {
+				"displayName": "Bft",
+				"unitPattern-count-other": "B {0}"
+			},
 			"temperature-generic": {
 				"displayName": "°",
 				"unitPattern-count-other": "{0}°"
@@ -5542,6 +5556,19 @@
 				"displayName": "qt Imp",
 				"unitPattern-count-other": "{0} qt Imp."
 			},
+			"speed-light-speed": {
+				"displayName": "光",
+				"unitPattern-count-other": "{0}光"
+			},
+			"concentr-portion-per-1e9": {
+				"displayName": "ppb",
+				"unitPattern-count-other": "{0} ppb"
+			},
+			"duration-night": {
+				"displayName": "晚",
+				"unitPattern-count-other": "{0}晚",
+				"perUnitPattern": "{0}/晚"
+			},
 			"coordinateUnit": {
 				"displayName": "方向",
 				"east": "东经{0}",
@@ -5552,9 +5579,9 @@
 		}
 	},
 	"lenient-scope-number": {
-		"minusSign": "-‒⁻₋−➖﹣－",
-		"commaSign": ",،٫、︐︑﹐﹑，､",
-		"plusSign": "+⁺₊➕﬩﹢＋"
+		"minusSign": "-－﹣‑‒−⁻₋➖",
+		"commaSign": ",，﹐︐،٫、﹑､︑",
+		"plusSign": "+＋﬩﹢⁺₊➕"
 	},
 	"currencyFormat-sap-short": {
 		"1000-other": "0",
@@ -5722,5 +5749,9 @@
 	"calendarPreference": [
 		"gregorian",
 		"chinese"
-	]
+	],
+	"sap-calendarWeek": {
+		"narrow": "曆週 {0}",
+		"wide": "曆週 {0}"
+	}
 }

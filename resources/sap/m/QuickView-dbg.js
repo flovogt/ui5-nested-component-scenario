@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @extends sap.m.QuickViewBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -414,7 +414,7 @@ sap.ui.define([
 
 	/**
 	 * Opens the QuickView.
-	 * @param {sap.ui.core.Control} oControl The control which opens the QuickView.
+	 * @param {sap.ui.core.Control|HTMLElement} oControl The control which opens the QuickView.
 	 * @returns {this} Pointer to the control instance for chaining
 	 * @public
 	 */

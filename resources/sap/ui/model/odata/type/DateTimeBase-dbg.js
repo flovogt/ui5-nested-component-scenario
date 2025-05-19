@@ -1,20 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
 	"sap/base/util/extend",
+	"sap/ui/core/Lib",
 	"sap/ui/core/date/UI5Date",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
 	"sap/ui/model/odata/type/ODataType"
-], function (Log, extend, UI5Date, DateFormat, FormatException, ParseException, ValidateException,
-		ODataType) {
+], function(Log, extend, Library, UI5Date, DateFormat, FormatException, ParseException, ValidateException, ODataType) {
 	"use strict";
 
 	/*
@@ -92,7 +92,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 * @public
 	 * @since 1.27.0
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 */
 	var DateTimeBase = ODataType.extend("sap.ui.model.odata.type.DateTimeBase", {
 			constructor : function (oFormatOptions, oConstraints) {
@@ -216,7 +216,7 @@ sap.ui.define([
 				? new Date(Date.UTC(iFullYear, 11, 31))
 				: UI5Date.getInstance(iFullYear, 11, 31, 23, 59, 58), // configured time zone
 			sText = isDateOnly(this) ? "EnterDate" : "EnterDateTime",
-			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle();
+			oResourceBundle = Library.getResourceBundleFor("sap.ui.core");
 
 		return oResourceBundle.getText(sText, [this.formatValue(oDate, "string")]);
 	};

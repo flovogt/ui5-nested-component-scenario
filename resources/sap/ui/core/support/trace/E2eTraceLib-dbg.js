@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/Log', 'sap/ui/thirdparty/URI'],
@@ -275,7 +275,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/L
 					return tstmp;
 				};
 				//check if browser supports PerformanceTiming
-				if (window.performance && performance.timeOrigin) {
+				if (performance && performance.timeOrigin) {
 					// handle browser dependencies in (hires) time stamps
 					if (Device.browser.chrome && Device.browser.version >= 49) {
 						getTstmp = function(tstmp) {
@@ -354,7 +354,7 @@ sap.ui.define(['sap/ui/Device', 'sap/ui/performance/trace/Passport', 'sap/base/L
 
 						//add tracing attributes
 						this.xidx = idx;
-						if (window.performance && performance.timeOrigin && performance.now !== undefined) {
+						if (performance && performance.timeOrigin && performance.now !== undefined) {
 							this.xstartTimestamp = performance.timeOrigin + performance.now();
 						} else {
 							this.xstartTimestamp = Date.now();

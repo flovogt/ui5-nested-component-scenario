@@ -1,19 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.date.UniversalDate
 sap.ui.define([
+	"sap/base/i18n/Formatting",
+	"sap/base/i18n/date/CalendarWeekNumbering",
 	'sap/ui/base/Object',
-	'sap/ui/core/Configuration',
+	"sap/ui/core/Locale",
 	'sap/ui/core/LocaleData',
 	'./_Calendars',
 	'./CalendarUtils',
-	'./CalendarWeekNumbering',
 	'./UI5Date'
-], function(BaseObject, Configuration, LocaleData, _Calendars, CalendarUtils, CalendarWeekNumbering, UI5Date) {
+], function(Formatting, CalendarWeekNumbering, BaseObject, Locale, LocaleData, _Calendars, CalendarUtils, UI5Date) {
 	"use strict";
 
 	/**
@@ -90,18 +91,7 @@ sap.ui.define([
 			return UI5Date.getInstance.apply(null, aArgs);
 		}
 
-		switch (aArgs.length) {
-			case 0: return new clDate();
-			// new Date(new Date()) is officially not supported
-			// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/Date
-			case 1: return new clDate(aArgs[0] instanceof Date ? aArgs[0].getTime() : aArgs[0]);
-			case 2: return new clDate(aArgs[0], aArgs[1]);
-			case 3: return new clDate(aArgs[0], aArgs[1], aArgs[2]);
-			case 4: return new clDate(aArgs[0], aArgs[1], aArgs[2], aArgs[3]);
-			case 5: return new clDate(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4]);
-			case 6: return new clDate(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], aArgs[5]);
-			case 7: return new clDate(aArgs[0], aArgs[1], aArgs[2], aArgs[3], aArgs[4], aArgs[5], aArgs[6]);
-		}
+		return new clDate(...aArgs);
 	};
 
 	/**
@@ -113,8 +103,8 @@ sap.ui.define([
 	 *
 	 * @param {Date|module:sap/ui/core/date/UI5Date|sap.ui.core.date.UniversalDate} [oDate]
 	 *   The date object, defaults to <code>UI5Date.getInstance()</code>
-	 * @param {sap.ui.core.CalendarType} [sCalendarType]
-	 *   The calendar type, defaults to <code>sap.ui.getCore().getConfiguration().getCalendarType()</code>
+	 * @param {module:sap/base/i18n/date/CalendarType} [sCalendarType]
+	 *   The calendar type, defaults to <code>module:sap/base/i18n/Formatting.getCalendarType()</code>
 	 * @returns {sap.ui.core.date.UniversalDate}
 	 *   An instance of <code>UniversalDate</code>
 	 *
@@ -133,7 +123,7 @@ sap.ui.define([
 		}
 
 		if (!sCalendarType) {
-			sCalendarType = Configuration.getCalendarType();
+			sCalendarType = Formatting.getCalendarType();
 		}
 		clDate = UniversalDate.getClass(sCalendarType);
 		oInstance = Object.create(clDate.prototype);
@@ -147,7 +137,7 @@ sap.ui.define([
 	 * Returns the constructor function of a subclass of <code>UniversalDate</code> for the given calendar type.
 	 * If no calendar type is given the globally configured calendar type is used.
 	 *
-	 * @param {sap.ui.core.CalendarType} sCalendarType the type of the used calendar
+	 * @param {module:sap/base/i18n/date/CalendarType} sCalendarType the type of the used calendar
 	 *
 	 * @returns {function}
 	 *   The class of the given <code>sCalenderType</code>. If <code>sCalenderType</code> is not
@@ -158,7 +148,7 @@ sap.ui.define([
 	 */
 	UniversalDate.getClass = function(sCalendarType) {
 		if (!sCalendarType) {
-			sCalendarType = Configuration.getCalendarType();
+			sCalendarType = Formatting.getCalendarType();
 		}
 		return _Calendars.get(sCalendarType);
 	};
@@ -728,7 +718,7 @@ sap.ui.define([
 	/**
 	 * Returns the calendar type of the current instance of a UniversalDate.
 	 *
-	 * @returns {sap.ui.core.CalendarType} The calendar type of the date
+	 * @returns {module:sap/base/i18n/date/CalendarType} The calendar type of the date
 	 *
 	 * @private
 	 * @ui5-restricted SAPUI5 Distribution Layer Libraries
@@ -794,7 +784,7 @@ sap.ui.define([
 	 * Retrieves the calendar week
 	 *
 	 * @param {sap.ui.core.Locale} [oLocale] the locale used to get the calendar week calculation properties, defaults to the formatLocale
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>,
 	 *   the default is derived from <code>oLocale</code> but this parameter has precedence over oLocale if both are provided.
 	 *   In case an object is provided, both properties <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code> must be set, otherwise an error is thrown.
@@ -819,7 +809,7 @@ sap.ui.define([
 	 * @param {{week: int, year: int}} oWeek the calendar week, note: week index starts with <code>0</code>,
 	 *   <code>oWeek.year</code> is optional and defaults to {@link sap.ui.core.date.UniversalDate#getFullYear}
 	 * @param {sap.ui.core.Locale} [oLocale] the locale used to get the calendar week calculation properties, defaults to the formatLocale
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>,
 	 *   the default is derived from <code>oLocale</code> but this parameter has precedence over oLocale if both are provided.
 	 *   In case an object is provided, both properties <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code> must be set, otherwise an error is thrown.
@@ -842,7 +832,7 @@ sap.ui.define([
 	 * Retrieves the UTC calendar week
 	 *
 	 * @param {sap.ui.core.Locale} [oLocale] the locale used to get the calendar week calculation properties, defaults to the formatLocale
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>,
 	 *   the default is derived from <code>oLocale</code> but this parameter has precedence over oLocale if both are provided.
 	 *   In case an object is provided, both properties <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code> must be set, otherwise an error is thrown.
@@ -867,7 +857,7 @@ sap.ui.define([
 	 * @param {{week: int, year: int}} oWeek the calendar week, note: week index starts with <code>0</code>,
 	 *   <code>oWeek.year</code> is optional and defaults to {@link sap.ui.core.date.UniversalDate#getFullYear}
 	 * @param {sap.ui.core.Locale} [oLocale] the locale used to get the calendar week calculation properties, defaults to the formatLocale
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>,
 	 *   the default is derived from <code>oLocale</code> but this parameter has precedence over oLocale if both are provided.
 	 *   In case an object is provided, both properties <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code> must be set, otherwise an error is thrown.
@@ -996,7 +986,7 @@ sap.ui.define([
 	 * @param {int} iDay the date, e.g. <code>3</code>
 	 * @param {sap.ui.core.Locale} [oLocale] the locale used for the week calculation, if oWeekConfig is not provided (falls back to the formatLocale)
 	 *   e.g. <code>new Locale("de-DE")</code>
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>,
 	 *   the default is derived from <code>oLocale</code> but this parameter has precedence over oLocale if both are provided.
 	 *   In case an object is provided, both properties <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code> must be set, otherwise an error is thrown.
@@ -1012,9 +1002,9 @@ sap.ui.define([
 	 * </ul>
 	 */
 	UniversalDate.getWeekByDate = function(sCalendarType, iYear, iMonth, iDay, oLocale, vCalendarWeekNumbering) {
-		vCalendarWeekNumbering = vCalendarWeekNumbering || Configuration.getCalendarWeekNumbering();
+		vCalendarWeekNumbering = vCalendarWeekNumbering || Formatting.getCalendarWeekNumbering();
 		checkWeekConfig(vCalendarWeekNumbering);
-		oLocale = oLocale || Configuration.getFormatSettings().getFormatLocale();
+		oLocale = oLocale || new Locale(Formatting.getLanguageTag());
 		var clDate = this.getClass(sCalendarType);
 		var oFirstDay = getFirstDayOfFirstWeek(clDate, iYear, oLocale, vCalendarWeekNumbering);
 		var oDate = new clDate(clDate.UTC(iYear, iMonth, iDay));
@@ -1051,7 +1041,7 @@ sap.ui.define([
 	 * @param {int} iWeek the calendar week index, e.g. <code>8</code>
 	 * @param {sap.ui.core.Locale} [oLocale] the locale used for the week calculation, if oWeekConfig is not provided (falls back to the formatLocale)
 	 *   e.g. <code>new Locale("de-DE")</code>
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} [vCalendarWeekNumbering]
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>,
 	 *   the default is derived from <code>oLocale</code> but this parameter has precedence over oLocale if both are provided.
 	 *   In case an object is provided, both properties <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code> must be set, otherwise an error is thrown.
@@ -1067,9 +1057,9 @@ sap.ui.define([
 	 * </ul>
 	 */
 	UniversalDate.getFirstDateOfWeek = function(sCalendarType, iYear, iWeek, oLocale, vCalendarWeekNumbering) {
-		vCalendarWeekNumbering = vCalendarWeekNumbering || Configuration.getCalendarWeekNumbering();
+		vCalendarWeekNumbering = vCalendarWeekNumbering || Formatting.getCalendarWeekNumbering();
 		checkWeekConfig(vCalendarWeekNumbering);
-		oLocale = oLocale || Configuration.getFormatSettings().getFormatLocale();
+		oLocale = oLocale || new Locale(Formatting.getLanguageTag());
 		var clDate = this.getClass(sCalendarType);
 		var oFirstDay = getFirstDayOfFirstWeek(clDate, iYear, oLocale, vCalendarWeekNumbering);
 		var oDate = new clDate(oFirstDay.valueOf() + iWeek * iMillisecondsInWeek);
@@ -1092,7 +1082,7 @@ sap.ui.define([
 	 * Determines if the split week algorithm should be applied (the first day of the first calendar
 	 * week of the year is January 1st).
 	 *
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and
 	 *   <code>minimalDaysInFirstWeek</code>
 	 * @param {sap.ui.core.Locale} oLocale the locale used for the week calculation
@@ -1110,7 +1100,7 @@ sap.ui.define([
 	/**
 	 * Checks the calendar week configuration
 	 *
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>
 	 * @throws {TypeError} If:
 	 * <ul>
@@ -1132,7 +1122,7 @@ sap.ui.define([
 	/**
 	 * Resolves the calendar week configuration
 	 *
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>
 	 * @param {sap.ui.core.Locale} [oLocale] locale to be used
 	 * @returns {{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} calendar week calculation configuration
@@ -1154,14 +1144,14 @@ sap.ui.define([
 	 * @param {int} iYear year, e.g. <code>2016</code>
 	 * @param {sap.ui.core.Locale} [oLocale] the locale used for the week calculation, if oWeekConfig is not provided (falls back to the formatLocale)
 	 *   e.g. <code>new Locale("de-DE")</code>
-	 * @param {sap.ui.core.date.CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
+	 * @param {module:sap/base/i18n/date/CalendarWeekNumbering|{firstDayOfWeek: int, minimalDaysInFirstWeek: int}} vCalendarWeekNumbering
 	 *   calendar week numbering or object with fields <code>firstDayOfWeek</code> and <code>minimalDaysInFirstWeek</code>,
 	 *   the default is derived from <code>oLocale</code> but this parameter has precedence over oLocale if both are provided.
 	 *   e.g. <code>{firstDayOfWeek: 1, minimalDaysInFirstWeek: 4}</code>
 	 * @returns {Date} first day of the first week in the given year, e.g. <code>Mon Jan 04 2016 01:00:00 GMT+0100</code>
 	 */
 	function getFirstDayOfFirstWeek(clDate, iYear, oLocale, vCalendarWeekNumbering) {
-		oLocale = oLocale || Configuration.getFormatSettings().getFormatLocale();
+		oLocale = oLocale || new Locale(Formatting.getLanguageTag());
 
 		var oWeekConfig = resolveCalendarWeekConfiguration(vCalendarWeekNumbering, oLocale);
 		var iMinDays = oWeekConfig.minimalDaysInFirstWeek;
@@ -1280,7 +1270,7 @@ sap.ui.define([
 	 * @returns {array} An array of all available era in the given calender
 	 */
 	function getEras(sCalendarType) {
-		var oLocale = Configuration.getFormatSettings().getFormatLocale(),
+		var oLocale = new Locale(Formatting.getLanguageTag()),
 			oLocaleData = LocaleData.getInstance(oLocale),
 			aEras = mEras[sCalendarType];
 		if (!aEras) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -30,7 +30,7 @@ sap.ui.define(['sap/ui/core/Element', './Popover', './OverflowToolbarAssociative
 	 * @extends sap.m.Popover
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
@@ -75,7 +75,7 @@ sap.ui.define(['sap/ui/core/Element', './Popover', './OverflowToolbarAssociative
 			oControlObject;
 
 		if (sResult) {
-			oControlObject = Element.registry.get(sResult);
+			oControlObject = Element.getElementById(sResult);
 			if (oControlObject) {
 				this._postProcessControl(oControlObject);
 			}
@@ -198,7 +198,7 @@ sap.ui.define(['sap/ui/core/Element', './Popover', './OverflowToolbarAssociative
 	 */
 	OverflowToolbarAssociativePopover.prototype._getAllContent = function () {
 		var aAssociatedContent = this.getAssociatedContent().map(function(sId) {
-			return Element.registry.get(sId);
+			return Element.getElementById(sId);
 		});
 
 		if (this.getPlacement() === PlacementType.Top) {

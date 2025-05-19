@@ -1,10 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/core/Renderer",
 	"./YearPickerRenderer",
 	"./CalendarDate",
@@ -12,6 +13,7 @@ sap.ui.define([
 	"sap/ui/core/date/UniversalDate",
 	"sap/ui/unified/calendar/CalendarUtils"
 ],	function(
+	Library,
 	Renderer,
 	YearPickerRenderer,
 	CalendarDate,
@@ -38,7 +40,7 @@ sap.ui.define([
 			role: "grid",
 			readonly: "true",
 			multiselectable: false,
-			roledescription: sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified").getText("YEAR_RANGE_PICKER")
+			roledescription: Library.getResourceBundleFor("sap.ui.unified").getText("YEAR_RANGE_PICKER")
 		};
 	};
 
@@ -59,10 +61,16 @@ sap.ui.define([
 			oLocaleData = oYRP._getLocaleData(),
 			sPattern = oLocaleData.getIntervalPattern(),
 			sWidth = "",
+			bApplySelection,
+			bApplySelectionBetween,
 			mAccProps, sYyyymmdd, i;
 
-		oFirstDate.setYear(oFirstDate.getYear() - Math.floor(oYRP.getRangeSize() / 2));
-		oFirstDate.setYear(oFirstDate.getYear() - Math.floor(iYears / 2) * oYRP.getRangeSize());
+		if (oYRP.getColumns() % 2 !== 0) {
+			oFirstDate.setYear(oFirstDate.getYear() - Math.floor(oYRP.getRangeSize() / 2));
+			oFirstDate.setYear(oFirstDate.getYear() - Math.floor(iYears / 2) * oYRP.getRangeSize());
+		} else {
+			oFirstDate.setYear(oFirstDate.getYear() - (iYears / 2) * oYRP.getRangeSize());
+		}
 
 		if (oFirstDate.getYear() < oMinYear) {
 			oFirstDate.setYear(oMinYear);
@@ -94,6 +102,23 @@ sap.ui.define([
 
 			oRm.openStart("div", sId + "-y" + sYyyymmdd);
 			oRm.class("sapUiCalItem");
+
+			bApplySelection = oYRP._isYearSelected(oFirstDate);
+			bApplySelectionBetween = oYRP._isYearInsideSelectionRange(oFirstDate);
+
+			if (bApplySelection) {
+				oRm.class("sapUiCalItemSel");
+				mAccProps["selected"] = true;
+			}
+
+			if (bApplySelectionBetween && !bApplySelection) {
+				oRm.class("sapUiCalItemSelBetween");
+				mAccProps["selected"] = true;
+			}
+
+			if (!bApplySelection && !bApplySelectionBetween) {
+				mAccProps["selected"] = false;
+			}
 
 			if (!oYRP._checkDateEnabled(oFirstDate, oSecondDate)) {
 				oRm.class("sapUiCalItemDsbl"); // year range disabled

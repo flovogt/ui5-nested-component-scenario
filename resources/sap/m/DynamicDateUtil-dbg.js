@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,11 +9,11 @@ sap.ui.define([
 	"./StandardDynamicDateOption",
 	"sap/base/Log",
 	"./library",
+	"sap/base/i18n/Localization",
 	'sap/ui/core/format/TimezoneUtil',
-	'sap/ui/core/Core',
 	'sap/ui/core/date/UI5Date'
 ], function(
-	StandardDynamicDateOption, Log, library, TimezoneUtil, Core, UI5Date) {
+	StandardDynamicDateOption, Log, library, Localization, TimezoneUtil, UI5Date) {
 	"use strict";
 
 	var STANDARD_KEYS_ARRAY = [
@@ -52,6 +52,20 @@ sap.ui.define([
 		"NEXTMONTHS",
 		"NEXTQUARTERS",
 		"NEXTYEARS",
+		"LASTMINUTESINCLUDED",
+		"LASTHOURSINCLUDED",
+		"LASTDAYSINCLUDED",
+		"LASTWEEKSINCLUDED",
+		"LASTMONTHSINCLUDED",
+		"LASTQUARTERSINCLUDED",
+		"LASTYEARSINCLUDED",
+		"NEXTMINUTESINCLUDED",
+		"NEXTHOURSINCLUDED",
+		"NEXTDAYSINCLUDED",
+		"NEXTWEEKSINCLUDED",
+		"NEXTMONTHSINCLUDED",
+		"NEXTQUARTERSINCLUDED",
+		"NEXTYEARSINCLUDED",
 		"TODAYFROMTO",
 
 		"THISWEEK",
@@ -122,6 +136,20 @@ sap.ui.define([
 			"NEXTMONTHS": new StandardDynamicDateOption({ key: "NEXTMONTHS", valueTypes: ["int"] }),
 			"NEXTQUARTERS": new StandardDynamicDateOption({ key: "NEXTQUARTERS", valueTypes: ["int"] }),
 			"NEXTYEARS": new StandardDynamicDateOption({ key: "NEXTYEARS", valueTypes: ["int"] }),
+			"LASTMINUTESINCLUDED": new StandardDynamicDateOption({ key: "LASTMINUTESINCLUDED", valueTypes: ["int", "included"] }),
+			"LASTHOURSINCLUDED": new StandardDynamicDateOption({ key: "LASTHOURSINCLUDED", valueTypes: ["int", "included"] }),
+			"LASTDAYSINCLUDED": new StandardDynamicDateOption({ key: "LASTDAYSINCLUDED", valueTypes: ["int", "included"] }),
+			"LASTWEEKSINCLUDED": new StandardDynamicDateOption({ key: "LASTWEEKSINCLUDED", valueTypes: ["int", "included"] }),
+			"LASTMONTHSINCLUDED": new StandardDynamicDateOption({ key: "LASTMONTHSINCLUDED", valueTypes: ["int", "included"] }),
+			"LASTQUARTERSINCLUDED": new StandardDynamicDateOption({ key: "LASTQUARTERSINCLUDED", valueTypes: ["int", "included"] }),
+			"LASTYEARSINCLUDED": new StandardDynamicDateOption({ key: "LASTYEARSINCLUDED", valueTypes: ["int", "included"] }),
+			"NEXTMINUTESINCLUDED": new StandardDynamicDateOption({ key: "NEXTMINUTESINCLUDED", valueTypes: ["int", "included"] }),
+			"NEXTHOURSINCLUDED": new StandardDynamicDateOption({ key: "NEXTHOURSINCLUDED", valueTypes: ["int", "included"] }),
+			"NEXTDAYSINCLUDED": new StandardDynamicDateOption({ key: "NEXTDAYSINCLUDED", valueTypes: ["int", "included"] }),
+			"NEXTWEEKSINCLUDED": new StandardDynamicDateOption({ key: "NEXTWEEKSINCLUDED", valueTypes: ["int", "included"] }),
+			"NEXTMONTHSINCLUDED": new StandardDynamicDateOption({ key: "NEXTMONTHSINCLUDED", valueTypes: ["int", "included"] }),
+			"NEXTQUARTERSINCLUDED": new StandardDynamicDateOption({ key: "NEXTQUARTERSINCLUDED", valueTypes: ["int", "included"] }),
+			"NEXTYEARSINCLUDED": new StandardDynamicDateOption({ key: "NEXTYEARSINCLUDED", valueTypes: ["int", "included"] }),
 			"FROM": new StandardDynamicDateOption({ key: "FROM", valueTypes: ["date"] }),
 			"TO": new StandardDynamicDateOption({ key: "TO", valueTypes: ["date"] }),
 			"FROMDATETIME": new StandardDynamicDateOption({ key: "FROMDATETIME", valueTypes: ["datetime"] }),
@@ -264,7 +292,7 @@ sap.ui.define([
 	 */
 	DynamicDateUtil.removeTimezoneOffset = function(oDate) {
 		var oNewDate = UI5Date.getInstance(oDate);
-		var sTimezone = Core.getConfiguration().getTimezone();
+		var sTimezone = Localization.getTimezone();
 		var iOffsetInSeconds = TimezoneUtil.calculateOffset(oNewDate, sTimezone) - oNewDate.getTimezoneOffset() * 60;
 
 		oNewDate.setSeconds(oNewDate.getSeconds() - iOffsetInSeconds);

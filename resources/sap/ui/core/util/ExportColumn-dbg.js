@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,11 +23,11 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @since 1.22.0
 	 *
 	 * @public
-	 * @deprecated Since version 1.73
+	 * @deprecated As of version 1.73, replaced by the export functionality of the <code>sap.ui.export</code> library.
 	 * @alias sap.ui.core.util.ExportColumn
 	 */
 	var ExportColumn = ManagedObject.extend("sap.ui.core.util.ExportColumn", {

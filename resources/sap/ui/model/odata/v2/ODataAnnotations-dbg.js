@@ -1,19 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
 // Provides class sap.ui.model.odata.v2.ODataAnnotations
 sap.ui.define([
 	"sap/base/assert",
+	"sap/base/i18n/Localization",
 	"sap/base/util/extend",
 	"sap/ui/base/EventProvider",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/cache/CacheManager",
 	"sap/ui/model/odata/AnnotationParser",
 	"sap/ui/thirdparty/jquery"
-], function(assert, extend, EventProvider, Configuration, CacheManager, AnnotationParser, jQuery) {
+], function(assert, Localization, extend, EventProvider, CacheManager, AnnotationParser, jQuery) {
 	"use strict";
 
 	///////////////////////////////////////////////// Class Definition /////////////////////////////////////////////////
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @class Annotation loader for OData V2 services
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @since 1.37.0
@@ -474,7 +474,7 @@ sap.ui.define([
 	 * Parameters of the <code>failed</code> event.
 	 *
 	 * @typedef {object} sap.ui.model.odata.v2.ODataAnnotations.failedParameters
-	 * @property {Error[]} result An array of Errors (@see sap.ui.model.v2.ODataAnnotations#error) that occurred while
+	 * @property {Error[]} result An array of Errors, see {@link sap.ui.model.v2.ODataAnnotations#error} that occurred while
 	 *           loading a group of annotations
 	 * @public
 	 */
@@ -838,7 +838,7 @@ sap.ui.define([
 		// The 'sap-cancel-on-close' header marks the OData annotation request as cancelable. This helps to save
 		// resources at the back-end.
 		return extend({"sap-cancel-on-close": "true"}, this.getHeaders(), {
-			"Accept-Language": Configuration.getLanguageTag() // Always overwrite
+			"Accept-Language": Localization.getLanguageTag().toString() // Always overwrite
 		});
 	};
 

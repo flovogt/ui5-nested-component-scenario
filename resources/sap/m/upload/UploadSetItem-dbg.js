@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,10 +22,10 @@ sap.ui.define([
 	"sap/m/VBox",
 	"sap/m/HBox",
 	"sap/ui/core/Lib",
-	"sap/ui/core/Core"
+	"sap/ui/core/InvisibleText"
 ], function (Log, CoreLibrary, Element, Icon, IconPool, HTML,
 			 MobileLibrary, Button, CustomListItem, Image, Input,
-			 Label, Link, ProgressIndicator, VBox, HBox, CoreLib, Core) {
+			 Label, Link, ProgressIndicator, VBox, HBox, CoreLib, InvisibleText) {
 	"use strict";
 
 	var UploadType = MobileLibrary.UploadType;
@@ -38,10 +38,11 @@ sap.ui.define([
 	 * @class Item that represents one file to be uploaded using the {@link sap.m.upload.UploadSet} control.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @constructor
 	 * @public
 	 * @since 1.63
+	 * @deprecated As of version 1.129, replaced by {@link sap.m.upload.UploadItem}
 	 * @alias sap.m.upload.UploadSetItem
 	 */
 	var UploadSetItem = Element.extend("sap.m.upload.UploadSetItem", {
@@ -186,9 +187,10 @@ sap.ui.define([
 			apiVersion: 2,
 			render: function (oRm, oControl) {
 				var sItemId = oControl.getAssociation("item");
-				var oItem = Core.byId(sItemId);
+				var oItem = Element.getElementById(sItemId);
 				oRm.openStart("div");
 				oRm.class("sapMUCTextContainer");
+				oControl._item = oItem;
 				if (this._bInEditMode) {
 					oRm.class("sapMUCEditMode");
 				}
@@ -203,11 +205,29 @@ sap.ui.define([
 				oItem._renderAttributes(oRm);
 				oItem._renderStatuses(oRm);
 				oRm.close("div");
-				oItem._renderStateAndProgress(oRm);
 				oItem._renderButtons(oRm);
 			}
 		}
 	});
+
+	DynamicItemContent.prototype.getAccessibilityInfo = function() {
+		//var sFileANme = oItem._bInEditMode ? oItem._getFileNameEdit() : oItem._getFileNameLink()
+		var aButtonsToRender = [];
+		if (this._item._bInEditMode) {
+			aButtonsToRender = [
+				this._item._getConfirmRenameButton(),
+				this._item._getCancelRenameButton()
+			];
+		} else {
+			aButtonsToRender = [
+				this._item._getRestartButton(),
+				this._item._getEditButton(),
+				this._item._getDeleteButton(),
+				this._item._getTerminateButton()
+			];
+		}
+		return {children: [ this._item._bInEditMode ? this._item._getFileNameEdit() : this._item._getFileNameLink(), ...this._item.getMarkers(), ...this._item.getMarkersAsStatus(), ...this._item.getAttributes(), ...this._item.getStatuses(), ...aButtonsToRender]};
+	};
 
 	/* ========= */
 	/* Constants */
@@ -515,7 +535,8 @@ sap.ui.define([
 	/* Event handlers */
 	/* ============== */
 
-	UploadSetItem.prototype._handleFileNamePressed = function () {
+	UploadSetItem.prototype._handleFileNamePressed = function (oEvent) {
+		oEvent.preventDefault(); // preventing default href opening via link press and delegating the handling to press event logic.
 		if (this.fireOpenPressed({item: this})) {
 			MobileLibrary.URLHelper.redirect(this.getUrl(), true);
 		}
@@ -530,7 +551,8 @@ sap.ui.define([
 			this._oListItem = new CustomListItem(this.getId() + "-listItem", {
 				content: [
 					this._getIcon(),
-					this._getDynamicContent()
+					this._getDynamicContent(),
+					this._getProgressBox()
 				],
 				selected: this.getSelected() // mapping UploadSetItem's property selected to customList item selected.
 			});
@@ -630,7 +652,8 @@ sap.ui.define([
 			this._oFileNameLink = new Link({
 				id: this.getId() + "-fileNameLink",
 				press: [this, this._handleFileNamePressed, this],
-				wrapping: true
+				wrapping: true,
+				href: this.getUrl()
 			});
 			this._oFileNameLink.setText(this.getFileName());//For handling curly braces in file name we have to use setter.Otherwise it will be treated as binding.
 			this._oFileNameLink.addStyleClass("sapMUCFileName");
@@ -671,6 +694,8 @@ sap.ui.define([
 	UploadSetItem.prototype._getEditButton = function () {
 		var oParent = this.getParent();
 		if (!this._oEditButton) {
+			this._oInvisibleText = new InvisibleText();
+			this._oInvisibleText.toStatic();
 			this._oEditButton = new Button({
 				id: this.getId() + "-editButton",
 				icon: "sap-icon://edit",
@@ -682,7 +707,9 @@ sap.ui.define([
 			});
 			this._oEditButton.addStyleClass("sapMUCEditBtn");
 			this.addDependent(this._oEditButton);
-		}
+			this._oEditButton.addAriaLabelledBy(this._oInvisibleText.getId());
+			this._oInvisibleText.setText("Button" + this._oRb.getText("UPLOAD_SET_EDIT_BUTTON_TEXT"));
+			}
 
 		return this._oEditButton;
 	};
@@ -803,9 +830,11 @@ sap.ui.define([
 	UploadSetItem.prototype._getDeleteButton = function () {
 		var oParent = this.getParent();
 		if (!this._oDeleteButton) {
+			this._oInvisibleText = new InvisibleText();
+			this._oInvisibleText.toStatic();
 			this._oDeleteButton = new Button({
 				id: this.getId() + "-deleteButton",
-				icon: "sap-icon://decline",
+				icon: "sap-icon://delete",
 				type: MobileLibrary.ButtonType.Standard,
 				enabled: this.getEnabledRemove(),
 				visible: this.getVisibleRemove(),
@@ -814,6 +843,8 @@ sap.ui.define([
 			});
 			this._oDeleteButton.addStyleClass("sapMUCDeleteBtn");
 			this.addDependent(this._oDeleteButton);
+			this._oDeleteButton.addAriaLabelledBy(this._oInvisibleText.getId());
+			this._oInvisibleText.setText("Button" + this._oRb.getText("UPLOAD_SET_DELETE_BUTTON_TEXT"));
 		}
 
 		return this._oDeleteButton;
@@ -912,7 +943,7 @@ sap.ui.define([
 		if (!this._oStateLabel) {
 			this._oStateLabel = new Label({
 				id: this.getId() + "-stateLabel",
-				text: "Pending", // TODO: All states and localization
+				text: "Uploading", // TODO: All states and localization
 				visible: this.getUploadState() !== UploadState.Complete
 			});
 		}
@@ -1011,7 +1042,7 @@ sap.ui.define([
 
 		// Render div container only if there is at least one button
 		if (aButtonsToRender.length > 0) {
-			oRm.openStart("div").class("sapMUCButtonContainer").openEnd();
+			oRm.openStart("div").class("sapMUSButtonContainer").openEnd();
 			aButtonsToRender.forEach(function (oBtn, iIndex) {
 				if (iIndex < (aButtonsToRender.length)) {
 					oBtn.addStyleClass("sapMUCFirstButton");
@@ -1140,7 +1171,30 @@ sap.ui.define([
 			this._oFileNameLink.destroy();
 			this._oFileNameLink = null;
 		}
-		this._oDynamicContent = null;
+		if (this._oProgressBox) {
+			this._oProgressBox.destroy();
+			this.removeDependent(this._oProgressBox);
+			this._oProgressBox = null;
+		}
+		if (this._oProgressIndicator) {
+			this._oProgressIndicator.destroy();
+			this.removeDependent(this._oProgressIndicator);
+			this._oProgressIndicator = null;
+		}
+		if (this._oStateLabel) {
+			this._oStateLabel.destroy();
+			this.removeDependent(this._oStateLabel);
+			this._oStateLabel = null;
+		}
+		if (this._oProgressLabel) {
+			this._oProgressLabel.destroy();
+			this.removeDependent(this._oProgressLabel);
+			this._oProgressLabel = null;
+		}
+		if (this._oDynamicContent) {
+			this._oDynamicContent.destroy();
+			this._oDynamicContent = null;
+		}
 	};
 
 	return UploadSetItem;

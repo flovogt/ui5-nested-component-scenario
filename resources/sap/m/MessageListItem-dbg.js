@@ -1,26 +1,27 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.MessageListItem.
 sap.ui.define([
-	"sap/ui/core/library",
+	"sap/ui/core/Lib",
 	"sap/ui/core/InvisibleText",
+	"sap/ui/core/message/MessageType",
 	"./library",
 	'./StandardListItem',
 	'./Link',
 	"./MessageListItemRenderer"
 ],
-	function (coreLibrary, InvisibleText, library, StandardListItem, Link, MessageListItemRenderer) {
+	function(Library, InvisibleText, MessageType, library, StandardListItem, Link, MessageListItemRenderer) {
 		"use strict";
-
-		// shortcut for sap.ui.core.MessageType
-		var MessageType = coreLibrary.MessageType;
 
 		// shortcut for sap.m.ListType
 		var ListType = library.ListType;
+
+		// shortcut for sap.m.ReactiveAreaMode
+		var ReactiveAreaMode = library.ReactiveAreaMode;
 
 		/**
 		 * Constructor for a new MessageListItem.
@@ -33,7 +34,7 @@ sap.ui.define([
 		 * @extends sap.m.StandardListItem
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
@@ -44,7 +45,7 @@ sap.ui.define([
 				library: "sap.m",
 				properties: {
 					activeTitle: { type: "boolean", group: "Misc", defaultValue: false},
-					messageType: { type: "sap.ui.core.MessageType", group: "Appearance", defaultValue: MessageType.Error }
+					messageType: { type: "sap.ui.core.message.MessageType", group: "Appearance", defaultValue: MessageType.Error }
 				},
 				aggregations: {
 					link: { type: "sap.m.Link", group: "Misc", multiple: false },
@@ -64,8 +65,9 @@ sap.ui.define([
 
 			if (!oLink && this.getActiveTitle()) {
 				oLink = new Link({
-					press: [this.fireActiveTitlePress, this]
-
+					wrapping: true,
+					press: [this.fireActiveTitlePress, this],
+					reactiveAreaMode: ReactiveAreaMode.Overlay
 				});
 				this.setLink(oLink);
 			}
@@ -81,7 +83,7 @@ sap.ui.define([
 		};
 
 		MessageListItem.prototype._getLinkAriaDescribedBy = function () {
-			var sAccessibilityText = sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("MESSAGE_VIEW_LINK_FOCUS_TEXT_" + this.getMessageType().toUpperCase());
+			var sAccessibilityText = Library.getResourceBundleFor("sap.m").getText("MESSAGE_VIEW_LINK_FOCUS_TEXT_" + this.getMessageType().toUpperCase());
 
 			return new InvisibleText(this.getId() + "-link", {
 				text: sAccessibilityText
@@ -124,7 +126,7 @@ sap.ui.define([
 			var sDescription = this.getDescription();
 
 			if (bActiveTitle) {
-				return this.getDomRef().querySelector("a");
+				return this.getDomRef().querySelector(".sapMLnkText");
 			}
 
 			if (sDescription) {

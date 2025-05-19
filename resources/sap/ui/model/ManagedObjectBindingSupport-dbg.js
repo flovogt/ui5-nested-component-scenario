@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,8 +14,11 @@ sap.ui.define([
 	"./ParseException",
 	"./ValidateException",
 	"./Context",
+	"./Type",
+	"sap/base/future",
 	"sap/base/Log",
 	"sap/base/assert",
+	"sap/ui/base/BindingInfo",
 	"sap/ui/base/Object",
 	"sap/base/util/ObjectPath",
 	"sap/ui/base/SyncPromise",
@@ -28,12 +31,16 @@ sap.ui.define([
 	ParseException,
 	ValidateException,
 	Context,
+	Type,
+	future,
 	Log,
 	assert,
+	BindingInfo,
 	BaseObject,
 	ObjectPath,
 	SyncPromise,
-	ManagedObjectMetadata) {
+	ManagedObjectMetadata
+) {
 	"use strict";
 
 	/**
@@ -158,30 +165,6 @@ sap.ui.define([
 			}
 
 			/*
-			 * Checks whether a binding can be created for the given oBindingInfo.
-			 *
-			 * @param {object} oBindingInfo
-			 * @returns {boolean} Whether a binding can be created
-			 * @private
-			 */
-			function canCreate(oBindingInfo) {
-				var aParts = oBindingInfo.parts,
-					i;
-
-				if (aParts) {
-					for (i = 0; i < aParts.length; i++) {
-						// check if model exists - ignore static bindings
-						if ( !that.getModel(aParts[i].model) && aParts[i].value === undefined) {
-							return false;
-						}
-					}
-					return true;
-				} else { // List or object binding
-					return !!that.getModel(oBindingInfo.model);
-				}
-			}
-
-			/*
 			 * Remove binding, detach all events and destroy binding object
 			 */
 			function removeBinding(oBindingInfo) {
@@ -207,7 +190,7 @@ sap.ui.define([
 			// create object bindings if they don't exist yet
 			for ( sName in this.mObjectBindingInfos ) {
 				oBindingInfo = this.mObjectBindingInfos[sName];
-				bCanCreate = canCreate(oBindingInfo);
+				bCanCreate = BindingInfo.isReady(oBindingInfo, this);
 				// if there is a binding and if it became invalid through the current model change, then remove it
 				if ( oBindingInfo.binding && becameInvalid(oBindingInfo) ) {
 					removeBinding(oBindingInfo);
@@ -239,7 +222,7 @@ sap.ui.define([
 				}
 
 				// if there is no binding and if all required information is available, create a binding object
-				if ( !oBindingInfo.binding && canCreate(oBindingInfo) ) {
+				if ( !oBindingInfo.binding && BindingInfo.isReady(oBindingInfo, this) ) {
 					if (oBindingInfo.factory) {
 						this._bindAggregation(sName, oBindingInfo);
 					} else {
@@ -440,7 +423,7 @@ sap.ui.define([
 							oClone.destroy("KeepDom");
 							break;
 						default:
-							Log.error("[FUTURE FATAL] Unknown diff type \"" + oDiff.type + "\"");
+							future.errorThrows("Unknown diff type \"" + oDiff.type + "\"");
 					}
 				}
 
@@ -566,15 +549,18 @@ sap.ui.define([
 						}
 						if (oBinding instanceof CompositeBinding) {
 							oBinding.setContext(oContext, {fnIsBindingRelevant : isPartForModel});
+							this.updateFieldHelp?.(sName);
 						} else if (oBindingInfo.factory) {
 							// list binding: update required when the model has the same name (or updateall)
 							if ( oBindingInfo.model == sModelName) {
 								oBinding.setContext(oContext);
+								this.updateFieldHelp?.(sName);
 							}
 
 						} else if (isPartForModel(0)) {
 							// simple property binding: update required when the model has the same name
 							oBinding.setContext(oContext);
+							this.updateFieldHelp?.(sName);
 						}
 					}
 				}
@@ -619,8 +605,6 @@ sap.ui.define([
 				oBinding,
 				sMode,
 				sCompositeMode = BindingMode.TwoWay,
-				oType,
-				clType,
 				oPropertyInfo = this.getMetadata().getPropertyLikeSetting(sName), // TODO fix handling of hidden entities?
 				sInternalType = oPropertyInfo._iKind === /* PROPERTY */ 0 ? oPropertyInfo.type : oPropertyInfo.altTypes[0],
 				that = this,
@@ -659,22 +643,47 @@ sap.ui.define([
 						that.refreshDataState(sName, oDataState);
 					}
 				},
-				fnResolveTypeClass = function(sTypeName) {
+				fnResolveTypeClass = function(sTypeName, oInstance) {
 					var sModulePath = sTypeName.replace(/\./g, "/");
 					// 1. require probing
 					var TypeClass = sap.ui.require(sModulePath);
+
+					/**
+					 * @deprecated
+					 */
 					if (!TypeClass) {
 						// 2. Global lookup
 						TypeClass = ObjectPath.get(sTypeName);
 						if (typeof TypeClass === "function" && !TypeClass._sapUiLazyLoader) {
-							Log.error("[FUTURE FATAL] The type class '" + sTypeName + "' is exported to the global namespace without being set as an export value of a UI5 module. " +
+							future.errorThrows("The type class '" + sTypeName + "' is exported to the global namespace without being set as an export value of a UI5 module. " +
 							"This scenario will not be supported in the future and a separate UI5 module needs to be created which exports this type class.");
 						} else {
 							// 3. requireSync fallback
 							TypeClass = sap.ui.requireSync(sModulePath); // legacy-relevant
 						}
 					}
+
+					if (typeof TypeClass !== "function") {
+						throw new Error(`Cannot find type "${sTypeName}" used in control "${oInstance.getId()}"!`);
+					}
+
 					return TypeClass;
+				},
+				fnCreateTypeInstance = function(oBindingInfo) {
+					const vType = oBindingInfo.type;
+					let clType;
+
+					if (typeof vType == "string") {
+						clType = fnResolveTypeClass(vType, that);
+					} else if (typeof vType === "function" && vType.prototype instanceof Type) {
+						clType = vType;
+					}
+
+					if (clType) {
+						return new clType(oBindingInfo.formatOptions, oBindingInfo.constraints);
+					} else {
+						return vType;
+					}
 				};
 
 			oBindingInfo.parts.forEach(function(oPart) {
@@ -683,14 +692,7 @@ sap.ui.define([
 				oModel = that.getModel(oPart.model);
 
 				// Create type instance if needed
-				oType = oPart.type;
-				if (typeof oType == "string") {
-					clType = fnResolveTypeClass(oType);
-					if (typeof clType !== "function") {
-						throw new Error("Cannot find type \"" + oType + "\" used in control \"" + that.getId() + "\"!");
-					}
-					oType = new clType(oPart.formatOptions, oPart.constraints);
-				}
+				const oType = fnCreateTypeInstance(oPart);
 
 				if (oPart.value !== undefined) {
 					oBinding = new StaticBinding(oPart.value);
@@ -710,18 +712,15 @@ sap.ui.define([
 				if (sMode !== BindingMode.TwoWay) {
 					sCompositeMode = BindingMode.OneWay;
 				}
-
+				oBinding.attachEvents(oPart.events);
 				aBindings.push(oBinding);
 			});
 
 			// check if we have a composite binding or a formatter function created by the BindingParser which has property textFragments
 			if (aBindings.length > 1 || ( oBindingInfo.formatter && oBindingInfo.formatter.textFragments )) {
 				// Create type instance if needed
-				oType = oBindingInfo.type;
-				if (typeof oType == "string") {
-					clType = fnResolveTypeClass(oType);
-					oType = new clType(oBindingInfo.formatOptions, oBindingInfo.constraints);
-				}
+				const oType = fnCreateTypeInstance(oBindingInfo);
+
 				oBinding = new CompositeBinding(aBindings, oBindingInfo.useRawValues, oBindingInfo.useInternalValues);
 				oBinding.setType(oType, oBindingInfo.targetType || sInternalType);
 				oBinding.setBindingMode(oBindingInfo.mode || sCompositeMode);
@@ -749,6 +748,7 @@ sap.ui.define([
 			oBinding.attachEvents(oBindingInfo.events);
 
 			oBinding.initialize();
+			this.updateFieldHelp?.(sName);
 
 			if (this._observer) {
 				this._observer.bindingChange(this, sName, "ready", oBindingInfo, "property");
@@ -769,6 +769,7 @@ sap.ui.define([
 				if (this.refreshDataState && !this._bIsBeingDestroyed) {
 					oBinding.detachAggregatedDataStateChange(oBindingInfo.dataStateChangeHandler);
 				}
+				this.updateFieldHelp?.(sName);
 			}
 		},
 
@@ -786,6 +787,11 @@ sap.ui.define([
 						oBinding.detachAggregatedDataStateChange(oBindingInfo.dataStateChangeHandler);
 					}
 				}
+				// For CompositeBindings the part bindings are kept in aBindings not in the BindingInfos.
+				const aBindings = oBindingInfo.aBindings;
+				aBindings?.forEach(function(oPartBinding, i) {
+					oPartBinding.detachEvents(oBindingInfo.parts[i].events);
+				});
 			}
 		},
 

@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.FormattedText.
 sap.ui.define([
 	'./library',
+	"sap/ui/core/Element",
 	'sap/ui/core/library',
 	'sap/ui/core/Control',
 	'./FormattedTextAnchorGenerator',
@@ -14,11 +15,11 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/base/security/URLListValidator",
 	"sap/base/security/sanitizeHTML",
-	"sap/ui/util/openWindow",
-	'sap/ui/core/Core'
+	"sap/ui/util/openWindow"
 ],
 function(
 	library,
+	Element,
 	coreLibrary,
 	Control,
 	FormattedTextAnchorGenerator,
@@ -26,8 +27,7 @@ function(
 	Log,
 	URLListValidator,
 	sanitizeHTML0,
-	openWindow,
-	Core
+	openWindow
 	) {
 		"use strict";
 
@@ -46,7 +46,7 @@ function(
 		 * @class
 		 * The FormattedText control allows the usage of a limited set of tags for inline display of formatted text in HTML format.
 		 * @extends sap.ui.core.Control
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -174,6 +174,7 @@ function(
 				'class' : 1,
 				'a::href' : 1,
 				'a::target' : 1,
+				'a::title' : 1,
 				'dir' : 1
 			},
 			// rules for the allowed tags
@@ -334,7 +335,7 @@ function(
 				return;
 			}
 			oEvent.preventDefault();
-			var oLink = Core.byId(oEvent.currentTarget.id);
+			var oLink = Element.getElementById(oEvent.currentTarget.id);
 			if (oLink && oLink.isA('sap.m.Link') && (oLink.getAccessibleRole() === library.LinkAccessibleRole.Button || !oLink.getHref())) {
 				return;
 			}
@@ -435,6 +436,27 @@ function(
 
 		FormattedText.prototype.getFocusDomRef = function () {
 			return this.getDomRef() && this.getDomRef().querySelector("a");
+		};
+
+		/**
+		 * Returns the <code>sap.m.FormattedText</code> accessibility information.
+		 *
+		 * @see sap.ui.core.Control#getAccessibilityInfo
+		 * @protected
+		 * @returns {sap.ui.core.AccessibilityInfo} The <code>sap.m.FormattedText</code> accessibility information
+		 */
+		FormattedText.prototype.getAccessibilityInfo = function() {
+			var aLinkAccessibleTexts = this.getControls().map(function(oLink) {
+				return `${oLink.getAccessibilityInfo().type} ${oLink.getAccessibilityInfo().description}`.trim();
+			});
+			var sDescription = this.getHtmlText().replace(/<[^>]*>/g, "");
+			aLinkAccessibleTexts.forEach(function(sText, iIndex) {
+				sDescription = sDescription.replace(`%%${iIndex}`, sText);
+			});
+
+			return {
+				description: sDescription
+			};
 		};
 
 		return FormattedText;

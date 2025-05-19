@@ -1,13 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides control sap.ui.unified.Calendar.
 sap.ui.define([
+	'sap/base/i18n/Formatting',
+	'sap/base/i18n/date/CalendarType',
+	'sap/base/i18n/date/CalendarWeekNumbering',
 	'sap/ui/core/Control',
 	'sap/ui/Device',
+	'sap/ui/core/Element',
+	'sap/ui/core/Lib',
 	'sap/ui/core/LocaleData',
 	'sap/ui/core/delegate/ItemNavigation',
 	'sap/ui/unified/calendar/CalendarUtils',
@@ -18,19 +23,22 @@ sap.ui.define([
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/core/library',
 	'sap/ui/core/Locale',
-	"./MonthRenderer",
-	"sap/ui/dom/containsOrEquals",
-	"sap/ui/events/KeyCodes",
-	"sap/ui/thirdparty/jquery",
+	'./MonthRenderer',
+	'sap/ui/dom/containsOrEquals',
+	'sap/ui/events/KeyCodes',
+	'sap/ui/thirdparty/jquery',
 	'sap/ui/core/InvisibleMessage',
-	"sap/ui/core/Configuration",
-	"sap/ui/core/date/CalendarWeekNumbering",
-	"sap/ui/core/date/CalendarUtils",
+	'sap/ui/core/date/CalendarUtils',
 	'sap/ui/core/date/UI5Date',
-	"sap/base/Log"
+	'sap/base/Log'
 ], function(
+	Formatting,
+	CalendarType,
+	CalendarWeekNumbering,
 	Control,
 	Device,
+	Element,
+	Library,
 	LocaleData,
 	ItemNavigation,
 	CalendarUtils,
@@ -46,8 +54,6 @@ sap.ui.define([
 	KeyCodes,
 	jQuery,
 	InvisibleMessage,
-	Configuration,
-	CalendarWeekNumbering,
 	CalendarDateUtils,
 	UI5Date,
 	Log
@@ -55,9 +61,6 @@ sap.ui.define([
 	"use strict";
 
 	var InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
-
-	// shortcut for sap.ui.core.CalendarType
-	var CalendarType = coreLibrary.CalendarType;
 
 	// shortcut for sap.ui.unified.CalendarDayType
 	var CalendarDayType = library.CalendarDayType;
@@ -79,7 +82,7 @@ sap.ui.define([
 	 * If used inside the calendar the properties and aggregation are directly taken from the parent
 	 * (To not duplicate and sync DateRanges and so on...)
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -132,14 +135,14 @@ sap.ui.define([
 			 * If not set, the calendar type of the global configuration is used.
 			 * @since 1.34.0
 			 */
-			primaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"},
+			primaryCalendarType : {type : "sap.base.i18n.date.CalendarType", group : "Appearance"},
 
 			/**
 			 * If set, the days are also displayed in this calendar type
 			 * If not set, the dates are only displayed in the primary calendar type
 			 * @since 1.34.0
 			 */
-			secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"},
+			secondaryCalendarType : {type : "sap.base.i18n.date.CalendarType", group : "Appearance"},
 
 			/**
 			 * Width of Month
@@ -166,12 +169,21 @@ sap.ui.define([
 			_focusedDate : {type : "object", group : "Data", visibility: "hidden", defaultValue: null},
 
 			/**
+			 * Determines if the control should display only the weeks that fall within the current month
+			 * or if it should always render a six-week view.
+			 *
+			 * @private
+			 * @since 1.123
+			 */
+			 _renderMonthWeeksOnly : {type : "boolean", group : "Data", visibility: "hidden", defaultValue: false},
+
+			/**
 			 * If set, the calendar week numbering is used for display.
 			 * If not set, the calendar week numbering of the global configuration is used.
 			 * Note: This property should not be used with firstDayOfWeek property.
 			 * @since 1.108.0
 			 */
-			 calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
+			 calendarWeekNumbering : { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 
 		},
 		aggregations : {
@@ -182,14 +194,37 @@ sap.ui.define([
 			selectedDates : {type : "sap.ui.unified.DateRange", multiple : true, singularName : "selectedDate"},
 
 			/**
-			 * <code>DateRange</code> with type to visualize special days in the Calendar.
+			 * Dates or date ranges with type, to visualize special days.
 			 *
-			 * <b>Note:</b> If one day is assigned to more than one DateTypeRange, only the first one
-			 * will be used. The only exception is when one of the types is
-			 * <code>NonWorking</code>, then you can have both <code>NonWorking</code>
-			 * and the other type.
-			 * For example, you can have <code>NonWorking</code> + <code>Type01</code>
-			 * but you can't have <code>Type01</code> + <code>Type02</code>.
+			 * <b>Note:</b> In case there are multiple <code>sap.ui.unified.DateTypeRange</code> instances given for a single date,
+			 * only the first <code>sap.ui.unified.DateTypeRange</code> instance will be used.
+			 * For example, using the following sample, the 1st of November will be displayed as a working day of type "Type10":
+			 *
+			 *
+			 *	<pre>
+			 *	new DateTypeRange({
+			 *		startDate: UI5Date.getInstance(2023, 10, 1),
+			 *		type: CalendarDayType.Type10,
+			 *	}),
+			 *	new DateTypeRange({
+			 *		startDate: UI5Date.getInstance(2023, 10, 1),
+			 *		type: CalendarDayType.NonWorking
+			 *	})
+			 *	</pre>
+			 *
+			 * If you want the first of November to be displayed as a non-working day and also as "Type10," the following should be done:
+			 *	<pre>
+			 *	new DateTypeRange({
+			 *		startDate: UI5Date.getInstance(2023, 10, 1),
+			 *		type: CalendarDayType.Type10,
+			 *		secondaryType: CalendarDayType.NonWorking
+			 *	})
+			 *	</pre>
+			 *
+			 * You can use only one of the following types for a given date: <code>sap.ui.unified.CalendarDayType.NonWorking</code>,
+			 * <code>sap.ui.unified.CalendarDayType.Working</code> or <code>sap.ui.unified.CalendarDayType.None</code>.
+			 * Assigning more than one of these values in combination for the same date will lead to unpredictable results.
+			 *
 			 */
 			specialDates : {type : "sap.ui.unified.DateTypeRange", multiple : true, singularName : "specialDate"},
 
@@ -283,12 +318,16 @@ sap.ui.define([
 
 		this._bAlwaysShowSpecialDates = false;
 
-		this._oUnifiedRB = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
+		this._oUnifiedRB = Library.getResourceBundleFor("sap.ui.unified");
 	};
 
 	Month.prototype._getAriaRole = function(){
 		// the role is always "gridcell" inside Calendar
 		return "gridcell";
+	};
+
+	Month.prototype._getDayDescription = function() {
+		return "";
 	};
 
 	Month.prototype.exit = function(){
@@ -316,7 +355,7 @@ sap.ui.define([
 		this._oFormatYyyymmdd = DateFormat.getInstance({pattern: "yyyyMMdd", calendarType: CalendarType.Gregorian});
 		this._oFormatLong = DateFormat.getInstance({style: "long", calendarType: this._getPrimaryCalendarType()});
 
-		if (this.getFirstDayOfWeek() !== -1 && this.getCalendarWeekNumbering() !== "Default") {
+		if (this.getFirstDayOfWeek() !== -1 && this.getCalendarWeekNumbering() !== CalendarWeekNumbering.Default) {
 			Log.warning("Both properties firstDayOfWeek and calendarWeekNumbering should not be used at the same time!");
 		}
 	};
@@ -359,6 +398,14 @@ sap.ui.define([
 		}
 	};
 
+	Month.prototype._getCalendarWeekNumbering = function () {
+		if (this.isPropertyInitial("calendarWeekNumbering")) {
+			return;
+		}
+
+		return this.getCalendarWeekNumbering();
+	};
+
 	Month.prototype._markDatesBetweenStartAndHoveredDate = function(iDate1, iDate2) {
 		var aDomRefs,
 			$CheckRef,
@@ -396,7 +443,7 @@ sap.ui.define([
 
 	Month.prototype.onsapfocusleave = function(oEvent){
 
-		if (!oEvent.relatedControlId || !containsOrEquals(this.getDomRef(), sap.ui.getCore().byId(oEvent.relatedControlId).getFocusDomRef())) {
+		if (!oEvent.relatedControlId || !containsOrEquals(this.getDomRef(), Element.getElementById(oEvent.relatedControlId).getFocusDomRef())) {
 			if (this._bMouseMove) {
 				this._unbindMousemove(true);
 
@@ -557,7 +604,7 @@ sap.ui.define([
 		if (oParent && oParent.getLocale) {
 			return oParent.getLocale();
 		} else if (!this._sLocale) {
-			this._sLocale = Configuration.getFormatSettings().getFormatLocale().toString();
+			this._sLocale = new Locale(Formatting.getLanguageTag()).toString();
 		}
 
 		return this._sLocale;
@@ -705,7 +752,7 @@ sap.ui.define([
 			return oParent._getPrimaryCalendarType();
 		}
 
-		return this.getProperty("primaryCalendarType") || Configuration.getCalendarType();
+		return this.getProperty("primaryCalendarType") || Formatting.getCalendarType();
 	};
 
 	/*
@@ -751,7 +798,7 @@ sap.ui.define([
 		if (oParent && oParent.getLegend) {
 			return oParent.getLegend();
 		} else {
-			return this.getAssociation("legend", []);
+			return this.getAssociation("legend");
 		}
 
 	};
@@ -773,7 +820,7 @@ sap.ui.define([
 		}
 
 		if (iFirstDayOfWeek < 0 || iFirstDayOfWeek > 6) {
-			var oWeekConfigurationValues = CalendarDateUtils.getWeekConfigurationValues(this.getCalendarWeekNumbering(), new Locale(this._getLocale()));
+			var oWeekConfigurationValues = CalendarDateUtils.getWeekConfigurationValues(this._getCalendarWeekNumbering(), new Locale(this._getLocale()));
 
 			if (oWeekConfigurationValues) {
 				iFirstDayOfWeek = oWeekConfigurationValues.firstDayOfWeek;
@@ -936,10 +983,10 @@ sap.ui.define([
 			// collects non working day with the first occurrence of one of the types01..types20
 			if ((oTimeStamp === oStartTimeStamp && !oEndDate) || (oTimeStamp >= oStartTimeStamp && oTimeStamp <= oEndTimeStamp)) {
 				if (!bNonWorkingType && !oType) {
-					oType = {type: oRange.getType(), tooltip: oRange.getTooltip_AsString(), color: oRange.getColor()};
+					oType = {type: oRange.getType(), secondaryType: oRange.getSecondaryType(), tooltip: oRange.getTooltip_AsString(), color: oRange.getColor()};
 					aTypes.push(oType);
 				} else if (bNonWorkingType && !oTypeNW) {
-						oTypeNW = {type: oRange.getType(), tooltip: oRange.getTooltip_AsString()};
+						oTypeNW = {type: oRange.getType(), secondaryType: oRange.getSecondaryType(), tooltip: oRange.getTooltip_AsString()};
 						aTypes.push(oTypeNW);
 				}
 				if (oType && oTypeNW) {
@@ -954,7 +1001,7 @@ sap.ui.define([
 
 	/*
 	 * Checks if a given date is enabled
-	 * beside the disabledDates aggregation the min. and max. date of the Calendar are used
+	 * aside from the disabledDates aggregation the min. and max. dates are also checked
 	 * @param {sap.ui.unified.calendar.CalendarDate} oDate the date to check
 	 * @returns {boolean} Flag if enabled
 	 * @private
@@ -967,12 +1014,9 @@ sap.ui.define([
 		var aDisabledDates = this.getDisabledDates();
 		var oTimeStamp = oDate.toUTCJSDate().getTime();
 		var sCalendarType = this._getPrimaryCalendarType();
-		var oParent = this.getParent();
 
-		if (oParent && oParent._oMinDate && oParent._oMaxDate) {
-			if (oTimeStamp < oParent._oMinDate.valueOf() || oTimeStamp > oParent._oMaxDate.valueOf()) {
-				return false;
-			}
+		if ((this._oMinDate && oTimeStamp < this._oMinDate) || (this._oMaxDate && oTimeStamp > this._oMaxDate)) {
+			return false;
 		}
 
 		for ( var i = 0; i < aDisabledDates.length; i++) {
@@ -1441,7 +1485,10 @@ sap.ui.define([
 	 * @private
 	 */
 	Month.prototype._getVisibleDays = function (oStartDate, bIncludeBCDates) {
-		var iNextMonth,
+		var iDaysInSixWeeks = 42,
+			bRenderMonthWeeksOnly = this.getProperty("_renderMonthWeeksOnly"),
+			bWeekInNextMonth,
+			iNextMonth,
 			oDay,
 			oCalDate,
 			iDaysOldMonth,
@@ -1472,7 +1519,7 @@ sap.ui.define([
 
 		oDay = new CalendarDate(oFirstDay);
 		iNextMonth = (oStartDate.getMonth() + 1) % 12;
-		do {
+		for (let i = 0; i < iDaysInSixWeeks; i++) {
 			iYear = oDay.getYear();
 			oCalDate = new CalendarDate(oDay, this._getPrimaryCalendarType());
 			if (bIncludeBCDates && iYear < 1) {
@@ -1483,7 +1530,12 @@ sap.ui.define([
 				this._aVisibleDays.push(oCalDate);
 			}
 			oDay.setDate(oDay.getDate() + 1);
-		} while (oDay.getMonth() !== iNextMonth || oDay.getDay() !== iFirstDayOfWeek);
+
+			bWeekInNextMonth = oDay.getMonth() === iNextMonth && oDay.getDay() === iFirstDayOfWeek;
+			if (bRenderMonthWeeksOnly && bWeekInNextMonth) {
+				break;
+			}
+		}
 
 		return this._aVisibleDays;
 	};
@@ -1623,33 +1675,15 @@ sap.ui.define([
 	};
 
 	/**
-	 * Calculates week number.
+	 * Calculates the week number corresponding to a date object representing a week start date.
 	 *
 	 * @param {sap.ui.unified.calendar.CalendarDate} oDate Start date of the week
 	 * @returns {int} Week number
 	 * @private
 	 */
 	Month.prototype._calculateWeekNumber = function (oDate) {
-		var oLocale = new Locale(this._getLocale());
-		var oEndDate = this._getLastWeekDate(oDate);
-		var oLocaleData = this._getLocaleData();
-		var oDateFormat;
-		var iWeekNumber;
 
-		oDateFormat = DateFormat.getInstance({pattern: "w", calendarType: this._getPrimaryCalendarType(), calendarWeekNumbering: this.getCalendarWeekNumbering()}, oLocale);
-
-		var bIsRegionUS = oLocaleData.firstDayStartsFirstWeek();
-
-		// Because the date we use to calculate the week number may be in one year and in the same time
-		// includes days in a new month into a new year, we explicitly changed the week number
-		// US calendar weeks overlap, Jan 1st is always week 1, while Dec 31st is always last week.
-		if (oEndDate.getMonth() === 0 && this._oDate.getMonth() === 0  && bIsRegionUS) {
-			iWeekNumber = oDateFormat.format(oEndDate.toLocalJSDate());
-		} else {
-			iWeekNumber = oDateFormat.format(oDate.toLocalJSDate());
-		}
-
-		return iWeekNumber;
+		return CalendarUtils.calculateWeekNumber(oDate, this._getPrimaryCalendarType(), this._getLocale(), this._getCalendarWeekNumbering(), this._getFirstDayOfWeek());
 	};
 
 	/**

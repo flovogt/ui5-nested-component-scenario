@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -20,7 +20,7 @@ sap.ui.define(['sap/base/assert', 'sap/ui/base/Object', "sap/base/i18n/Localizat
 	 *
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @public
 	 * @alias sap.ui.core.Locale
 	 */
@@ -191,7 +191,7 @@ sap.ui.define(['sap/base/assert', 'sap/ui/base/Object', "sap/base/i18n/Localizat
 		 * @returns {string} a language code that should
 		 * @public
 		 * @since 1.17.0
-		 * @deprecated As of 1.44, use {@link sap.ui.core.Configuration#getSAPLogonLanguage} instead
+		 * @deprecated As of 1.44, use {@link module:sap/base/i18n/Localization.getSAPLogonLanguage} instead
 		 *   as that class allows to configure an SAP Logon language.
 		 */
 		getSAPLogonLanguage : function() {

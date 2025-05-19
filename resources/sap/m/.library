@@ -4,9 +4,9 @@
   <name>sap.m</name>
   <vendor>SAP SE</vendor>
   <copyright>OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.120.30</version>
+  <version>1.136.0</version>
 
   <documentation>The main UI5 control library, with responsive controls that can be used in touch devices as well as desktop browsers.</documentation>
 
@@ -45,10 +45,24 @@
     </packaging>
     <!-- Thirdparty references -->
     <thirdparty xmlns="http://www.sap.com/ui5/buildext/thirdparty" >
-        <lib name="DOMPurify" displayName="purify.js" npmName="dompurify" version="3.2.4" hash="f5e3f0b315448da532b33fe120eaf725" homepage="https://github.com/cure53/DOMPurify/" id="73554900106100137292">
+        <lib name="DOMPurify" displayName="purify.js" npmName="dompurify" version="3.2.4" hash="b8b770c2c5daf7e777d33af0270ec21d" homepage="https://github.com/cure53/DOMPurify/" id="73554900106100137292">
             <license url="https://github.com/cure53/DOMPurify/blob/main/LICENSE" type="Apache-2.0" />
             <copyright>Mario Heiderich</copyright>
             <pattern>sap/m/_thirdparty/purify.js</pattern>
+        </lib>
+        <lib  id="73555000106100004191"
+              name="qunit-composite-2"
+              displayName="QUnit Composite 2.0.0"
+              version="2.0.0"
+              npmName="qunit-composite"
+              npmVersion="2.0.0"
+              hash="cf42dd8c3b1e980237f14df37487c808"
+              homepage="https://github.com/JamesMGreene/qunit-composite"
+            >
+            <license url="https://github.com/JamesMGreene/qunit-composite/blob/master/LICENSE.txt" type="MIT" />
+            <copyright>jQuery Foundation and other contributors, https://jquery.org/</copyright>
+            <pattern>../test/sap/m/qunit/_thirdparty/qunit-composite.css</pattern>
+            <pattern>../test/sap/m/qunit/_thirdparty/qunit-composite.js</pattern>
         </lib>
     </thirdparty>
     <documentation xmlns="http://www.sap.com/ui5/buildext/documentation"
@@ -73,10 +87,12 @@
                 <module>sap/m/UploadCollection</module>
                 <module>sap/m/ActionTile</module>
                 <module>sap/m/ActionTileContent</module>
-                <module>sap/m/CustomAttribute</module>
+                <module>sap/m/TileAttribute</module>
                 <module>sap/m/SlideTile</module>
                 <module>sap/m/GenericTile</module>
                 <module>sap/m/LinkTileContent</module>
+                <module>sap/m/TileInfo</module>
+                <module>sap/m/ContentConfig</module>
                 <module>sap/m/TileContent</module>
                 <module>sap/m/FeedContent</module>
                 <module>sap/m/NewsContent</module>
@@ -84,6 +100,7 @@
                 <module>sap/m/ImageContent</module>
                 <module>sap/m/HeaderContainer</module>
                 <module>sap/m/GenericTileMode</module>
+                <module>sap/m/TileInfoColor</module>
                 <module>sap/m/GenericTileScope</module>
                 <module>sap/m/TileSizeBehavior</module>
                 <module>sap/m/Size</module>
@@ -104,12 +121,13 @@
                 <module>sap/m/upload/UploadSet</module>
                 <module>sap/m/upload/UploadSetItem</module>
                 <module>sap/m/upload/UploadSetToolbarPlaceholder</module>
-                <module>sap/m/upload/UploadSetwithTable</module>
-                <module>sap/m/upload/UploadSetwithTableItem</module>
                 <module>sap/m/upload/UploaderTableItem</module>
                 <module>sap/m/upload/FilePreviewDialog</module>
                 <module>sap/m/upload/Column</module>
                 <module>sap/m/upload/ActionsPlaceholder</module>
+                <module>sap/m/plugins/UploadSetwithTable</module>
+                <module>sap/m/upload/UploadItem</module>
+                <module>sap/m/upload/UploadItemConfiguration</module>
             </modules>
         </component>
         <component>
@@ -138,6 +156,21 @@
             </modules>
         </component>
         <component>
+            <name>CA-UI5-MDC</name>
+            <modules>
+                <module>sap/m/p13n/SelectionController</module>
+                <module>sap/m/p13n/SelectionPanel</module>
+                <module>sap/m/p13n/SortController</module>
+                <module>sap/m/p13n/SortPanel</module>
+                <module>sap/m/p13n/GroupController</module>
+                <module>sap/m/p13n/GroupPanel</module>
+                <module>sap/m/p13n/Engine</module>
+                <module>sap/m/p13n/MetadataHelper</module>
+                <module>sap/m/p13n/Popup</module>
+                <module>sap/m/VariantManagement</module>
+            </modules>
+        </component>
+        <component>
             <name>CA-UI5-TBL</name>
             <modules>
                 <module>sap/m/ListBase</module>
@@ -163,6 +196,7 @@
                 <module>sap/m/table/columnmenu/Entry</module>
                 <module>sap/m/table/columnmenu/Item</module>
                 <module>sap/m/table/columnmenu/ItemBase</module>
+                <module>sap/m/table/columnmenu/MenuBase</module>
                 <module>sap/m/table/columnmenu/Menu</module>
                 <module>sap/m/table/columnmenu/QuickAction</module>
                 <module>sap/m/table/columnmenu/QuickActionBase</module>

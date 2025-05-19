@@ -1,20 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.IconTabBar.
 sap.ui.define([
 	'./library',
-	"sap/ui/core/Core",
 	'sap/ui/core/Control',
 	'./IconTabBarRenderer',
 	'./IconTabHeader',
+	"sap/ui/core/RenderManager",
 	"sap/ui/core/util/ResponsivePaddingsEnablement",
 	"sap/ui/thirdparty/jquery"
 ],
-	function(library, Core, Control, IconTabBarRenderer, IconTabHeader, ResponsivePaddingsEnablement, jQuery) {
+	function(library, Control, IconTabBarRenderer, IconTabHeader, RenderManager, ResponsivePaddingsEnablement, jQuery) {
 	"use strict";
 
 	// shortcut for sap.m.IconTabHeaderMode
@@ -94,7 +94,7 @@ sap.ui.define([
 	 * @implements sap.m.ObjectHeaderContainer, sap.f.IDynamicPageStickyContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @alias sap.m.IconTabBar
@@ -184,7 +184,7 @@ sap.ui.define([
 				 * The overflow select list represents a list, where all tab filters are displayed,
 				 * so the user can select specific tab filter easier.
 				 * @since 1.42
-				 * @deprecated As of 1.77
+				 * @deprecated As of version 1.77, the concept has been discarded. All tab filters that don't fit in the header, will be displayed in overflow menu.
 				 */
 				showOverflowSelectList : {type : "boolean", group : "Appearance", defaultValue : false, deprecated: true},
 
@@ -527,7 +527,7 @@ sap.ui.define([
 	IconTabBar.prototype._rerenderContent = function (oContent) {
 		var $content = this.$("content");
 		if (oContent && ($content.length > 0)) {
-			var oRM = Core.createRenderManager();
+			var oRM = new RenderManager().getInterface();
 			for (var i = 0; i < oContent.length; i++) {
 				oRM.renderControl(oContent[i]);
 			}

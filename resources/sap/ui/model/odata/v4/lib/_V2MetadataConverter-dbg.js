@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -345,7 +345,7 @@ sap.ui.define([
 	 * @returns {object} The target for the annotations
 	 */
 	Annotatable.prototype.getTarget = function () {
-		if (!this.mAnnotationsForTarget) {
+		if (!this.mAnnotationsForTarget) { // eslint-disable-line logical-assignment-operators
 			this.mAnnotationsForTarget = this.oConverter.convertedV2Annotations[this.sPath] = {};
 		}
 		return this.mAnnotationsForTarget;
@@ -767,6 +767,26 @@ sap.ui.define([
 		this.associationSet.ends.push({
 			entitySetName : oElement.getAttribute("EntitySet"),
 			roleName : oElement.getAttribute("Role")
+		});
+	};
+
+	/**
+	 * Post-processing of all bound operations: key properties are removed from parameters.
+	 */
+	_V2MetadataConverter.prototype.processBoundOperations = function () {
+		var that = this;
+
+		this.aBoundOperations.forEach(function (oOperation) {
+			var oEntityType = that.result[oOperation.$Parameter[0].$Type];
+
+			oEntityType.$Key.forEach(function (sKeyName) {
+				oOperation.$Parameter.some(function (oParameter, i) {
+					if (oParameter.$Name === sKeyName) {
+						oOperation.$Parameter.splice(i, 1);
+						return true;
+					}
+				});
+			});
 		});
 	};
 
@@ -1303,26 +1323,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Post-processing of all bound operations: key properties are removed from parameters.
-	 */
-	_V2MetadataConverter.prototype.processBoundOperations = function () {
-		var that = this;
-
-		this.aBoundOperations.forEach(function (oOperation) {
-			var oEntityType = that.result[oOperation.$Parameter[0].$Type];
-
-			oEntityType.$Key.forEach(function (sKeyName) {
-				oOperation.$Parameter.some(function (oParameter, i) {
-					if (oParameter.$Name === sKeyName) {
-						oOperation.$Parameter.splice(i, 1);
-						return true;
-					}
-				});
-			});
-		});
-	};
-
-	/**
 	 * For each property with a "sap:unit" annotation a corresponding V4 annotation is created.
 	 * The annotation is "Org.OData.Measures.V1.Unit" if the unit has
 	 * sap:semantics="unit-of-measure" or "Org.OData.Measures.V1.ISOCurrency" if the unit has
@@ -1465,8 +1465,7 @@ sap.ui.define([
 					oToRole = oAssociation.roles[oAssociationSetTo.roleName];
 
 				if (oToRole.propertyName) {
-					oEntitySet.$NavigationPropertyBinding
-						= oEntitySet.$NavigationPropertyBinding || {};
+					oEntitySet.$NavigationPropertyBinding ??= {};
 					oEntitySet.$NavigationPropertyBinding[oToRole.propertyName]
 						= oAssociationSetTo.entitySetName;
 				}
@@ -1500,8 +1499,8 @@ sap.ui.define([
 		this.oAnnotatable = oAnnotatable;
 		if (fnProcessV2Annotatable) {
 			fnProcessV2Annotatable = fnProcessV2Annotatable.bind(this);
-			Object.keys(this.mSapAnnotations).forEach(function (sName) {
-				fnProcessV2Annotatable(oAnnotatable, sName);
+			Object.keys(this.mSapAnnotations).forEach(function (sName0) {
+				fnProcessV2Annotatable(oAnnotatable, sName0);
 			});
 		}
 		return oAnnotatable;
@@ -1526,7 +1525,7 @@ sap.ui.define([
 	 * @param {object} $$ The prototype for V4MetadataConverter
 	 */
 	(function ($$) {
-		// Note: this function is executed at load time only!
+		// Note: this function is run at load time only!
 		var oStructuredTypeConfig;
 
 		$$.sRootNamespace = sEdmxNamespace;

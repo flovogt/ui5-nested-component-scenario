@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -42,10 +42,11 @@ sap.ui.define([
 	 * @param {string} sPath The binding path in the model
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context which is required as base for a relative path.
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters]
-	 *   Initial sort order, can be either a sorter or an array of sorters.
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters]
-	 *   Predefined filters, can be either a filter or an array of filters.
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters used initially; call {@link #sort} to replace them
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call {@link #filter} to
+	 *   replace them
 	 * @param {object} [mParameters] A map which contains additional parameters for the binding.
 	 * @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
 	 *   Defines the count mode of the binding; if not specified, the default count mode of the
@@ -199,12 +200,13 @@ sap.ui.define([
 	 *
 	 * @param {function} fnFunction The function to call when the event occurs
 	 * @param {object} [oListener] Object on which to call the given function
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 *
 	 * @public
 	 * @since 1.98.0
 	 */
 	 ODataListBinding.prototype.attachCreateActivate = function (fnFunction, oListener) {
-		this.attachEvent("createActivate", fnFunction, oListener);
+		return this.attachEvent("createActivate", fnFunction, oListener);
 	};
 
 	/**
@@ -212,12 +214,13 @@ sap.ui.define([
 	 *
 	 * @param {function} fnFunction The function to call when the event occurs
 	 * @param {object} [oListener] Object on which to call the given function
+	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 *
 	 * @public
 	 * @since 1.98.0
 	 */
 	ODataListBinding.prototype.detachCreateActivate = function (fnFunction, oListener) {
-		this.detachEvent("createActivate", fnFunction, oListener);
+		return this.detachEvent("createActivate", fnFunction, oListener);
 	};
 
 	/**
@@ -309,7 +312,9 @@ sap.ui.define([
 	 *   Whether this call keeps the result of {@link #getCurrentContexts} untouched; since 1.102.0.
 	 * @return {sap.ui.model.odata.v2.Context[]}
 	 *   The array of already available contexts with the first entry containing the context for
-	 *   <code>iStartIndex</code>
+	 *   <code>iStartIndex</code>. Since 1.131.0, the array has an additional property <code>bExpectMore</code>, which
+	 *   is <code>true</code> if the response is not complete, a {@link #event:change 'change'} event will follow, and
+	 *   a busy indicator should be switched on.
 	 * @throws {Error}
 	 *   If extended change detection is enabled and <code>bKeepCurrent</code> is set, or if
 	 *   <code>iMaximumPrefetchSize</code> and <code>bKeepCurrent</code> are set
@@ -359,6 +364,7 @@ sap.ui.define([
 			}
 		}
 		aContexts = this._getContexts(iStartIndex, iLength);
+		aContexts.bExpectMore = this._isExpectingMoreContexts(aContexts, iStartIndex, iLength);
 		if (this.oCombinedFilter === Filter.NONE || this._hasTransientParentContext()) {
 			// skip #loadData
 		} else if (this.useClientMode()) {
@@ -385,10 +391,10 @@ sap.ui.define([
 		}
 		if (this.bRefresh) {
 			this.bRefresh = false;
-			// if we do not need to load data after a refresh event (e.g. we have enough created
-			// contexts) we need to fire a change event to fulfill the contract that after a refresh
+			// if there is no need to load data after a refresh event (e.g. we have enough created contexts or
+			// FILTER.None is set), fire a change event to fulfill the contract that after a refresh
 			// event a change event is triggered when the data is available.
-			if (!aContexts.dataRequested && aContexts.length > 0) {
+			if (!aContexts.dataRequested) {
 				this._fireChange({reason : ChangeReason.Change});
 			}
 		} else if (!bKeepCurrent) {
@@ -1534,8 +1540,9 @@ sap.ui.define([
 	 * from the creation rows area and inserted at the right position based on the current filters
 	 * and sorters.
 	 *
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} aSorters
-	 *   A new sorter or an array of sorters which define the sort order
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters to use; they replace the sorters given in {@link sap.ui.model.odata.v2.ODataModel#bindList}; a
+	 *   falsy value is treated as an empty array and thus removes all sorters
 	 * @param {boolean} [bReturnSuccess=false]
 	 *   Whether the success indicator should be returned instead of <code>this</code>
 	 * @return {this}
@@ -1744,8 +1751,12 @@ sap.ui.define([
 	 * from the creation rows area and inserted at the right position based on the current filters
 	 * and sorters.
 	 *
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters] Single filter or array of filter objects
-	 * @param {sap.ui.model.FilterType} [sFilterType=Control] Type of the filter which should be adjusted. If it is not given, type <code>Control</code> is assumed
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to use; in case of type {@link sap.ui.model.FilterType.Application} this replaces the filters given
+	 *   in {@link sap.ui.model.odata.v2.ODataModel#bindList}; a falsy value is treated as an empty array and thus
+	 *   removes all filters of the specified type
+	 * @param {sap.ui.model.FilterType} [sFilterType=sap.ui.model.FilterType.Control]
+	 *   The type of the filter to replace
 	 * @param {boolean} [bReturnSuccess=false] Whether the success indicator should be returned instead of <code>this</code>
 	 * @return {this} Reference to <code>this</code> to facilitate method chaining or a boolean success indicator
 	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
@@ -2244,8 +2255,8 @@ sap.ui.define([
 
 	/**
 	 * Returns the count of active entries in the list if the list length is final, otherwise
-	 * <code>undefined</code>. Contrary to {#getLength}, this method does not consider inactive
-	 * entries which are created via {#create}.
+	 * <code>undefined</code>. Contrary to {@link #getLength}, this method does not consider inactive
+	 * entries which are created via {@link #create}.
 	 *
 	 * @returns {number|undefined} The count of entries
 	 *

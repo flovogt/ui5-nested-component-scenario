@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBaseRenderer', 'sap/m/library', 'sap/ui/core/Configuration', 'sap/ui/core/library'],
-	function(InvisibleText, Renderer, InputBaseRenderer, library, Configuration, coreLibrary) {
+sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/ControlBehavior", 'sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBaseRenderer', 'sap/m/library', 'sap/ui/core/library'],
+	function(Localization, ControlBehavior, InvisibleText, Renderer, InputBaseRenderer, library, coreLibrary) {
 	"use strict";
 
 
@@ -52,14 +52,14 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 	 */
 	InputRenderer.writeInnerAttributes = function (oRm, oControl) {
 		var bShowSuggestions = oControl.getShowSuggestion();
-		var bAddReadOnly = (!oControl.getEnabled() && oControl.getType() == "Password") || (oControl.getShowSuggestion() && oControl.isMobileDevice());
+		var bAddReadOnly = oControl.getShowSuggestion() && oControl.isMobileDevice();
 
 		oRm.attr("type", oControl.getType().toLowerCase());
 		//if Input is of type "Number" step attribute should be "any" allowing input of floating point numbers
 		if (oControl.getType() == InputType.Number) {
 			oRm.attr("step", "any");
 		}
-		if (oControl.getType() == InputType.Number && Configuration.getRTL()) {
+		if (oControl.getType() == InputType.Number && Localization.getRTL()) {
 			oRm.attr("dir", "ltr").style("text-align", "right");
 		}
 
@@ -73,7 +73,6 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 		bAddReadOnly = bAddReadOnly || (oControl.getValueHelpOnly() && oControl.getEnabled() && oControl.getEditable() && oControl.getShowValueHelp());
 
 		if (bAddReadOnly) {
-			// required for JAWS reader on password fields on desktop and in other cases:
 			oRm.attr("readonly", "readonly");
 		}
 	};
@@ -117,15 +116,6 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 		if (oControl.getDescription()) {
 			this.writeDescription(oRm, oControl);
 		}
-
-		if (Configuration.getAccessibility()) {
-			if (oControl.getShowSuggestion() && oControl.getEnabled() && oControl.getEditable()) {
-				oRm.openStart("span", oControl.getId() + "-SuggDescr").class("sapUiPseudoInvisibleText")
-					.attr("role", "status").attr("aria-live", "polite")
-					.openEnd()
-					.close("span");
-			}
-		}
 	};
 
 	/**
@@ -165,8 +155,7 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 			}
 		}
 
-		if (oControl.getShowSuggestion()
-			&& oControl.getValueStateLinksForAcc().length
+		if (oControl.getValueStateLinksForAcc().length
 			&& oControl.getValueState() !== ValueState.Error) {
 			append(oControl.getValueStateLinksShortcutsId());
 		}
@@ -192,8 +181,8 @@ sap.ui.define(['sap/ui/core/InvisibleText', 'sap/ui/core/Renderer', './InputBase
 
 		var mAccessibilityState = InputBaseRenderer.getAccessibilityState.apply(this, arguments);
 
-		if (bShowSuggestions) {
-			mAccessibilityState["haspopup"] = "listbox";
+		if (bShowSuggestions && oControl.getEditable() && oControl.getEnabled()) {
+			mAccessibilityState["haspopup"] = "dialog";
 		}
 
 		if (oControl.getShowSuggestion()

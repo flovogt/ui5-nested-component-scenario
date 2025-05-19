@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([], function() {
+sap.ui.define(["sap/ui/base/DataType"], function(DataType) {
 	"use strict";
 
 	/**
@@ -42,27 +42,65 @@ sap.ui.define([], function() {
 		 * Dot <code>Illustration</code> size (XS breakpoint). Suitable for spaces with little vertical space.
 		 * @public
 		 * @since 1.108
+		 * @deprecated As of version 1.135, replaced by {@link sap.m.IllustratedMessageSize.ExtraSmall}
 		 */
 		Dot : "Dot",
 
 		/**
 		 * Spot <code>Illustration</code> size (S breakpoint). Suitable for cards (four columns).
 		 * @public
+		 * @deprecated As of version 1.135, replaced by {@link sap.m.IllustratedMessageSize.Small}
 		 */
 		Spot : "Spot",
 
 		/**
 		 * Dialog <code>Illustration</code> size (M breakpoint). Suitable for dialogs.
 		 * @public
+		 * @deprecated As of version 1.135, replaced by {@link sap.m.IllustratedMessageSize.Medium}
 		 */
 		Dialog : "Dialog",
 
 		/**
 		 * Scene <code>Illustration</code> size (L breakpoint). Suitable for a <code>Page</code> or a table.
 		 * @public
+		 * @deprecated As of version 1.135, replaced by {@link sap.m.IllustratedMessageSize.Large}
 		 */
-		Scene : "Scene"
+		Scene : "Scene",
+
+		/**
+		 * Large <code>Illustration</code> size.
+		 * Alias for <code>Scene</code> size (L breakpoint). Suitable for a <code>Page</code> or a table.
+		 * @public
+		 * @since 1.136
+		 */
+		Large : "Large",
+
+		/**
+		 * Medium <code>Illustration</code> size.
+		 * Alias for <code>Dialog</code> size (M breakpoint). Suitable for dialogs.
+		 * @public
+		 * @since 1.136
+		 */
+		Medium : "Medium",
+
+		/**
+		 * Small <code>Illustration</code> size.
+		 * Alias for <code>Spot</code> size (S breakpoint). Suitable for cards (four columns).
+		 * @public
+		 * @since 1.136
+		 */
+		Small : "Small",
+
+		/**
+		 * Extra Small <code>Illustration</code> size.
+		 * Alias for <code>Dot</code> size (XS breakpoint). Suitable for spaces with little vertical space.
+		 * @public
+		 * @since 1.136
+		 */
+		ExtraSmall : "ExtraSmall"
 	};
+
+	DataType.registerEnum("sap.m.IllustratedMessageSize", IllustratedMessageSize);
 
 	return IllustratedMessageSize;
 });

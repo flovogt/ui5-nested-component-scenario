@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -602,6 +602,11 @@ sap.ui.define([
 			}
 
 			for (sKey in oBinding) {
+				if (sKey === "parameters") {
+					// parameters are not converted from name to object, but even a simple binding
+					// may have the implicit object parameter "scope"
+					continue;
+				}
 				switch (typeof oBinding[sKey]) {
 					case "boolean":
 					case "number":

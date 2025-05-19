@@ -1,17 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"sap/base/Log",
+	"sap/ui/core/Lib",
 	"sap/ui/model/FormatException",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException",
-	"sap/ui/model/odata/type/ODataType",
-	"sap/ui/core/Core" //  provides sap.ui.getCore()
-], function (Log, FormatException, ParseException, ValidateException, ODataType) {
+	"sap/ui/model/odata/type/ODataType"
+], function(Log, Library, FormatException, ParseException, ValidateException, ODataType) {
 	"use strict";
 
 	/**
@@ -36,7 +36,7 @@ sap.ui.define([
 	 *   the locale-dependent text for the key
 	 */
 	function getMessage(sKey, aParameters) {
-		return sap.ui.getCore().getLibraryResourceBundle().getText(sKey, aParameters);
+		return Library.getResourceBundleFor("sap.ui.core").getText(sKey, aParameters);
 	}
 
 	/**
@@ -87,7 +87,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @alias sap.ui.model.odata.type.Boolean
 	 * @param {object} [oFormatOptions]
@@ -118,7 +118,7 @@ sap.ui.define([
 	 *   the target type; may be "any", "boolean", "string", or a type with one of these types as
 	 *   its {@link sap.ui.base.DataType#getPrimitiveType primitive type}.
 	 *   If the target type (or its primitive type) is "string", the result is "Yes" or "No" in the
-	 *   current {@link sap.ui.core.Configuration#getLanguage language}.
+	 *   current language; see {@link module:sap/base/i18n/Localization.getLanguage Localization.getLanguage}.
 	 *   See {@link sap.ui.model.odata.type} for more information.
 	 * @returns {boolean|string}
 	 *   the formatted output value in the target type; <code>undefined</code> or <code>null</code>
@@ -157,8 +157,8 @@ sap.ui.define([
 	 * @returns {boolean}
 	 *   the parsed value
 	 * @throws {sap.ui.model.ParseException}
-	 *   if <code>sSourceType</code> is unsupported or if the given string is neither "Yes" nor
-	 *   "No" in the current {@link sap.ui.core.Configuration#getLanguage language}.
+	 *   if <code>sSourceType</code> is unsupported or if the given string is neither "Yes" nor "No"
+	 *   in the current language; see {@link module:sap/base/i18n/Localization.getLanguage Localization.getLanguage}.
 	 * @public
 	 */
 	EdmBoolean.prototype.parseValue = function (vValue, sSourceType) {

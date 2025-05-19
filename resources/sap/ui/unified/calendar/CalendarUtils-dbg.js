@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,15 +15,17 @@
 
 // Provides class sap.ui.unified.calendar.CalendarUtils
 sap.ui.define([
+	"sap/base/i18n/Formatting",
+	"sap/base/i18n/Localization",
+	"sap/base/i18n/date/CalendarType",
 	'sap/ui/core/date/UniversalDate',
 	'./CalendarDate',
-	'sap/ui/core/CalendarType',
 	'sap/ui/core/Locale',
 	'sap/ui/core/LocaleData',
-	"sap/ui/core/Configuration",
+	'sap/ui/core/format/DateFormat',
 	"sap/ui/core/date/UI5Date"
 ],
-	function(UniversalDate, CalendarDate, CalendarType, Locale, LocaleData, Configuration, UI5Date) {
+	function(Formatting, Localization, CalendarType, UniversalDate, CalendarDate, Locale, LocaleData, DateFormat, UI5Date) {
 		"use strict";
 
 		// Static class
@@ -126,7 +128,7 @@ sap.ui.define([
 		/**
 		 * Creates a Date in UTC timezone from local timezone
 		 * @param {Date} oDate in local timezone
-		 * @param {sap.ui.core.CalendarType} sCalendarType the type of the used calendar
+		 * @param {module:sap/base/i18n/date/CalendarType} sCalendarType the type of the used calendar
 		 * @param {boolean} bTime if set the time part of the date will be used too, otherwise it will be initial
 		 * @return {sap.ui.core.date.UniversalDate} in UTC timezone
 		 * @private
@@ -146,64 +148,43 @@ sap.ui.define([
 		};
 
 		/**
-		 * Calculates the week number for a date
-		 * @param {Date} oDate date to get week number
-		 * @param {int} iYear year for the week number. (In en-US the week number for the last Days in December depends on the year.)
-		 * @param {string} sLocale used locale
-		 * @param {sap.ui.core.LocaleData} oLocaleData locale date for used locale
-		 * @return {int} week number
+		 * Calculates the week number corresponding to a date object.
+		 *
+		 * @param {sap.ui.unified.calendar.CalendarDate} oDate Date of the week.
+		 * @param {string} sCalendarType The calendar type. If there is no calendar type provided, it will be taken from the Configuration.
+		 * @param {string} sLocale The locale of the calendar.
+		 * @param {string} sCalendarWeekNumbering The type of calendar week numbering.
+		 * @param {int} iFirstDayOfWeek The start week day number.
+		 *
+		 * @returns {int} Week number
 		 * @private
 		 */
-		CalendarUtils.calculateWeekNumber = function (oDate, iYear, sLocale, oLocaleData) {
+		CalendarUtils.calculateWeekNumber = function (oDate, sCalendarType, sLocale, sCalendarWeekNumbering, iFirstDayOfWeek) {
+			const oLocale = new Locale(sLocale);
+			const oLocaleData = LocaleData.getInstance(oLocale);
+			const iLocaleMinimalDaysInFirstWeek = oLocaleData.getMinimalDaysInFirstWeek();
 
-			var iWeekNum = 0;
-			var iWeekDay = 0;
-			var iFirstDayOfWeek = oLocaleData.getFirstDayOfWeek();
+			const oDateFormat = DateFormat.getInstance({
+				pattern: "w",
+				calendarType: sCalendarType,
+				firstDayOfWeek: iFirstDayOfWeek,
+				minimalDaysInFirstWeek: iLocaleMinimalDaysInFirstWeek,
+				calendarWeekNumbering: sCalendarWeekNumbering
+			}, oLocale);
 
-			var bFirstDayStartsFirstWeek = oLocaleData.firstDayStartsFirstWeek();
+			const iWeekNumber = oDateFormat.format(oDate.toLocalJSDate());
 
-			// split week algorithm
-			if (bFirstDayStartsFirstWeek) {
-				/*
-				 * in US the week starts with Sunday
-				 * The first week of the year starts with January 1st. But Dec. 31 is still in the last year
-				 * So the week beginning in December and ending in January has 2 week numbers
-				 */
-				var oJanFirst = new UniversalDate(oDate.getTime());
-				oJanFirst.setUTCFullYear(iYear, 0, 1);
-				iWeekDay = oJanFirst.getUTCDay();
+			return Number(iWeekNumber);
+		};
 
-				//get the date for the same weekday like jan 1.
-				var oCheckDate = new UniversalDate(oDate.getTime());
-				oCheckDate.setUTCDate(oCheckDate.getUTCDate() - oCheckDate.getUTCDay() + iWeekDay);
-
-				iWeekNum = Math.round((oCheckDate.getTime() - oJanFirst.getTime()) / 86400000 / 7) + 1;
-
-			} else {
-				// normally the first week of the year is the one where the first Thursday of the year is
-				// find Thursday of this week
-				// if the checked day is before the 1. day of the week use a day of the previous week to check
-				var oThursday = new UniversalDate(oDate.getTime());
-				oThursday.setUTCDate(oThursday.getUTCDate() - iFirstDayOfWeek);
-				iWeekDay = oThursday.getUTCDay();
-				oThursday.setUTCDate(oThursday.getUTCDate() - iWeekDay + 4);
-
-				var oFirstDayOfYear = new UniversalDate(oThursday.getTime());
-				oFirstDayOfYear.setUTCMonth(0, 1);
-				iWeekDay = oFirstDayOfYear.getUTCDay();
-				var iAddDays = 0;
-				if (iWeekDay > 4) {
-					iAddDays = 7; // first day of year is after Thursday, so first Thursday is in the next week
-				}
-				var oFirstThursday = new UniversalDate(oFirstDayOfYear.getTime());
-				oFirstThursday.setUTCDate(1 - iWeekDay + 4 + iAddDays);
-
-				iWeekNum = Math.round((oThursday.getTime() - oFirstThursday.getTime()) / 86400000 / 7) + 1;
-
-			}
-
-			return iWeekNum;
-
+		/**
+		 * Returns the last week's date based on that week's start date.
+		 * @param {sap.ui.unified.calendar.CalendarDate} oWeekStartDate Week's start date
+		 * @returns {sap.ui.unified.calendar.CalendarDate} Last week's date
+		 * @private
+		 */
+		CalendarUtils._getLastWeekDate = function (oWeekStartDate) {
+			return new CalendarDate(oWeekStartDate).setDate(oWeekStartDate.getDate() + 6);
 		};
 
 		/**
@@ -240,8 +221,8 @@ sap.ui.define([
 			var oUniversalDate = new UniversalDate(oDate.getTime()),
 				oFirstDateOfWeek,
 				oFirstUniversalDateOfWeek,
-				oLocaleData = LocaleData.getInstance(Configuration.getFormatSettings().getFormatLocale()),
-				oLocale = Configuration.getLocale(),
+				oLocaleData = LocaleData.getInstance(new Locale(Formatting.getLanguageTag())),
+				oLocale = new Locale(Localization.getLanguageTag()),
 				iCLDRFirstWeekDay = oLocaleData.getFirstDayOfWeek(),
 				oWeek;
 
@@ -292,7 +273,7 @@ sap.ui.define([
 		 * @private
 		 */
 		CalendarUtils._getNumberOfWeeksForYear = function (iYear) {
-			var sLocale = Configuration.getFormatLocale(),
+			var sLocale = Formatting.getLanguageTag().toString(),
 				oLocaleData = LocaleData.getInstance(new Locale(sLocale)),
 				o1stJan = UI5Date.getInstance(Date.UTC(iYear, 0, 1)),
 				i1stDay = o1stJan.getUTCDay(),
@@ -392,7 +373,7 @@ sap.ui.define([
 		 * @private
 		 */
 		CalendarUtils._checkYearInValidRange = function(iYear, sCalendarType) {
-			var sConfigCalendarType = Configuration.getCalendarType(),
+			var sConfigCalendarType = Formatting.getCalendarType(),
 				oMinDate = new CalendarDate(this._minDate(CalendarType.Gregorian), sCalendarType || sConfigCalendarType),
 				oMaxDate = new CalendarDate(this._maxDate(CalendarType.Gregorian), sCalendarType || sConfigCalendarType);
 			if (typeof iYear !== "number" || iYear < oMinDate.getYear() || iYear > oMaxDate.getYear()) {
@@ -557,7 +538,7 @@ sap.ui.define([
 		 * @private
 		 */
 		CalendarUtils._getFirstDateOfWeek = function (oCalendarDate, oWeekConfig) {
-			var oLocaleData = LocaleData.getInstance(Configuration.getFormatSettings().getFormatLocale());
+			var oLocaleData = LocaleData.getInstance(new Locale(Formatting.getLanguageTag()));
 			this._checkCalendarDate(oCalendarDate);
 
 			if (!oWeekConfig || (oWeekConfig.firstDayOfWeek === -1 || oWeekConfig.firstDayOfWeek === undefined)) {
@@ -596,7 +577,7 @@ sap.ui.define([
 		};
 
 		/**
-		 * @param {sap.ui.core.CalendarType} sCalendarType The date type whose minimal date will be returned
+		 * @param {module:sap/base/i18n/date/CalendarType} sCalendarType The date type whose minimal date will be returned
 		 * @returns {sap.ui.unified.calendar.CalendarDate} The minimal date that this calendar supports
 		 * @private
 		 */
@@ -610,7 +591,7 @@ sap.ui.define([
 
 		/**
 		 * Creates a date corresponding to the max date this calendar supports.
-		 * @param {sap.ui.core.CalendarType} sCalendarType The date type whose maximal date will be returned
+		 * @param {module:sap/base/i18n/date/CalendarType} sCalendarType The date type whose maximal date will be returned
 		 * @returns {sap.ui.unified.calendar.CalendarDate} The maximum date that this calendar supports
 		 * @private
 		 */

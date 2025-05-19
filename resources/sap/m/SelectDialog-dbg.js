@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.SelectDialog.
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/thirdparty/jquery",
 	'./Button',
 	'./Dialog',
@@ -27,6 +28,7 @@ sap.ui.define([
 	'sap/base/Log'
 ],
 function(
+	Library,
 	jQuery,
 	Button,
 	Dialog,
@@ -117,6 +119,8 @@ function(
 	 * selected count (if present) and search, will work for currently loaded items only.
 	 * To make sure that all items in the list are loaded at once and the above features works properly,
 	 * we recommend setting the <code>growing</code> property to <code>false</code>.
+	 * <b>Note: </b>The default size limit for entries used for list bindings is set to 100.
+	 * To change this behavior, you can adjust the size limit by using <code>sap.ui.model.Model.prototype.setSizeLimit</code>; see {@link sap.ui.model.Model#setSizeLimit}.
 	 * <h3>Responsive Behavior</h3>
 	 * <ul>
 	 * <li> On phones, the select dialog takes up the whole screen. </li>
@@ -126,7 +130,7 @@ function(
 	 * @extends sap.m.SelectDialogBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -164,7 +168,7 @@ function(
 			 * <b>Note:</b> This feature only works when an <code>items</code> aggregation is bound.
 			 * <b>Note:</b> Growing property, must not be used together with two-way binding.
 			 * <b>Note:</b> If the property is set to <code>true</code>, selected count (if present) and search, will work for currently loaded items only.
-				 * To make sure that all items in the table are loaded at once and the above features work properly, we recommend setting the <code>growing</code> property to false.
+			 * To make sure that all items in the list are loaded at once and the above features work properly, we recommend setting the <code>growing</code> property to false.
 			 * @since 1.56
 			 */
 			growing : {type : "boolean", group : "Behavior", defaultValue : true},
@@ -345,7 +349,7 @@ function(
 		this._bInitBusy = false;
 		this._bFirstRender = true;
 		this._bAfterCloseAttached = false;
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = Library.getResourceBundleFor("sap.m");
 
 		// store a reference to the list for binding management
 		this._oList = new List(this.getId() + "-list", {
@@ -624,17 +628,15 @@ function(
 		this._oSearchField.setValue(sSearchValue);
 		this._sSearchFieldValue = sSearchValue || "";
 
-		// open the dialog
-		this._setInitialFocus();
+		this._oDialog.setInitialFocus(this._getInitialFocus());
+		this._updateSelectionIndicator();
+		this.updateDialogAriaDescribedBy();
 		this._oDialog.open();
 
 		// open dialog with busy state if a list update is still in progress
 		if (this._bInitBusy) {
 			this._setBusy(true);
 		}
-
-		// refresh the selection indicator to be in sync with the model
-		this._updateSelectionIndicator();
 
 		// store the current selection for the cancel event
 		this._aInitiallySelectedContextPaths = this._oList.getSelectedContextPaths();
@@ -903,7 +905,7 @@ function(
 	SelectDialog.prototype.clearSelection = function () {
 		this._removeSelection();
 		this._updateSelectionIndicator();
-		this._oDialog.focus();
+		this._getInitialFocus().focus();
 
 		return this;
 	};
@@ -1209,15 +1211,19 @@ function(
 			this._oClearButton.setEnabled(iSelectedContexts > 0);
 		}
 
-		// update the selection label
 		if (oInfoBar.getVisible() !== bVisible) {
 			oInfoBar.setVisible(bVisible);
 		}
 
 		oInfoBar.getContent()[0].setText(this._oRb.getText("TABLESELECTDIALOG_SELECTEDITEMS", [iSelectedContexts]));
+		SelectDialogBase.getSelectionIndicatorInvisibleText().setText(iSelectedContexts > 0 ? this._oRb.getText("TABLESELECTDIALOG_SELECTEDITEMS_SR", [iSelectedContexts]) : "");
+	};
 
-		if (this._oDialog.isOpen()) {
-			InvisibleMessage.getInstance().announce(iSelectedContexts > 0 ? this._oRb.getText("TABLESELECTDIALOG_SELECTEDITEMS_SR", [iSelectedContexts]) : "", InvisibleMessageMode.Polite);
+	SelectDialog.prototype._announceSelectionIndicator = function () {
+		const selectedContexts = this._oList.getSelectedContextPaths(true).length;
+
+		if (selectedContexts) {
+			InvisibleMessage.getInstance().announce(this._oRb.getText("TABLESELECTDIALOG_SELECTEDITEMS_SR", [selectedContexts]), InvisibleMessageMode.Polite);
 		}
 	};
 
@@ -1259,8 +1265,10 @@ function(
 		// -- the selectDialog is in multi select mode - only update the indicator
 		if (this.getMultiSelect()) {
 			this._updateSelectionIndicator();
+			this._announceSelectionIndicator();
 			return; // the SelectDialog should remain open
 		}
+
 		// -- the selectDialog in single select mode - close and update the selection of the dialog
 		if (!this._bAfterCloseAttached) {
 			// if the resetAfterclose function is not attached already
@@ -1342,7 +1350,7 @@ function(
 	SelectDialog.prototype._getListItemsEventDelegates = function () {
 		var fnEventDelegate = function (oEvent) {
 
-			var oListItem = Element.closestTo(jQuery(oEvent.target).closest(".sapMLIB")[0]);
+			var oListItem = Element.closestTo(oEvent.target.closest(".sapMLIB"));
 
 			if (oListItem._eventHandledByControl) {
 				return;

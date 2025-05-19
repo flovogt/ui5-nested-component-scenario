@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,16 +9,19 @@ sap.ui.define([
 	'../base/DataType',
 	'../base/Object',
 	'../base/ManagedObject',
+	'./ElementHooks',
 	'./ElementMetadata',
+	'./FocusMode',
 	'../Device',
+	"sap/ui/dom/findTabbable",
 	"sap/ui/performance/trace/Interaction",
-	"sap/base/Log",
+	"sap/base/future",
 	"sap/base/assert",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/events/F6Navigation",
 	"sap/ui/util/_enforceNoReturnValue",
 	"./RenderManager",
-	"./Configuration",
+	"./Rendering",
 	"./EnabledPropagator",
 	"./ElementRegistry",
 	"./Theming",
@@ -28,16 +31,19 @@ sap.ui.define([
 		DataType,
 		BaseObject,
 		ManagedObject,
+		ElementHooks,
 		ElementMetadata,
+		FocusMode,
 		Device,
+		findTabbable,
 		Interaction,
-		Log,
+		future,
 		assert,
 		jQuery,
 		F6Navigation,
 		_enforceNoReturnValue,
 		RenderManager,
-		Configuration,
+		Rendering,
 		EnabledPropagator,
 		ElementRegistry,
 		Theming,
@@ -136,7 +142,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @public
 	 * @alias sap.ui.core.Element
 	 */
@@ -179,6 +185,8 @@ sap.ui.define([
 
 				/**
 				 * Custom Data, a data structure like a map containing arbitrary key value pairs.
+				 *
+				 * @default sap/ui/core/CustomData
 				 */
 				customData : {type : "sap.ui.core.CustomData", multiple : true, singularName : "customData"},
 
@@ -202,6 +210,13 @@ sap.ui.define([
 				 * @since 1.56
 				 */
 				dragDropConfig : {type : "sap.ui.core.dnd.DragDropBase", multiple : true, singularName : "dragDropConfig"}
+			},
+			associations : {
+				/**
+				 * Reference to the element to show the field help for this control; if unset, field help is
+				 * show on the control itself.
+				 */
+				fieldHelpDisplay : {type: "sap.ui.core.Element", multiple: false}
 			}
 		},
 
@@ -369,7 +384,7 @@ sap.ui.define([
 	 * 	This implies that, for instance, no async function returning a Promise should be used.
 	 *
 	 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
-	 * 	implementation of this hook must not return anything but undefined. Any other
+	 *	implementation of this hook must not return anything but undefined. Any other
 	 * 	return value will cause an error log in this version of UI5 and will fail in future
 	 * 	major versions of UI5.
 	 * @protected
@@ -406,7 +421,7 @@ sap.ui.define([
 	 * 	This implies that, for instance, no async function returning a Promise should be used.
 	 *
 	 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
-	 * 	implementation of this hook must not return anything but undefined. Any other
+	 *	implementation of this hook must not return anything but undefined. Any other
 	 * 	return value will cause an error log in this version of UI5 and will fail in future
 	 * 	major versions of UI5.
 	 * @protected
@@ -524,26 +539,133 @@ sap.ui.define([
 	};
 
 	/*
-	 * Intercept any changes for properties named "enabled".
+	 * Intercept any changes for properties named "enabled" and "visible".
 	 *
-	 * If such a change is detected, inform all descendants that use the `EnabledPropagator`
+	 * If a change for "enabled" property is detected, inform all descendants that use the `EnabledPropagator`
 	 * so that they can recalculate their own, derived enabled state.
 	 * This is required in the context of rendering V4 to make the state of controls/elements
 	 * self-contained again when they're using the `EnabledPropagator` mixin.
+	 *
+	 * Fires "focusfail" event, if the "enabled" or "visible" property is changed to "false" and the element was focused.
 	 */
 	Element.prototype.setProperty = function(sPropertyName, vValue, bSuppressInvalidate) {
-		if (sPropertyName != "enabled" || bSuppressInvalidate) {
+
+		if ((sPropertyName != "enabled" && sPropertyName != "visible") || bSuppressInvalidate) {
 			return ManagedObject.prototype.setProperty.apply(this, arguments);
 		}
 
-		var bOldEnabled = this.mProperties.enabled;
-		ManagedObject.prototype.setProperty.apply(this, arguments);
-		if (bOldEnabled != this.mProperties.enabled) {
-			// the EnabledPropagator knows better which descendants to update
-			EnabledPropagator.updateDescendants(this);
+		if (sPropertyName == "enabled") {
+			var bOldEnabled = this.mProperties.enabled;
+			ManagedObject.prototype.setProperty.apply(this, arguments);
+
+			if (bOldEnabled != this.mProperties.enabled) {
+				// the EnabledPropagator knows better which descendants to update
+				EnabledPropagator.updateDescendants(this);
+			}
+		} else if (sPropertyName === "visible") {
+			ManagedObject.prototype.setProperty.apply(this, arguments);
+			if (vValue === false && this.getDomRef()?.contains(document.activeElement)) {
+				Element.fireFocusFail.call(this, FocusMode.RENDERING_PENDING);
+			}
 		}
 
 		return this;
+	};
+
+	function _focusTarget(oOriginalDomRef, oFocusTarget) {
+		// In the meantime, the focus could be set somewhere else.
+		// If that element is focusable, then we don't steal the focus from it
+		if (oOriginalDomRef?.contains(document.activeElement) || !jQuery(document.activeElement).is(":sapFocusable")) {
+			oFocusTarget?.focus({
+				preventScroll: true
+			});
+		}
+	}
+
+	/**
+	* Handles the 'focusfail' event by attempting to find and focus on a tabbable element.
+	* The 'focusfail' event is triggered when the current element, which initially holds the focus,
+	* becomes disabled, invisible, or destroyed. The event is received by the parent of the element that failed
+	* to retain the focus.
+	*
+	* @param {Event} oEvent - The event object containing the source element that failed to gain focus.
+	* @protected
+	*/
+	Element.prototype.onfocusfail = function(oEvent) {
+		// oEvent._skipArea is set when all controls in an aggregation are
+		// removed/destroyed (via 'removeAllAggregation'). We need to skip the
+		// entire aggregation area since all controls' DOM elements will be
+		// removed and no focusable element can be found within
+		// oEvent._skipArea
+		//
+		// oEvent._skipArea is used as start point when it exists and
+		// the following 'findTabbable' call starts with its next/previous
+		// sibling
+		let oDomRef = oEvent._skipArea || oEvent.srcControl.getDomRef();
+		const oOriginalDomRef = oDomRef;
+
+		let oParent = this;
+		let oParentDomRef = oParent.getDomRef();
+
+		let oRes;
+		let oFocusTarget;
+
+		do {
+			if (oParentDomRef?.contains(oDomRef)) {
+				// Search for a tabbable element forward (to the right)
+				oRes = findTabbable(oDomRef, {
+					scope: oParentDomRef,
+					forward: true,
+					skipChild: true
+				});
+
+				// If no element is found, search backward (to the left)
+				if (oRes?.startOver) {
+					oRes = findTabbable(oDomRef, {
+						scope: oParentDomRef,
+						forward: false
+					});
+				}
+
+				oFocusTarget = oRes?.element;
+
+				// Reached the parent DOM which is tabbable, stop searching
+				if (oFocusTarget === oParentDomRef) {
+					break;
+				}
+
+				// Move up to the parent's siblings
+				oDomRef = oParentDomRef;
+				oParent = oParent?.getParent();
+				oParentDomRef = oParent?.getDomRef?.();
+			} else {
+				// If the lost focus element is outside the parent, look for the parent's first focusable element
+				oFocusTarget = oParentDomRef && jQuery(oParentDomRef).firstFocusableDomRef();
+				break;
+			}
+		} while ((!oRes || oRes.startOver) && oDomRef);
+
+		// Apply focus to the found target
+		if (oFocusTarget) {
+			switch (oEvent.mode) {
+				case FocusMode.SYNC:
+					_focusTarget(oOriginalDomRef, oFocusTarget);
+					break;
+
+				case FocusMode.RENDERING_PENDING:
+					Rendering.addPrerenderingTask(() => {
+						_focusTarget(oOriginalDomRef, oFocusTarget);
+					});
+					break;
+
+				case FocusMode.DEFAULT:
+				default:
+					Promise.resolve().then(() => {
+						_focusTarget(oOriginalDomRef, oFocusTarget);
+					});
+					break;
+			}
+		}
 	};
 
 	Element.prototype.insertDependent = function(oElement, iIndex) {
@@ -570,15 +692,187 @@ sap.ui.define([
 	};
 
 	/**
+	 * Helper to identify the entire aggregation area that should be skipped when searchin for focusable elements.
+	 * If the currently focused element is part of the aggregation being removed or destroyed,
+	 * the entire aggregation area needs to be skipped sinceh its DOM element will be removed
+	 * leaving no focusable element within the aggregation.
+	 *
+	 * @param {sap.ui.core.ManagedObject[]} aChildren The children that belong to the aggregation
+	 * @returns {HTMLElement|null} Returns the DOM which needs to be skipped, or 'null' if no relevant area is found.
+	 */
+	function searchAggregationAreaToSkip(aChildren) {
+		let oSkipArea = null;
+
+		for (let i = 0; i < aChildren.length; i++) {
+			const oChild = aChildren[i];
+			const oDomRef = oChild?.getDomRef?.();
+
+			if (oDomRef) {
+				if (!oSkipArea) {
+					oSkipArea = oDomRef.parentElement;
+				} else  {
+					while (oSkipArea && !oSkipArea.contains(oDomRef)) {
+						oSkipArea = oSkipArea.parentElement;
+					}
+				}
+			}
+		}
+		return oSkipArea;
+	}
+
+	/**
+	 *  Determines if the DOM removal needs to be performed synchronously.
+	 *
+	 *  @param {boolean|string} bSuppressInvalidate - Whether invalidation is suppressed. If set to "KeepDom", the DOM is retained.
+	 *  @param {boolean} bHasNoParent Whether the element has no parent. If true, it suggests that the element is being removed from the DOM tree.
+	 *  @returns {boolean} Returns true, if synchronous DOM removal is needed; otherwise 'false'.
+	 */
+	function needSyncDomRemoval(bSuppressInvalidate, bHasNoParent) {
+		const bKeepDom = (bSuppressInvalidate === "KeepDom");
+		const oDomRef = this.getDomRef();
+
+		// Conditions that require sync DOM removal
+		return (bSuppressInvalidate === true || // Explicit supression of invalidation
+				(!bKeepDom && bHasNoParent) || // No parent and DOM should not be kept
+				this.isA("sap.ui.core.PopupInterface") || // The element is a popup
+				RenderManager.isPreservedContent(oDomRef)); // The element is part of the 'preserve' area.
+	}
+
+	/**
+	 * Checks for a focused child within the provided children (array or single object)
+	 * and fired the focus fail event if necessary.
+	 *
+	 * @param {sap.ui.base.ManagedObject[]|sap.ui.base.ManagedObject} vChildren The children to check. Can be an array or a single object.
+	 * @param {boolean} bSuppressInvalidate If true, this ManagedObject is not marked as changed
+	 */
+	function checkAndFireFocusFail(vChildren, bSuppressInvalidate) {
+		let oFocusedChild = null;
+		let oSkipArea = null;
+
+		if (Array.isArray(vChildren)) {
+			for (let i = 0; i < vChildren.length; i++) {
+				const oChild = vChildren[i];
+				const oDomRef = oChild.getDomRef?.();
+
+				if (oDomRef?.contains(document.activeElement)) {
+					oFocusedChild = oChild;
+				}
+			}
+			if (oFocusedChild) {
+				oSkipArea = searchAggregationAreaToSkip(vChildren);
+			}
+		} else if (vChildren instanceof ManagedObject) {
+			oFocusedChild = vChildren;
+		}
+
+		if (!oFocusedChild) {
+			return;
+		}
+
+		const oDomRef = oFocusedChild.getDomRef?.();
+		if (oDomRef?.contains?.(document.activeElement) && !bSuppressInvalidate) {
+			// Determin if the DOM removal needs to happen sync or async
+			const bSyncRemoval = needSyncDomRemoval.call(oFocusedChild, bSuppressInvalidate, !this);
+			const sFocusMode = bSyncRemoval ? FocusMode.SYNC : FocusMode.RENDERING_PENDING;
+
+			if (!this._bIsBeingDestroyed) {
+				Element.fireFocusFail.call(oFocusedChild, sFocusMode, this, oSkipArea);
+			}
+		}
+	}
+
+	/**
+	 * Sets a new object in the named 0..1 aggregation of this ManagedObject and marks this ManagedObject as changed.
+	 * Manages the focus handling if the current aggregation is removed (i.e., when the object is set to <code>null</code>).
+	 * If the previous object in the aggregation was focused, a "focusfail" event is triggered.
+	 *
+	 * @param {string}
+	 *            sAggregationName name of an 0..1 aggregation
+	 * @param {sap.ui.base.ManagedObject}
+	 *            oObject the managed object that is set as aggregated object
+	 * @param {boolean}
+	 *            [bSuppressInvalidate=true] if true, this ManagedObject is not marked as changed
+	 * @returns {this} Returns <code>this</code> to allow method chaining
+	 * @throws {Error}
+	 * @protected
+	 */
+	Element.prototype.setAggregation = function(sAggregationName, oObject, bSuppressInvalidate) {
+		// Get current aggregation for the specified aggregation name before aggregation change
+		const oChild = this.getAggregation(sAggregationName);
+
+		// Call parent method to perform actual aggregation change
+		const vResult = ManagedObject.prototype.setAggregation.call(this, sAggregationName, oObject, bSuppressInvalidate);
+		if (oChild && oObject == null) {
+			checkAndFireFocusFail.call(this, oChild, bSuppressInvalidate);
+		}
+		return vResult;
+	};
+
+	/**
+	 * Removes an object from the aggregation named <code>sAggregationName</code> with cardinality 0..n and manages
+	 * focus handling in case the removed object was focused. If the removed object held the focus, a "focusfail" event
+	 * is triggered to proper focus redirection.
+	 *
+	 * @param {string}
+	 *            sAggregationName the string identifying the aggregation that the given object should be removed from
+	 * @param {int | string | sap.ui.base.ManagedObject}
+	 *            vObject the position or ID of the ManagedObject that should be removed or that ManagedObject itself;
+	 *            if <code>vObject</code> is invalid, a negative value or a value greater or equal than the current size
+	 *            of the aggregation, nothing is removed.
+	 * @param {boolean}
+	 *            [bSuppressInvalidate=false] if true, this ManagedObject is not marked as changed
+	 * @returns {sap.ui.base.ManagedObject|null} the removed object or <code>null</code>
+	 * @protected
+	 */
+	Element.prototype.removeAggregation = function(sAggregationName, vObject, bSuppressInvalidate) {
+		const vResult = ManagedObject.prototype.removeAggregation.call(this, sAggregationName, vObject, bSuppressInvalidate);
+		checkAndFireFocusFail.call(this, vResult, bSuppressInvalidate);
+		return vResult;
+	};
+
+	/**
+	 * Removes all child elements of a specified aggregation and handles focus management for elements that are currently focused.
+	 * If the currently focused element belongs to the aggregation being removed, a "focusfail" event is triggered to shift the
+	 * focus to a relevant element.
+	 *
+	 * @param {string} sAggregationName The name of the aggregation
+	 * @param {boolean} [bSuppressInvalidate=false] If true, this ManagedObject is not marked as changed
+	 * @returns {sap.ui.base.ManagedObject[]} An array of the removed elements (might be empty)
+	 * @protected
+	 */
+	Element.prototype.removeAllAggregation = function(sAggregationName, bSuppressInvalidate) {
+		const aChildren = ManagedObject.prototype.removeAllAggregation.call(this, sAggregationName, bSuppressInvalidate);
+		checkAndFireFocusFail.call(this, aChildren, bSuppressInvalidate);
+		return aChildren;
+	};
+
+	/**
+	 * Destroys all child elements of a specified aggregation and handles focus management for elements that are currently focused.
+	 * If the currently focused element belongs to the aggregation being destroyed, a "focusfail" event is triggered to shift the
+	 * focus to a relevant element.
+	 *
+	 * @param {string} sAggregationName The name of the aggregation
+	 * @param {boolean} [bSuppressInvalidate=false] If true, this ManagedObject is not marked as changed
+	 * @returns {this} Returns <code>this</code> to allow method chaining
+	 * @protected
+	 */
+	Element.prototype.destroyAggregation = function(sAggregationName, bSuppressInvalidate) {
+		const aChildren = this.getAggregation(sAggregationName);
+		checkAndFireFocusFail.call(this, aChildren, bSuppressInvalidate);
+		return ManagedObject.prototype.destroyAggregation.call(this, sAggregationName, bSuppressInvalidate);
+	};
+
+	/**
 	 * This triggers immediate rerendering of its parent and thus of itself and its children.
 	 *
-	 * @deprecated As of 1.70, using this method is no longer recommended, but still works. Synchronous DOM
-	 *   updates via this method have several drawbacks: they only work when the control has been rendered
-	 *   before (no initial rendering possible), multiple state changes won't be combined automatically into
-	 *   a single re-rendering, they might cause additional layout trashing, standard invalidation might
-	 *   cause another async re-rendering.
+	 * @deprecated As of 1.70, using this method is no longer recommended, but calling it still
+	 * causes a re-rendering of the element. Synchronous DOM updates via this method have several
+	 * drawbacks: they only work when the control has been rendered before (no initial rendering
+	 * possible), multiple state changes won't be combined automatically into a single re-rendering,
+	 * they might cause additional layout thrashing, standard invalidation might cause another
+	 * async re-rendering.
 	 *
-	 *   The recommended alternative is to rely on invalidation and standard re-rendering.
+	 * The recommended alternative is to rely on invalidation and standard re-rendering.
 	 *
 	 * As <code>sap.ui.core.Element</code> "bubbles up" the rerender, changes to
 	 * child-<code>Elements</code> will also result in immediate rerendering of the whole sub tree.
@@ -598,6 +892,30 @@ sap.ui.define([
 	 */
 	Element.prototype.getUIArea = function() {
 		return this.oParent ? this.oParent.getUIArea() : null;
+	};
+
+	/**
+	 * Fires a "focusfail" event to handle focus redirection when the current element loses focus due to a state change
+	 * (e.g., disabled, invisible, or destroyed). The event is propagated to the parent of the current element to manage
+	 * the focus shift.
+	 *
+	 * @param {string} sFocusHandlingMode The mode of focus handling, determining whether the focus should be handled sync or async.
+	 * @param {sap.ui.core.Element} oParent The parent element that will handle the "focusfail" event.
+	 * @param {HTMLElement} [oSkipArea=null] Optional DOM area to be skipped during focus redirection.
+	 *
+	 * @protected
+	 */
+	Element.fireFocusFail = function(sFocusHandlingMode, oParent, oSkipArea) {
+		const oEvent = jQuery.Event("focusfail");
+		oEvent.srcControl = this;
+		oEvent.mode = sFocusHandlingMode || FocusMode.DEFAULT;
+		oEvent._skipArea = oSkipArea;
+
+		oParent ??= this.getParent();
+
+		if (oParent && !oParent._bIsBeingDestroyed) {
+			oParent._handleEvent?.(oEvent);
+		}
 	};
 
 	/**
@@ -622,7 +940,8 @@ sap.ui.define([
 		var bHasNoParent = !this.getParent();
 
 		// update the focus information (potentially) stored by the central UI5 focus handling
-		Element._updateFocusInfo(this);
+		updateFocusInfo(this);
+
 
 		ManagedObject.prototype.destroy.call(this, bSuppressInvalidate);
 
@@ -639,13 +958,12 @@ sap.ui.define([
 		// If parent invalidation is not possible, either bSuppressInvalidate=true or there is no parent to invalidate then we must remove the control DOM synchronously.
 		// Controls that implement marker interface sap.ui.core.PopupInterface are by contract not rendered by their parent so we cannot keep the DOM of these controls.
 		// If the control is destroyed while its content is in the preserved area then we must remove DOM synchronously since we cannot invalidate the preserved area.
-		var bKeepDom = (bSuppressInvalidate === "KeepDom");
-		if (bSuppressInvalidate === true || (!bKeepDom && bHasNoParent) || this.isA("sap.ui.core.PopupInterface") || RenderManager.isPreservedContent(oDomRef)) {
+		if (needSyncDomRemoval.call(this, bSuppressInvalidate, bHasNoParent)) {
 			jQuery(oDomRef).remove();
 		} else {
 			// Make sure that the control DOM won't get preserved after it is destroyed (even if bSuppressInvalidate="KeepDom")
 			oDomRef.removeAttribute("data-sap-ui-preserve");
-			if (!bKeepDom) {
+			if (bSuppressInvalidate !== "KeepDom") {
 				// On destroy we do not remove the control DOM synchronously and just let the invalidation happen on the parent.
 				// At the next tick of the RenderManager, control DOM nodes will be removed via rerendering of the parent anyway.
 				// To make this new behavior more compatible we are changing the id of the control's DOM and all child nodes that start with the control id.
@@ -676,27 +994,10 @@ sap.ui.define([
 		mParameters = mParameters || {};
 		mParameters.id = mParameters.id || this.getId();
 
-		if (Element._interceptEvent) {
-			Element._interceptEvent(sEventId, this, mParameters);
-		}
+		ElementHooks.interceptEvent?.(sEventId, this, mParameters);
 
 		return ManagedObject.prototype.fireEvent.call(this, sEventId, mParameters, bAllowPreventDefault, bEnableEventBubbling);
 	};
-
-	/**
-	 * Intercepts an event. This method is meant for private usages. Apps are not supposed to used it.
-	 * It is created for an experimental purpose.
-	 * Implementation should be injected by outside.
-	 *
-	 * @param {string} sEventId the name of the event
-	 * @param {sap.ui.core.Element} oElement the element itself
-	 * @param {object} mParameters The parameters which complement the event. Hooks must not modify the parameters.
-	 * @function
-	 * @private
-	 * @ui5-restricted
-	 * @experimental Since 1.58
-	 */
-	Element._interceptEvent = undefined;
 
 	/**
 	 * Updates the count of rendering-related delegates and if the given threshold is reached,
@@ -915,6 +1216,26 @@ sap.ui.define([
 		return this.getDomRef() || null;
 	};
 
+
+	/**
+	 * Returns the intersection of two intervals. When the intervals don't
+	 * intersect at all, <code>null</code> is returned.
+	 *
+	 * For example, <code>intersection([0, 3], [2, 4])</code> returns
+	 * <code>[2, 3]</code>
+	 *
+	 * @param {number[]} interval1 The first interval
+	 * @param {number[]} interval2 The second interval
+	 * @returns {number[]|null} The intersection or null when the intervals are apart from each other
+	 */
+	function intersection(interval1, interval2) {
+		if ( interval2[0] > interval1[1] || interval1[0] > interval2[1]) {
+			return null;
+		} else {
+			return [Math.max(interval1[0], interval2[0]), Math.min(interval1[1], interval2[1])];
+		}
+	}
+
 	/**
 	 * Checks whether an element is able to get the focus after {@link #focus} is called.
 	 *
@@ -941,13 +1262,19 @@ sap.ui.define([
 		}
 
 		var oCurrentDomRef = oFocusDomRef;
-		var oRect = oCurrentDomRef.getBoundingClientRect();
+		var aViewport = [[0, window.innerWidth], [0, window.innerHeight]];
 
-		// find the first parent element whose position is within the current view port
-		// because document.elementsFromPoint can return meaningful DOM elements only when the given coordinate is
+		var aIntersectionX;
+		var aIntersectionY;
+
+		// find the first element through the parent chain which intersects
+		// with the current viewport because document.elementsFromPoint can
+		// return meaningful DOM elements only when the given coordinate is
 		// within the current view port
-		while ((oRect.x < 0 || oRect.x > window.innerWidth ||
-			oRect.y < 0 || oRect.y > window.innerHeight)) {
+		while (!aIntersectionX || !aIntersectionY) {
+			var oRect = oCurrentDomRef.getBoundingClientRect();
+			aIntersectionX = intersection(aViewport[0], [oRect.x, oRect.x + oRect.width]);
+			aIntersectionY = intersection(aViewport[1], [oRect.y, oRect.y + oRect.height]);
 
 			if (oCurrentDomRef.assignedSlot) {
 				// assigned slot's bounding client rect has all properties set to 0
@@ -962,11 +1289,12 @@ sap.ui.define([
 			} else {
 				break;
 			}
-
-			oRect = oCurrentDomRef.getBoundingClientRect();
 		}
 
-		var aElements = document.elementsFromPoint(oRect.x, oRect.y);
+		var aElements = document.elementsFromPoint(
+			Math.floor((aIntersectionX[0] + aIntersectionX[1]) / 2),
+			Math.floor((aIntersectionY[0] + aIntersectionY[1]) / 2)
+		);
 
 		var iFocusDomRefIndex = aElements.findIndex(function(oElement) {
 			return oElement.contains(oFocusDomRef);
@@ -1021,16 +1349,19 @@ sap.ui.define([
 	 * @param {object} [oFocusInfo={}] Options for setting the focus
 	 * @param {boolean} [oFocusInfo.preventScroll=false] @since 1.60 if it's set to true, the focused
 	 *   element won't be shifted into the viewport if it's not completely visible before the focus is set
- 	 * @param {any} [oFocusInfo.targetInfo] Further control-specific setting of the focus target within the control @since 1.98
+	 * @param {any} [oFocusInfo.targetInfo] Further control-specific setting of the focus target within the control @since 1.98
 	 * @public
 	 */
 	Element.prototype.focus = function (oFocusInfo) {
 		var oFocusDomRef = this.getFocusDomRef(),
-			aScrollHierarchy = [];
+		aScrollHierarchy = [];
 
-		oFocusInfo = oFocusInfo || {};
+		if (!oFocusDomRef) {
+			return;
+		}
 
-		if (oFocusDomRef) {
+		if (jQuery(oFocusDomRef).is(":sapFocusable")) {
+			oFocusInfo = oFocusInfo || {};
 			// save the scroll position of all ancestor DOM elements
 			// before the focus is set, because preventScroll is not supported by the following browsers
 			if (Device.browser.safari) {
@@ -1045,6 +1376,15 @@ sap.ui.define([
 				}
 			} else {
 				oFocusDomRef.focus(oFocusInfo);
+			}
+		} else {
+			const oDomRef = this.getDomRef();
+			// In case the control already contains the active element, we
+			// should not fire 'FocusFail' even when the oFocusDomRef isn't
+			// focusable because not all controls defines the 'getFocusDomRef'
+			// method properly
+			if (oDomRef && !oDomRef.contains(document.activeElement) ) {
+				Element.fireFocusFail.call(this, FocusMode.DEFAULT);
 			}
 		}
 	};
@@ -1219,7 +1559,7 @@ sap.ui.define([
 			 * it also may not start with "sap-ui". When written to HTML, the key is prefixed with "data-".
 			 * If any restriction is violated, a warning will be logged and nothing will be written to the DOM.
 			 */
-			key : {type : "string", group : "Data", defaultValue : null},
+			key : {type : "string", defaultValue : null},
 
 			/**
 			 * The data stored in this CustomData object.
@@ -1227,7 +1567,7 @@ sap.ui.define([
 			 * (<code>writeToDom == true</code>) then it must be a string. If this restriction is violated,
 			 * a warning will be logged and nothing will be written to the DOM.
 			 */
-			value : {type : "any", group : "Data", defaultValue : null},
+			value : {type : "any", defaultValue : null},
 
 			/**
 			 * If set to "true" and the value is of type "string" and the key conforms to the documented restrictions,
@@ -1244,7 +1584,7 @@ sap.ui.define([
 			 * <b>ATTENTION:</b> use carefully to not create huge attributes or a large number of them.
 			 * @since 1.9.0
 			 */
-			writeToDom : {type : "boolean", group : "Data", defaultValue : false}
+			writeToDom : {type : "boolean", defaultValue : false}
 		},
 		designtime: "sap/ui/core/designtime/CustomData.designtime"
 	}});
@@ -1272,7 +1612,7 @@ sap.ui.define([
 		var value = this.getValue();
 
 		function error(reason) {
-			Log.error("[FUTURE FATAL] CustomData with key " + key + " should be written to HTML of " + oRelated + " but " + reason);
+			future.errorThrows("CustomData with key " + key + " should be written to HTML of " + oRelated + " but " + reason);
 			return null;
 		}
 
@@ -1473,12 +1813,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * Expose CustomData class privately
-	 * @private
-	 */
-	Element._CustomData = CustomData;
-
-	/**
 	 * Define CustomData class as the default for the built-in "customData" aggregation.
 	 * We need to do this here via the aggregation itself, since the CustomData class is
 	 * an Element subclass and thus cannot be directly referenced in Element's metadata definition.
@@ -1496,7 +1830,7 @@ sap.ui.define([
 		var argLength = arguments.length;
 		if ( argLength === 1 && arguments[0] !== null && typeof arguments[0] == "object"
 			 || argLength > 1 && argLength < 4 && arguments[1] !== null ) {
-			Log.error("[FUTURE FATAL] Cannot create custom data on an already destroyed element '" + this + "'");
+			future.errorThrows("Cannot create custom data on an already destroyed element '" + this + "'");
 			return this;
 		}
 		return Element.prototype.data.apply(this, arguments);
@@ -1602,14 +1936,13 @@ sap.ui.define([
 	 * </pre>
 	 *
 	 * @function
-	 * @name sap.ui.core.Element.prototype.enhanceAccessibilityState
+	 * @name sap.ui.core.Element.prototype.enhanceAccessibilityState?
 	 * @param {sap.ui.core.Element} oElement
 	 *   The Control/Element for which ARIA properties are collected
 	 * @param {object} mAriaProps
 	 *   Map of ARIA properties keyed by their name (without prefix "aria-"); the method
 	 *   implementation can enhance this map in any way (add or remove properties, modify values)
 	 * @protected
-	 * @abstract
 	 */
 
 	/**
@@ -1621,10 +1954,12 @@ sap.ui.define([
 	 *
 	 * There's no difference between <code>bindElement</code> and {@link sap.ui.base.ManagedObject#bindObject}.
 	 *
-	 * @param {string|sap.ui.base.ManagedObject.ObjectBindingInfo} vPath the binding path or an object with more detailed binding options
+	 * @param {sap.ui.base.ManagedObject.ObjectBindingInfo|string} vBindingInfo A <code>BindingInfo</code> object or just the path, if no further properties are required
 	 * @param {object} [mParameters] map of additional parameters for this binding.
 	 * Only taken into account when <code>vPath</code> is a string. In that case it corresponds to <code>mParameters</code> of {@link sap.ui.base.ManagedObject.ObjectBindingInfo}.
 	 * The supported parameters are listed in the corresponding model-specific implementation of <code>sap.ui.model.ContextBinding</code>.
+	 *
+	 * Providing 'parameters' as positional parameter is deprecated as of 1.135.0. Provide them as part of a <code>BindingInfo</code> object instead.
 	 *
 	 * @returns {this} reference to the instance itself
 	 * @public
@@ -1683,6 +2018,28 @@ sap.ui.define([
 		return aFieldGroupIds || [];
 
 	};
+
+	/**
+	 * This function (if available on the concrete subclass) provides information for the field help.
+	 *
+	 * Applications must not call this hook method directly, it is called by the framework.
+	 *
+	 * Subclasses should implement this hook to provide any necessary information for displaying field help:
+	 *
+	 * <pre>
+	 * MyElement.prototype.getFieldHelpInfo = function() {
+	 *    return {
+	 *      label: "some label"
+	 *    };
+	 * };
+	 * </pre>
+	 *
+	 * @return {{label: string}} Field Help Information of the element.
+	 * @function
+	 * @name sap.ui.core.Element.prototype.getFieldHelpInfo?
+	 * @protected
+	 */
+	//Element.prototype.getFieldHelpInfo = function() { return null; };
 
 	/**
 	 * Returns a DOM Element representing the given property or aggregation of this <code>Element</code>.
@@ -1864,16 +2221,14 @@ sap.ui.define([
 		}
 	};
 
-	var FocusHandler;
-	Element._updateFocusInfo = function(oElement) {
-		FocusHandler = FocusHandler || sap.ui.require("sap/ui/core/FocusHandler");
-		if (FocusHandler) {
-			FocusHandler.updateControlFocusInfo(oElement);
-		}
-	};
+	let FocusHandler;
+	function updateFocusInfo(oElement) {
+		FocusHandler ??= sap.ui.require("sap/ui/core/FocusHandler");
+		FocusHandler?.updateControlFocusInfo(oElement);
+	}
 
 	/**
-	 * Returns the nearest [UI5 Element]{@link sap.ui.core.Element} that wraps the given DOM element.
+	 * Returns the nearest {@link sap.ui.core.Element UI5 Element} that wraps the given DOM element.
 	 *
 	 * A DOM element or a CSS selector is accepted as a given parameter. When a CSS selector is given as parameter, only
 	 * the first DOM element that matches the CSS selector is taken to find the nearest UI5 Element that wraps it. When
@@ -1908,9 +2263,7 @@ sap.ui.define([
 			oDomRef = vParam;
 		} else if (vParam.jquery) {
 			oDomRef = vParam[0];
-			Log.error("[FUTURE FATAL] Do not call Element.closestTo() with jQuery object as parameter. \
-				The function should be called with either a DOM Element or a CSS selector. \
-				(future error, ignored for now)");
+			future.errorThrows("Do not call Element.closestTo() with jQuery object as parameter. The function should be called with either a DOM Element or a CSS selector.");
 		} else {
 			throw new TypeError("Element.closestTo accepts either a DOM element or a CSS selector string as parameter, but not '" + vParam + "'");
 		}

@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/ui/core/Core", "sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRenderer", "./ColumnListItemRenderer"],
-	function(Core, coreLibrary, Renderer, ListItemBaseRenderer, ColumnListItemRenderer) {
+sap.ui.define(["sap/ui/core/Lib", "sap/ui/core/library", "sap/ui/core/Renderer", "./ListItemBaseRenderer", "./ColumnListItemRenderer"],
+	function(Library, coreLibrary, Renderer, ListItemBaseRenderer, ColumnListItemRenderer) {
 	"use strict";
 
 
@@ -81,7 +81,7 @@ sap.ui.define(["sap/ui/core/Core", "sap/ui/core/library", "sap/ui/core/Renderer"
 
 		var oTable = oLI.getTable();
 		if (oTable) {
-			rm.attr("aria-roledescription", Core.getLibraryResourceBundle("sap.m").getText("TABLE_GROUP_ROW"));
+			rm.attr("aria-roledescription", Library.getResourceBundleFor("sap.m").getText("TABLE_GROUP_ROW"));
 		}
 	};
 
@@ -120,7 +120,7 @@ sap.ui.define(["sap/ui/core/Core", "sap/ui/core/library", "sap/ui/core/Renderer"
 
 	GroupHeaderListItemRenderer.renderLIContent = function(rm, oLI) {
 		var sTextDir = oLI.getTitleTextDirection();
-		rm.openStart("span");
+		rm.openStart("span", `${oLI.getId()}-title`);
 		rm.class("sapMGHLITitle");
 
 		if (sTextDir != TextDirection.Inherit) {

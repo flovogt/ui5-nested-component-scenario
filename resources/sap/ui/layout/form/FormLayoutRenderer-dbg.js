@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,8 +9,8 @@ sap.ui.define([
 	'sap/ui/layout/library',
 	'sap/ui/layout/form/Form',
 	'./FormHelper',
-	'sap/ui/core/IconPool' // as RenderManager.icon needs it
-	], function(coreLibrary, library, Form, FormHelper, IconPool) {
+	'sap/ui/core/IconPool' // side effect: as RenderManager.icon needs it
+	], function(coreLibrary, library, Form, FormHelper, _IconPool) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TitleLevel
@@ -197,7 +197,17 @@ sap.ui.define([
 				sLevel = "H5";
 			}
 
-			// just reuse TextView class because there font size & co. is already defined
+			const bRenderExpander = bExpander && oExpandButton;
+
+			if (bRenderExpander) {
+				// if expander is rendered put a DIV around expander and title. (If expander inside title the screenreader announcement is somehow strange.)
+				rm.openStart("div", sContentId + "--head");
+				rm.class("sapUiFormTitle");
+				rm.class("sapUiFormTitleExpandable");
+				rm.openEnd();
+				rm.renderControl(oExpandButton);
+			}
+
 			if ( typeof oTitle !== "string" ) {
 				rm.openStart(sLevel.toLowerCase(), oTitle);
 				if (oTitle.getTooltip_AsString()) {
@@ -209,16 +219,12 @@ sap.ui.define([
 			} else {
 				rm.openStart(sLevel.toLowerCase(), sContentId + "--title");
 			}
-			rm.class("sapUiFormTitle");
-			rm.class("sapUiFormTitle" + sLevel);
-			if (bExpander && oExpandButton) {
-				rm.class("sapUiFormTitleExpandable");
+			if (!bRenderExpander) {
+				rm.class("sapUiFormTitle");
 			}
+			rm.class("sapUiFormTitle" + sLevel);
 			rm.openEnd();
 
-			if (bExpander && oExpandButton) {
-				rm.renderControl(oExpandButton);
-			}
 			if (typeof oTitle === "string") {
 				// Title is just a string
 				oTitle.split(/\n/).forEach(function(sLine, iIndex) {
@@ -249,6 +255,9 @@ sap.ui.define([
 			}
 
 			rm.close(sLevel.toLowerCase());
+			if (bRenderExpander) {
+				rm.close("div");
+			}
 		}
 
 	};

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -26,7 +26,7 @@ sap.ui.define(function() {
 	 * @alias sap.ui.model.analytics.BatchResponseCollector
 	 * @constructor
 	 * @public
-	 * @param {object} [mParams] optional Setup-Parameter, @see BatchResponseCollector#setup
+	 * @param {object} [mParams] optional Setup-Parameter, see {@link #setup}
 	 */
 	function BatchResponseCollector(mParams) {
 		if (mParams) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,12 +8,13 @@
 sap.ui.define([
 	'./library',
 	'sap/ui/core/Control',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	"sap/ui/core/LabelEnablement",
 	"sap/ui/events/KeyCodes",
 	'./ObjectNumberRenderer'
 ],
-	function(library, Control, coreLibrary, LabelEnablement, KeyCodes, ObjectNumberRenderer) {
+	function(library, Control, Library, coreLibrary, LabelEnablement, KeyCodes, ObjectNumberRenderer) {
 	"use strict";
 
 
@@ -28,6 +29,9 @@ sap.ui.define([
 
 	// shortcut for sap.m.EmptyIndicator
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
+
+	// shortcut for sap.m.ReactiveAreaMode
+	var ReactiveAreaMode = library.ReactiveAreaMode;
 
 	/**
 	 * Constructor for a new ObjectNumber.
@@ -48,7 +52,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -67,7 +71,7 @@ sap.ui.define([
 				/**
 				 * Defines the number field.
 				 */
-				number : {type : "string", group : "Misc", defaultValue : null},
+				number : {type : "string", group : "Data", defaultValue : null},
 
 				/**
 				 * Defines the number units qualifier.
@@ -89,7 +93,7 @@ sap.ui.define([
 				 * Defines the number units qualifier. If numberUnit and unit are both set, the unit value is used.
 				 * @since 1.16.1
 				 */
-				unit : {type : "string", group : "Misc", defaultValue : null},
+				unit : {type : "string", group : "Data", defaultValue : null},
 
 				/**
 				 * Available options for the number and unit text direction are LTR(left-to-right) and RTL(right-to-left). By default, the control inherits the text direction from its parent control.
@@ -109,6 +113,20 @@ sap.ui.define([
 				 * @since 1.86
 				 */
 				active : {type : "boolean", group : "Misc", defaultValue : false},
+
+				/**
+				 * Defines the size of the reactive area of the link:<ul>
+				 * <li><code>ReactiveAreaMode.Inline</code> - The link is displayed as part of a sentence.</li>
+				 * <li><code>ReactiveAreaMode.Overlay</code> - The link is displayed as an overlay on top of other interactive parts of the page.</li></ul>
+				 *
+				 * <b>Note:</b>It is designed to make links easier to activate and helps meet the WCAG 2.2 Target Size requirement. It is applicable only for the SAP Horizon themes.
+				 * <b>Note:</b>The Reactive area size is sufficiently large to help users avoid accidentally selecting (clicking or tapping) on unintented UI elements.
+				 * UI elements positioned over other parts of the page may need an invisible active touch area.
+				 * This will ensure that no elements beneath are activated accidentally when the user tries to interact with the overlay element.
+				 *
+				 * @since 1.133.0
+				 */
+				reactiveAreaMode : {type : "sap.m.ReactiveAreaMode", group : "Appearance", defaultValue : ReactiveAreaMode.Inline},
 
 				/**
 				 * Determines whether the background color reflects the set <code>state</code> instead of the control's text.
@@ -153,7 +171,7 @@ sap.ui.define([
 	ObjectNumber.prototype._getStateText = function() {
 
 		var sState = this.getState(),
-			oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			oRB = Library.getResourceBundleFor("sap.m");
 
 			return oRB.getText("OBJECTNUMBER_ARIA_VALUE_STATE_" + sState.toUpperCase(), [], true);
 	};
@@ -310,15 +328,15 @@ sap.ui.define([
 			sResult += sId + "-number ";
 		}
 
-		if (this.getUnit()) {
+		if (this.getUnit() && this.getEmptyIndicatorMode() === EmptyIndicatorMode.Off) {
 			sResult += sId + "-unit ";
 		}
 
-		if (this.getEmphasized()) {
+		if ((this.getNumber() && this.getEmphasized())) {
 			sResult += sId + "-emphasized ";
 		}
 
-		if (this.getState() !== ValueState.None) {
+		if ((this.getNumber() && this.getState() !== ValueState.None)) {
 			sResult += sId + "-state";
 		}
 

@@ -1,31 +1,35 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	'sap/base/i18n/Localization',
+	"sap/ui/core/Element",
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/core/date/UniversalDate',
-	'sap/ui/core/IconPool',
+	'sap/ui/core/IconPool', // side effect: required when calling RenderManager#icon
 	'sap/ui/core/InvisibleText',
 	'./PlanningCalendarLegend',
 	'sap/ui/unified/library',
-	'sap/ui/core/Configuration',
-	"sap/ui/core/date/UI5Date"
-	],
+	'sap/ui/unified/calendar/RecurrenceUtils',
+	'sap/ui/core/date/UI5Date'
+],
 	function(
+		Localization,
+		Element,
 		CalendarDate,
 		CalendarUtils,
 		UniversalDate,
-		IconPool,
+		_IconPool,
 		InvisibleText,
 		PlanningCalendarLegend,
 		unifiedLibrary,
-		Configuration,
+		RecurrenceUtils,
 		UI5Date
-		) {
+	) {
 		"use strict";
 
 		var iVerticalPaddingBetweenAppointments = 0.125;
@@ -56,7 +60,6 @@ sap.ui.define([
 			oRm.renderControl(oControl.getAggregation("_columnHeaders"));
 			this.renderBlockersContainer(oRm, oControl);
 			oRm.openStart("div");
-			oRm.attr("role", "grid");
 			oRm.class("sapMSinglePCGridContent");
 			oRm.openEnd();
 			this.renderRowHeaders(oRm, oControl);
@@ -93,7 +96,7 @@ sap.ui.define([
 				if (aDayTypes && aDayTypes[0]) {
 					oType = aDayTypes[0];
 					oRm.class("sapUiCalItem" + oType.type);
-					sLegendItemType = PlanningCalendarLegend.findLegendItemForItem(sap.ui.getCore().byId(oControl._sLegendId), oType);
+					sLegendItemType = PlanningCalendarLegend.findLegendItemForItem(Element.getElementById(oControl._sLegendId), oType);
 				}
 
 				oRm.class("sapMSpecialDaysInDayView");
@@ -137,6 +140,9 @@ sap.ui.define([
 				if (oControl._sLegendId && sLegendItemType) {
 					oRm.text(sLegendItemType);
 				}
+				if (oControl._doesContainBlockers(oColumnCalDate)) {
+					oRm.text(oControl._getCellDescription());
+				}
 				oRm.close("span");
 
 				oRm.close("div"); // END .sapMSinglePCColumn
@@ -175,6 +181,10 @@ sap.ui.define([
 				oBlockersList = oControl._getBlockersToRender().oBlockersList;
 
 			oRm.openStart("div");
+			oRm.attr("role", "gridcell");
+			oRm.openEnd();
+
+			oRm.openStart("div");
 			oRm.attr("role", "list");
 			oRm.attr("aria-labelledby", InvisibleText.getStaticId("sap.m", "SPC_BLOCKERS"));
 			oRm.class("sapMSinglePCBlockers");
@@ -185,6 +195,8 @@ sap.ui.define([
 				that.renderBlockerAppointment(oRm, oControl, oBlocker);
 			});
 			oRm.close("div"); // END .sapMSinglePCBlockers
+
+			oRm.close("div");
 		};
 
 		SinglePlanningCalendarGridRenderer.renderBlockerAppointment = function(oRm, oControl, oBlockerNode) {
@@ -208,7 +220,7 @@ sap.ui.define([
 				mAccProps = {
 					role: "listitem",
 					labelledby: {
-						value: InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT"),
+						value: InvisibleText.getStaticId("sap.ui.unified", "CALENDAR_ALL_DAY_PREFIX"),
 						append: true
 					},
 					// Prevents aria-selected from being added on the Blocker appointment
@@ -217,7 +229,7 @@ sap.ui.define([
 				aAriaLabels = oControl.getAriaLabelledBy(),
 				iLeftPosition = iStartDayDiff * (100 / iColumns),
 				iRightPosition = (iColumns - iEndDayDiff - 1) * (100 / iColumns),
-				bIsRTL = Configuration.getRTL(),
+				bIsRTL = Localization.getRTL(),
 				aClasses;
 
 			if (aAriaLabels.length > 0) {
@@ -240,7 +252,10 @@ sap.ui.define([
 			}
 
 			if (oBlocker.getSelected()) {
-				mAccProps["labelledby"].value = mAccProps["labelledby"].value + " " + InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT_SELECTED");
+				mAccProps["describedby"] = {
+					value: InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT_SELECTED"),
+					append: true
+				};
 			}
 
 			oRm.openStart("div", oBlocker);
@@ -258,7 +273,7 @@ sap.ui.define([
 				oRm.class("sapUiCalendarApp" + sType);
 			}
 			if (sColor) {
-				if (Configuration.getRTL()) {
+				if (Localization.getRTL()) {
 					oRm.style("border-right-color", sColor);
 				} else {
 					oRm.style("border-left-color", sColor);
@@ -291,7 +306,7 @@ sap.ui.define([
 			oRm.openStart("div");
 			oRm.class("sapUiCalendarAppCont");
 
-			if (sColor) {
+			if (sColor && !oBlocker.getSelected()) {
 				oRm.style("background-color", oBlocker._getCSSColorForBackground(sColor));
 			}
 
@@ -306,14 +321,14 @@ sap.ui.define([
 				aClasses = ["sapUiCalendarAppIcon"];
 				var mAttributes = {};
 
-				mAttributes["id"] = sId + "-Icon";
+				mAttributes["id"] = `${sId}-Icon`;
 				mAttributes["title"] = null;
 				mAttributes["role"] = "img";
 				oRm.icon(sIcon, aClasses, mAttributes);
 			}
 
 			if (sTitle) {
-				oRm.openStart("span", sId + "-Title");
+				oRm.openStart("span", `${sId}-Title`);
 				oRm.class("sapUiCalendarAppTitle");
 				oRm.openEnd(); // span element
 				oRm.text(sTitle, true);
@@ -325,7 +340,7 @@ sap.ui.define([
 				oRm.icon("sap-icon://arrow-right", aClasses, { title: null, role: "img" });
 			}
 
-			oRm.openStart("span", sId + "-Descr");
+			oRm.openStart("span", `${sId}-Descr`);
 			oRm.class("sapUiInvisibleText");
 			oRm.openEnd(); // span element
 			oRm.text(oControl._getAppointmentAnnouncementInfo(oBlocker));
@@ -406,7 +421,7 @@ sap.ui.define([
 					oRm.class("sapMSinglePCColumnToday");
 				}
 
-				if (CalendarUtils._isWeekend(oColumnCalDate, oControl._getCoreLocaleData()) || oControl._isNonWorkingDay(oColumnCalDate)) {
+				if (oControl._isNonWorkingDay(oColumnCalDate)) {
 					oRm.class("sapMSinglePCColumnWeekend");
 				}
 
@@ -414,7 +429,7 @@ sap.ui.define([
 
 				this.renderDndPlaceholders(oRm, oControl, oControl._dndPlaceholdersMap[oColumnCalDate]);
 
-				this.renderRows(oRm, oControl, sDate);
+				this.renderRows(oRm, oControl, sDate, oColumnCalDate);
 				this.renderAppointments(oRm, oControl, oAppointmentsToRender[sDate], oColumnCalDate, i);
 				oRm.close("div"); // END .sapMSinglePCColumn
 			}
@@ -430,16 +445,29 @@ sap.ui.define([
 			oRm.close("div");
 		};
 
-		SinglePlanningCalendarGridRenderer.renderRows = function (oRm, oControl, sDate) {
-			var iStartHour = oControl._getVisibleStartHour(),
-				iEndHour = oControl._getVisibleEndHour(),
-				oFormat = oControl._getDateFormatter(),
-				oCellStartDate,
-				oCellEndDate;
+		SinglePlanningCalendarGridRenderer.renderRows = function (oRm, oControl, sDate, oColumnCalDate) {
+			const iStartHour = oControl._getVisibleStartHour();
+			const iEndHour = oControl._getVisibleEndHour();
+			const oFormat = oControl._getDateFormatter();
+			const oDate = oControl._parseDateStringAndHours(sDate, 0);
+			const aRecurrenceNonWorkingForDay = oControl._isNonWorkingDay(oColumnCalDate) ? [] : oControl.getNonWorkingPeriods().filter((oPeriod) => {
+				if (!oPeriod.isRecurring()) {
+					return oPeriod.hasNonWorkingAtDate(oDate);
+				}
+				const hasOccurrenceOnDate = RecurrenceUtils.hasOccurrenceOnDate.bind(oPeriod);
+				return hasOccurrenceOnDate(oDate);
+			}).sort((oCalendarItemA, oCalendarItemB) => {
+				return  oCalendarItemA.getStartDate().getMinutes() - oCalendarItemB.getStartDate().getMinutes() ||
+				oCalendarItemA.getEndDate().getMinutes() - oCalendarItemB.getEndDate().getMinutes();
+			});
 
-			for (var i = iStartHour; i <= iEndHour; i++) {
-				oCellStartDate = oControl._parseDateStringAndHours(sDate, i);
-				oCellEndDate = UI5Date.getInstance(oCellStartDate.getFullYear(), oCellStartDate.getMonth(), oCellStartDate.getDate(), oCellStartDate.getHours() + 1);
+			for (let i = iStartHour; i <= iEndHour; i++) {
+				const oCellStartDate = oControl._parseDateStringAndHours(sDate, i);
+				const oCellEndDate = UI5Date.getInstance(oCellStartDate.getFullYear(), oCellStartDate.getMonth(), oCellStartDate.getDate(), oCellStartDate.getHours() + 1);
+
+				const aNonWorkingPartsForHour = aRecurrenceNonWorkingForDay.filter((oCalendarItem) => {
+					return oCalendarItem.hasNonWorkingAtHour(oCellStartDate);
+				});
 
 				oRm.openStart("div");
 				oRm.attr("role", "gridcell");
@@ -459,7 +487,24 @@ sap.ui.define([
 				oRm.class("sapUiInvisibleText");
 				oRm.openEnd();
 				oRm.text(oControl._getCellStartEndInfo(oCellStartDate, oCellEndDate));
+
+				if (oControl._doesContainAppointments(oCellStartDate, oCellEndDate)) {
+					oRm.text(oControl._getCellDescription());
+				}
 				oRm.close("span");
+
+				if (!aNonWorkingPartsForHour?.length) {
+					oRm.close("div"); // END .sapMSinglePCRow
+					continue;
+				}
+
+				RecurrenceUtils.getWorkingAndNonWorkingSegments(oCellStartDate, aNonWorkingPartsForHour).forEach((oHourParts) => {
+					if (oHourParts.type === "working") {
+						this.renderWorkingParts(oRm, oHourParts.duration);
+					} else {
+						this.renderNonWorkingParts(oRm, oHourParts.duration);
+					}
+				});
 
 				oRm.close("div"); // END .sapMSinglePCRow
 			}
@@ -471,11 +516,16 @@ sap.ui.define([
 
 			if (oAppointmentsByDate) {
 				oRm.openStart("div");
+				oRm.attr("role", "gridcell");
+				oRm.openEnd();
+
+				oRm.openStart("div");
 				oRm.attr("role", "list");
 				oRm.class("sapMSinglePCAppointments");
 				oRm.class("sapUiCalendarRowVisFilled"); // TODO: when refactor the CSS of appointments maybe we won't need this class
 
 				oRm.openEnd();
+
 				oAppointmentsByDate.oAppointmentsList.getIterator().forEach(function (oAppointmentNode) {
 					var iMaxLevel = oAppointmentsByDate.iMaxLevel,
 						iLevel = oAppointmentNode.level,
@@ -485,6 +535,7 @@ sap.ui.define([
 					that.renderAppointment(oRm, oControl, iMaxLevel, iLevel, iWidth, oAppointment, oColumnDate, iColumn, iIndex);
 					iIndex++;
 				});
+				oRm.close("div");
 				oRm.close("div");
 			}
 		};
@@ -506,6 +557,8 @@ sap.ui.define([
 				sText = oAppointment.getText(),
 				sIcon = oAppointment.getIcon(),
 				sId = oAppointment.getId(),
+				aCustomContent = oAppointment.getCustomContent(),
+				bHasCustomContent = !!aCustomContent.length,
 				mAccProps = {
 					role: "listitem",
 					labelledby: {
@@ -537,26 +590,29 @@ sap.ui.define([
 			bArrowRight = oColumnDate.isSame(oGridCalEnd);
 
 			if (aAriaLabels.length > 0) {
-				mAccProps["labelledby"].value = mAccProps["labelledby"].value + " " + aAriaLabels.join(" ");
+				mAccProps["labelledby"].value = `${mAccProps["labelledby"].value} ${aAriaLabels.join(" ")}`;
 			}
 
-			if (sTitle) {
-				mAccProps["labelledby"].value = mAccProps["labelledby"].value + " " + sId + "-Title";
+			if (!bHasCustomContent && sTitle) {
+				mAccProps["labelledby"].value = `${mAccProps["labelledby"].value} ${sId}-${iColumn}_${iIndex}-Title`;
 			}
 
 			// Put start/end information after the title
-			mAccProps["labelledby"].value = mAccProps["labelledby"].value + " " + sId + "-Descr";
+			mAccProps["labelledby"].value = `${mAccProps["labelledby"].value} ${sId}-${iColumn}_${iIndex}-Descr`;
 
-			if (sText) {
-				mAccProps["labelledby"].value = mAccProps["labelledby"].value + " " + sId + "-Text";
+			if (!bHasCustomContent && sText) {
+				mAccProps["labelledby"].value = `${mAccProps["labelledby"].value} ${sId}-${iColumn}_${iIndex}-Text`;
 			}
 
 			if (oAppointment.getTentative()) {
-				mAccProps["labelledby"].value = mAccProps["labelledby"].value + " " + InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT_TENTATIVE");
+				mAccProps["labelledby"].value = `${mAccProps["labelledby"].value} ${InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT_TENTATIVE")}`;
 			}
 
 			if (oAppointment.getSelected()) {
-				mAccProps["labelledby"].value = mAccProps["labelledby"].value + " " + InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT_SELECTED");
+				mAccProps["describedby"] = {
+					value: InvisibleText.getStaticId("sap.ui.unified", "APPOINTMENT_SELECTED"),
+					append: true
+				};
 			}
 
 			oRm.openStart("div", oAppointment.getId() + "-" + iColumn + "_" + iIndex);
@@ -577,7 +633,7 @@ sap.ui.define([
 				oRm.class("sapUiCalendarApp" + sType);
 			}
 			if (sColor) {
-				if (Configuration.getRTL()) {
+				if (Localization.getRTL()) {
 					oRm.style("border-right-color", sColor);
 				} else {
 					oRm.style("border-left-color", sColor);
@@ -585,7 +641,7 @@ sap.ui.define([
 			}
 			oRm.style("top", iAppTop + "rem");
 			oRm.style("bottom", iAppBottom + "rem");
-			oRm.style(Configuration.getRTL() ? "right" : "left", iAppChunkWidth * iAppointmentLevel + "%");
+			oRm.style(Localization.getRTL() ? "right" : "left", iAppChunkWidth * iAppointmentLevel + "%");
 			oRm.style("width", iAppChunkWidth * iAppointmentWidth + "%"); // TODO: take into account the levels
 			oRm.openEnd();
 
@@ -601,31 +657,9 @@ sap.ui.define([
 				oRm.class("sapUiCalendarAppTent");
 			}
 
-			// if (!sText) {
-			// 	oRm.class("sapUiCalendarAppTitleOnly");
-			// }
-
-			if (sIcon) {
+			if (!bHasCustomContent && sIcon) {
 				oRm.class("sapUiCalendarAppWithIcon");
 			}
-
-			// if (!bRelativePos) {
-			// 	// write position
-			// 	if (oRow._bRTL) {
-			// 		oRm.style("right", oAppointmentInfo.begin + "%");
-			// 		oRm.style("left", oAppointmentInfo.end + "%");
-			// 	} else {
-			// 		oRm.style("left", oAppointmentInfo.begin + "%");
-			// 		oRm.style("right", oAppointmentInfo.end + "%");
-			// 	}
-			// }
-
-			// This makes the appointment focusable
-			// if (oRow._sFocusedAppointmentId == sId) {
-			// 	oRm.attr("tabindex", "0");
-			// } else {
-			// 	oRm.attr("tabindex", "-1");
-			// }
 
 			oRm.openEnd(); // div element
 
@@ -633,7 +667,7 @@ sap.ui.define([
 			oRm.openStart("div");
 			oRm.class("sapUiCalendarAppCont");
 
-			if (sColor) {
+			if (sColor && !oAppointment.getSelected()) {
 				oRm.style("background-color", oAppointment._getCSSColorForBackground(sColor));
 			}
 
@@ -644,13 +678,13 @@ sap.ui.define([
 				oRm.icon("sap-icon://arrow-left", aClasses, { title: null, role: "img" });
 			}
 
-			if (sIcon) {
+			if (!bHasCustomContent && sIcon) {
 				aClasses = ["sapUiCalendarAppIcon"];
 				var mAttributes = {};
 
-				mAttributes["id"] = sId + "-Icon";
+				mAttributes["id"] = `${sId}-${iColumn}_${iIndex}-Icon`;
 				mAttributes["title"] = null;
-				mAttributes["role"] = "img";
+				mAttributes["role"] = "presentation";
 				oRm.icon(sIcon, aClasses, mAttributes);
 			}
 
@@ -658,20 +692,26 @@ sap.ui.define([
 			oRm.class("sapUiCalendarAppointmentWrapper");
 			oRm.openEnd();
 
-			if (sTitle) {
-				oRm.openStart("span", sId + "-Title");
+			if (!bHasCustomContent && sTitle) {
+				oRm.openStart("span", `${sId}-${iColumn}_${iIndex}-Title`);
 				oRm.class("sapUiCalendarAppTitle");
 				oRm.openEnd(); // span element
 				oRm.text(sTitle, true);
 				oRm.close("span");
 			}
 
-			if (sText) {
-				oRm.openStart("span", sId + "-Text");
+			if (!bHasCustomContent && sText) {
+				oRm.openStart("span", `${sId}-${iColumn}_${iIndex}-Text`);
 				oRm.class("sapUiCalendarAppText");
 				oRm.openEnd(); // span element
 				oRm.text(sText, true);
 				oRm.close("span");
+			}
+
+			if (bHasCustomContent) {
+				aCustomContent.forEach(function (oContent) {
+					oRm.renderControl(oContent);
+				});
 			}
 
 			oRm.close("div");
@@ -681,19 +721,7 @@ sap.ui.define([
 				oRm.icon("sap-icon://arrow-right", aClasses, { title: null, role: "img" });
 			}
 
-			// ARIA information about start and end
-			// var sAriaText = oRow._oRb.getText("CALENDAR_START_TIME") + ": " + oRow._oFormatAria.format(oAppointment._getStartDateWithTimezoneAdaptation());
-			// sAriaText = sAriaText + "; " + oRow._oRb.getText("CALENDAR_END_TIME") + ": " + oRow._oFormatAria.format(oAppointment._getEndDateWithTimezoneAdaptation());
-			// if (sTooltip) {
-			// 	sAriaText = sAriaText + "; " + sTooltip;
-			// }
-
-			// if (sType && sType != CalendarDayType.None) {
-			//
-			// 	sAriaText = sAriaText + "; " + this.getAriaTextForType(sType, aTypes);
-			// }
-
-			oRm.openStart("span", sId + "-Descr");
+			oRm.openStart("span", `${sId}-${iColumn}_${iIndex}-Descr`);
 			oRm.class("sapUiInvisibleText");
 			oRm.openEnd(); // span element
 			oRm.text(oControl._getAppointmentAnnouncementInfo(oAppointment));
@@ -715,10 +743,6 @@ sap.ui.define([
 			oRm.openStart("div", oControl.getId() + "-nowMarker");
 			oRm.style("top", oControl._calculateTopPosition(oDate) + "rem");
 			oRm.class("sapMSinglePCNowMarker");
-
-			if (!oControl._isVisibleHour(oDate.getHours())) {
-				oRm.class("sapMSinglePCNowMarkerHidden");
-			}
 
 			oRm.openEnd();
 			oRm.openStart("span", oControl.getId() + "-nowMarkerText");
@@ -749,6 +773,25 @@ sap.ui.define([
 				oRm.openEnd();
 				oRm.close("span");
 			}
+		};
+
+		SinglePlanningCalendarGridRenderer.renderWorkingParts = function (oRm, iDuration){
+			const iHeight = iDuration / 60 * 100;
+
+			oRm.openStart("div");
+			oRm.style("height",`${iHeight}%`);
+			oRm.openEnd();
+			oRm.close("div");
+		};
+
+		SinglePlanningCalendarGridRenderer.renderNonWorkingParts = function (oRm, iDuration){
+			const iHeight = iDuration / 60 * 100;
+
+			oRm.openStart("div");
+			oRm.class("sapMSinglePCNonWorkingPeriod");
+			oRm.style("height",`${iHeight}%`);
+			oRm.openEnd();
+			oRm.close("div");
 		};
 
 		return SinglePlanningCalendarGridRenderer;

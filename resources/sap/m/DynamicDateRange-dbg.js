@@ -1,15 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.DynamicDateRange.
 sap.ui.define([
 	'sap/base/Log',
+	'sap/base/i18n/date/CalendarWeekNumbering',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/Element',
 	'sap/ui/core/Control',
+	"sap/ui/core/Lib",
 	'sap/ui/core/ListItem',
 	'sap/ui/core/library',
 	'sap/ui/core/Renderer',
@@ -20,7 +22,6 @@ sap.ui.define([
 	'sap/ui/core/LabelEnablement',
 	"sap/ui/core/date/UniversalDate",
 	'sap/ui/core/format/DateFormat',
-	'sap/ui/core/format/TimezoneUtil',
 	'sap/ui/base/ManagedObjectObserver',
 	'sap/ui/Device',
 	'./Label',
@@ -39,47 +40,46 @@ sap.ui.define([
 	'./StandardDynamicDateOption',
 	'./library',
 	'sap/ui/thirdparty/jquery',
-	'sap/ui/core/Configuration',
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/core/CustomData'
 ], function(
-		Log,
-		InvisibleText,
-		Element,
-		Control,
-		ListItem,
-		coreLibrary,
-		Renderer,
-		MessageMixin,
-		DynamicDateFormat,
-		IconPool,
-		Icon,
-		LabelEnablement,
-		UniversalDate,
-		DateFormat,
-		TimezoneUtil,
-		ManagedObjectObserver,
-		Device,
-		Label,
-		GroupHeaderListItem,
-		StandardListItem,
-		StandardListItemRenderer,
-		Button,
-		List,
-		Input,
-		InputRenderer,
-		Toolbar,
-		ResponsivePopover,
-		Page,
-		NavContainer,
-		DynamicDateRangeRenderer,
-		StandardDynamicDateOption,
-		library,
-		jQuery,
-		Configuration,
-		CalendarUtils,
-		CustomData
-	) {
+	Log,
+	_CalendarWeekNumbering, // implicitly required as type of `calendarWeekNumbering`
+	InvisibleText,
+	Element,
+	Control,
+	Library,
+	ListItem,
+	coreLibrary,
+	Renderer,
+	MessageMixin,
+	DynamicDateFormat,
+	IconPool,
+	Icon,
+	LabelEnablement,
+	UniversalDate,
+	DateFormat,
+	ManagedObjectObserver,
+	Device,
+	Label,
+	GroupHeaderListItem,
+	StandardListItem,
+	StandardListItemRenderer,
+	Button,
+	List,
+	Input,
+	InputRenderer,
+	Toolbar,
+	ResponsivePopover,
+	Page,
+	NavContainer,
+	DynamicDateRangeRenderer,
+	StandardDynamicDateOption,
+	library,
+	jQuery,
+	CalendarUtils,
+	CustomData
+) {
 		"use strict";
 
 		// shortcut for sap.ui.core.ValueState
@@ -89,7 +89,7 @@ sap.ui.define([
 			ListType = library.ListType,
 			ListMode = library.ListMode,
 			ListSeparators = library.ListSeparators,
-			oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+			oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 			var oStandardOptionsObjects = {
 				"TODAY": new StandardDynamicDateOption({ key: "TODAY", valueTypes: [] }),
@@ -129,6 +129,20 @@ sap.ui.define([
 				"NEXTMONTHS": new StandardDynamicDateOption({ key: "NEXTMONTHS", valueTypes: ["int"] }),
 				"NEXTQUARTERS": new StandardDynamicDateOption({ key: "NEXTQUARTERS", valueTypes: ["int"] }),
 				"NEXTYEARS": new StandardDynamicDateOption({ key: "NEXTYEARS", valueTypes: ["int"] }),
+				"LASTMINUTESINCLUDED": new StandardDynamicDateOption({ key: "LASTMINUTESINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTHOURSINCLUDED": new StandardDynamicDateOption({ key: "LASTHOURSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTDAYSINCLUDED": new StandardDynamicDateOption({ key: "LASTDAYSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTWEEKSINCLUDED": new StandardDynamicDateOption({ key: "LASTWEEKSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTMONTHSINCLUDED": new StandardDynamicDateOption({ key: "LASTMONTHSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTQUARTERSINCLUDED": new StandardDynamicDateOption({ key: "LASTQUARTERSINCLUDED", valueTypes: ["int", "included"] }),
+				"LASTYEARSINCLUDED": new StandardDynamicDateOption({ key: "LASTYEARSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTMINUTESINCLUDED": new StandardDynamicDateOption({ key: "NEXTMINUTESINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTHOURSINCLUDED": new StandardDynamicDateOption({ key: "NEXTHOURSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTDAYSINCLUDED": new StandardDynamicDateOption({ key: "NEXTDAYSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTWEEKSINCLUDED": new StandardDynamicDateOption({ key: "NEXTWEEKSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTMONTHSINCLUDED": new StandardDynamicDateOption({ key: "NEXTMONTHSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTQUARTERSINCLUDED": new StandardDynamicDateOption({ key: "NEXTQUARTERSINCLUDED", valueTypes: ["int", "included"] }),
+				"NEXTYEARSINCLUDED": new StandardDynamicDateOption({ key: "NEXTYEARSINCLUDED", valueTypes: ["int", "included"] }),
 				"FROM": new StandardDynamicDateOption({ key: "FROM", valueTypes: ["date"] }),
 				"TO": new StandardDynamicDateOption({ key: "TO", valueTypes: ["date"] }),
 				"FROMDATETIME": new StandardDynamicDateOption({ key: "FROMDATETIME", valueTypes: ["datetime"] }),
@@ -183,6 +197,20 @@ sap.ui.define([
 				"NEXTMONTHS",
 				"NEXTQUARTERS",
 				"NEXTYEARS",
+				"LASTMINUTESINCLUDED",
+				"LASTHOURSINCLUDED",
+				"LASTDAYSINCLUDED",
+				"LASTWEEKSINCLUDED",
+				"LASTMONTHSINCLUDED",
+				"LASTQUARTERSINCLUDED",
+				"LASTYEARSINCLUDED",
+				"NEXTMINUTESINCLUDED",
+				"NEXTHOURSINCLUDED",
+				"NEXTDAYSINCLUDED",
+				"NEXTWEEKSINCLUDED",
+				"NEXTMONTHSINCLUDED",
+				"NEXTQUARTERSINCLUDED",
+				"NEXTYEARSINCLUDED",
 				"TODAYFROMTO",
 				"THISWEEK",
 				"LASTWEEK",
@@ -249,6 +277,9 @@ sap.ui.define([
 		 * In order for a specific option to be used its key should be added into the <code>standardOptions</code> property
 		 * of the control. No options are added by default.
 		 *
+		 * <b>Note:</b> Property binding with the <code>value</code> and <code>formatter</code> properties is not supported.
+		 * Instead, you should use their public getter and setter methods.
+		 *
 		 * Suggestions are available when the user types in the control input field.
 		 *
 		 * <h3>Responsive behavior</h3>
@@ -257,7 +288,7 @@ sap.ui.define([
 		 * is opened. The dialog is closed via a date time period value selection or by pressing the "Cancel" button.
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -276,10 +307,14 @@ sap.ui.define([
 					 * The control uses a special wrong-value object, when the input receives
 					 * an unrecognized string - { operator: "PARSEERROR", values: [...]}
 					 *
+					 *  <b>Note:</b> Data binding for the <code>value</code> property is not supported. Instead,
+					 *  you should use DynamicDateRange's <code>getValue</code> and <code>setValue</code> methods.
+					 *
 					 * @since 1.92
 					 * @private
+					 * @ui5-restricted sap.m.DynamicDateRange
 					 */
-					value: { type: "object" },
+					value: { type: "object", group: "Data"},
 
 					/**
 					 * Defines the width of the control.
@@ -352,8 +387,12 @@ sap.ui.define([
 					 * An instance of sap.m.DynamicDateFormat or a user defined format object with the
 					 * corresponding formatting and parsing functionality.
 					 *
+					 * <b>Note:</b> Data binding for the <code>formatter</code> property is not supported. Instead,
+					 * you should use DynamicDateRange's <code>getFormatter</code> and <code>setFormatter</code> methods.
+					 *
 					 * @since 1.92
 					 * @private
+					 * @ui5-restricted sap.m.DynamicDateRange
 					 */
 					formatter: { type: "object" },
 
@@ -392,6 +431,13 @@ sap.ui.define([
 							"LASTMONTHS",
 							"LASTQUARTERS",
 							"LASTYEARS",
+							"LASTMINUTESINCLUDED",
+							"LASTHOURSINCLUDED",
+							"LASTDAYSINCLUDED",
+							"LASTWEEKSINCLUDED",
+							"LASTMONTHSINCLUDED",
+							"LASTQUARTERSINCLUDED",
+							"LASTYEARSINCLUDED",
 							"NEXTMINUTES",
 							"NEXTHOURS",
 							"NEXTDAYS",
@@ -399,6 +445,13 @@ sap.ui.define([
 							"NEXTMONTHS",
 							"NEXTQUARTERS",
 							"NEXTYEARS",
+							"NEXTMINUTESINCLUDED",
+							"NEXTHOURSINCLUDED",
+							"NEXTDAYSINCLUDED",
+							"NEXTWEEKSINCLUDED",
+							"NEXTMONTHSINCLUDED",
+							"NEXTQUARTERSINCLUDED",
+							"NEXTYEARSINCLUDED",
 							"TODAYFROMTO",
 							"THISWEEK",
 							"LASTWEEK",
@@ -437,13 +490,12 @@ sap.ui.define([
 					 */
 					 hideInput: { type: "boolean", group: "Misc", defaultValue: false },
 
-					  /**
+					/**
 					 * If set, the calendar week numbering is used for display.
 					 * If not set, the calendar week numbering of the global configuration is used.
 					 * @since 1.111.0
 					 */
-
-					calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
+					calendarWeekNumbering : { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
 
 					/**
 					 * Specifies whether clear icon is shown.
@@ -498,22 +550,27 @@ sap.ui.define([
 
 		var aLastDateTimeOperators = [
 			"LASTMINUTES",
-			"LASTHOURS"
+			"LASTHOURS",
+			"LASTMINUTESINCLUDED",
+			"LASTHOURSINCLUDED"
 		];
 
 		var aNextDateTimeOperators = [
 			"NEXTMINUTES",
-			"NEXTHOURS"
+			"NEXTHOURS",
+			"NEXTMINUTESINCLUDED",
+			"NEXTHOURSINCLUDED"
 		];
 
 		var aDateTimeOperators = aLastDateTimeOperators.concat(aNextDateTimeOperators);
 		var aLastOptions = ["LASTMINUTES", "LASTHOURS", "LASTDAYS", "LASTWEEKS", "LASTMONTHS", "LASTQUARTERS", "LASTYEARS"];
 		var aNextOptions = ["NEXTMINUTES", "NEXTHOURS", "NEXTDAYS", "NEXTWEEKS", "NEXTMONTHS", "NEXTQUARTERS", "NEXTYEARS"];
+		var aLastIncludedOptions = ["LASTMINUTESINCLUDED", "LASTHOURSINCLUDED", "LASTDAYSINCLUDED", "LASTWEEKSINCLUDED", "LASTMONTHSINCLUDED", "LASTQUARTERSINCLUDED", "LASTYEARSINCLUDED"];
+		var aNextIncludedOptions = ["NEXTMINUTESINCLUDED", "NEXTHOURSINCLUDED", "NEXTDAYSINCLUDED", "NEXTWEEKSINCLUDED", "NEXTMONTHSINCLUDED", "NEXTQUARTERSINCLUDED", "NEXTYEARSINCLUDED"];
 
 		DynamicDateRange.prototype.init = function() {
 			var bValueHelpDecorative = !Device.support.touch || Device.system.desktop ? true : false;
 			this._oInput = new DynamicDateRangeInput(this.getId() + "-input", {
-				showValueHelp: true,
 				valueHelpIconSrc: IconPool.getIconURI("sap-icon://check-availability"),
 				valueHelpRequest: this._toggleOpen.bind(this),
 				showSuggestion: true,
@@ -529,6 +586,7 @@ sap.ui.define([
 			};
 
 			this._oInput._getValueHelpIcon().setDecorative(bValueHelpDecorative);
+			this._oInput._getValueHelpIcon().setTooltip(oResourceBundle.getText("OPEN_PICKER_TEXT"));
 
 			this._oInput.addDelegate(this._onBeforeInputRenderingDelegate, this);
 
@@ -567,6 +625,7 @@ sap.ui.define([
 		/**
 		 * Getter for the <code>value</code> of the control.
 		 * @returns {sap.m.DynamicDateRangeValue} A <code>sap.m.DynamicDateRangeValue</code>
+		 * @public
 		 */
 		DynamicDateRange.prototype.getValue = function() {
 			return this.getProperty("value");
@@ -575,6 +634,7 @@ sap.ui.define([
 		/**
 		 * Getter for the <code>formatter</code> of the control.
 		 * @returns {sap.m.DynamicDateFormat} A <code>sap.m.DynamicDateFormat</code>
+		 * @public
 		 */
 		 DynamicDateRange.prototype.getFormatter = function() {
 			return this.getProperty("formatter");
@@ -585,6 +645,7 @@ sap.ui.define([
 		 * @returns {sap.m.DynamicDateFormat} A <code>sap.m.DynamicDateFormat</code>
 		 * @param {sap.m.DynamicDateFormat} oFormatter A <code>sap.m.DynamicDateFormat</code>
 		 * @returns {this} Reference to <code>this</code> for method chaining
+		 * @public
 		 */
 		 DynamicDateRange.prototype.setFormatter = function(oFormatter) {
 			this.setProperty("formatter", oFormatter);
@@ -635,6 +696,7 @@ sap.ui.define([
 		 * Setter for the <code>value</code> control property.
 		 * @param {sap.m.DynamicDateRangeValue} oValue A <code>sap.m.DynamicDateRangeValue</code>
 		 * @returns {this} Reference to <code>this</code> for method chaining
+		 * @public
 		 */
 		DynamicDateRange.prototype.setValue = function(oValue) {
 			var sOptionKey = oValue && oValue.operator;
@@ -643,6 +705,7 @@ sap.ui.define([
 			oValue = this._substituteValue(oValue);
 
 			this.setProperty("value", oValue);
+
 			this._oSelectedOption = this.getOption(sOptionKey);
 
 			// Forward Dynamic Date Range control property values to inner sap.m.Input instance.
@@ -841,7 +904,7 @@ sap.ui.define([
 		/**
 		 * Calculates a date range from a provided object in the format of the DynamicDateRange's value.
 		 *
-		 * @param {string} oValue The provided value
+		 * @param {sap.m.DynamicDateRangeValue} oValue A <code>sap.m.DynamicDateRangeValue</code>
 		 * @returns {sap.ui.core.date.UniversalDate[]} An array of two date objects - start and end date
 		 * @public
 		 */
@@ -950,10 +1013,10 @@ sap.ui.define([
 
 		DynamicDateRange.prototype._getValueHelpTypeForFormatter = function() {
 			var	sOptionKey = this._oSelectedOption ? this._oSelectedOption.getKey() : '',
-				aLastOptionsSelectedIndex = aLastOptions.indexOf(sOptionKey),
-				aNextOptionsSelectedIndex = aNextOptions.indexOf(sOptionKey),
+				aLastOptionsSelectedIndex = this.lastOptionsIndex(sOptionKey),
+				aNextOptionsSelectedIndex = this.nextOptionsIndex(sOptionKey),
 				aPopupContent = this._oNavContainer ? this._oNavContainer.getPages()[1].getContent()[3] || [] : [],
-				aButtons = aPopupContent.getButtons ? aPopupContent.getButtons() : [],
+				oSelect = aPopupContent,
 				aSuggestionItems = this.getAggregation('_input').getAggregation('suggestionItems'),
 				oValue = this.getValue(),
 				aOptionKeys = this.getStandardOptions(),
@@ -963,12 +1026,11 @@ sap.ui.define([
 				oCustomData,
 				aValueHelpTypes,
 				sType,
-				iButtonSelectedIndex,
 				sSuggestionOptionKey;
 
 			if (
 				!oValue &&
-				(!aButtons[0] || !aButtons[0].getDomRef()) &&
+				!oSelect &&
 				aSuggestionItems && aSuggestionItems.length &&
 				aSuggestionItems[aSuggestionItems.length - 1].getCustomData
 			) {
@@ -984,12 +1046,12 @@ sap.ui.define([
 			}
 
 			aOptionKeys.forEach(function(sOption) {
-				if (aLastOptions.indexOf(sOption) > -1) {
+				if (this.lastOptionsIndex(sOption) > -1) {
 					aLastActualOrder.push(sOption);
-				} else if (aNextOptions.indexOf(sOption) > -1) {
+				} else if (this.nextOptionsIndex(sOption) > -1) {
 					aNextActualOrder.push(sOption);
 				}
-			});
+			}.bind(this));
 
 			if (oCustomData) {
 				sSuggestionOptionKey = oCustomData.getValue();
@@ -1006,14 +1068,11 @@ sap.ui.define([
 
 			//if option requires extra formatting.
 			if (
-				this._oNavContainer && !aButtons.length ||
-				(this._oNavContainer && aButtons.length && (aLastOptionsSelectedIndex > -1 || aNextOptionsSelectedIndex > -1))
+				this._oNavContainer ||
+				(this._oNavContainer && (aLastOptionsSelectedIndex > -1 || aNextOptionsSelectedIndex > -1))
 			) {
-				iButtonSelectedIndex = aButtons[0] ? aButtons[0].getParent().getSelectedIndex() : 0;
-				if (aLastDateTimeOperators.indexOf(sOptionKey) > -1) {
-					sActualSelectedOptionKey = aLastActualOrder[iButtonSelectedIndex];
-				} else if (aNextDateTimeOperators.indexOf(sOptionKey) > -1) {
-					sActualSelectedOptionKey = aNextActualOrder[iButtonSelectedIndex];
+				if ((aLastDateTimeOperators.indexOf(sOptionKey) > -1 || aNextDateTimeOperators.indexOf(sOptionKey) > -1) && oSelect) {
+					sActualSelectedOptionKey = this._oSelectedOption.getKey().slice(0, 4) + oSelect.getSelectedKey();
 				}
 
 				if (aDateTimeOperators.indexOf(sActualSelectedOptionKey) > -1) {
@@ -1228,16 +1287,26 @@ sap.ui.define([
 					};
 				}
 
+				this._oPopup.attachBeforeOpen(function() {
+					var oValue = this.getValue(),
+						oItem;
+					if (!oValue) {
+						return;
+					}
+					oItem = this._determineOptionFocus(oValue);
+					if (oItem && oValue.operator !== "PARSEERROR") {
+						oItem.setSelected(true);
+					}
+				}, this);
+
 				this._oPopup.attachAfterOpen(function() {
 					var oToPage = this._oNavContainer.getPages()[0];
 					this._applyNavContainerPageFocus(oToPage);
-					this.invalidate();
 				}, this);
 
 				this._oPopup.attachAfterClose(function() {
 					this._oPreviousSelectedOption = this._oSelectedOption;
 					this._setFooterVisibility(false);
-					this.invalidate();
 				}, this);
 
 				this._oPopup.setBeginButton(new Button({
@@ -1489,6 +1558,9 @@ sap.ui.define([
 		DynamicDateRange.prototype._updateInternalControls = function(oOption) {
 			var bValidValueHelpUI = oOption.validateValueHelpUI(this);
 			if (bValidValueHelpUI) {
+				if (oOption.alignValueHelpUI) {
+					oOption.alignValueHelpUI(this);
+				}
 				this._updateDatesLabel();
 			}
 			this._setApplyButtonEnabled(bValidValueHelpUI);
@@ -1514,7 +1586,7 @@ sap.ui.define([
 				oPopover.getFooter().setVisible(bVisible);
 			}
 
-			oPopover.invalidate();
+			bVisible && oPopover.invalidate();
 
 			return this;
 		};
@@ -1579,7 +1651,7 @@ sap.ui.define([
 					oOption = aOptions.filter(
 						function (oItem) { return oItem.getOptionKey && oItem.getOptionKey() === aLastOptions[0];}
 					)[0];
-				} else if (aNextOptions.indexOf(oValue.operator) > -1) {
+				} else if (this.nextOptionsIndex(oValue.operator) > -1) {
 					oOption = aOptions.filter(
 						function (oItem) { return oItem.getOptionKey && oItem.getOptionKey() === aNextOptions[0];}
 					)[0];
@@ -1612,10 +1684,6 @@ sap.ui.define([
 				oElementToFocus = jQuery(oToPage.getDomRef().querySelector("section")).firstFocusableDomRef();
 			}
 
-			if (oValue && oValue.operator !== "PARSEERROR" && oElementToFocus) {
-				oElementToFocus.setSelected && oElementToFocus.setSelected(true);
-			}
-
 			if (oElementToFocus) {
 				oElementToFocus.focus();
 			}
@@ -1640,7 +1708,7 @@ sap.ui.define([
 			return LabelEnablement.getReferencingLabels(this)
 				.concat(this.getAriaLabelledBy())
 				.reduce(function(sAccumulator, sCurrent) {
-					var oCurrentControl = Element.registry.get(sCurrent);
+					var oCurrentControl = Element.getElementById(sCurrent);
 					return sAccumulator + " " + (oCurrentControl.getText ? oCurrentControl.getText() : "");
 				}, "")
 				.trim();
@@ -1911,6 +1979,28 @@ sap.ui.define([
 		};
 
 		/**
+		 * Find the index of the last X period option
+		 *
+		 * @param {string} sOption The key of the option.
+		 * @private
+		 * @returns {number} The index of the option.
+		 */
+		DynamicDateRange.prototype.lastOptionsIndex = function(sOption) {
+			return aLastOptions.concat(aLastIncludedOptions).indexOf(sOption) % aLastOptions.length;
+		};
+
+		/**
+		 * Find the index of the next X period option
+		 *
+		 * @param {string} sOption The key of the option.
+		 * @private
+		 * @returns {number} The index of the option.
+		 */
+		DynamicDateRange.prototype.nextOptionsIndex = function(sOption) {
+			return aNextOptions.concat(aNextIncludedOptions).indexOf(sOption) % aNextOptions.length;
+		};
+
+		/**
 		 * Returns a date range from a provided object in the format of the DynamicDateRange's value.
 		 * @example
 		 * var aDates = DynamicDateRange.toDates({operator: StandardDynamicDateRangeKeys.TODAY, values: []});
@@ -2020,6 +2110,19 @@ sap.ui.define([
 		DynamicDateRangeInput.prototype.preventChangeOnFocusLeave = function(oEvent) {
 			return this.bFocusoutDueRendering;
 		};
+
+		DynamicDateRangeInput.prototype.onsapshow = function(oEvent) {
+			if (!this.getEnabled() || !this.getEditable()) {
+				return;
+			}
+
+			this.bValueHelpRequested = true;
+			this._fireValueHelpRequest(false);
+			oEvent.preventDefault();
+			oEvent.stopPropagation();
+		};
+
+		DynamicDateRangeInput.prototype.onsaphide = DynamicDateRangeInput.prototype.onsapshow;
 
 		DynamicDateRangeInput.prototype.shouldSuggetionsPopoverOpenOnMobile = function(oEvent) {
 			var bIsClickedOnIcon = oEvent.srcControl instanceof Icon;

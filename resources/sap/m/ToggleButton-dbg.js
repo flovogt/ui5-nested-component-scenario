@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -10,9 +10,10 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/EnabledPropagator',
 	'./ToggleButtonRenderer',
+	"sap/ui/core/Lib",
 	"sap/ui/events/KeyCodes"
 ],
-	function(Button, library, EnabledPropagator, ToggleButtonRenderer, KeyCodes) {
+	function(Button, library, EnabledPropagator, ToggleButtonRenderer, Library, KeyCodes) {
 	"use strict";
 
 
@@ -32,7 +33,7 @@ sap.ui.define([
 	 * @extends sap.m.Button
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -146,7 +147,7 @@ sap.ui.define([
 		var oInfo = Button.prototype.getAccessibilityInfo.apply(this, arguments);
 		if (this.getPressed()) {
 			oInfo.description = ((oInfo.description || "") + " " +
-				sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("ACC_CTR_STATE_PRESSED")).trim();
+				Library.getResourceBundleFor("sap.m").getText("ACC_CTR_STATE_PRESSED")).trim();
 		}
 		return oInfo;
 	};

@@ -1,28 +1,38 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
-	"sap/ui/Global",
+	"sap/base/i18n/Formatting",
+	"sap/base/i18n/Localization",
+	"sap/ui/VersionInfo",
 	"sap/ui/core/AnimationMode",
 	"sap/ui/core/Configuration",
 	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Core",
 	"sap/ui/core/Element",
 	"sap/ui/core/ElementMetadata",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Locale",
 	"sap/ui/core/Supportability",
 	"sap/ui/core/Theming",
 	"sap/base/util/LoaderExtensions",
 	"sap/ui/thirdparty/jquery"
 ],
 	function(
-		Global,
+		Formatting,
+		Localization,
+		VersionInfo,
 		AnimationMode,
 		Configuration,
 		ControlBehavior,
+		Core,
 		Element,
 		ElementMetadata,
+		Lib,
+		Locale,
 		Supportability,
 		Theming,
 		LoaderExtensions,
@@ -40,7 +50,7 @@ sap.ui.define([
 		 * @private
 		 */
 		function _getLibraries() {
-			var libraries = Global.versioninfo ? Global.versioninfo.libraries : undefined;
+			var libraries = VersionInfo._content ? VersionInfo._content.libraries : undefined;
 			var formattedLibraries = Object.create(null);
 
 			if (libraries !== undefined) {
@@ -58,10 +68,10 @@ sap.ui.define([
 		 * @private
 		 */
 		function _getLoadedLibraries() {
-			var libraries = sap.ui.getCore().getLoadedLibraries();
+			var libraries = Lib.all();
 			var formattedLibraries = Object.create(null);
 
-			Object.keys(sap.ui.getCore().getLoadedLibraries()).forEach(function (element, index, array) {
+			Object.keys(Lib.all()).forEach(function (element, index, array) {
 				formattedLibraries[element] = libraries[element].version;
 			});
 
@@ -88,9 +98,9 @@ sap.ui.define([
 		function _getFrameworkInformation() {
 			return {
 				commonInformation: {
-					version: Global.version,
-					buildTime: Global.buildinfo.buildtime,
-					lastChange: Global.buildinfo.lastchange,
+					version: Core.version,
+					buildTime: Core.buildinfo.buildtime,
+					lastChange: Core.buildinfo.lastchange,
 					jquery: jQuery.fn.jquery,
 					userAgent: navigator.userAgent,
 					applicationHREF: window.location.href,
@@ -102,15 +112,18 @@ sap.ui.define([
 				configurationBootstrap: window['sap-ui-config'] || Object.create(null),
 				configurationComputed: {
 					theme: Theming.getTheme(),
-					language: Configuration.getLanguage(),
-					formatLocale: Configuration.getFormatLocale(),
+					language: Localization.getLanguage(),
+					formatLocale: new Locale(Formatting.getLanguageTag()),
 					accessibility: ControlBehavior.isAccessibilityEnabled(),
 					animation: (ControlBehavior.getAnimationMode() !== AnimationMode.minimal &&
 								ControlBehavior.getAnimationMode() !== AnimationMode.none),
-					rtl: Configuration.getRTL(),
+					rtl: Localization.getRTL(),
 					debug: Supportability.isDebugModeEnabled(),
 					inspect: Supportability.isControlInspectorEnabled(),
 					originInfo: Supportability.collectOriginInfo(),
+					/**
+					 * @deprecated
+					 */
 					noDuplicateIds: Configuration.getNoDuplicateIds()
 				},
 				libraries: _getLibraries(),
@@ -139,9 +152,11 @@ sap.ui.define([
 				var childNode = node.firstElementChild;
 				var results = resultArray;
 				var subResult = results;
-				var control = Element.getElementById(node.id);
+				var related = node.getAttribute('data-sap-ui-related');
+				var id = related ? related : node.id;
+				var control = Element.getElementById(id);
 
-				if (node.getAttribute('data-sap-ui') && control) {
+				if ((node.getAttribute('data-sap-ui') || node.getAttribute('data-sap-ui-related')) && control) {
 					results.push({
 						id: control.getId(),
 						name: control.getMetadata().getName(),

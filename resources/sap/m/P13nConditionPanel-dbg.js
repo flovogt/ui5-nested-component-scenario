@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,6 +8,7 @@
 
 sap.ui.define([
 	'./library',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'sap/ui/core/Control',
 	'sap/ui/core/IconPool',
@@ -47,6 +48,7 @@ sap.ui.define([
 	'sap/m/P13nConditionPanelRenderer'
 ], function(
 	library,
+	Library,
 	coreLibrary,
 	Control,
 	IconPool,
@@ -112,12 +114,12 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The ConditionPanel Control will be used to implement the Sorting, Filtering and Grouping panel of the new Personalization dialog.
 	 * @extends sap.ui.core.Control
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @constructor
 	 * @public
 	 * @since 1.26.0
-	 * @experimental since version 1.26 !!! THIS CONTROL IS ONLY FOR INTERNAL USE !!!
 	 * @alias sap.m.P13nConditionPanel
+	 * @deprecated As of version 1.124, replaced by the artifacts in {@link sap.m.p13n}.
 	 */
 	var P13nConditionPanel = Control.extend("sap.m.P13nConditionPanel", /** @lends sap.m.P13nConditionPanel.prototype */ {
 		metadata: {
@@ -711,7 +713,7 @@ sap.ui.define([
 	 */
 	P13nConditionPanel.prototype.init = function() {
 		// init some resources
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = Library.getResourceBundleFor("sap.m");
 		this._sFromLabelText = this._oRb.getText("CONDITIONPANEL_LABELFROM");
 		this._sToLabelText = this._oRb.getText("CONDITIONPANEL_LABELTO");
 		this._sValueLabelText = this._oRb.getText("CONDITIONPANEL_LABELVALUE");
@@ -794,8 +796,7 @@ sap.ui.define([
 
 		this._oPrevButton = new Button({
 			icon: IconPool.getIconURI("navigation-left-arrow"),
-			//tooltip: "Show Previous",
-			tooltip: this._oRb.getText("WIZARD_FINISH"), //TODO create new resoucre
+			tooltip: this._oRb.getText("p13n.PREVIOUS"),
 			visible: true,
 			press: function(oEvent) {
 				that._iFirstConditionIndex = Math.max(0, that._iFirstConditionIndex - that._iConditionPageSize);
@@ -809,8 +810,7 @@ sap.ui.define([
 
 		this._oNextButton = new Button({
 			icon: IconPool.getIconURI("navigation-right-arrow"),
-			//tooltip: "Show Next",
-			tooltip: this._oRb.getText("WIZARD_NEXT"), //TODO create new resoucre
+			tooltip: this._oRb.getText("p13n.NEXT"),
 			visible: true,
 			press: function(oEvent) {
 				that._iFirstConditionIndex += that._iConditionPageSize;
@@ -2602,7 +2602,7 @@ sap.ui.define([
 	 * e.g. in the BT condition one or both of the values is/are empty of for other condition operations the value1 field is not filled.
 	 *
 	 * @private
-	 * @param {Grid} oConditionGrid which contains the fields of a single condition
+	 * @param {sap.ui.layout.Grid} oConditionGrid which contains the fields of a single condition
 	 * @param {boolean} isLast indicated if this is the last condition in the group
 	 * @returns {boolean} true, when the condition is filled correct, else false.
 	 */
@@ -2744,7 +2744,7 @@ sap.ui.define([
 
 	// Replase $r params in operation by resource bundle text
 	(function() {
-		var _oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var _oRb = Library.getResourceBundleFor("sap.m");
 		P13nConditionPanel._oConditionMap[P13nConditionOperation.Empty] = P13nConditionPanel._oConditionMap[P13nConditionOperation.Empty].replace("$r", _oRb.getText("CONDITIONPANEL_OPTIONEmpty"));
 	})();
 

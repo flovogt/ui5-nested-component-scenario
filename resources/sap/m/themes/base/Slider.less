@@ -3,34 +3,42 @@
 /* Base theme                    */
 /* ============================= */
 
-/* ------------------------------ */
-/* Slider commons styles          */
-/* ------------------------------ */
+/* Slider commons styles */
+
+@_sap_m_Slider_Height: 3rem;
+@_sap_m_Slider_Height_Compact: 2rem;
+@_sap_m_Slider_Progress: .1875rem;
+@_sap_m_Slider_Progress_Border: 0px;
+@_sap_m_Slider_Top_Bottom_Padding: calc(@_sap_m_Slider_Height - @_sap_m_Slider_Progress - (2 * @_sap_m_Slider_Progress_Border));
+@_sap_m_Slider_Top_Bottom_Padding_Compact: calc(@_sap_m_Slider_Height_Compact - @_sap_m_Slider_Progress - (2 * @_sap_m_Slider_Progress_Border));
 
 .sapMSlider {
 	display: inline-block;
 	vertical-align: top;
 	box-sizing: border-box;
 	position: relative;
-	padding: 1.406rem 1.0625rem;
+	height: @_sap_m_Slider_Height;
+	padding: calc(@_sap_m_Slider_Top_Bottom_Padding ~"/" 2) 1.0625rem;
 	z-index: 0;
 }
 
 .sapMSliderInner {
 	width: 100%;
+	height: @_sap_m_Slider_Progress;
+	min-width: 4rem;
+	border-radius: 0.25rem;
 	position: relative;
 	background-repeat: no-repeat;
 	z-index: 1;
-	min-width: 4rem;
+	box-sizing: border-box;
 }
 
 .sapUiLocalBusy .sapMSliderInner {
 	z-index: 0;
 }
 
-.sapMSliderInner,
 .sapMSliderProgress {
-	height: 0.25rem;
+	height: 100%;
 	border-radius: 0.25rem;
 }
 
@@ -65,16 +73,15 @@
 .sapMSliderTick {
 	display: inline-block;
 	height: 1rem;
-	border-left: 0.0625rem solid @sapUiFieldBorderColor;
+	border-left: 0.0625rem solid var(--sapField_BorderColor);
 	margin: 0.4375rem 0 0 -0.0625rem;
 }
-
 
 .sapMSliderTickLabel {
 	display: inline-block;
 	position: absolute;
 	width: 0.0625rem;
-	background-color: @sapUiFieldBorderColor;
+	background-color: var(--sapField_BorderColor);
 	margin: 0 0 0 -0.0625rem;
 
 	&:last-child {
@@ -99,9 +106,9 @@
 
 /* slider progress bar */
 .sapMSliderProgress {
-	background: @sapUiFieldActiveBorderColor;
+	background: var(--sapField_Active_BorderColor);
 
-	&:before{
+	&::before {
 		content: '';
 		position: absolute;
 		width: 100%;
@@ -128,10 +135,10 @@
 	border-bottom-right-radius: 1rem;
 	border-bottom-left-radius: 1rem;
 
-	&:focus:before {
+	&:focus::before {
 		content: '';
 		position: absolute;
-		border: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
+		border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
 		border-radius: 50%;
 		pointer-events: none;
 		top: -0.25rem;
@@ -141,16 +148,14 @@
 	}
 }
 
-/* ============ */
 /* compact size */
-/* ============ */
 
 /* slider */
 .sapUiSizeCompact {
+
 	.sapMSlider {
-		height: 2rem;
-		padding-top: 1rem;
-		padding-bottom: 1rem;
+		height: @_sap_m_Slider_Height_Compact;
+		padding: calc(@_sap_m_Slider_Top_Bottom_Padding_Compact ~"/" 2) .875rem;
 	}
 
 	/* slider handle */

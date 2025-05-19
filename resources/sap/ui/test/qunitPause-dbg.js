@@ -1,12 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /*global QUnit */
-sap.ui.define("sap/ui/test/qunitPause", [
-], function () {
+(function() {
 	"use strict";
 
 	var PAUSE_RULES = {
@@ -225,7 +224,7 @@ sap.ui.define("sap/ui/test/qunitPause", [
 		});
 	}
 
-	return {
+	const qunitPause = {
 		PAUSE_RULES: PAUSE_RULES,
 		paused: paused,
 		get pauseRule() {
@@ -250,4 +249,11 @@ sap.ui.define("sap/ui/test/qunitPause", [
 		emitResume: emitResume,
 		pollForQUnitDone: pollForQUnitDone
 	};
-}, true);
+
+	setupBeforeQUnit();
+	sap.ui.loader._.defineModuleSync("sap/ui/test/qunitPause.js", qunitPause);
+	/** @deprecated */
+	sap.ui.test ??= {};
+	/** @deprecated */
+	sap.ui.test.qunitPause = qunitPause;
+}());

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,7 +23,7 @@ sap.ui.define(['sap/ui/core/Element',
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -41,23 +41,20 @@ sap.ui.define(['sap/ui/core/Element',
 
 				/**
 				 * Determines additional text to be displayed for the item.
-				 * @experimental
-				 * since 1.63 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+				 * @since 1.63
 				 */
 				additionalText : {type : "string", group : "Misc", defaultValue : ""},
 
 				/**
 				 * Defines the icon to be displayed as graphical element within the <code>TabContainerItem</code>.
 				 * It can be an image or an icon from the icon font.
-				 * @experimental
-				 * since 1.63 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
-				 */
+				 * @since 1.63
+				 * */
 				icon : {type : "sap.ui.core.URI", group : "Appearance", defaultValue : null},
 
 				/**
 				 * Determines the tooltip text of the <code>TabContainerItem</code>'s icon.
-				 * @experimental
-				 * since 1.63 Disclaimer: this property is in a beta state - incompatible API changes may be done before its official public release. Use at your own discretion.
+				 * @since 1.63
 				 */
 				iconTooltip : {type : "string", group : "Accessibility", defaultValue : null},
 
@@ -84,11 +81,19 @@ sap.ui.define(['sap/ui/core/Element',
 				 */
 				_image: {type: "sap.ui.core.Control", multiple: false, visibility: "hidden"}
 			},
+			associations : {
+				/**
+				 * Internal association for managing the tab strip item element.
+				 */
+				_tabStripItem : {type : "sap.ui.core.Control", multiple : false, visibility : "hidden"}
+
+			},
 			events : {
 
 				/**
 				 * Sends information that some of the properties have changed.
 				 * @private
+				 * @ui5-restricted sap.m.TabContainerItem
 				 */
 				itemPropertyChanged : {
 					parameters: {
@@ -112,6 +117,18 @@ sap.ui.define(['sap/ui/core/Element',
 			},
 			dnd: { draggable: true, droppable: false }
 		}});
+
+		TabContainerItem.prototype.init = function() {
+			var oTabStripItem = new TabStripItem();
+			this.setAssociation("_tabStripItem", oTabStripItem, true);
+		};
+
+		TabContainerItem.prototype.exit = function() {
+			var oTabStripItem = this._getTabStripItem();
+			if (oTabStripItem) {
+				oTabStripItem.destroy();
+			}
+		};
 
 		/**
 		 * Overwrites the method in order to suppress invalidation for some properties.
@@ -180,6 +197,26 @@ sap.ui.define(['sap/ui/core/Element',
 		TabContainerItem.prototype._getImage = function () {
 			return this.getAggregation("_image");
 		};
+
+		/**
+		 * Gets a reference to the instance of the TabStripItem.
+		 * @returns {sap.m.TabStripItem} The tab strip item instance.
+		 */
+		TabContainerItem.prototype._getTabStripItem = function () {
+			return Element.getElementById(this.getAssociation("_tabStripItem"));
+		};
+
+		// Override customData getters/setters to forward the customData added to TabContainerItem to the internal TabStripItem
+		["addCustomData", "getCustomData", "destroyCustomData", "indexOfCustomData",
+		 "insertCustomData", "removeAllCustomData", "removeCustomData", "data"].forEach(function(sName){
+			TabContainerItem.prototype[sName] = function() {
+				var oTabStripItem = this._getTabStripItem();
+				if (oTabStripItem && oTabStripItem[sName]) {
+					var res = oTabStripItem[sName].apply(oTabStripItem, arguments);
+					return res === oTabStripItem ? this : res;
+				}
+			};
+		});
 
 		return TabContainerItem;
 });

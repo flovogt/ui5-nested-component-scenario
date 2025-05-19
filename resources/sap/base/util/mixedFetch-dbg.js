@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -39,7 +39,6 @@ sap.ui.define([
 	 * @return {Promise<module:sap/base/util/SimpleResponse>|sap.ui.base.SyncPromise<module:sap/base/util/SimpleResponse>} Returns a Promise or SyncPromise resolving with a <code>SimpleResponse</code> object
 	 *
 	 * @alias module:sap/base/util/mixedFetch
-	 * @deprecated As of Version 1.120
 	 * @private
 	 * @ui5-restricted sap.ui.core, sap.ui.model
 	 */

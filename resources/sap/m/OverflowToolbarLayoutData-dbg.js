@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,7 @@ sap.ui.define(['sap/m/ToolbarLayoutData', 'sap/m/library', "sap/base/Log"],
 	 * Holds layout data for the {@link sap.m.OverflowToolbar} items.
 	 * @extends sap.m.ToolbarLayoutData
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -36,14 +36,14 @@ sap.ui.define(['sap/m/ToolbarLayoutData', 'sap/m/library', "sap/base/Log"],
 			/**
 			 * The OverflowToolbar item can or cannot move to the overflow area
 			 *
-			 * @deprecated Since version 1.32
+			 * @deprecated Since version 1.32. Use {@link sap.m.OverflowToolbarPriority} instead.
 			 */
 			moveToOverflow : {type: "boolean", defaultValue: true, deprecated: true},
 
 			/**
 			 * The OverflowToolbar item can or cannot stay in the overflow area
 			 *
-			 * @deprecated Since version 1.32
+			 * @deprecated Since version 1.32. Use {@link sap.m.OverflowToolbarPriority} instead.
 			 */
 			stayInOverflow : {type: "boolean", defaultValue: false, deprecated: true},
 
@@ -92,7 +92,7 @@ sap.ui.define(['sap/m/ToolbarLayoutData', 'sap/m/library', "sap/base/Log"],
 		return ToolbarLayoutData.prototype.invalidate.call(this);
 	};
 
-	/**
+	/*
 	 * @override
 	 */
 	OverflowToolbarLayoutData.prototype.setPriority = function (sPriority) {

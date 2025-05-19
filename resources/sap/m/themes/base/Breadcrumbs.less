@@ -10,8 +10,6 @@
 	margin: 0 0 0.5rem 0;
 
 	> ol {
-		display: -webkit-box; /* OLD - iOS 6-, Safari 3.1-6 */
-		display: -webkit-flex; /* NEW - Chrome */
 		display: flex;
 		margin: 0;
 		padding: 0;
@@ -41,28 +39,32 @@
 
 		&.sapMSltFocused,
 		&:hover {
-			.sapMSltIcon:before {
+
+			.sapMSltIcon::before {
 				color: @sapUiLinkHover;
 				border-bottom: 0.0625rem solid @sapUiLinkHover;
 			}
 		}
 	}
 
-	.sapMSltIcon:before {
-		font-family: SAP-icons;
+	.sapMSltIcon::before {
+		font-family: var(--sapContent_IconFontFamily);
 		vertical-align: super;
-		color: @sapUiLink;
+		color: var(--sapLinkColor);
 		speak: none;
 		content: "...\e1ef";
 		font-size: @sapMFontMediumSize;
 		padding-bottom: 0.0625rem;
 	}
 
-	.sapMLnk, .sapMBreadcrumbsCurrentLocation, .sapMSlt, .sapMBreadcrumbsSeparator {
+	.sapMLnk,
+	.sapMBreadcrumbsCurrentLocation,
+	.sapMSlt,
+	.sapMBreadcrumbsSeparator {
 		vertical-align: middle;
 	}
 
-	.sapMBreadcrumbsItem  {
+	.sapMBreadcrumbsItem {
 		-webkit-flex-shrink: 0;
 		flex-shrink: 0;
 	}
@@ -80,17 +82,17 @@
 	}
 
 	.sapMBreadcrumbsCurrentLocation {
-		font-weight: normal;
-		color: @sapUiContentLabelColor;
+		color: var(--sapContent_LabelColor);
 
 		&:focus {
-			outline: 1px dotted @sapUiContentFocusColor;
+			outline: 1px dotted var(--sapContent_FocusColor);
 			outline-offset: -1px;
 		}
 	}
 
 	.sapMBreadcrumbsItem {
-		display: inline;
+		display: inline-flex;
+		align-items: center;
 		padding: 0;
 		margin: 0;
 		vertical-align: middle;
@@ -102,8 +104,14 @@
 		font-size: @sapMFontMediumSize;
 	}
 
-	.sapMBreadcrumbsItem, .sapMBreadcrumbsSeparator {
-		color: @sapUiContentLabelColor;
+	.sapMBreadcrumbsItem,
+	.sapMBreadcrumbsSeparator {
+		color: var(--sapContent_LabelColor);
+	}
+
+	.sapMBreadcrumbsItem .sapMBreadcrumbsLink {
+		padding-top: 0.25rem;
+		padding-bottom: 0.25rem;
 	}
 }
 

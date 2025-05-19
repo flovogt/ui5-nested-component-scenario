@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,14 +9,16 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/Core',
 	'sap/ui/core/Control',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
+	"sap/ui/core/Theming",
 	'sap/m/Image',
 	'sap/m/ShellRenderer',
 	"sap/ui/util/Mobile",
 	"sap/base/Log",
 	"sap/ui/core/theming/Parameters"
 ],
-	function(library, Core, Control, coreLibrary, Image, ShellRenderer, Mobile, Log, ThemeParameters) {
+	function(library, Core, Control, Library, coreLibrary, Theming, Image, ShellRenderer, Mobile, Log, ThemeParameters) {
 		"use strict";
 
 
@@ -36,7 +38,7 @@ sap.ui.define([
 		 * The Shell control can be used as root element of applications. It can contain an App or a <code>SplitApp</code> control.
 		 * The Shell provides some overarching functionality for the overall application and takes care of visual adaptation, such as a frame around the App, on desktop browser platforms.
 		 * @extends sap.ui.core.Control
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -156,24 +158,30 @@ sap.ui.define([
 			renderer: ShellRenderer
 		});
 
+		Shell.prototype._getGlobalLogo = function() {
+			return ThemeParameters.get({
+				name: ["sapUiGlobalLogo"],
+				_restrictedParseUrls: true
+			});
+		};
 
 		Shell.prototype.init = function() {
 			// theme change might change the logo
-			Core.attachThemeChanged(function(){
-				var $hdr = this.$("hdr"),
-					sImgSrc = this._getImageSrc();
-
-				if ($hdr.length && sImgSrc) {
-					this._getImage().setSrc(sImgSrc);
-					this._getImage().rerender();
-				}
-			}, this);
-
+			Theming.attachApplied(this._onThemeChanged.bind(this));
 
 			Mobile.init({
 				statusBar: "default",
 				hideBrowser: true
 			});
+		};
+
+		Shell.prototype._onThemeChanged = function () {
+			var $hdr = this.$("hdr"),
+					sImgSrc = this._getImageSrc();
+
+				if ($hdr.length && sImgSrc) {
+					this._getImage().setSrc(sImgSrc);
+				}
 		};
 
 		Shell.prototype.onBeforeRendering = function() {
@@ -268,7 +276,7 @@ sap.ui.define([
 			if (!this.oImg) {
 				this.oImg = new Image(this.getId() + "-logo", {
 					decorative: false,
-					alt: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("SHELL_ARIA_LOGO")
+					alt: Library.getResourceBundleFor("sap.m").getText("SHELL_ARIA_LOGO")
 				});
 
 				this.oImg.addStyleClass("sapMShellLogoImg");
@@ -278,7 +286,7 @@ sap.ui.define([
 		};
 
 		Shell.prototype._getImageSrc = function() {
-			return this.getLogo() ? this.getLogo() : ThemeParameters._getThemeImage();
+			return this.getLogo() ? this.getLogo() : this._getGlobalLogo();
 		};
 
 		return Shell;

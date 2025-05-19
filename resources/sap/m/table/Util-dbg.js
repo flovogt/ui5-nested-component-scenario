@@ -1,19 +1,26 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/base/i18n/Localization",
 	"sap/m/library",
-	"sap/ui/core/Core",
+	"sap/ui/core/Lib",
+	"sap/ui/core/Locale",
 	"sap/ui/core/LocaleData",
+	"sap/ui/core/syncStyleClass",
 	"sap/ui/core/Theming",
 	"sap/ui/core/theming/Parameters",
 	"sap/m/IllustratedMessage",
 	"sap/m/Button",
+	"sap/m/CustomListItem",
+	"sap/m/HBox",
+	"sap/m/ResponsivePopover",
+	"sap/m/Text",
 	"sap/ui/core/InvisibleMessage"
-], function(MLibrary, Core, LocaleData, Theming, ThemeParameters, IllustratedMessage, Button, InvisibleMessage) {
+], function(Localization, MLibrary, Library, Locale, LocaleData, syncStyleClass, Theming, ThemeParameters, IllustratedMessage, Button, CustomListItem, HBox, ResponsivePopover, Text, InvisibleMessage) {
 	"use strict";
 	/*global Intl*/
 
@@ -21,9 +28,9 @@ sap.ui.define([
 	 * Provides utility functions for tables.
 	 *
 	 * @namespace
-	 * @alias module:sap/m/table/Util
+	 * @alias sap.m.table.Util
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @since 1.96.0
 	 * @private
 	 * @ui5-restricted sap.fe, sap.ui.mdc, sap.ui.comp
@@ -76,7 +83,6 @@ sap.ui.define([
 	 * @private
 	 */
 	Util.calcTypeWidth = (function() {
-		const oTimezones = LocaleData.getInstance(Core.getConfiguration().getLocale()).getTimezoneTranslations();
 		let sLongestTimezone;
 		var fBooleanWidth = 0;
 		var aDateParameters = [2023, 9, 26, 22, 47, 58, 999];
@@ -87,6 +93,7 @@ sap.ui.define([
 
 		const getLongestTimezone = function() {
 			if (!sLongestTimezone) {
+				const oTimezones = LocaleData.getInstance(new Locale(Localization.getLanguageTag())).getTimezoneTranslations();
 				[sLongestTimezone] = Object.entries(oTimezones).reduce(([sTimezone, iLength], [sKey, sValue]) => {
 					return typeof sValue === "string" && sValue.length > iLength ? [sKey, sValue.length] : [sTimezone, iLength];
 				}, ["", 0]);
@@ -105,7 +112,7 @@ sap.ui.define([
 
 			if (sType == "Boolean") {
 				if (!fBooleanWidth) {
-					var oResourceBundle = Core.getLibraryResourceBundle("sap.ui.core");
+					var oResourceBundle = Library.getResourceBundleFor("sap.ui.core");
 					var fYesWidth = Util.measureText(oResourceBundle.getText("YES"));
 					var fNoWidth = Util.measureText(oResourceBundle.getText("NO"));
 					fBooleanWidth = Math.max(fYesWidth, fNoWidth);
@@ -173,6 +180,7 @@ sap.ui.define([
 	 * @param {int} [iMaxWidth=19] The maximum header width in rem
 	 * @param {int} [iMinWidth=2] The minimum header width in rem
 	 * @param {boolean} [bRequired=false] Determines whether the given column header is marked as required
+	 * @param {boolean} [bHasAction=false] Whether there is an action button on the column header
 	 * @returns {float} The calculated header width in rem
 	 * @private
 	 * @ui5-restricted sap.ui.comp
@@ -198,7 +206,7 @@ sap.ui.define([
 			sRequiredFont = "";
 		});
 
-		return function(sHeader, fContentWidth, iMaxWidth, iMinWidth, bRequired) {
+		return function(sHeader, fContentWidth, iMaxWidth, iMinWidth, bRequired, bHasAction) {
 			var iHeaderLength = sHeader.length;
 			var fRequired = 0;
 			iMaxWidth = iMaxWidth || 19;
@@ -214,19 +222,18 @@ sap.ui.define([
 			if (bRequired) {
 				fRequired = 0.125 /* margin */ + Util.measureText("*", fnGetRequiredFont());
 			}
+			if (bHasAction) {
+				fRequired += 1.75;
+			}
 
 			if (!fContentWidth) {
 				var fHeaderWidth = Util.measureText(sHeader, fnGetHeaderFont());
 				return fHeaderWidth + fRequired;
 			}
 
-			fContentWidth = Math.max(fContentWidth, iMinWidth);
-			if (fContentWidth > iHeaderLength) {
-				return fContentWidth;
-			}
-
 			var fOrigHeaderWidth = Util.measureText(sHeader, fnGetHeaderFont());
 			fOrigHeaderWidth = Math.min(fOrigHeaderWidth, iMaxWidth * 0.7);
+			fContentWidth = Math.max(fContentWidth, iMinWidth);
 
 			var fContentHeaderRatio = Math.max(1, 1 - (Math.log(Math.max(fContentWidth - 1.7, 0.2)) / Math.log(iMaxWidth * 0.5)) + 1);
 			var fMaxHeaderWidth = fContentHeaderRatio * fContentWidth;
@@ -247,8 +254,9 @@ sap.ui.define([
 	 * @param {int} [mSettings.maxWidth=19] The maximum content width of the field in rem
 	 * @param {int} [mSettings.padding=1.0625] The sum of column padding(1rem) and border(1px) in rem
 	 * @param {float} [mSettings.gap=0] The additional content width in rem
+	 * @param {float} [mSettings.hasAction=false] Whether there is an action button on the column header
 	 * @param {boolean} [mSettings.headerGap=false] Whether icons in the header should be taken into account
-	 * @param {boolean} [mSettings.truncateLabel=true] Whether the header of the column can be truncated or not
+	 * @param {boolean} [mSettings.truncateLabel=true] Whether the header of the column can be truncated in the boundaries of <code>minWidth</code> and <code>maxWidth</code>
 	 * @param {boolean} [mSettings.verticalArrangement=false] Whether the fields are arranged vertically
 	 * @param {boolean} [mSettings.required=false] Indicates the state of the column header as defined by the <code>required</code> property
 	 * @param {int} [mSettings.defaultWidth=8] The default column content width when type check fails
@@ -295,7 +303,7 @@ sap.ui.define([
 		}, 0);
 
 		if (sHeader) {
-			fHeaderWidth = Util.calcHeaderWidth(sHeader, (mSettings.truncateLabel ? fContentWidth : 0), iMaxWidth, iMinWidth, mSettings.required);
+			fHeaderWidth = Util.calcHeaderWidth(sHeader, (mSettings.truncateLabel ? fContentWidth : 0), iMaxWidth, iMinWidth, mSettings.required, mSettings.hasAction);
 			fHeaderWidth += mSettings.headerGap ? (8 /* padding */ + 14 /* icon width */) / fBaseFontSize : 0;
 		}
 
@@ -314,10 +322,10 @@ sap.ui.define([
 	 * @private
 	 */
 	Util.getNoColumnsIllustratedMessage = function(fnAddColumn) {
-		var oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+		var oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 		var oIllustratedMessage = new IllustratedMessage({
-			illustrationType: MLibrary.IllustratedMessageType.AddColumn,
+			illustrationType: MLibrary.IllustratedMessageType.AddingColumns,
 			title: oResourceBundle.getText("TABLE_NO_COLUMNS_TITLE"),
 			description: oResourceBundle.getText("TABLE_NO_COLUMNS_DESCRIPTION")
 		});
@@ -345,32 +353,28 @@ sap.ui.define([
 			return pGetSelectAllPopover;
 		}
 
-		pGetSelectAllPopover = Promise.all(
-			[new Promise(function(fnResolve) {
-				sap.ui.require([
-					"sap/m/Popover",
-					"sap/m/Bar",
-					"sap/m/HBox",
-					"sap/m/Title",
-					"sap/ui/core/Icon",
-					"sap/ui/core/library",
-					"sap/m/Text"
-				], function(Popover, Bar, HBox, Title, Icon, coreLib, Text) {
-					fnResolve({
-						Popover: Popover,
-						Bar: Bar,
-						HBox: HBox,
-						Title: Title,
-						Icon: Icon,
-						coreLib: coreLib,
-						Text: Text
-					});
+		pGetSelectAllPopover = (new Promise(function(fnResolve) {
+			sap.ui.require([
+				"sap/m/Popover",
+				"sap/m/Bar",
+				"sap/m/HBox",
+				"sap/m/Title",
+				"sap/ui/core/Icon",
+				"sap/ui/core/library",
+				"sap/m/Text"
+			], function(Popover, Bar, HBox, Title, Icon, coreLib, Text) {
+				fnResolve({
+					Popover: Popover,
+					Bar: Bar,
+					HBox: HBox,
+					Title: Title,
+					Icon: Icon,
+					coreLib: coreLib,
+					Text: Text
 				});
-			}),
-			Core.getLibraryResourceBundle('sap.m', true)
-		]).then(function(aResult) {
-			var oModules = aResult[0];
-			var oResourceBundle = aResult[1];
+			});
+		})).then(function(oModules) {
+			var oResourceBundle = Library.getResourceBundleFor("sap.m");
 			var sIconColor = oModules.coreLib.IconColor.Critical,
 			sTitleLevel = oModules.coreLib.TitleLevel.H2;
 
@@ -414,6 +418,9 @@ sap.ui.define([
 			var sMessage = oResourceBundle.getText("TABLE_SELECT_LIMIT", [iLimit]);
 			oPopover.getContent()[0].setText(sMessage); //Content contains a single text element
 			if (oSelectAllDomRef) {
+				oPopover.attachEventOnce("afterOpen", function() {
+					InvisibleMessage.getInstance().announce(sMessage);
+				});
 				oPopover.openBy(oSelectAllDomRef);
 			}
 		});
@@ -438,14 +445,14 @@ sap.ui.define([
 	 * @param {string} sText The header text to be announced
 	 * @param {int|undefined} iRowCount The row count. If not provided, the row count will not be announced
 	 * @private
-	 * @ui5-restricted sap.fe, sap.ui.mdc, sap.ui.comp
+	 * @ui5-restricted sap.fe, sap.ui.mdc, sap.ui.comp, sap.m.p13n
 	 * @since 1.114
 	 */
 	Util.announceTableUpdate = function(sText, iRowCount) {
 		var oInvisibleMessage = InvisibleMessage.getInstance();
 
 		if (oInvisibleMessage) {
-			var oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+			var oResourceBundle = Library.getResourceBundleFor("sap.m");
 
 			if (iRowCount == undefined) {
 				oInvisibleMessage.announce(oResourceBundle.getText("table.ANNOUNCEMENT_TABLE_UPDATED", [sText]));
@@ -484,6 +491,98 @@ sap.ui.define([
 		return iRowCount <= 0;
 	};
 
-	return Util;
+	/**
+	 * Checks whether the binding supports exporting the table data.
+	 * This can be used to define the enabled property of the export
+	 * button.
+	 *
+	 * @param {sap.ui.model.Binding} oBinding The row binding
+	 * @returns {boolean} Whether the binding can be used for exporting
+	 * @private
+	 * @ui5-restricted sap.ui.mdc, sap.ui.comp
+	 * @since 1.121
+	 */
+	Util.isExportable = function(oBinding) {
+		return !Util.isEmpty(oBinding)
+			&& (!oBinding?.getDownloadUrl
+				|| (oBinding.isResolved() && oBinding.getDownloadUrl() !== null));
+	};
 
+	/**
+	 * Informs whether the current theme is fully applied already.
+	 * Replacement for Core#isThemeApplied
+	 *
+	 * @private
+	 * @since 1.121
+	 */
+	Util.isThemeApplied = function() {
+		var bIsApplied = false;
+		var fnOnThemeApplied = function() {
+			bIsApplied = true;
+		};
+		Theming.attachApplied(fnOnThemeApplied); // Will be called immediately when theme is applied
+		Theming.detachApplied(fnOnThemeApplied);
+		return bIsApplied;
+	};
+
+	/**
+	 * Creates or updates a popover with an embedded list control showing accumulated values and units of a column
+	 * @param {sap.m.ResponsivePopover | string} vPopover Pass an ID to create a new popover or pass an existing popover to update it. The popover instance must have been created by this util and must not have been modified
+	 * @param {object} mSettings Settings object containing various binding infos needed to create or update the popover and it's contents
+	 * @param {sap.ui.core.Control} mSettings.control Control whose style is synced to the popover
+	 * @param {sap.ui.base.ManagedObject.AggregationBindingInfo} mSettings.itemsBindingInfo Containing the binding information for the items (e. g. path, filters, selected parameters)
+	 * @param {object} mSettings.listItemContentTemplate Template of the popover item content
+	 * @param {boolean} [mSettings.grandTotal] Whether the popover is related to a grand total. By default, the popover is configured as if it is related to a subtotal
+	 * @returns {Promise<sap.m.ResponsivePopover>} Popover control with the embedded list
+	 * @private
+	 * @ui5-restricted sap.fe
+	 */
+	Util.createOrUpdateMultiUnitPopover = async function(vPopover, mSettings) {
+		const oResourceBundle = Library.getResourceBundleFor("sap.m");
+		let oPopover;
+
+		if (typeof vPopover === "object") {
+			oPopover = vPopover;
+		}
+
+		if (!oPopover) {
+			oPopover = await createMultiUnitPopover(vPopover);
+		}
+
+		const oDetailsList = oPopover.getContent()[0];
+		const oItemsTemplate = new CustomListItem({content: [mSettings.listItemContentTemplate]});
+
+		oDetailsList.bindItems({
+			...mSettings.itemsBindingInfo,
+			templateShareable: true,
+			template: oItemsTemplate
+		});
+
+		syncStyleClass("sapUiSizeCompact", mSettings.control, oPopover);
+
+		if (mSettings.grandTotal) {
+			oPopover.setTitle(oResourceBundle.getText("TABLE_MULTI_TOTAL_TITLE"));
+			oPopover.setPlacement("VerticalPreferredTop");
+		} else {
+			oPopover.setTitle(oResourceBundle.getText("TABLE_MULTI_GROUP_TITLE"));
+			oPopover.setPlacement("VerticalPreferredBottom");
+		}
+
+		return oPopover;
+	};
+
+	async function createMultiUnitPopover(sId) {
+		const List = await new Promise((resolve) => {
+			sap.ui.require(["sap/m/List"], resolve);
+		}); // Avoid cyclic dependency
+
+		return new ResponsivePopover(sId, {
+			content: new List(sId + "-detailsList", {
+				showSeparators: "None",
+				ariaLabelledBy: sId + "-title"
+			}).addStyleClass("sapUiContentPadding")
+		}).addStyleClass("sapMMultiUnitPopover");
+	}
+
+	return Util;
 });

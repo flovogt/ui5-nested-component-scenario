@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -8,9 +8,9 @@
 sap.ui.define([
 	"./FilterOperator",
 	"sap/base/Log",
-	"sap/ui/base/Object",
-	"sap/ui/core/Configuration"
-], function(FilterOperator, Log, BaseObject, Configuration) {
+	"sap/base/i18n/Localization",
+	"sap/ui/base/Object"
+], function(FilterOperator, Log, Localization, BaseObject) {
 	"use strict";
 
 	/**
@@ -120,7 +120,8 @@ sap.ui.define([
 	 * Filter for the list binding.
 	 *
 	 * @param {object|string|sap.ui.model.Filter[]} vFilterInfo
-	 *   Filter info object or a path or an array of filters
+	 *   Filter info object or a path or an array of filters; if a filter info object is given, the
+	 *   other constructor parameters are ignored
 	 * @param {string} [vFilterInfo.path]
 	 *   Binding path for this filter
 	 * @param {function(any):boolean} [vFilterInfo.test]
@@ -257,6 +258,8 @@ sap.ui.define([
 			} else {
 				Log.error("Wrong parameters defined for filter.");
 			}
+			this.sFractionalSeconds1 = undefined;
+			this.sFractionalSeconds2 = undefined;
 		}
 	});
 
@@ -304,6 +307,34 @@ sap.ui.define([
 	function isFilter(v) {
 		return v instanceof Filter;
 	}
+
+	/**
+	 * Set fractional seconds to be appended to the filter's first value in case it is a JavaScript <code>Date</code>
+	 * instance. Note that the model resp. list binding where the filter is used need to support filtering with the
+	 * resulting precision.
+	 *
+	 * @param {string} [sFractionalSeconds] The additional fractional seconds
+	 *
+	 * @ui5-restricted sap.ui.comp.smartfilterbar
+	 * @private
+	 */
+	Filter.prototype.appendFractionalSeconds1 = function (sFractionalSeconds) {
+		this.sFractionalSeconds1 = sFractionalSeconds;
+	};
+
+	/**
+	 * Set fractional seconds to be appended to the filter's second value in case it is a <code>Date</code>
+	 * instance. Note that the model resp. list binding where the filter is used need to support filtering with the
+	 * resulting precision.
+	 *
+	 * @param {string} [sFractionalSeconds] The additional fractional seconds
+	 *
+	 * @ui5-restricted sap.ui.comp.smartfilterbar
+	 * @private
+	 */
+	Filter.prototype.appendFractionalSeconds2 = function (sFractionalSeconds) {
+		this.sFractionalSeconds2 = sFractionalSeconds;
+	};
 
 	var Type = {
 		Logical: "Logical",
@@ -646,7 +677,7 @@ sap.ui.define([
 			return NaN;
 		}
 		if (typeof a == "string" && typeof b == "string") {
-			return a.localeCompare(b, Configuration.getLanguageTag());
+			return a.localeCompare(b, Localization.getLanguageTag().toString());
 		}
 		if (a < b) {
 			return -1;

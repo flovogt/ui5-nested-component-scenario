@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,14 +23,20 @@ sap.ui.define([
 	});
 	var bWaitStarted;
 	var sLastAutoWaiterLog;
-	var config = {
+	var defaultConfig = {
 		interval: 400, // milliseconds
 		timeout: 15000 // milliseconds
 	};
+	var config = extend({}, defaultConfig);
 
 	function extendConfig(oNewConfig) {
 		validateConfig(oNewConfig);
 		extend(config, oNewConfig);
+		_autoWaiter.extendConfig(config);
+	}
+
+	function resetConfig() {
+		config = extend({}, defaultConfig);
 		_autoWaiter.extendConfig(config);
 	}
 
@@ -89,6 +95,7 @@ sap.ui.define([
 
 	return {
 		extendConfig: extendConfig,
+		resetConfig: resetConfig,
 		waitAsync: waitAsync
 	};
 }, true);

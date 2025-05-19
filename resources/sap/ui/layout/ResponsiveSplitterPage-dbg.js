@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,8 +8,8 @@
 sap.ui.define([
 	"./library",
 	"sap/ui/core/Control",
-	"sap/ui/core/Core"
-], function (library, Control, Core) {
+	"sap/ui/core/Element"
+], function (library, Control, Element) {
 	"use strict";
 
 	/**
@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
@@ -48,7 +48,7 @@ sap.ui.define([
 					.class("sapUiResponsiveSplitterPage")
 					.openEnd();
 
-				var oContent = Core.byId(oControl.getAssociation("content"));
+				var oContent = Element.getElementById(oControl.getAssociation("content"));
 
 				if (oContent) {
 					oRm.renderControl(oContent);
@@ -61,7 +61,7 @@ sap.ui.define([
 
 	ResponsiveSplitterPage.prototype.containsControl = function (sControlId) {
 
-		var oContent = Core.byId(this.getAssociation("content"));
+		var oContent = Element.getElementById(this.getAssociation("content"));
 
 		if (!oContent) {
 			return false;

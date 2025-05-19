@@ -1,14 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.m.Text
 sap.ui.define([
-	"sap/ui/core/Core"
+	"sap/ui/core/Lib"
 ],
-	function(Core) {
+	function(Library) {
 	"use strict";
 
 	/**
@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @param {sap.m.Tile} oControl An object representation of the control that should be rendered
 	 */
 	TileRenderer.render = function(rm, oControl) {
-		var oRB = Core.getLibraryResourceBundle("sap.m"),
+		var oRB = Library.getResourceBundleFor("sap.m"),
 			oTileContainer,
 			aVisibleTiles;
 
@@ -49,6 +49,7 @@ sap.ui.define([
 
 			rm.accessibilityState(oControl, {
 				role: "option",
+				roledescription: oRB.getText("GENERIC_TILE_ROLE_DESCRIPTION"),
 				posinset: oTileContainer._indexOfVisibleTile(oControl, aVisibleTiles) + 1,
 				setsize: aVisibleTiles.length
 			});

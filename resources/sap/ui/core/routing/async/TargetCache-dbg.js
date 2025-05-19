@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
@@ -13,7 +13,6 @@ sap.ui.define([
 	/**
 	 * Provide methods for sap.ui.core.routing.TargetCache in async mode
 	 * @private
-	 * @experimental
 	 * @since 1.58
 	 */
 	return {
@@ -28,6 +27,7 @@ sap.ui.define([
 		 *  the view instance synchronously. In all other cases the asynchronous <code>View.create</code> factory is used.
 		 * @returns {Promise | object} The desired object, if the object already exists in the cache, if not the promise is returned
 		 * @private
+		 * @ui5-transform-hint replace-param bSynchronousCreate false
 		 */
 		_getObjectWithGlobalId : function (oOptions, sType, oTargetCreateInfo, bSynchronousCreate, bNoCreate) {
 			var that = this,
@@ -40,11 +40,20 @@ sap.ui.define([
 			oTargetCreateInfo = oTargetCreateInfo || {};
 
 			function fnCreateObjectAsync() {
+				/**
+				 * @ui5-transform-hint replace-local false
+				 */
+				const bLegacyCreate = !oOptions.async || bSynchronousCreate;
+
 				switch (sType) {
 					case "View":
 						oOptions.viewName = oOptions.name;
 						delete oOptions.name;
-						return (!oOptions.async || bSynchronousCreate) ? View._create(oOptions) : View.create(oOptions);
+						if (bLegacyCreate) {
+							return View._create(oOptions);
+						} else {
+							return View.create(oOptions);
+						}
 					case "Component":
 						oOptions.settings = oOptions.settings || {};
 
@@ -142,6 +151,7 @@ sap.ui.define([
 		 *  the view instance synchronously. In all other cases the asynchronous <code>View.create</code> factory is used.
 		 * @returns {Promise | object} The desired object, if the object already exists in the cache, if not the promise is returned
 		 * @private
+		 * @ui5-transform-hint replace-param bSynchronousCreate false
 		 */
 		_getViewWithGlobalId : function (oOptions, bSynchronousCreate, bNoCreate) {
 			if (oOptions && !oOptions.name) {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -75,7 +75,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @public
 	 * @since 1.11.1
@@ -451,7 +451,7 @@ sap.ui.define([
 	/* =========================================================== */
 
 	Icon.prototype.setSrc = function(sSrc) {
-		assert(sSrc == null || _IconRegistry.isIconURI(sSrc), this + ": Property 'src' (value: '" + sSrc + "') should be a valid Icon URI (sap-icon://...)");
+		assert(sSrc == null || sSrc == "" || _IconRegistry.isIconURI(sSrc), this + ": Property 'src' (value: '" + sSrc + "') should be a valid Icon URI (sap-icon://...)");
 
 		return this.setProperty("src", sSrc);
 	};

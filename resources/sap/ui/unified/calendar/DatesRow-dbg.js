@@ -1,11 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 //Provides control sap.ui.unified.Calendar.
 sap.ui.define([
+	"sap/base/i18n/date/CalendarWeekNumbering",
+	"sap/ui/core/Lib",
+	"sap/ui/core/RenderManager",
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/unified/calendar/Month',
@@ -14,8 +17,9 @@ sap.ui.define([
 	"sap/ui/thirdparty/jquery",
 	'sap/ui/core/format/DateFormat',
 	'sap/ui/core/Locale',
-	'sap/ui/core/date/UI5Date'
-], function(CalendarUtils, CalendarDate, Month, library, DatesRowRenderer, jQuery, DateFormat, Locale, UI5Date) {
+	'sap/ui/core/date/UI5Date',
+	'sap/ui/core/InvisibleText'
+], function(_CalendarWeekNumbering, Library, RenderManager, CalendarUtils, CalendarDate, Month, library, DatesRowRenderer, jQuery, DateFormat, Locale, UI5Date, InvisibleText) {
 	"use strict";
 
 	/*
@@ -35,7 +39,7 @@ sap.ui.define([
 	 * If used inside the calendar the properties and aggregation are directly taken from the parent
 	 * (To not duplicate and sync DateRanges and so on...)
 	 * @extends sap.ui.unified.calendar.Month
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -73,7 +77,7 @@ sap.ui.define([
 			 * Note: This property should not be used with <code>Month.prototype.firstDayOfWeek</code> property.
 			 * @since 1.110.0
 			 */
-			 calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
+			 calendarWeekNumbering : { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null}
 
 		}
 	}, renderer: DatesRowRenderer});
@@ -92,6 +96,14 @@ sap.ui.define([
 
 	};
 
+	DatesRow.prototype.exit = function() {
+		Month.prototype.exit(this, arguments);
+		if (this._invisibleDayHint) {
+			this._invisibleDayHint.destroy();
+			this._invisibleDayHint = null;
+		}
+	};
+
 	DatesRow.prototype._setAriaRole = function(sRole){
 		this._ariaRole = sRole;
 
@@ -101,6 +113,20 @@ sap.ui.define([
 	DatesRow.prototype._getAriaRole = function(){
 
 		return this._ariaRole ? this._ariaRole : "gridcell";
+	};
+
+	DatesRow.prototype._getDayDescription = function() {
+		return this._fnInvisibleHintFactory().getId();
+	};
+
+	DatesRow.prototype._fnInvisibleHintFactory = function() {
+		if (!this._invisibleDayHint) {
+			this._invisibleDayHint = new InvisibleText({
+				text: Library.getResourceBundleFor("sap.m").getText("SLIDETILE_ACTIVATE")
+			}).toStatic();
+		}
+
+		return this._invisibleDayHint;
 	};
 
 	/**
@@ -326,7 +352,7 @@ sap.ui.define([
 			var $Container = this.$("Head");
 
 			if ($Container.length > 0) {
-				var oRm = sap.ui.getCore().createRenderManager();
+				var oRm = new RenderManager().getInterface();
 				this.getRenderer().renderHeaderLine(oRm, this, oLocaleData, oStartDate);
 				oRm.flush($Container[0]);
 				oRm.destroy();
@@ -365,9 +391,7 @@ sap.ui.define([
 		}
 
 		this._aWeekNumbers = aDisplayedDates.reduce(function (aWeekNumbers, oDay) {
-			var oDateFormat = DateFormat.getInstance({pattern: "w", calendarType: this.getPrimaryCalendarType(), calendarWeekNumbering: this.getCalendarWeekNumbering()}, new Locale(sLocale));
-
-			var iWeekNumber = Number(oDateFormat.format(oDay.toUTCJSDate(), true));
+			var iWeekNumber = CalendarUtils.calculateWeekNumber(oDay, this.getPrimaryCalendarType(), sLocale, this.getCalendarWeekNumbering(), this._getFirstWeekDay());
 
 			if (!aWeekNumbers.length || aWeekNumbers[aWeekNumbers.length - 1].number !== iWeekNumber) {
 				aWeekNumbers.push({

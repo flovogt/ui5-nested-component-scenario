@@ -1,7 +1,7 @@
 {
 	"__license": "This file has been derived from Unicode Common Locale Data Repository (CLDR) files (http://cldr.unicode.org). See the copyright and permission notice in the Unicode-Data-Files-LICENSE.txt available at the same location as this file or visit http://www.unicode.org/copyright.html",
-	"__version": "43.0.0",
-	"__buildtime": "2023-09-28T11:39:07.908Z",
+	"__version": "46.1.0",
+	"__buildtime": "2025-01-28T09:40:27.437Z",
 	"languages": {
 		"aa": "afar",
 		"ab": "abkhaze",
@@ -64,6 +64,7 @@
 		"bfd": "bafut",
 		"bfq": "badaga",
 		"bg": "bulgare",
+		"bgc": "haryanvi",
 		"bgn": "baloutchi occidental",
 		"bho": "bhodjpouri",
 		"bi": "bichelamar",
@@ -72,6 +73,7 @@
 		"bjn": "banjar",
 		"bkm": "kom",
 		"bla": "siksika",
+		"blo": "anii",
 		"bm": "bambara",
 		"bn": "bengali",
 		"bo": "tibétain",
@@ -108,8 +110,8 @@
 		"chr": "cherokee",
 		"chy": "cheyenne",
 		"ckb": "kurde central",
-		"ckb_alt-menu": "sorani",
-		"ckb_alt-variant": "kurde central",
+		"ckb_alt-menu": "kurde central",
+		"ckb_alt-variant": "sorani",
 		"clc": "chilcotin",
 		"cnr": "Monténégrin",
 		"co": "corse",
@@ -164,7 +166,7 @@
 		"en_AU": "anglais australien",
 		"en_CA": "anglais canadien",
 		"en_GB": "anglais britannique",
-		"en_GB-alt-short": "anglais britannique",
+		"en_GB-alt-short": "anglais (R.-U.)",
 		"en_US": "anglais américain",
 		"en_US-alt-short": "anglais (É.-U.)",
 		"enm": "moyen anglais",
@@ -215,7 +217,6 @@
 		"gmh": "moyen haut-allemand",
 		"gn": "guarani",
 		"goh": "vieux haut-allemand",
-		"gom": "konkani de Goa",
 		"gon": "gondi",
 		"gor": "gorontalo",
 		"got": "gotique",
@@ -289,7 +290,7 @@
 		"kea": "capverdien",
 		"ken": "kenyang",
 		"kfo": "koro",
-		"kg": "kongo",
+		"kg": "kikongo",
 		"kgp": "caingangue",
 		"kha": "khasi",
 		"kho": "khotanais",
@@ -326,6 +327,7 @@
 		"kv": "komi",
 		"kw": "cornique",
 		"kwk": "kwak’wala",
+		"kxv": "kuvi",
 		"ky": "kirghize",
 		"la": "latin",
 		"lad": "ladino",
@@ -355,7 +357,6 @@
 		"lua": "luba-kasaï (ciluba)",
 		"lui": "luiseño",
 		"lun": "lunda",
-		"luo": "luo",
 		"lus": "lushaï",
 		"luy": "luyia",
 		"lv": "letton",
@@ -390,7 +391,7 @@
 		"moe": "innu-aimun",
 		"moh": "mohawk",
 		"mos": "moré",
-		"mr": "marathe",
+		"mr": "marathi",
 		"mrj": "mari occidental",
 		"ms": "malais",
 		"mt": "maltais",
@@ -624,6 +625,7 @@
 		"vi": "vietnamien",
 		"vls": "flamand occidental",
 		"vmf": "franconien du Main",
+		"vmw": "macua",
 		"vo": "volapük",
 		"vot": "vote",
 		"vro": "võro",
@@ -639,6 +641,7 @@
 		"xal": "kalmouk",
 		"xh": "xhosa",
 		"xmf": "mingrélien",
+		"xnr": "kangri",
 		"xog": "soga",
 		"yao": "yao",
 		"yap": "yapois",
@@ -872,7 +875,7 @@
 		"BJ": "Bénin",
 		"BL": "Saint-Barthélemy",
 		"BM": "Bermudes",
-		"BN": "Brunei",
+		"BN": "Brunéi",
 		"BO": "Bolivie",
 		"BQ": "Pays-Bas caribéens",
 		"BR": "Brésil",
@@ -881,7 +884,7 @@
 		"BV": "île Bouvet",
 		"BW": "Botswana",
 		"BY": "Bélarus",
-		"BZ": "Belize",
+		"BZ": "Bélize",
 		"CA": "Canada",
 		"CC": "îles Cocos (Keeling)",
 		"CD": "Congo-Kinshasa",
@@ -897,7 +900,7 @@
 		"CM": "Cameroun",
 		"CN": "Chine",
 		"CO": "Colombie",
-		"CP": "Île Clipperton",
+		"CP": "île Clipperton",
 		"CR": "Costa Rica",
 		"CU": "Cuba",
 		"CV": "Cap-Vert",
@@ -963,7 +966,9 @@
 		"IL": "Israël",
 		"IM": "île de Man",
 		"IN": "Inde",
-		"IO": "territoire britannique de l’océan Indien",
+		"IO": "Territoire britannique de l’océan Indien",
+		"IO-alt-biot": "territoire britannique de l’océan Indien",
+		"IO-alt-chagos": "archipel Chagos",
 		"IQ": "Irak",
 		"IR": "Iran",
 		"IS": "Islande",
@@ -977,7 +982,7 @@
 		"KH": "Cambodge",
 		"KI": "Kiribati",
 		"KM": "Comores",
-		"KN": "Saint-Christophe-et-Niévès",
+		"KN": "Saint‑Kitts‑et‑Nevis",
 		"KP": "Corée du Nord",
 		"KR": "Corée du Sud",
 		"KW": "Koweït",
@@ -1106,7 +1111,7 @@
 		"UZ": "Ouzbékistan",
 		"VA": "Cité du Vatican",
 		"VC": "Saint-Vincent-et-les Grenadines",
-		"VE": "Venezuela",
+		"VE": "Vénézuéla",
 		"VG": "îles Vierges britanniques",
 		"VI": "îles Vierges américaines",
 		"VN": "Vietnam",
@@ -1171,9 +1176,9 @@
 				"hmv": "h 'h' mm a v",
 				"Hmv": "HH 'h' mm v",
 				"M": "L",
-				"Md": "M-d",
-				"MEd": "E M-d",
-				"MMd": "MM-d",
+				"Md": "MM-dd",
+				"MEd": "E MM-dd",
+				"MMd": "MM-dd",
 				"MMdd": "MM-dd",
 				"MMM": "LLL",
 				"MMMd": "d MMM",
@@ -1292,7 +1297,7 @@
 					"H": "H 'h' – H 'h' v"
 				},
 				"M": {
-					"M": "M – M"
+					"M": "MM – MM"
 				},
 				"Md": {
 					"d": "MM-dd – MM-dd",
@@ -1310,7 +1315,7 @@
 					"M": "d MMM – d MMM"
 				},
 				"MMMEd": {
-					"d": "E d – E d MMM",
+					"d": "E d MMM – E d MMM",
 					"M": "E d MMM – E d MMM"
 				},
 				"y": {
@@ -1340,7 +1345,7 @@
 					"y": "d MMM y – d MMM y"
 				},
 				"yMMMEd": {
-					"d": "E d – E d MMM y",
+					"d": "E d MMM – E d MMM y",
 					"M": "E d MMM – E d MMM y",
 					"y": "E d MMM y – E d MMM y"
 				},
@@ -1605,7 +1610,7 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -1623,15 +1628,15 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
-					"night1": "nuit"
+					"evening1": "du soir",
+					"night1": "du mat."
 				},
 				"narrow": {
 					"midnight": "minuit",
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -1640,7 +1645,7 @@
 					"morning1": "matin",
 					"afternoon1": "après-midi",
 					"evening1": "soir",
-					"night1": "nuit"
+					"night1": "matin"
 				}
 			}
 		},
@@ -2133,7 +2138,7 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -2151,15 +2156,15 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
-					"night1": "nuit"
+					"evening1": "du soir",
+					"night1": "du mat."
 				},
 				"narrow": {
 					"midnight": "minuit",
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -2168,7 +2173,7 @@
 					"morning1": "matin",
 					"afternoon1": "après-midi",
 					"evening1": "soir",
-					"night1": "nuit"
+					"night1": "matin"
 				}
 			}
 		},
@@ -2187,7 +2192,7 @@
 			"full": "EEEE d MMMM y G",
 			"long": "d MMMM y G",
 			"medium": "d MMM y G",
-			"short": "dd/MM/y GGGGG"
+			"short": "yy-MM-dd GGGGG"
 		},
 		"timeFormats": {
 			"full": "HH 'h' mm 'min' ss 's' zzzz",
@@ -2666,7 +2671,7 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -2684,15 +2689,15 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
-					"night1": "nuit"
+					"evening1": "du soir",
+					"night1": "du mat."
 				},
 				"narrow": {
 					"midnight": "minuit",
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -2701,7 +2706,7 @@
 					"morning1": "matin",
 					"afternoon1": "après-midi",
 					"evening1": "soir",
-					"night1": "nuit"
+					"night1": "matin"
 				}
 			}
 		},
@@ -3203,7 +3208,7 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -3221,15 +3226,15 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
-					"night1": "nuit"
+					"evening1": "du soir",
+					"night1": "du mat."
 				},
 				"narrow": {
 					"midnight": "minuit",
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -3238,7 +3243,7 @@
 					"morning1": "matin",
 					"afternoon1": "après-midi",
 					"evening1": "soir",
-					"night1": "nuit"
+					"night1": "matin"
 				}
 			}
 		},
@@ -3257,7 +3262,7 @@
 			"full": "EEEE d MMMM y G",
 			"long": "d MMMM y G",
 			"medium": "d MMM y G",
-			"short": "dd/MM/y GGGGG"
+			"short": "yy-MM-dd GGGGG"
 		},
 		"timeFormats": {
 			"full": "HH 'h' mm 'min' ss 's' zzzz",
@@ -3728,7 +3733,7 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -3746,15 +3751,15 @@
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
-					"night1": "nuit"
+					"evening1": "du soir",
+					"night1": "du mat."
 				},
 				"narrow": {
 					"midnight": "minuit",
 					"noon": "midi",
 					"morning1": "mat.",
 					"afternoon1": "après-midi",
-					"evening1": "soir",
+					"evening1": "du soir",
 					"night1": "mat."
 				},
 				"wide": {
@@ -3763,7 +3768,7 @@
 					"morning1": "matin",
 					"afternoon1": "après-midi",
 					"evening1": "soir",
-					"night1": "nuit"
+					"night1": "matin"
 				}
 			}
 		},
@@ -4280,18 +4285,16 @@
 			"Montserrat": "Montserrat",
 			"Nassau": "Nassau",
 			"New_York": "New York",
-			"Nipigon": "Nipigon",
 			"Nome": "Nome",
 			"Noronha": "Noronha",
 			"North_Dakota": {
 				"Beulah": "Beulah [Dakota du Nord]",
 				"Center": "Center [Dakota du Nord]",
-				"New_Salem": "New Salem, Dakota du Nord"
+				"New_Salem": "New Salem [Dakota du Nord]"
 			},
 			"Nuuk": "Nuuk",
 			"Ojinaga": "Ojinaga",
 			"Panama": "Panama",
-			"Pangnirtung": "Pangnirtung",
 			"Paramaribo": "Paramaribo",
 			"Phoenix": "Phoenix",
 			"Port-au-Prince": "Port-au-Prince",
@@ -4299,13 +4302,11 @@
 			"Porto_Velho": "Porto Velho",
 			"Puerto_Rico": "Porto Rico",
 			"Punta_Arenas": "Punta Arenas",
-			"Rainy_River": "Rainy River",
 			"Rankin_Inlet": "Rankin Inlet",
 			"Recife": "Recife",
 			"Regina": "Regina",
 			"Resolute": "Resolute",
 			"Rio_Branco": "Rio Branco",
-			"Santa_Isabel": "Santa Isabel",
 			"Santarem": "Santarém",
 			"Santiago": "Santiago",
 			"Santo_Domingo": "Saint-Domingue",
@@ -4319,9 +4320,8 @@
 			"St_Thomas": "Saint Thomas",
 			"St_Vincent": "Saint-Vincent",
 			"Swift_Current": "Swift Current",
-			"Tegucigalpa": "Tégucigalpa",
+			"Tegucigalpa": "Tegucigalpa",
 			"Thule": "Thulé",
-			"Thunder_Bay": "Thunder Bay",
 			"Tijuana": "Tijuana",
 			"Toronto": "Toronto",
 			"Tortola": "Tortola",
@@ -4329,7 +4329,6 @@
 			"Whitehorse": "Whitehorse",
 			"Winnipeg": "Winnipeg",
 			"Yakutat": "Yakutat",
-			"Yellowknife": "Yellowknife",
 			"_parent": "Amériques"
 		},
 		"Antarctica": {
@@ -4367,7 +4366,6 @@
 			"Bishkek": "Bichkek",
 			"Brunei": "Brunei",
 			"Chita": "Tchita",
-			"Choibalsan": "Tchoïbalsan",
 			"Colombo": "Colombo",
 			"Damascus": "Damas",
 			"Dhaka": "Dacca",
@@ -4438,7 +4436,7 @@
 		"Atlantic": {
 			"Azores": "Açores",
 			"Bermuda": "Bermudes",
-			"Canary": "Îles Canaries",
+			"Canary": "îles Canaries",
 			"Cape_Verde": "Cap-Vert",
 			"Faroe": "îles Féroé",
 			"Madeira": "Madère",
@@ -4516,7 +4514,6 @@
 			"Tallinn": "Tallinn",
 			"Tirane": "Tirana",
 			"Ulyanovsk": "Oulianovsk",
-			"Uzhgorod": "Oujgorod",
 			"Vaduz": "Vaduz",
 			"Vatican": "Vatican",
 			"Vienna": "Vienne",
@@ -4524,7 +4521,6 @@
 			"Volgograd": "Volgograd",
 			"Warsaw": "Varsovie",
 			"Zagreb": "Zagreb",
-			"Zaporozhye": "Zaporojie",
 			"Zurich": "Zurich",
 			"_parent": "Europe"
 		},
@@ -4649,21 +4645,13 @@
 	},
 	"currencyFormat": {
 		"standard": "#,##0.00 ¤",
+		"standard-noCurrency": "#,##0.00",
 		"accounting": "#,##0.00 ¤;(#,##0.00 ¤)",
-		"currencySpacing": {
-			"beforeCurrency": {
-				"currencyMatch": "[[:^S:]&[:^Z:]]",
-				"surroundingMatch": "[:digit:]",
-				"insertBetween": " "
-			},
-			"afterCurrency": {
-				"currencyMatch": "[[:^S:]&[:^Z:]]",
-				"surroundingMatch": "[:digit:]",
-				"insertBetween": " "
-			}
-		},
+		"accounting-noCurrency": "#,##0.00;(#,##0.00)",
 		"sap-standard": "#,##0.00 ¤",
-		"sap-accounting": "#,##0.00 ¤;(#,##0.00 ¤)"
+		"sap-accounting": "#,##0.00 ¤;(#,##0.00 ¤)",
+		"sap-standard-noCurrency": "#,##0.00",
+		"sap-accounting-noCurrency": "#,##0.00;(#,##0.00)"
 	},
 	"miscPattern": {
 		"approximately": "≈{0}",
@@ -4672,30 +4660,54 @@
 		"range": "{0}–{1}"
 	},
 	"currencyFormat-short": {
-		"1000-one": "0 k ¤",
-		"1000-other": "0 k ¤",
-		"10000-one": "00 k ¤",
-		"10000-other": "00 k ¤",
-		"100000-one": "000 k ¤",
-		"100000-other": "000 k ¤",
-		"1000000-one": "0 M ¤",
-		"1000000-other": "0 M ¤",
-		"10000000-one": "00 M ¤",
-		"10000000-other": "00 M ¤",
-		"100000000-one": "000 M ¤",
-		"100000000-other": "000 M ¤",
-		"1000000000-one": "0 G ¤",
-		"1000000000-other": "0 G ¤",
-		"10000000000-one": "00 G ¤",
-		"10000000000-other": "00 G ¤",
-		"100000000000-one": "000 G ¤",
-		"100000000000-other": "000 G ¤",
-		"1000000000000-one": "0 T ¤",
-		"1000000000000-other": "0 T ¤",
-		"10000000000000-one": "00 T ¤",
-		"10000000000000-other": "00 T ¤",
-		"100000000000000-one": "000 T ¤",
-		"100000000000000-other": "000 T ¤"
+		"1000-one": "0 k¤",
+		"1000-one-alphaNextToNumber": "0 k ¤",
+		"1000-other": "0 k¤",
+		"1000-other-alphaNextToNumber": "0 k ¤",
+		"10000-one": "00 k¤",
+		"10000-one-alphaNextToNumber": "00 k ¤",
+		"10000-other": "00 k¤",
+		"10000-other-alphaNextToNumber": "00 k ¤",
+		"100000-one": "000 k¤",
+		"100000-one-alphaNextToNumber": "000 k ¤",
+		"100000-other": "000 k¤",
+		"100000-other-alphaNextToNumber": "000 k ¤",
+		"1000000-one": "0 M¤",
+		"1000000-one-alphaNextToNumber": "0 M ¤",
+		"1000000-other": "0 M¤",
+		"1000000-other-alphaNextToNumber": "0 M ¤",
+		"10000000-one": "00 M¤",
+		"10000000-one-alphaNextToNumber": "00 M ¤",
+		"10000000-other": "00 M¤",
+		"10000000-other-alphaNextToNumber": "00 M ¤",
+		"100000000-one": "000 M¤",
+		"100000000-one-alphaNextToNumber": "000 M ¤",
+		"100000000-other": "000 M¤",
+		"100000000-other-alphaNextToNumber": "000 M ¤",
+		"1000000000-one": "0 G¤",
+		"1000000000-one-alphaNextToNumber": "0 G ¤",
+		"1000000000-other": "0 G¤",
+		"1000000000-other-alphaNextToNumber": "0 G ¤",
+		"10000000000-one": "00 G¤",
+		"10000000000-one-alphaNextToNumber": "00 G ¤",
+		"10000000000-other": "00 G¤",
+		"10000000000-other-alphaNextToNumber": "00 G ¤",
+		"100000000000-one": "000 G¤",
+		"100000000000-one-alphaNextToNumber": "000 G ¤",
+		"100000000000-other": "000 G¤",
+		"100000000000-other-alphaNextToNumber": "000 G ¤",
+		"1000000000000-one": "0 T¤",
+		"1000000000000-one-alphaNextToNumber": "0 T ¤",
+		"1000000000000-other": "0 T¤",
+		"1000000000000-other-alphaNextToNumber": "0 T ¤",
+		"10000000000000-one": "00 T¤",
+		"10000000000000-one-alphaNextToNumber": "00 T ¤",
+		"10000000000000-other": "00 T¤",
+		"10000000000000-other-alphaNextToNumber": "00 T ¤",
+		"100000000000000-one": "000 T¤",
+		"100000000000000-one-alphaNextToNumber": "000 T ¤",
+		"100000000000000-other": "000 T¤",
+		"100000000000000-other-alphaNextToNumber": "000 T ¤"
 	},
 	"symbols-latn-decimal": ",",
 	"symbols-latn-group": " ",
@@ -4730,6 +4742,7 @@
 		"RHD": "$RH",
 		"SGD": "$ SG",
 		"USD": "$ US",
+		"XCG": "Cg.",
 		"XXX": "¤"
 	},
 	"rtl": false,
@@ -4789,6 +4802,12 @@
 			"10p-24": {
 				"unitPrefixPattern": "y{0}"
 			},
+			"10p-27": {
+				"unitPrefixPattern": "r{0}"
+			},
+			"10p-30": {
+				"unitPrefixPattern": "q{0}"
+			},
 			"10p1": {
 				"unitPrefixPattern": "da{0}"
 			},
@@ -4819,6 +4838,12 @@
 			"10p24": {
 				"unitPrefixPattern": "Y{0}"
 			},
+			"10p27": {
+				"unitPrefixPattern": "R{0}"
+			},
+			"10p30": {
+				"unitPrefixPattern": "Q{0}"
+			},
 			"1024p1": {
 				"unitPrefixPattern": "Ki{0}"
 			},
@@ -4848,12 +4873,10 @@
 			},
 			"power2": {
 				"compoundUnitPattern1": "{0}²",
-				"compoundUnitPattern1-count-one": "{0}²",
 				"compoundUnitPattern1-count-other": "{0}²"
 			},
 			"power3": {
 				"compoundUnitPattern1": "{0}³",
-				"compoundUnitPattern1-count-one": "{0}³",
 				"compoundUnitPattern1-count-other": "{0}³"
 			},
 			"times": {
@@ -4881,17 +4904,14 @@
 			},
 			"angle-degree": {
 				"displayName": "°",
-				"unitPattern-count-one": "{0}°",
 				"unitPattern-count-other": "{0}°"
 			},
 			"angle-arc-minute": {
 				"displayName": "′",
-				"unitPattern-count-one": "{0}′",
 				"unitPattern-count-other": "{0}′"
 			},
 			"angle-arc-second": {
 				"displayName": "″",
-				"unitPattern-count-one": "{0}″",
 				"unitPattern-count-other": "{0}″"
 			},
 			"area-square-kilometer": {
@@ -5010,9 +5030,9 @@
 				"unitPattern-count-other": "{0} mi/gal"
 			},
 			"consumption-mile-per-gallon-imperial": {
-				"displayName": "mi/gal Imp",
-				"unitPattern-count-one": "{0} mi/gal Imp",
-				"unitPattern-count-other": "{0} mi/gal Imp"
+				"displayName": "mi/gal imp.",
+				"unitPattern-count-one": "{0} mi/gal imp.",
+				"unitPattern-count-other": "{0} mi/gal imp."
 			},
 			"digital-petabyte": {
 				"displayName": "Po",
@@ -5173,7 +5193,6 @@
 				"unitPattern-count-other": "{0} cal"
 			},
 			"energy-foodcalorie": {
-				"displayName": "kcal",
 				"unitPattern-count-one": "{0} kcal",
 				"unitPattern-count-other": "{0} kcal"
 			},
@@ -5268,23 +5287,22 @@
 				"unitPattern-count-other": "{0} px/po"
 			},
 			"graphics-dot-per-centimeter": {
-				"displayName": "ppcm",
-				"unitPattern-count-one": "{0} ppcm",
-				"unitPattern-count-other": "{0} ppcm"
+				"displayName": "pt/cm",
+				"unitPattern-count-one": "{0} pt/cm",
+				"unitPattern-count-other": "{0} pt/cm"
 			},
 			"graphics-dot-per-inch": {
-				"displayName": "ppp",
-				"unitPattern-count-one": "{0} ppp",
-				"unitPattern-count-other": "{0} ppp"
+				"displayName": "pt/po",
+				"unitPattern-count-one": "{0} pt/po",
+				"unitPattern-count-other": "{0} pt/po"
 			},
 			"graphics-dot": {
-				"displayName": "p",
-				"unitPattern-count-one": "{0} p",
-				"unitPattern-count-other": "{0} p"
+				"displayName": "pt",
+				"unitPattern-count-one": "{0} pt",
+				"unitPattern-count-other": "{0} pt"
 			},
 			"length-earth-radius": {
 				"displayName": "R⊕",
-				"unitPattern-count-one": "{0} R⊕",
 				"unitPattern-count-other": "{0} R⊕"
 			},
 			"length-kilometer": {
@@ -5369,7 +5387,6 @@
 			},
 			"length-furlong": {
 				"displayName": "fur",
-				"unitPattern-count-one": "{0} fur",
 				"unitPattern-count-other": "{0} fur"
 			},
 			"length-fathom": {
@@ -5404,12 +5421,10 @@
 			},
 			"light-candela": {
 				"displayName": "cd",
-				"unitPattern-count-one": "{0} cd",
 				"unitPattern-count-other": "{0} cd"
 			},
 			"light-lumen": {
 				"displayName": "lm",
-				"unitPattern-count-one": "{0} lm",
 				"unitPattern-count-other": "{0} lm"
 			},
 			"light-solar-luminosity": {
@@ -5451,7 +5466,6 @@
 			},
 			"mass-stone": {
 				"displayName": "st",
-				"unitPattern-count-one": "{0} st",
 				"unitPattern-count-other": "{0} st"
 			},
 			"mass-pound": {
@@ -5596,9 +5610,13 @@
 				"unitPattern-count-one": "{0} nd",
 				"unitPattern-count-other": "{0} nd"
 			},
+			"speed-beaufort": {
+				"displayName": "Bft",
+				"unitPattern-count-one": "{0} Bf",
+				"unitPattern-count-other": "{0} Bf"
+			},
 			"temperature-generic": {
 				"displayName": "°",
-				"unitPattern-count-one": "{0}°",
 				"unitPattern-count-other": "{0}°"
 			},
 			"temperature-celsius": {
@@ -5696,7 +5714,6 @@
 			},
 			"volume-pint-metric": {
 				"displayName": "mpt",
-				"unitPattern-count-one": "{0} mpt",
 				"unitPattern-count-other": "{0} mpt"
 			},
 			"volume-cup-metric": {
@@ -5801,45 +5818,85 @@
 				"unitPattern-count-one": "{0} pte imp",
 				"unitPattern-count-other": "{0} pte imp"
 			},
+			"speed-light-speed": {
+				"displayName": "lumière",
+				"unitPattern-count-one": "{0} lumière",
+				"unitPattern-count-other": "{0} lumière"
+			},
+			"concentr-portion-per-1e9": {
+				"displayName": "p.p. 10⁹",
+				"unitPattern-count-one": "{0} p.p. 10⁹",
+				"unitPattern-count-other": "{0} p.p. 10⁹"
+			},
+			"duration-night": {
+				"displayName": "nuits",
+				"unitPattern-count-one": "{0} nuit",
+				"unitPattern-count-other": "{0} nuits",
+				"perUnitPattern": "{0}/nuit"
+			},
 			"coordinateUnit": {
 				"displayName": "direction",
-				"east": "{0} E",
-				"north": "{0} N",
-				"south": "{0} S",
-				"west": "{0} O"
+				"east": "{0} E.",
+				"north": "{0} N.",
+				"south": "{0} S.",
+				"west": "{0} O."
 			}
 		}
 	},
 	"lenient-scope-number": {
-		"minusSign": "-‒⁻₋−➖﹣－",
-		"commaSign": ",،٫、︐︑﹐﹑，､",
-		"plusSign": "+⁺₊➕﬩﹢＋"
+		"minusSign": "-－﹣‑‒−⁻₋➖",
+		"commaSign": ",，﹐︐،٫、﹑､︑",
+		"plusSign": "+＋﬩﹢⁺₊➕"
 	},
 	"currencyFormat-sap-short": {
-		"1000-one": "0 k ¤",
-		"1000-other": "0 k ¤",
-		"10000-one": "00 k ¤",
-		"10000-other": "00 k ¤",
-		"100000-one": "000 k ¤",
-		"100000-other": "000 k ¤",
-		"1000000-one": "0 M ¤",
-		"1000000-other": "0 M ¤",
-		"10000000-one": "00 M ¤",
-		"10000000-other": "00 M ¤",
-		"100000000-one": "000 M ¤",
-		"100000000-other": "000 M ¤",
-		"1000000000-one": "0 G ¤",
-		"1000000000-other": "0 G ¤",
-		"10000000000-one": "00 G ¤",
-		"10000000000-other": "00 G ¤",
-		"100000000000-one": "000 G ¤",
-		"100000000000-other": "000 G ¤",
-		"1000000000000-one": "0 T ¤",
-		"1000000000000-other": "0 T ¤",
-		"10000000000000-one": "00 T ¤",
-		"10000000000000-other": "00 T ¤",
-		"100000000000000-one": "000 T ¤",
-		"100000000000000-other": "000 T ¤"
+		"1000-one": "0 k¤",
+		"1000-one-alphaNextToNumber": "0 k ¤",
+		"1000-other": "0 k¤",
+		"1000-other-alphaNextToNumber": "0 k ¤",
+		"10000-one": "00 k¤",
+		"10000-one-alphaNextToNumber": "00 k ¤",
+		"10000-other": "00 k¤",
+		"10000-other-alphaNextToNumber": "00 k ¤",
+		"100000-one": "000 k¤",
+		"100000-one-alphaNextToNumber": "000 k ¤",
+		"100000-other": "000 k¤",
+		"100000-other-alphaNextToNumber": "000 k ¤",
+		"1000000-one": "0 M¤",
+		"1000000-one-alphaNextToNumber": "0 M ¤",
+		"1000000-other": "0 M¤",
+		"1000000-other-alphaNextToNumber": "0 M ¤",
+		"10000000-one": "00 M¤",
+		"10000000-one-alphaNextToNumber": "00 M ¤",
+		"10000000-other": "00 M¤",
+		"10000000-other-alphaNextToNumber": "00 M ¤",
+		"100000000-one": "000 M¤",
+		"100000000-one-alphaNextToNumber": "000 M ¤",
+		"100000000-other": "000 M¤",
+		"100000000-other-alphaNextToNumber": "000 M ¤",
+		"1000000000-one": "0 G¤",
+		"1000000000-one-alphaNextToNumber": "0 G ¤",
+		"1000000000-other": "0 G¤",
+		"1000000000-other-alphaNextToNumber": "0 G ¤",
+		"10000000000-one": "00 G¤",
+		"10000000000-one-alphaNextToNumber": "00 G ¤",
+		"10000000000-other": "00 G¤",
+		"10000000000-other-alphaNextToNumber": "00 G ¤",
+		"100000000000-one": "000 G¤",
+		"100000000000-one-alphaNextToNumber": "000 G ¤",
+		"100000000000-other": "000 G¤",
+		"100000000000-other-alphaNextToNumber": "000 G ¤",
+		"1000000000000-one": "0 T¤",
+		"1000000000000-one-alphaNextToNumber": "0 T ¤",
+		"1000000000000-other": "0 T¤",
+		"1000000000000-other-alphaNextToNumber": "0 T ¤",
+		"10000000000000-one": "00 T¤",
+		"10000000000000-one-alphaNextToNumber": "00 T ¤",
+		"10000000000000-other": "00 T¤",
+		"10000000000000-other-alphaNextToNumber": "00 T ¤",
+		"100000000000000-one": "000 T¤",
+		"100000000000000-one-alphaNextToNumber": "000 T ¤",
+		"100000000000000-other": "000 T¤",
+		"100000000000000-other-alphaNextToNumber": "000 T ¤"
 	},
 	"currencyDigits": {
 		"ADP": 0,
@@ -5987,5 +6044,9 @@
 		"noon": {
 			"_at": "12:00"
 		}
+	},
+	"sap-calendarWeek": {
+		"narrow": "SC {0}",
+		"wide": "Semaine civile {0}"
 	}
 }

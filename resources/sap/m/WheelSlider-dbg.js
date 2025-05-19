@@ -1,12 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'sap/ui/core/Control',
 	'./WheelSliderRenderer',
+	"sap/ui/core/ControlBehavior",
 	'sap/ui/core/IconPool',
 	'sap/ui/Device',
 	"sap/ui/events/KeyCodes",
@@ -14,7 +15,7 @@ sap.ui.define([
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/Configuration"
 ],
-	function(Control, WheelSliderRenderer, IconPool, Device, KeyCodes, Button, jQuery, Configuration) {
+	function(Control, WheelSliderRenderer, ControlBehavior, IconPool, Device, KeyCodes, Button, jQuery, Configuration) {
 		"use strict";
 
 		/**
@@ -29,7 +30,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -103,7 +104,7 @@ sap.ui.define([
 			renderer: WheelSliderRenderer
 		});
 
-		var sAnimationMode = Configuration.getAnimationMode();
+		var sAnimationMode = ControlBehavior.getAnimationMode();
 		var bUseAnimations = sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal;
 		var SCROLL_ANIMATION_DURATION = bUseAnimations ? 200 : 0;
 		var LABEL_HEIGHT = 32;

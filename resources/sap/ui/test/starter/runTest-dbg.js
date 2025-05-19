@@ -2,7 +2,7 @@
 //@ui5-bundle-raw-include ui5loader.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,7 +15,7 @@
  * might break in future releases.
  */
 
-/*global sap:true, Blob, console, document, Promise, URL, XMLHttpRequest */
+/*global Blob, console, document, Promise, URL, XMLHttpRequest */
 
 (function(__global) {
 	"use strict";
@@ -124,6 +124,7 @@
 	 *
 	 * To be used by code coverage, only supported in sync mode.
 	 * @private
+	 * @ui5-transform-hint replace-local undefined
 	 */
 	let translate;
 
@@ -148,6 +149,7 @@
 	 * When activated, require will load asynchronously, else synchronously.
 	 * @type {boolean}
 	 * @private
+	 * @ui5-transform-hint replace-local true
 	 */
 	let bGlobalAsyncMode = false;
 
@@ -272,6 +274,28 @@
 	 */
 	let fnIgnorePreload;
 
+	/**
+	 * Whether the loader should try to load the debug variant
+	 * of a module.
+	 * This takes the standard and partial debug mode into account.
+	 *
+	 * @param {string} sModuleName Name of the module to be loaded
+	 * @returns {boolean} Whether the debug variant should be loaded
+	 */
+	function shouldLoadDebugVariant(sModuleName) {
+		if (fnIgnorePreload) {
+			// if preload is ignored (= partial debug mode), load the debug module first
+			if (fnIgnorePreload(sModuleName)) {
+				return true;
+			} else {
+				// partial debug mode is active, but not for this module
+				return false;
+			}
+		} else {
+			// no debug mode or standard debug mode
+			return bDebugSources;
+		}
+	}
 
 	// ---- internal state ------------------------------------------------------------------------
 
@@ -390,6 +414,9 @@
 		}
 	}
 
+	// remember original setTimeout for task splitting to avoid clashes using sinon.useFakeTimers()
+	const nativeSetTimeout = __global.setTimeout;
+
 	function waitForNextTask() {
 		if ( pWaitForNextTask == null ) {
 			/**
@@ -402,7 +429,7 @@
 					oNextTaskMessageChannel.port2.start();
 				}
 				oNextTaskMessageChannel.port2.addEventListener("message", function() {
-					setTimeout(function() {
+					nativeSetTimeout(function() {
 						pWaitForNextTask = null;
 						iMaxTaskTime = Date.now() + iMaxTaskDuration;
 						resolve();
@@ -1012,7 +1039,8 @@
 		 */
 		dependsOn(oDependantModule) {
 			const dependant = oDependantModule.name,
-				visited = Object.create(null);
+				visited = Object.create(null),
+				stack = log.isLoggable() ? [this.name, dependant] : undefined;
 
 			// log.debug("checking for a cycle between", this.name, "and", dependant);
 			function visit(mod) {
@@ -1020,13 +1048,22 @@
 					// log.debug("  ", mod);
 					visited[mod] = true;
 					const pending = mModules[mod]?.pending;
-					return Array.isArray(pending) &&
-						(pending.indexOf(dependant) >= 0 || pending.some(visit));
+					if (Array.isArray(pending) &&
+						(pending.includes(dependant) || pending.some(visit)) ) {
+						stack?.push(mod);
+						return true;
+					}
 				}
 				return false;
 			}
 
-			return this.name === dependant || visit(this.name);
+			const result = this.name === dependant || visit(this.name);
+			if ( result && stack ) {
+				log.error("Dependency cycle detected: ",
+					stack.reverse().map((entry, idx) => `${"".padEnd(idx)} -> ${entry}`).join("\n").slice(4)
+				);
+			}
+			return result;
 		}
 
 		/**
@@ -1068,7 +1105,13 @@
 
 		// first cleanup on an old loader
 		if ( _globalDefine ) {
-			_globalDefine.amd = _globalDefineAMD;
+			// restore old amd flag as normal property
+			Object.defineProperty(_globalDefine, "amd", {
+				value: _globalDefineAMD,
+				configurable: true,
+				enumerable: true,
+				writable: true
+			});
 			_globalDefine =
 			_globalDefineAMD = undefined;
 		}
@@ -1098,6 +1141,8 @@
 		}
 	}
 
+	updateDefineAndInterceptAMDFlag(__global.define);
+
 	try {
 		Object.defineProperty(__global, "define", {
 			get: function() {
@@ -1110,10 +1155,8 @@
 			configurable: true // we have to allow a redefine for debug mode or restart from CDN etc.
 		});
 	} catch (e) {
-		log.warning("could not intercept changes to window.define, ui5loader won't be able to a change of the AMD loader");
+		log.warning("could not intercept changes to window.define, ui5loader won't be able to detect a change of the AMD loader");
 	}
-
-	updateDefineAndInterceptAMDFlag(__global.define);
 
 	// --------------------------------------------------------------------------------------------
 
@@ -1167,7 +1210,7 @@
 		return error;
 	}
 
-	function declareModule(sModuleName, sDeprecationMessage) {
+	function declareModule(sModuleName, fnDeprecationMessage) {
 		// sModuleName must be a unified resource name of type .js
 		assert(/\.js$/.test(sModuleName), "must be a Javascript module");
 
@@ -1183,7 +1226,7 @@
 
 		// avoid cycles
 		oModule.state = READY;
-		oModule.deprecation = sDeprecationMessage || undefined;
+		oModule.deprecation = fnDeprecationMessage || undefined;
 
 		return oModule;
 	}
@@ -1466,16 +1509,36 @@
 
 	}
 
-	function preloadDependencies(sModuleName) {
+	/**
+	 * If we have knowledge about the dependencies of the given module,
+	 * we require them upfront, in parallel to the request for the module or
+	 * its containing bundle.
+	 *
+	 * Note: a dependency is required even when it is in state PRELOADED already.
+	 * Reason is that its transitive dependencies might not have been required yet.
+	 */
+	function requireDependenciesUpfront(sModuleName) {
 		const knownDependencies = mDepCache[sModuleName];
 		if ( Array.isArray(knownDependencies) ) {
-			log.debug(`preload dependencies for ${sModuleName}: ${knownDependencies}`);
+			mDepCache[sModuleName] = undefined;
+			const missingDeps = [];
 			knownDependencies.forEach((dep) => {
 				dep = getMappedName(dep, sModuleName);
-				if ( /\.js$/.test(dep) ) {
-					requireModule(null, dep, /* always async */ true);
-				} // else: TODO handle non-JS resources, e.g. link rel=prefetch
+				// even if a module is PRELOADED, its transitive dependencies might not
+				if ( Module.get(dep).state <= INITIAL ) {
+					missingDeps.push(dep);
+				}
 			});
+			if ( missingDeps.length > 0 ) {
+				log.info(`preload missing dependencies for ${sModuleName}: ${missingDeps}`);
+				missingDeps.forEach((dep) => {
+					if (/\.js$/.test(dep)) {
+						// The resulting promise is ignored here intentionally.
+						// Error handling will happen while module `sModuleName`` is processed
+						requireModule(null, dep, /* always async */ true);
+					} // else: TODO handle non-JS resources, e.g. link rel=prefetch
+				});
+			}
 		}
 	}
 
@@ -1496,6 +1559,7 @@
 	 * @throws {Error} When loading failed in sync mode
 	 *
 	 * @private
+	 * @ui5-transform-hint replace-param bAsync true
 	 */
 	function requireModule(oRequestingModule, sModuleName, bAsync, bSkipShimDeps, bSkipBundle) {
 
@@ -1516,7 +1580,8 @@
 		const oShim = mShims[sModuleName];
 
 		if (oModule.deprecation) {
-			log.error((oRequestingModule ? "(dependency of '" + oRequestingModule.name + "') " : "") + oModule.deprecation);
+			const msg = typeof oModule.deprecation === "function" ? oModule.deprecation() : oModule.deprecation;
+			log.error((oRequestingModule ? "(dependency of '" + oRequestingModule.name + "') " : "") + msg);
 		}
 
 		// when there's a shim with dependencies for the module
@@ -1537,14 +1602,17 @@
 		// when there's bundle information for the module
 		// require the bundle first before requiring the module again with bSkipBundle = true
 		if ( oModule.state === INITIAL && oModule.group && oModule.group !== sModuleName && !bSkipBundle ) {
-			if ( bLoggable ) {
-				log.debug(`${sLogPrefix}require bundle '${oModule.group}' containing '${sModuleName}'`);
+			if ( log.isLoggable(/* INFO */ 3) && Module.get(oModule.group).state === INITIAL ) {
+				log.info(`${sLogPrefix}require bundle '${oModule.group}' containing '${sModuleName}'`);
 			}
 			if ( bAsync ) {
-				return requireModule(null, oModule.group, bAsync).catch(noop).then(function() {
+				const pResult = requireModule(null, oModule.group, bAsync).catch(noop).then(function() {
 					// set bSkipBundle to true to prevent endless recursion
 					return requireModule(oRequestingModule, sModuleName, bAsync, bSkipShimDeps, /* bSkipBundle = */ true);
 				});
+				// start loading of dependencies in parallel
+				requireDependenciesUpfront(sModuleName);
+				return pResult;
 			} else {
 				try {
 					requireModule(null, oModule.group, bAsync);
@@ -1627,7 +1695,8 @@
 		oModule.async = bAsync;
 
 		// if debug is enabled, try to load debug module first
-		const aExtensions = bDebugSources ? ["-dbg", ""] : [""];
+		const aExtensions = shouldLoadDebugVariant(sModuleName) ? ["-dbg", ""] : [""];
+
 		if ( !bAsync ) {
 
 			for (let i = 0; i < aExtensions.length && oModule.state !== LOADED; i++) {
@@ -1672,7 +1741,7 @@
 
 			oModule.url = getResourcePath(oSplitName.baseID, aExtensions[0] + oSplitName.subType);
 			// in debug mode, fall back to the non-dbg source, otherwise try the same source again (for SSO re-connect)
-			const sAltUrl = bDebugSources ? getResourcePath(oSplitName.baseID, aExtensions[1] + oSplitName.subType) : oModule.url;
+			const sAltUrl = aExtensions.length === 2 ? getResourcePath(oSplitName.baseID, aExtensions[1] + oSplitName.subType) : oModule.url;
 
 			if ( log.isLoggable() ) {
 				log.debug(sLogPrefix + "loading '" + sModuleName + "' from '" + oModule.url + "' (using <script>)");
@@ -1682,14 +1751,20 @@
 			ui5Require.load({ completeLoad:noop, async: true }, sAltUrl, oSplitName.baseID);
 			loadScript(oModule, /* sAlternativeURL= */ sAltUrl);
 
-			// process dep cache info
-			preloadDependencies(sModuleName);
+			// process dep cache info, if this was not done already together with the bundle
+			if ( !bSkipBundle ) {
+				requireDependenciesUpfront(sModuleName);
+			}
 
 			return oModule.deferred().promise;
 		}
 	}
 
-	// sModuleName must be a normalized resource name of type .js
+	/**
+	 * Note: `sModuleName` must be a normalized resource name of type .js
+	 * @private
+	 * @ui5-transform-hint replace-param bAsync true
+	 */
 	function execModule(sModuleName, bAsync) {
 
 		const oModule = mModules[sModuleName];
@@ -1795,6 +1870,10 @@
 		}
 	}
 
+	/**
+	 * @private
+	 * @ui5-transform-hint replace-param bAsync true
+	 */
 	function requireAll(oRequestingModule, aDependencies, fnCallback, fnErrCallback, bAsync) {
 
 		const aModules = [];
@@ -1862,6 +1941,11 @@
 		}
 	}
 
+	/**
+	 * @private
+	 * @ui5-transform-hint replace-param bAsync true
+	 * @ui5-transform-hint replace-param bExport false
+	 */
 	function executeModuleDefinition(sResourceName, aDependencies, vFactory, bExport, bAsync) {
 		const bLoggable = log.isLoggable();
 		sResourceName = normalize(sResourceName);
@@ -1981,6 +2065,10 @@
 
 	}
 
+	/**
+	 * @private
+	 * @ui5-transform-hint replace-param bExport false
+	 */
 	function ui5Define(sModuleName, aDependencies, vFactory, bExport) {
 		let sResourceName;
 
@@ -2011,6 +2099,7 @@
 			queue.push(sResourceName, aDependencies, vFactory, bExport);
 			if ( sResourceName != null ) {
 				const oModule = Module.get(sResourceName);
+				// change state of PRELOADED or INITIAL modules to prevent further requests/executions
 				if ( oModule.state <= INITIAL ) {
 					oModule.state = EXECUTING;
 					oModule.async = true;
@@ -2083,6 +2172,11 @@
 			if ( typeof vDependencies === 'string' ) {
 				const sModuleName = getMappedName(vDependencies + '.js', sContextName);
 				const oModule = Module.get(sModuleName);
+
+				if (oModule.deprecation) {
+					const msg = typeof oModule.deprecation === "function" ? oModule.deprecation() : oModule.deprecation;
+					log.error(msg);
+				}
 
 				// check the modules internal state
 				// everything from PRELOADED to LOADED (incl. FAILED) is considered erroneous
@@ -2162,6 +2256,7 @@
 	 */
 	const amdRequire = createContextualRequire(null, true);
 
+	/** @deprecated as of 1.120 */
 	function requireSync(sModuleName) {
 		sModuleName = getMappedName(sModuleName + '.js');
 		if ( log.isLoggable() ) {
@@ -2170,6 +2265,10 @@
 		return unwrapExport(requireModule(null, sModuleName, /* bAsync = */ false));
 	}
 
+	/**
+	 * @private
+	 * @ui5-transform-hint replace-param bExport false
+	 */
 	function predefine(sModuleName, aDependencies, vFactory, bExport) {
 		if ( typeof sModuleName !== 'string' ) {
 			throw new Error("predefine requires a module name");
@@ -2190,7 +2289,7 @@
 	/**
 	 * Dumps information about the current set of modules and their state.
 	 *
-	 * @param {int} [iThreshold=-1] Earliest module state for which odules should be reported
+	 * @param {int} [iThreshold=-1] Earliest module state for which modules should be reported
 	 * @private
 	 */
 	function dumpInternals(iThreshold) {
@@ -2270,7 +2369,6 @@
 	 * @param {boolean} [bPreloadGroup=true] whether the name specifies a preload group, defaults to true
 	 * @param {boolean} [bUnloadAll] Whether all matching resources should be unloaded, even if they have been executed already.
 	 * @param {boolean} [bDeleteExports] Whether exports (global variables) should be destroyed as well. Will be done for UI5 module names only.
-	 * @experimental Since 1.16.3 API might change completely, apps must not develop against it.
 	 * @private
 	 */
 	function unloadResources(sName, bPreloadGroup, bUnloadAll, bDeleteExports) {
@@ -2431,6 +2529,9 @@
 				syncCallBehavior = report;
 			}
 		},
+		/**
+		 * @deprecated As of 1.135, superceded by option <code>amd</code>
+		 */
 		noConflict(bValue) {
 			log.warning("Config option 'noConflict' has been deprecated, use option 'amd' instead, if still needed.");
 			mUI5ConfigHandlers.amd(!bValue);
@@ -2490,7 +2591,8 @@
 			return {
 				amd: bExposeAsAMDLoader,
 				async: bGlobalAsyncMode,
-				noConflict: !bExposeAsAMDLoader // TODO needed?
+				/** @deprecated As of 1.135, superceded by option <code>amd</code> */
+				noConflict: !bExposeAsAMDLoader
 			};
 		}
 		handleConfigObject(cfg, mUI5ConfigHandlers);
@@ -2533,9 +2635,17 @@
 		set measure(v) {
 			measure = v;
 		},
+		/**
+		 * @deprecated As of version 1.120, sync loading is deprecated without replacement due to the deprecation
+		 *   of sync XMLHttpRequests in the web standard.
+		 */
 		get translate() {
 			return translate;
 		},
+		/**
+		 * @deprecated As of version 1.120, sync loading is deprecated without replacement due to the deprecation
+		 *   of sync XMLHttpRequests in the web standard.
+		 */
 		set translate(v) {
 			translate = v;
 		},
@@ -2556,8 +2666,11 @@
 		amdDefine,
 		amdRequire,
 		config: ui5Config,
-		declareModule(sResourceName, sDeprecationMessage) {
-			/* void */ declareModule(normalize(sResourceName), sDeprecationMessage);
+		/**
+		 * @deprecated As of version 1.120, all usages of this private API have been deprecated
+		 */
+		declareModule(sResourceName, fnDeprecationMessage) {
+			/* void */ declareModule(normalize(sResourceName), fnDeprecationMessage);
 		},
 		defineModuleSync,
 		dump: dumpInternals,
@@ -2573,13 +2686,25 @@
 		resolveURL,
 		guessResourceName,
 		toUrl,
+		/**
+		 * @deprecated As of version 1.135 without replacement (private API)
+		 */
 		unloadResources
 	};
 
 
 	// establish APIs in the sap.ui namespace
 
-	__global.sap = __global.sap || {};
+	/**
+	 * Root namespace for JavaScript functionality provided by SAP SE.
+	 *
+	 * @version 1.136.0
+	 * @namespace
+	 * @public
+	 * @name sap
+	 */
+	// ui5lint-disable-next-line no-globals
+	const sap = __global.sap = __global.sap || {};
 	sap.ui = sap.ui || {};
 
 	/**
@@ -2590,6 +2715,7 @@
 	 * @public
 	 * @namespace
 	 * @ui5-global-only
+	 * @name sap.ui.loader
 	 */
 	sap.ui.loader = {
 
@@ -2640,6 +2766,7 @@
 		 *     },
 		 *
 		 *     // activate real async loading and module definitions
+		 *     // (will become obsolete in 2.0 contexts as async will be the only mode there)
 		 *     async: true,
 		 *
 		 *     // provide dependency and export metadata for non-UI5 modules
@@ -2768,6 +2895,8 @@
 		 *   <b>Note:</b> Switching back from async to sync is not supported and trying to do so will throw
 		 *   an <code>Error</code>
 		 *
+		 *   In the next major version of UI5, this option will become obsolete as async will be the only mode.
+		 *
 		 * @param {boolean} [cfg.amd=false]
 		 *   When set to true, the ui5loader will overwrite the global properties <code>define</code>
 		 *   and <code>require</code> with its own implementations. Any previously active AMD loader will
@@ -2783,6 +2912,7 @@
 		 * @public
 		 * @since 1.56.0
 		 * @function
+		 * @name sap.ui.loader.config
 		 * @ui5-global-only
 		 */
 		config: ui5Config,
@@ -2791,8 +2921,10 @@
 		 * Internal API of the UI5 loader.
 		 *
 		 * Must not be used by code outside sap.ui.core.
+		 * @name sap.ui.loader._
 		 * @private
 		 * @ui5-restricted sap.ui.core
+		 * @ui5-global-only
 		 */
 		_: privateAPI
 	};
@@ -3035,7 +3167,7 @@
 	 *   // module 'Something' wants to use third party library 'URI.js'
 	 *   // It is packaged by UI5 as non-UI5-module 'sap/ui/thirdparty/URI'
 	 *   // the following shim helps UI5 to correctly load URI.js and to retrieve the module's export value
-	 *   // Apps don't have to define that shim, it is already applied by ui5loader-autconfig.js
+	 *   // Apps don't have to define that shim, it is already applied by ui5loader-autoconfig.js
 	 *   sap.ui.loader.config({
 	 *     shim: {
 	 *       'sap/ui/thirdparty/URI': {
@@ -3116,6 +3248,7 @@
 	 * @see https://github.com/amdjs/amdjs-api
 	 * @function
 	 * @ui5-global-only
+	 * @name sap.ui.define
 	 */
 	sap.ui.define = ui5Define;
 
@@ -3124,6 +3257,7 @@
 	 * @ui5-restricted bundles created with UI5 tooling
 	 * @function
 	 * @ui5-global-only
+	 * @name sap.ui.predefine
 	 */
 	sap.ui.predefine = predefine;
 
@@ -3183,6 +3317,7 @@
 	 * @public
 	 * @function
 	 * @ui5-global-only
+	 * @name sap.ui.require
 	 */
 	sap.ui.require = ui5Require;
 
@@ -3250,14 +3385,19 @@
 	 * @ui5-restricted sap.ui.core
 	 * @function
 	 * @ui5-global-only
+	 * @name sap.ui.requireSync
+	 * @deprecated As of version 1.120, sync loading is deprecated without replacement due to the deprecation
+	 *   of sync XMLHttpRequests in the web standard.
 	 */
+
+	/** @deprecated */
 	sap.ui.requireSync = requireSync;
 
 }(globalThis));
 //@ui5-bundle-raw-include sap/ui/test/starter/_configureLoader.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -3295,7 +3435,7 @@
 //@ui5-bundle-raw-include ui5loader-autoconfig.js
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -3463,6 +3603,7 @@
 		var oWriteableConfig = Object.create(null);
 		var rAlias = /^(sapUiXx|sapUi|sap)((?:[A-Z0-9][a-z]*)+)$/; //for getter
 		var mFrozenProperties = Object.create(null);
+		const multipleParams = new Map();
 		var bFrozen = false;
 		var Configuration;
 
@@ -3478,7 +3619,7 @@
 					if (!sNormalizedKey) {
 						ui5loader._.logger.error("Invalid configuration option '" + sKey + "' in global['sap-ui-config']!");
 					} else if (Object.hasOwn(oConfig, sNormalizedKey)) {
-						ui5loader._.logger.error("Configuration option '" + sKey + "' was already set by '" + mOriginalGlobalParams[sNormalizedKey] + "' and will be ignored!");
+						multipleParams.set(sNormalizedKey, mOriginalGlobalParams[sNormalizedKey]);
 					} else if (Object.hasOwn(mFrozenProperties, sNormalizedKey) && oGlobalConfig[sKey] !== vFrozenValue) {
 						oConfig[sNormalizedKey] = vFrozenValue;
 						ui5loader._.logger.error("Configuration option '" + sNormalizedKey + "' was frozen and cannot be changed to " + oGlobalConfig[sKey] + "!");
@@ -3499,10 +3640,14 @@
 		}
 
 		function get(sKey, bFreeze) {
+			var vValue = oWriteableConfig[sKey] || oConfig[sKey];
+			if (multipleParams.has(sKey)) {
+				ui5loader._.logger.error("Configuration option '" + multipleParams.get(sKey) + "' was set multiple times. Value '" + vValue + "' will be used");
+				multipleParams.delete(sKey);
+			}
 			if (Object.hasOwn(mFrozenProperties,sKey)) {
 				return mFrozenProperties[sKey];
 			}
-			var vValue = oWriteableConfig[sKey] || oConfig[sKey];
 			if (!Object.hasOwn(oConfig, sKey) && !Object.hasOwn(oWriteableConfig, sKey)) {
 				var vMatch = sKey.match(rAlias);
 				var sLowerCaseAlias = vMatch ? vMatch[1] + vMatch[2][0] + vMatch[2].slice(1).toLowerCase() : undefined;
@@ -3553,6 +3698,7 @@
 	], function(camelize) {
 		var oConfig = Object.create(null);
 		var rAlias = /^(sapUiXx|sapUi|sap)((?:[A-Z0-9][a-z]*)+)$/; //for getter
+		const multipleParams = new Map();
 
 		var bootstrap = getBootstrapTag();
 		if (bootstrap.tag) {
@@ -3563,7 +3709,7 @@
 					if (!sNormalizedKey) {
 						ui5loader._.logger.error("Invalid configuration option '" + sKey + "' in bootstrap!");
 					} else if (Object.hasOwn(oConfig, sNormalizedKey)) {
-						ui5loader._.logger.error("Configuration option '" + sKey + "' already exists and will be ignored!");
+						multipleParams.set(sNormalizedKey, sKey);
 					} else {
 						oConfig[sNormalizedKey] = dataset[sKey];
 					}
@@ -3573,6 +3719,10 @@
 
 		function get(sKey) {
 			var vValue = oConfig[sKey];
+			if (multipleParams.has(sKey)) {
+				ui5loader._.logger.error("Configuration option '" + multipleParams.get(sKey) + "' was set multiple times. Value '" + vValue + "' will be used");
+				multipleParams.delete(sKey);
+			}
 			if (vValue === undefined) {
 				var vMatch = sKey.match(rAlias);
 				var sLowerCaseAlias = vMatch ? vMatch[1] + vMatch[2][0] + vMatch[2].slice(1).toLowerCase() : undefined;
@@ -3594,6 +3744,7 @@
 		"sap/base/strings/_camelize"
 	], function(camelize) {
 		var oConfig = Object.create(null);
+		const multipleParams = new Map();
 
 		if (globalThis.location) {
 			oConfig = Object.create(null);
@@ -3605,7 +3756,7 @@
 				var sNormalizedKey = camelize(key);
 				if (sNormalizedKey) {
 					if (Object.hasOwn(oConfig, sNormalizedKey)) {
-						ui5loader._.logger.error("Configuration option '" + key + "' was already set by '" + mOriginalUrlParams[sNormalizedKey] + "' and will be ignored!");
+						multipleParams.set(sNormalizedKey, mOriginalUrlParams[sNormalizedKey]);
 					} else {
 						oConfig[sNormalizedKey] = value;
 						mOriginalUrlParams[sNormalizedKey] = key;
@@ -3618,6 +3769,10 @@
 		}
 
 		function get(sKey) {
+			if (multipleParams.has(sKey)) {
+				ui5loader._.logger.error("Configuration option '" + multipleParams.get(sKey) + "' was set multiple times. Value '" + oConfig[sKey] + "' will be used");
+				multipleParams.delete(sKey);
+			}
 			return oConfig[sKey];
 		}
 
@@ -3633,6 +3788,7 @@
 		"sap/base/strings/_camelize"
 	], function (camelize) {
 		var oConfig = Object.create(null);
+		const multipleParams = new Map();
 
 		if (globalThis.document) {
 			oConfig = Object.create(null);
@@ -3643,7 +3799,7 @@
 				const bSapParam = /sap\-?([Uu]?i\-?)?/.test(tag.name);
 				if (sNormalizedKey) {
 					if (Object.hasOwn(oConfig, sNormalizedKey)) {
-						ui5loader._.logger.error("Configuration option '" + tag.name + "' was already set by '" + mOriginalTagNames[sNormalizedKey] + "' and will be ignored!");
+						multipleParams.set(sNormalizedKey, mOriginalTagNames[sNormalizedKey]);
 					} else {
 						oConfig[sNormalizedKey] = tag.content;
 						mOriginalTagNames[sNormalizedKey] = tag.name;
@@ -3656,6 +3812,10 @@
 		}
 
 		function get(sKey) {
+			if (multipleParams.has(sKey)) {
+				ui5loader._.logger.error("Configuration option '" + multipleParams.get(sKey) + "' was set multiple times. Value '" + oConfig[sKey] + "' will be used");
+				multipleParams.delete(sKey);
+			}
 			return oConfig[sKey];
 		}
 
@@ -3997,33 +4157,8 @@
 			mCache = Object.create(null);
 		}
 
-		/**
-		 * Returns a writable base configuration instance
-		 * @returns {module:sap/base/config/_Configuration} The writable base configuration
-		 */
-		function getWritableBootInstance() {
-			var oProvider = aProvider[0];
-
-			return {
-				set: function(sName, vValue) {
-					var rValidKey = /^[a-z][A-Za-z0-9]*$/;
-					if (rValidKey.test(sName)) {
-						oProvider.set(sName, vValue);
-						invalidate();
-					} else {
-						throw new TypeError(
-							"Invalid configuration key '" + sName + "'!"
-						);
-					}
-				},
-				get: get,
-				Type: TypeEnum
-			};
-		}
-
 		var Configuration = {
 			get: get,
-			getWritableBootInstance: getWritableBootInstance,
 			registerProvider: registerProvider,
 			Type: TypeEnum,
 			_: {
@@ -4056,7 +4191,7 @@
 	/** autoconfig */
 	var sBaseUrl, bNojQuery,
 		aScripts, rBootScripts, i,
-		sBootstrapUrl, bExposeAsAMDLoader = false;
+		sBootstrapUrl;
 
 	function findBaseUrl(oScript, rUrlPattern) {
 		var sUrl = oScript && oScript.getAttribute("src"),
@@ -4260,16 +4395,32 @@
 
 	})();
 
-	if (BaseConfig.get({
-		name: "sapUiAsync",
+	const bFuture = BaseConfig.get({
+		name: "sapUiXxFuture",
 		type: BaseConfig.Type.Boolean,
 		external: true,
 		freeze: true
-	})) {
-		ui5loader.config({
-			async: true
-		});
-	}
+	});
+
+	/**
+	 * Evaluate legacy configuration.
+	 * @deprecated As of version 1.120
+	 */
+	(() => {
+		// xx-future implicitly sets the loader to async
+		const bAsync = BaseConfig.get({
+			name: "sapUiAsync",
+			type: BaseConfig.Type.Boolean,
+			external: true,
+			freeze: true
+		}) || bFuture;
+
+		if (bAsync) {
+			ui5loader.config({
+				async: true
+			});
+		}
+	})();
 
 	// Note: loader converts any NaN value to a default value
 	ui5loader._.maxTaskDuration = BaseConfig.get({
@@ -4281,7 +4432,7 @@
 	});
 
 	// support legacy switch 'noLoaderConflict', but 'amdLoader' has higher precedence
-	bExposeAsAMDLoader = BaseConfig.get({
+	const bExposeAsAMDLoader = BaseConfig.get({
 		name: "sapUiAmd",
 		type: BaseConfig.Type.Boolean,
 		defaultValue: !BaseConfig.get({
@@ -4295,14 +4446,18 @@
 		freeze: true
 	});
 
-	//calculate syncCallBehavior
+	// calculate syncCallBehavior
 	let syncCallBehavior = 0; // ignore
-	const sNoSync = BaseConfig.get({
+	let sNoSync = BaseConfig.get({ // call must be made to ensure freezing
 		name: "sapUiXxNoSync",
 		type: BaseConfig.Type.String,
 		external: true,
 		freeze: true
 	});
+
+	// sap-ui-xx-future enforces strict sync call behavior
+	sNoSync = bFuture ? "x" : sNoSync;
+
 	if (sNoSync === 'warn') {
 		syncCallBehavior = 1;
 	} else if (/^(true|x)$/i.test(sNoSync)) {
@@ -4310,7 +4465,7 @@
 	}
 
 	/**
-	 * @deprectaed As of Version 1.120
+	 * @deprecated As of version 1.120
 	 */
 	(() => {
 		const GlobalConfigurationProvider = sap.ui.require("sap/base/config/GlobalConfigurationProvider");
@@ -4528,9 +4683,11 @@
 				deps: ['sap/viz/library', 'sap/ui/thirdparty/jquery', 'sap/ui/thirdparty/d3', 'sap/viz/libs/canvg']
 			},
 			'sap/viz/libs/sap-viz-info-charts': {
+				amd: true,
 				deps: ['sap/viz/libs/sap-viz-info-framework']
 			},
 			'sap/viz/libs/sap-viz-info-framework': {
+				amd: true,
 				deps: ['sap/ui/thirdparty/jquery', 'sap/ui/thirdparty/d3']
 			},
 			'sap/viz/ui5/container/libs/sap-viz-controls-vizcontainer': {

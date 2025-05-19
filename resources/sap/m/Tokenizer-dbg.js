@@ -1,19 +1,21 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Tokenizer.
 sap.ui.define([
 	'./library',
+	"sap/base/i18n/Localization",
 	'sap/m/Button',
 	'sap/m/List',
 	'sap/m/StandardListItem',
 	'sap/m/ResponsivePopover',
-	'sap/ui/core/Core',
+	"sap/ui/core/ControlBehavior",
 	'sap/ui/core/Control',
 	'sap/ui/core/Element',
+	"sap/ui/core/Lib",
 	'sap/ui/core/delegate/ScrollEnablement',
 	'sap/ui/Device',
 	'sap/ui/core/InvisibleText',
@@ -22,20 +24,22 @@ sap.ui.define([
 	"sap/ui/dom/containsOrEquals",
 	"sap/ui/events/KeyCodes",
 	"sap/base/Log",
-	"sap/ui/core/EnabledPropagator",
+	"sap/ui/core/Theming",
 	"sap/ui/core/theming/Parameters",
 	// jQuery Plugin "scrollLeftRTL"
 	"sap/ui/dom/jquery/scrollLeftRTL"
 ],
 	function(
 		library,
+		Localization,
 		Button,
 		List,
 		StandardListItem,
 		ResponsivePopover,
-		Core,
+		ControlBehavior,
 		Control,
 		Element,
+		Library,
 		ScrollEnablement,
 		Device,
 		InvisibleText,
@@ -44,7 +48,7 @@ sap.ui.define([
 		containsOrEquals,
 		KeyCodes,
 		Log,
-		EnabledPropagator,
+		Theming,
 		Parameters
 	) {
 	"use strict";
@@ -64,19 +68,18 @@ sap.ui.define([
 	 *
 	 * @class
 	 * <h3>Overview</h3>
-	 * A tokenizer is a container for {@link sap.m.Token Tokens}. It also handles all actions associated with the tokens like adding, deleting, selecting and editing.
+	 * A Тokenizer is a container for {@link sap.m.Token Tokens}. The tokenizer supports keyboard navigation and token selection. It also handles all actions associated with the tokens like adding, deleting, selecting and editing.
 	 * <h3>Structure</h3>
+	 * The tokenizer consists of two parts:
+	 * - Tokens - displays the available tokens.
+	 * - N-more indicator - contains the number of the remaining tokens that cannot be displayed due to the limited space.
 	 * The tokens are stored in the <code>tokens</code> aggregation.
 	 * The tokenizer can determine, by setting the <code>editable</code> property, whether the tokens in it are editable.
 	 * Still the Token itself can determine if it is <code>editable</code>. This allows you to have non-editable Tokens in an editable Tokenizer.
 	 *
-	 * <h3>Usage</h3>
-	 * <h4>When to use:</h4>
-	 * The tokenizer can only be used as part of {@link sap.m.MultiComboBox MultiComboBox},{@link sap.m.MultiInput MultiInput} or {@link sap.ui.comp.valuehelpdialog.ValueHelpDialog ValueHelpDialog}
-	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -96,6 +99,11 @@ sap.ui.define([
 				editable : {type : "boolean", group : "Misc", defaultValue : true},
 
 				/**
+				 * Defines if the Tokenizer is enabled
+				 */
+				enabled : {type : "boolean", group : "Misc", defaultValue : true},
+
+				/**
 				 * Defines the width of the Tokenizer.
 				 */
 
@@ -112,8 +120,10 @@ sap.ui.define([
 				 * <li><code>sap.m.TokenizerRenderMode.Loose</code> mode shows all tokens, no matter the width of the Tokenizer</li>
 				 * <li><code>sap.m.TokenizerRenderMode.Narrow</code> mode forces the Tokenizer to show only as much tokens as possible in its width and add an n-More indicator</li>
 				 * </ul>
+				 *
+				 * <b>Note</b>: Have in mind that the <code>renderMode</code> property is used internally by the Tokenizer and controls that use the Tokenizer. Therefore, modifying this property may alter the expected behavior of the control.
 				 */
-				renderMode: {type : "string", group : "Misc", defaultValue : RenderMode.Loose},
+				renderMode: {type : "string", group : "Misc", defaultValue : RenderMode.Narrow},
 
 				/**
 				 * Defines the count of hidden tokens if any. If this property is set to 0, the n-More indicator will not be shown.
@@ -236,6 +246,20 @@ sap.ui.define([
 						 */
 						keyCode: { type: "number" }
 					}
+				},
+
+				/**
+				 * Fired when the render mode of the Tokenizer changes between <code>Narrow</code> (collapsed) and <code>Loose</code> (expanded).
+				 * @public
+				 * @since 1.133
+				 */
+				renderModeChange: {
+					parameters: {
+						/**
+						 * The render mode of the Tokenizer.
+						 */
+						renderMode: { type: "string" }
+					}
 				}
 			}
 		},
@@ -243,9 +267,7 @@ sap.ui.define([
 		renderer: TokenizerRenderer
 	});
 
-	var oRb = Core.getLibraryResourceBundle("sap.m");
-
-	EnabledPropagator.apply(Tokenizer.prototype, [true]);
+	var oRb = Library.getResourceBundleFor("sap.m");
 
 	Tokenizer.prototype.init = function() {
 		// Do not allow text selection in the Tokenizer
@@ -266,7 +288,7 @@ sap.ui.define([
 		// n-more popover.
 		this._fFontSizeRatio = 1.0;
 
-		if (Core.getConfiguration().getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			var sAriaTokenizerContainToken = new InvisibleText({
 				text: oRb.getText("TOKENIZER_ARIA_NO_TOKENS")
 			});
@@ -278,14 +300,28 @@ sap.ui.define([
 		this.attachEvent("delete", function(oEvent) {
 			var oToken = oEvent.getSource();
 			var aSelectedTokens = this.getSelectedTokens();
+			var oTokenToFocus = !!aSelectedTokens.length && aSelectedTokens[aSelectedTokens.indexOf(oToken) + 1] || aSelectedTokens[aSelectedTokens.indexOf(oToken) - 1];
 
 			this._fireCompatibilityEvents(oToken, aSelectedTokens);
 			this.fireEvent("tokenDelete", {
 				tokens: [oToken]
 			});
 
+			if (oTokenToFocus) {
+				oTokenToFocus.focus();
+			}
+
 			oEvent.cancelBubble();
 		}, this);
+
+		this._bThemeApplied = false;
+
+		this._handleThemeApplied = () => {
+			this._bThemeApplied = true;
+			Theming.detachApplied(this._handleThemeApplied);
+		};
+
+		Theming.attachApplied(this._handleThemeApplied);
 	};
 
 	/**
@@ -318,6 +354,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Tokenizer.prototype._handleNMoreIndicatorPress = function () {
+		this._bIsOpenedByNMoreIndicator = true;
 		this._togglePopup(this.getTokensPopup());
 	};
 
@@ -346,23 +383,12 @@ sap.ui.define([
 	 * @private
 	 */
 	Tokenizer.prototype._setPopoverMode = function (sMode) {
-		var oSettings = {},
-			oPopover = this.getTokensPopup();
+		var oPopover = this.getTokensPopup();
+		var oSettings = {
+			showArrow: true,
+			placement: PlacementType.VerticalPreferredBottom
+		};
 
-		switch (sMode) {
-			case ListMode.Delete:
-				oSettings = {
-					showArrow: false,
-					placement: PlacementType.VerticalPreferredBottom
-				};
-				break;
-			default:
-				oSettings = {
-					showArrow: true,
-					placement: PlacementType.Auto
-				};
-				break;
-		}
 		oPopover.setShowArrow(oSettings.showArrow);
 		oPopover.setPlacement(oSettings.placement);
 
@@ -446,12 +472,14 @@ sap.ui.define([
 	 * @returns {sap.m.ResponsivePopover}
 	 */
 	Tokenizer.prototype.getTokensPopup = function () {
+		var oTokenList = this._getTokensList();
+
 		if (this._oPopup) {
 			return this._oPopup;
 		}
 
 		this._oPopup = new ResponsivePopover({
-			showArrow: false,
+			showArrow: true,
 			showHeader: Device.system.phone,
 			placement: PlacementType.Auto,
 			offsetX: 0,
@@ -492,9 +520,9 @@ sap.ui.define([
 					}.bind(this));
 
 				if (oPopup.getContent && !oPopup.getContent().length) {
-					oPopup.addContent(this._getTokensList());
+					oPopup.addContent(oTokenList);
 				}
-				this._fillTokensList(this._getTokensList());
+				this._fillTokensList(oTokenList);
 
 				iWidestElement += Object.keys(this._oTokensWidthMap) // Object.values is not supported in IE
 					.map(function (sKey) { return this._oTokensWidthMap[sKey]; }, this)
@@ -510,6 +538,17 @@ sap.ui.define([
 					iWidestElement += Math.ceil(iWidestElement * ( 1 - fRatio ));
 					oPopup.setContentWidth(iWidestElement + "px");
 				});
+			}, this)
+			.attachAfterClose(this.afterPopupClose, this)
+			.attachAfterOpen(function () {
+				var aTokenListItems = oTokenList.getItems();
+				this.setRenderMode(RenderMode.Loose);
+				this.fireRenderModeChange({
+					renderMode: "Loose"
+				});
+				if (aTokenListItems.length) {
+					aTokenListItems[0].focus();
+				}
 			}, this);
 
 		this.addDependent(this._oPopup);
@@ -529,13 +568,27 @@ sap.ui.define([
 		return this._oPopup;
 	};
 
+	/**
+	 * Function to execute after the n-more popover is closed.
+	 *
+	 * @protected
+	 */
+	Tokenizer.prototype.afterPopupClose = function () {
+		if (!this.checkFocus()) {
+			this.setRenderMode(RenderMode.Narrow);
+			this.fireRenderModeChange({
+				renderMode: "Narrow"
+			});
+		}
+	};
+
 	Tokenizer.prototype._getDialogTitle = function () {
-		var oResourceBundle = Core.getLibraryResourceBundle("sap.m");
+		var oResourceBundle = Library.getResourceBundleFor("sap.m");
 		var aLabeles = this.getAriaLabelledBy().map(function(sLabelID) {
-			return Core.byId(sLabelID);
+			return Element.getElementById(sLabelID);
 		});
 
-		return aLabeles.length ? aLabeles[0].getText() : oResourceBundle.getText("COMBOBOX_PICKER_TITLE");
+		return aLabeles.length ? aLabeles[0].getText?.() : oResourceBundle.getText("COMBOBOX_PICKER_TITLE");
 	};
 
 	/**
@@ -544,9 +597,8 @@ sap.ui.define([
 	 * @private
 	 * @ui5-restricted sap.m.MultiInput, sap.m.MultiComboBox
 	 */
-	Tokenizer.prototype._togglePopup = function (oPopover) {
-		var oOpenByDom,
-			oDomRef = this.getDomRef(),
+	Tokenizer.prototype._togglePopup = function (oPopover, oOpener) {
+		var oOpenBy = oOpener || this.getDomRef(),
 			oPopoverIsOpen = oPopover.isOpen(),
 			bEditable = this.getEditable();
 
@@ -555,9 +607,7 @@ sap.ui.define([
 		if (oPopoverIsOpen) {
 			oPopover.close();
 		} else {
-			oOpenByDom = bEditable || this.hasOneTruncatedToken() ? oDomRef : this._oIndicator[0];
-			oOpenByDom = oOpenByDom && oOpenByDom.className.indexOf("sapUiHidden") === -1 ? oOpenByDom : oDomRef;
-			oPopover.openBy(oOpenByDom || oDomRef);
+			oPopover.openBy(oOpenBy);
 		}
 	};
 
@@ -580,7 +630,34 @@ sap.ui.define([
 			wrapCharLimit: 10000
 		}).data("tokenId", oToken.getId());
 
+		var fnOnSapShowHide = function (oEvent) {
+			this._togglePopup(this.getTokensPopup());
+
+				if (this.getTokens().length && this._bIsOpenedByNMoreIndicator) {
+					this.getTokens()[0].focus();
+					this._bIsOpenedByNMoreIndicator = false;
+				}
+		};
+
 		oListItem.setTitle(oToken.getText());
+		oListItem.addDelegate({
+			onkeydown: function (oEvent) {
+				oEvent.preventDefault();
+
+				if (!((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.I) && oEvent.which !== KeyCodes.ESCAPE) {
+					return;
+				}
+
+				this._togglePopup(this.getTokensPopup());
+
+				if (this.getTokens().length && this._bIsOpenedByNMoreIndicator) {
+					this.getTokens()[0].focus();
+					this._bIsOpenedByNMoreIndicator = false;
+				}
+			},
+			onsapshow: fnOnSapShowHide,
+			onsaphide: fnOnSapShowHide
+		}, this);
 
 		return oListItem;
 	};
@@ -627,7 +704,7 @@ sap.ui.define([
 		}
 
 		var iTokenizerWidth = this._getPixelWidth(),
-			aTokens = this._getVisibleTokens().reverse(),
+			aTokens = this._getVisibleTokens(),
 			iTokensCount = aTokens.length,
 			iLabelWidth, iFreeSpace,
 			iCounter, iFirstTokenToHide = -1;
@@ -635,11 +712,12 @@ sap.ui.define([
 		// find the index of the first overflowing token
 		aTokens.some(function (oToken, iIndex) {
 			iTokenizerWidth = iTokenizerWidth - this._oTokensWidthMap[oToken.getId()];
-			if (iTokenizerWidth < 0) {
+			if ((iTokenizerWidth <= 1 && iTokensCount === 1) || iTokenizerWidth < 0) {
 				iFirstTokenToHide = iIndex;
 				return true;
 			} else {
 				iFreeSpace = iTokenizerWidth;
+				return false;
 			}
 		}, this);
 
@@ -696,7 +774,6 @@ sap.ui.define([
 			this.addStyleClass("sapMTokenizerOneLongToken");
 		} else {
 			this.removeStyleClass("sapMTokenizerOneLongToken");
-			this.scrollToEnd();
 		}
 
 		return this;
@@ -782,11 +859,12 @@ sap.ui.define([
 	 */
 	Tokenizer.prototype.scrollToEnd = function() {
 		var domRef = this.getDomRef(),
-			bRTL = Core.getConfiguration().getRTL(),
+			bRTL = Localization.getRTL(),
+			bIsFirstTokenFocused = this.getTokens()[0] && this.getTokens()[0].getDomRef() && this.getTokens()[0].getDomRef() === document.activeElement,
 			iScrollWidth,
 			scrollDiv;
 
-		if (!this.getDomRef()) {
+		if (!this.getDomRef() || bIsFirstTokenFocused) {
 			return;
 		}
 
@@ -808,7 +886,6 @@ sap.ui.define([
 
 	Tokenizer.prototype._handleResize = function(){
 		this._useCollapsedMode(this.getRenderMode());
-		this.scrollToEnd();
 	};
 
 	/**
@@ -885,19 +962,39 @@ sap.ui.define([
 	 */
 	Tokenizer.prototype.onAfterRendering = function() {
 		var sRenderMode = this.getRenderMode();
+		var oTokenToFocus = this._getTokenToFocus();
 
 		this._oIndicator = this.$().find(".sapMTokenizerIndicator");
 
-		if (Core.isThemeApplied()) {
+		if (this._bThemeApplied) {
 			this._storeTokensSizes();
 		}
-
 		// refresh the render mode (loose/narrow) based on whether an indicator should be shown
 		// to ensure that the N-more label is rendered correctly
 		this._useCollapsedMode(sRenderMode);
 		this._registerResizeHandler();
 
-		if (sRenderMode === RenderMode.Loose) {
+		if (!this.getEnabled() && this.getTokens().length) {
+			this.getTokens().forEach(function(oToken) {
+				if (!oToken.getDomRef()) {
+					return;
+				}
+				oToken.getDomRef().setAttribute("tabindex", "-1");
+			});
+		}
+
+		if (oTokenToFocus && oTokenToFocus.getDomRef() && this.getEffectiveTabIndex()) {
+			oTokenToFocus.getDomRef().setAttribute("tabindex", "0");
+		}
+
+		if (this._bFocusFirstToken) {
+			this.scrollToStart();
+			this._bFocusFirstToken = false;
+
+			return;
+		}
+
+		if (sRenderMode === RenderMode.Loose && this._nMoreIndicatorPressed) {
 			this.scrollToEnd();
 		}
 	};
@@ -925,6 +1022,16 @@ sap.ui.define([
 				this._oTokensWidthMap[oToken.getId()] = oToken.$().outerWidth(true);
 			}
 		}, this);
+	};
+
+	/**
+	 * Returns the first selected visible token or if there is none - the first visible token.
+	 *
+	 * @private
+	 */
+	Tokenizer.prototype._getTokenToFocus = function() {
+		var aVisibleTokens = this._getVisibleTokens();
+		return aVisibleTokens.find((oToken) => oToken.getSelected()) || aVisibleTokens[0];
 	};
 
 	/**
@@ -957,20 +1064,33 @@ sap.ui.define([
 	 */
 	Tokenizer.prototype.onsapfocusleave = function(oEvent) {
 		// when focus goes to token, keep the select status, otherwise deselect all tokens
-		if (document.activeElement === this.getDomRef() || !this._checkFocus()) {
-			this._changeAllTokensSelection(false);
+		if (document.activeElement === this.getDomRef() || !this.checkFocus()) {
 			this._oSelectionOrigin = null;
+		}
+
+		if (!this.checkFocus()) {
+			this._bFocusFirstToken = true;
+			this.setRenderMode(RenderMode.Narrow);
+			this.fireRenderModeChange({
+				renderMode: "Narrow"
+			});
 		}
 	};
 
 	Tokenizer.prototype.onsapbackspace = function (oEvent) {
 		var aSelectedTokens = this.getSelectedTokens();
-		var oFocussedToken = this.getTokens().filter(function (oToken) {
+		var oFocusedToken = this.getTokens().filter(function (oToken) {
 			return oToken.getFocusDomRef() === document.activeElement;
 		})[0];
-		var aDeletingTokens = aSelectedTokens.length ? aSelectedTokens : [oFocussedToken];
+		var aTokens = this.getTokens();
+		var aDeletingTokens = aSelectedTokens.length ? aSelectedTokens : [oFocusedToken];
+		var oTokenToFocus = !!aSelectedTokens.length && aTokens[aSelectedTokens.indexOf(oFocusedToken) + 1] || aTokens[aSelectedTokens.indexOf(oFocusedToken) - 1];
 
 		oEvent.preventDefault();
+
+		if (oTokenToFocus) {
+			oTokenToFocus.focus();
+		}
 
 		return this.fireTokenDelete({
 			tokens: aDeletingTokens,
@@ -988,6 +1108,7 @@ sap.ui.define([
 	 */
 	Tokenizer.prototype.onkeydown = function(oEvent) {
 		var bSelectAll;
+		var bShouldOpenPopover = (oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.I;
 
 		if (!this.getEnabled()) {
 			return;
@@ -1024,7 +1145,22 @@ sap.ui.define([
 				this._copy();
 			}
 		}
+
+		if (bShouldOpenPopover) {
+			oEvent.preventDefault();
+			oEvent.stopPropagation();
+
+			this._togglePopup(this.getTokensPopup());
+			return;
+		}
 	};
+
+	Tokenizer.prototype.onsaphide = function(oEvent) {
+		this._togglePopup(this.getTokensPopup());
+	};
+
+	Tokenizer.prototype.onsapshow = Tokenizer.prototype.onsaphide;
+
 
 	Tokenizer.prototype._shouldPreventModifier = function (oEvent) {
 		var bShouldPreventOnMac = Device.os.macintosh && oEvent.metaKey;
@@ -1068,6 +1204,19 @@ sap.ui.define([
 	*/
 	Tokenizer.prototype.onsaphomemodifiers = function (oEvent) {
 		this._selectRange(false);
+		this.scrollToStart();
+	};
+
+	/**
+	* Pseudo event for keyboard Page Up with modifiers (Ctrl, Alt or Shift).
+	*
+	* @see #onsaphome
+	* @param {jQuery.Event} oEvent The event object
+	* @private
+	*/
+	Tokenizer.prototype.onsappageupmodifiers = function (oEvent) {
+		this._selectRange(false);
+		this.scrollToStart();
 	};
 
 	/**
@@ -1079,6 +1228,19 @@ sap.ui.define([
 	*/
 	Tokenizer.prototype.onsapendmodifiers = function (oEvent) {
 		this._selectRange(true);
+		this.scrollToEnd();
+	};
+
+		/**
+	* Pseudo event for keyboard Page Down with modifiers (Ctrl, Alt or Shift).
+	*
+	* @see #onsapend
+	* @param {jQuery.Event} oEvent The event object
+	* @private
+	*/
+	Tokenizer.prototype.onsappagedownmodifiers = function (oEvent) {
+		this._selectRange(true);
+		this.scrollToEnd();
 	};
 
 	/**
@@ -1188,7 +1350,7 @@ sap.ui.define([
 		var iTokenizerLeftOffset = this.$().offset().left,
 			iTokenizerWidth = this.$().width(),
 			iTokenLeftOffset = oToken.$().offset().left,
-			bRTL = Core.getConfiguration().getRTL(),
+			bRTL = Localization.getRTL(),
 			// Margins and borders are excluded from calculations therefore we need to add them explicitly.
 			iTokenMargin = bRTL ? parseInt(oToken.$().css("margin-left")) : parseInt(oToken.$().css("margin-right")),
 			iTokenBorder = parseInt(oToken.$().css("border-left-width")) + parseInt(oToken.$().css("border-right-width")),
@@ -1209,6 +1371,23 @@ sap.ui.define([
 		if (iTokenLeftOffset - iTokenizerLeftOffset + iTokenWidth > iTokenizerWidth) {
 			bRTL ? this.$().scrollLeftRTL(iRightOffset) : this.$().scrollLeft(iRightOffset);
 		}
+	};
+
+	Tokenizer.prototype.onfocusin = function (oEvent) {
+		this.setRenderMode(RenderMode.Loose);
+		this.fireRenderModeChange({
+			renderMode: "Loose"
+		});
+
+		this._bFocusFirstToken = oEvent.srcControl === this.getTokens()[0];
+
+		if (!this._bFocusFirstToken && !this._bTokenToBeDeleted) {
+			this._ensureTokenVisible(oEvent.srcControl);
+		}
+	};
+
+	Tokenizer.prototype.onmousedown = function (oEvent) {
+		this._bTokenToBeDeleted = oEvent.target.matches(".sapMTokenIcon, .sapMTokenIcon *");
 	};
 
 	Tokenizer.prototype.ontap = function (oEvent) {
@@ -1249,10 +1428,8 @@ sap.ui.define([
 		iMaxIndex = Math.max(iFocusIndex, iIndex);
 
 		aTokens.forEach(function (oToken, i) {
-			if (i >= iMinIndex && i <= iMaxIndex) {
-				oToken.setSelected(true);
-			} else if (!bCtrlKey) {
-				oToken.setSelected(false);
+			if (i >= iMinIndex && i <= iMaxIndex && bShiftKey) {
+				oToken.setSelected(oTargetToken.getSelected());
 			}
 		});
 	};
@@ -1265,6 +1442,8 @@ sap.ui.define([
 	Tokenizer.prototype.onsapprevious = function(oEvent) {
 		var aTokens = this._getVisibleTokens(),
 			iLength = aTokens.length;
+
+		oEvent.preventDefault();
 
 		if (iLength === 0) {
 			return;
@@ -1302,7 +1481,6 @@ sap.ui.define([
 
 		// mark the event that it is handled by the control
 		oEvent.setMarked();
-		oEvent.preventDefault();
 	};
 
 	/**
@@ -1313,6 +1491,8 @@ sap.ui.define([
 	Tokenizer.prototype.onsapnext = function(oEvent) {
 		var aTokens = this._getVisibleTokens(),
 			iLength = aTokens.length;
+
+		oEvent.preventDefault();
 
 		if (iLength === 0) {
 			return;
@@ -1343,7 +1523,6 @@ sap.ui.define([
 
 		// mark the event that it is handled by the control
 		oEvent.setMarked();
-		oEvent.preventDefault();
 	};
 
 	/**
@@ -1422,10 +1601,11 @@ sap.ui.define([
 	/**
 	 * Checks whether the Tokenizer or one of its internal DOM elements has the focus.
 	 * @returns {object} The control that has the focus
-	 * @private
+	 * @protected
 	 */
-	Tokenizer.prototype._checkFocus = function() {
-		return this.getDomRef() && containsOrEquals(this.getDomRef(), document.activeElement);
+	Tokenizer.prototype.checkFocus = function() {
+		var bIsFocusInPopover = containsOrEquals(this.getTokensPopup().getDomRef(),  document.activeElement);
+		return (this.getDomRef() && containsOrEquals(this.getDomRef(), document.activeElement)) ||  bIsFocusInPopover;
 	};
 
 	/**
@@ -1485,46 +1665,44 @@ sap.ui.define([
 	};
 
 	/**
-	 * Handle the home button, scrolls to the first token.
+	 * Handles the <code>sappageup</code>, <code>sappagedown</code>, <code>saphome</code>, <code>sapend</code>,
+	 * pseudo events when the Page Up/Page Down/Home/End key is selected.
 	 *
 	 * @param {jQuery.Event}oEvent The occuring event
 	 * @private
 	 */
-	Tokenizer.prototype.onsaphome = function(oEvent) {
-		var aAvailableTokens = this.getTokens().filter(function (oToken) {
-			return oToken.getDomRef() && !oToken.getDomRef().classList.contains("sapMHiddenToken");
-		});
+	["onsappageup", "onsappagedown", "onsaphome", "onsapend"].forEach(function(sName){
+		Tokenizer.prototype[sName] = function (oEvent) {
+			if (sName === "onsaphome" || sName === "onsappageup") {
+				var aAvailableTokens = this.getTokens().filter(function (oToken) {
+					return oToken.getDomRef() && !oToken.getDomRef().classList.contains("sapMHiddenToken");
+				});
 
-		aAvailableTokens.length && aAvailableTokens[0].focus();
-		this.scrollToStart();
+				aAvailableTokens.length && aAvailableTokens[0].focus();
+				this.scrollToStart();
 
-		oEvent.preventDefault();
-	};
+				oEvent.preventDefault();
+				return;
+			}
 
-	/**
-	 * Handle the end button, scrolls to the last token and focuses it.
-	 *
-	 * @param {jQuery.Event} oEvent The occuring event
-	 * @private
-	 */
-	Tokenizer.prototype.onsapend = function(oEvent) {
-		var oTokens = this._getVisibleTokens(),
+			var oTokens = this._getVisibleTokens(),
 			oLastToken = oTokens[oTokens.length - 1];
 
-		// handle the event chain only if the focus is not on the last token
-		// otherwise let the focus be handled by the parent control
-		if (oLastToken.getDomRef() !== document.activeElement) {
-			oLastToken.focus();
-			this.scrollToEnd();
+			// handle the event chain only if the focus is not on the last token
+			// otherwise let the focus be handled by the parent control
+			if (oLastToken.getDomRef() !== document.activeElement) {
+				oLastToken.focus();
+				this.scrollToEnd();
 
-			oEvent.stopPropagation();
-		} else {
-			// notify the parent that the focus should be taken over
-			oEvent.setMarked("forwardFocusToParent");
-		}
+				oEvent.stopPropagation();
+			} else {
+				// notify the parent that the focus should be taken over
+				oEvent.setMarked("forwardFocusToParent");
+			}
 
-		oEvent.preventDefault();
-	};
+			oEvent.preventDefault();
+		};
+	});
 
 	/**
 	 * Method for handling the state for tabindex rendering
@@ -1553,16 +1731,13 @@ sap.ui.define([
 	 * @protected
 	 */
 	Tokenizer.prototype.onclick = function (oEvent) {
-		var bFireIndicatorHandler;
-
 		if (!this.getEnabled()) {
 			return;
 		}
 
-		bFireIndicatorHandler = !this.hasStyleClass("sapMTokenizerIndicatorDisabled") &&
-			oEvent.target.classList.contains("sapMTokenizerIndicator");
+		this._nMoreIndicatorPressed = (!this.hasOneTruncatedToken() && !this.hasStyleClass("sapMTokenizerIndicatorDisabled")) && oEvent.target.classList.contains("sapMTokenizerIndicator");
 
-		if (bFireIndicatorHandler) {
+		if (this._nMoreIndicatorPressed) {
 			this._handleNMoreIndicatorPress();
 		}
 	};
@@ -1611,6 +1786,8 @@ sap.ui.define([
 		this._oIndicator = null;
 		this._aTokenValidators = null;
 		this._bShouldRenderTabIndex = null;
+		this._bThemeApplied = false;
+
 	};
 
 	/**
@@ -1640,7 +1817,7 @@ sap.ui.define([
 			1: "TOKENIZER_ARIA_CONTAIN_ONE_TOKEN"
 		};
 
-		if (Core.getConfiguration().getAccessibility()) {
+		if (ControlBehavior.isAccessibilityEnabled()) {
 			oInvisibleText = this.getAggregation("_tokensInfo");
 
 			sTranslation = oTranslationMapping[iTokenCount] ? oTranslationMapping[iTokenCount] : "TOKENIZER_ARIA_CONTAIN_SEVERAL_TOKENS";
@@ -1656,7 +1833,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Tokenizer.prototype._doSelect = function(){
-		if (this._checkFocus() && this._bCopyToClipboardSupport) {
+		if (this.checkFocus() && this._bCopyToClipboardSupport) {
 			var oFocusRef = document.activeElement;
 			var oSelection = window.getSelection();
 			oSelection.removeAllRanges();

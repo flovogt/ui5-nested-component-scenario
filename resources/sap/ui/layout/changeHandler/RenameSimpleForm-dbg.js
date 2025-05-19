@@ -1,13 +1,15 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/Element",
 	"sap/ui/core/util/reflection/JsControlTreeModifier",
 	"sap/base/Log"
 ], function(
+	Element,
 	JsControlTreeModifier,
 	Log
 ) {
@@ -18,10 +20,9 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.layout.changeHandler.RenameForm
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @since 1.40
 	 * @private
-	 * @experimental Since 1.40. This class is experimental and provides only limited functionality. Also the API might be changed in future.
 	 */
 	var RenameForm = { };
 
@@ -107,7 +108,7 @@ sap.ui.define([
 		}
 
 		if (oSpecificChangeInfo.renamedElement && oSpecificChangeInfo.renamedElement.id) {
-			var oRenamedElement = sap.ui.getCore().byId(oSpecificChangeInfo.renamedElement.id);
+			var oRenamedElement = Element.getElementById(oSpecificChangeInfo.renamedElement.id);
 			var oStableRenamedElement;
 			if (oSpecificChangeInfo.changeType === "renameLabel") {
 				oStableRenamedElement = oRenamedElement.getLabel();

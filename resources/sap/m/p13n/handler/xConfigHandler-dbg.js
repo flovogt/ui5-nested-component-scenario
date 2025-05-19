@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -85,6 +85,7 @@ sap.ui.define([
 	 * @param {object} mMetaConfig A map describing the metadata structure that is affected by this changehandler
 	 * @param {boolean} mMetaConfig.aggregationBased Defines whether the aggregation space or the property space should be used in the xConfig object
 	 * @param {string} mMetaConfig.property The property name (such as <code>width</code> or <code>label</code>)
+	 * @param {string} mMetaConfig.aggregation The aggregation name
 	 * @param {string} mMetaConfig.operation The operation to be executed by the handler (add, remove, move, set)
 	 * @param {string[]} mMetaConfig.additionalProperties Property names of the change content that are added to the revert data
 	 *
@@ -101,7 +102,7 @@ sap.ui.define([
 
 		return {
 			"changeHandler": {
-				applyChange: function(oChange, oControl, mPropertyBag) {
+				applyChange: function (oChange, oControl, mPropertyBag) {
 					const sChangePersistenceIdentifier = oChange.getContent().persistenceIdentifier;
 					const oController = Engine.getInstance().getController(oControl, oChange.getChangeType(), sChangePersistenceIdentifier);
 					if (sChangePersistenceIdentifier && oController.getPersistenceIdentifier() !== sChangePersistenceIdentifier) {
@@ -110,15 +111,15 @@ sap.ui.define([
 
 					return fnQueueChange(oControl, () => {
 						return Engine.getInstance().readXConfig(oControl, {
-								propertyBag: mPropertyBag
-							})
+							propertyBag: mPropertyBag
+						})
 							.then(async (oPriorAggregationConfig) => {
 								const oChangeContent = oChange.getContent();
 								const sOperation = getOperationType(oChange.getChangeType());
-								sAffectedAggregation = oChange.getContent().targetAggregation;
+								sAffectedAggregation = oChangeContent.targetAggregation;
 
 								const oRevertData = {
-									key: oChange.getContent().key
+									key: oChangeContent.key
 								};
 
 								mMetaConfig.additionalProperties?.forEach((vProperty) => {
@@ -141,29 +142,29 @@ sap.ui.define([
 								if ((!oPriorAggregationConfig || !(oPriorAggregationConfig?.aggregations?.[sAffectedAggregation]?.length > 0)) && typeof mMetaConfig.getCurrentState == "function") {
 									const aCurrentState = await mMetaConfig.getCurrentState?.(oControl, oPriorAggregationConfig, sAffectedAggregation, oChange, mPropertyBag);
 									if (aCurrentState) {
-										const oStateItem = aCurrentState.find((oItem, iIndex) => {
-											return oItem.key === oChange.getContent().key;
+										const oStateItem = aCurrentState?.find((oItem, iIndex) => {
+											return oItem.key === oChangeContent.key;
 										});
 										oRevertData.index = aCurrentState.indexOf(oStateItem);
 									}
 								}
 
-								oRevertData.targetAggregation = oChange.getContent().targetAggregation;
+								oRevertData.targetAggregation = oChangeContent.targetAggregation;
 
-								const oAffectedItem = oPriorAggregationConfig?.aggregations?.[sAffectedAggregation]?.[oChange.getContent().key];
+								const oAffectedItem = oPriorAggregationConfig?.aggregations?.[sAffectedAggregation]?.[oChangeContent.key];
 								if (oAffectedItem) {
 									if (oAffectedItem?.[sAffectedProperty]) {
-										oRevertData.value = oPriorAggregationConfig.aggregations[sAffectedAggregation][oChange.getContent().key][sAffectedProperty];
+										oRevertData.value = oPriorAggregationConfig.aggregations[sAffectedAggregation][oChangeContent.key][sAffectedProperty];
 									}
-									oRevertData.index = oPriorAggregationConfig.aggregations[sAffectedAggregation][oChange.getContent().key].position !== undefined ? oPriorAggregationConfig.aggregations[sAffectedAggregation][oChange.getContent().key].position : oRevertData.index;
+									oRevertData.index = oPriorAggregationConfig.aggregations[sAffectedAggregation][oChangeContent.key].position !== undefined ? oPriorAggregationConfig.aggregations[sAffectedAggregation][oChangeContent.key].position : oRevertData.index;
 								}
 
 								oChange.setRevertData(oRevertData);
 
 								const oConfig = {
 									property: sAffectedProperty,
-									key: oChange.getContent().key,
-									value: oChange.getContent(),
+									key: oChangeContent.key,
+									value: oChangeContent,
 									operation: sOperation,
 									changeType: oChange.getChangeType(),
 									propertyBag: mPropertyBag,
@@ -187,10 +188,10 @@ sap.ui.define([
 					});
 
 				},
-				completeChangeContent: function(oChange, mChangeSpecificInfo, mPropertyBag) {
+				completeChangeContent: function (oChange, mChangeSpecificInfo, mPropertyBag) {
 					// Not used, but needs to be there
 				},
-				revertChange: function(oChange, oControl, mPropertyBag) {
+				revertChange: function (oChange, oControl, mPropertyBag) {
 
 					const sOperation = getRevertOperationType(oChange.getChangeType());
 

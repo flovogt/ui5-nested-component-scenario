@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @param {string} sLanguageTag the language tag identifier, in format en-US or en_US.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @public
 	 * @alias module:sap/base/i18n/LanguageTag
 	 */
@@ -141,7 +141,7 @@ sap.ui.define([
 			// If the given language tag string cannot be parsed by the regular expression above,
 			// we should at least tell the developer why the Core fails to load.
 			if (aResult === null ) {
-				throw new TypeError("The given language tag'" + sLanguageTag + "' does not adhere to BCP-47.");
+				throw new TypeError("The given language tag '" + sLanguageTag + "' does not adhere to BCP-47.");
 			}
 			this.language = aResult[1] || null;
 			this.script = aResult[2] || null;

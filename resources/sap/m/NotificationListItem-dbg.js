@@ -1,14 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'./library',
-	'sap/ui/core/Core',
 	'./NotificationListBase',
 	'sap/ui/core/InvisibleText',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'sap/m/Link',
 	'sap/m/Avatar',
@@ -17,9 +17,9 @@ sap.ui.define([
 ],
 function(
 	library,
-	Core,
 	NotificationListBase,
 	InvisibleText,
+	Library,
 	coreLibrary,
 	Link,
 	Avatar,
@@ -28,7 +28,7 @@ function(
 	) {
 	'use strict';
 
-	var RESOURCE_BUNDLE = Core.getLibraryResourceBundle('sap.m'),
+	var RESOURCE_BUNDLE = Library.getResourceBundleFor('sap.m'),
 		EXPAND_TEXT = RESOURCE_BUNDLE.getText('NOTIFICATION_LIST_ITEM_SHOW_MORE'),
 		COLLAPSE_TEXT = RESOURCE_BUNDLE.getText('NOTIFICATION_LIST_ITEM_SHOW_LESS'),
 		READ_TEXT = RESOURCE_BUNDLE.getText('NOTIFICATION_LIST_ITEM_READ'),
@@ -67,7 +67,7 @@ function(
 	 * @extends sap.m.NotificationListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -81,12 +81,12 @@ function(
 				/**
 				 * Determines the description of the NotificationListItem.
 				 */
-				description: {type: 'string', group: 'Appearance', defaultValue: ''},
+				description: {type: 'string', group: 'Data', defaultValue: ''},
 
 				/**
 				 * Defines the displayed author initials.
 				 */
-				authorInitials: {type: "string", group: "Data", defaultValue: null},
+				authorInitials: {type: "string", group: "Appearance", defaultValue: null},
 
 				/**
 				 * Determines if the text in the title and the description of the notification are truncated to the first two lines.
@@ -104,7 +104,22 @@ function(
 				 * <b>Note:</b> By using background colors from the predefined sets,
 				 * your colors can later be customized from the Theme Designer.
 				 */
-				authorAvatarColor: {type: "sap.m.AvatarColor", group: "Appearance", defaultValue: AvatarColor.Accent6}
+				authorAvatarColor: {type: "sap.m.AvatarColor", group: "Appearance", defaultValue: AvatarColor.Accent6},
+
+				/**
+				 * Determines the notification author name.
+				 */
+				authorName: {type: 'string', group: 'Appearance', defaultValue: ''},
+
+				/**
+				 * Determines the URL of the notification author picture.
+				 */
+				authorPicture: {type: 'sap.ui.core.URI'},
+
+				/**
+				 * The time stamp of the notification.
+				 */
+				datetime: {type: 'string', group: 'Appearance', defaultValue: ''}
 			},
 			aggregations: {
 				/**

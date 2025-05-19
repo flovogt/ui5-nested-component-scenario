@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,9 +23,9 @@ sap.ui.define([
 	}
 
 	return {
-        "hideControl": "default",
+		"hideControl": "default",
 		"unhideControl": "default",
-        createItem: {
+		createItem: {
 			layers: {
 				USER: true
 			},
@@ -70,11 +70,11 @@ sap.ui.define([
 		addGroup: xConfigHandler.createHandler({
 			property: "groupConditions"
 		}),
-        removeGroup: xConfigHandler.createHandler({
+		removeGroup: xConfigHandler.createHandler({
 			property: "groupConditions"
 		}),
 		moveGroup: xConfigHandler.createHandler({
-			property: "groupConditions"
+			property: "sortConditions"
 		}),
 		setColumnWidth: xConfigHandler.createHandler({
 			aggregationBased: true,

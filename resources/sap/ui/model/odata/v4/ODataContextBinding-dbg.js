@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -40,14 +40,14 @@ sap.ui.define([
 		 *
 		 *   A context binding can also be used as an <i>operation binding</i> to support bound
 		 *   actions, action imports, bound functions and function imports. If you want to control
-		 *   the execution time of an operation, for example a function import named
+		 *   the invocation time of an operation, for example a function import named
 		 *   "GetNumberOfAvailableItems", create a context binding for the path
 		 *   "/GetNumberOfAvailableItems(...)" (as specified here, including the three dots). Such
 		 *   an operation binding is <i>deferred</i>, meaning that it does not request
-		 *   automatically, but only when you call {@link #execute}. {@link #refresh} is always
+		 *   automatically, but only when you call {@link #invoke}. {@link #refresh} is always
 		 *   ignored for actions and action imports. For bound functions and function imports, it is
-		 *   ignored if {@link #execute} has not yet been called. Afterwards it results in another
-		 *   call of the function with the parameter values of the last execute.
+		 *   ignored if {@link #invoke} has not yet been called. Afterwards it results in another
+		 *   call of the function with the parameter values of the last invocation.
 		 *
 		 *   The binding parameter for bound actions or bound functions may be given in the binding
 		 *   path, for example "/SalesOrderList('42')/name.space.SalesOrder_Confirm". This can be
@@ -74,7 +74,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataParentBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
@@ -196,7 +196,7 @@ sap.ui.define([
 	 * @param {sap.ui.model.odata.v4.lib._GroupLock} oGroupLock
 	 *   A lock for the group ID to be used for the request
 	 * @param {map} mParameters
-	 *   The parameter map at the time of the execute
+	 *   The parameter map at the time of the invocation
 	 * @param {boolean} [bIgnoreETag]
 	 *   Whether the entity's ETag should be actively ignored (If-Match:*); supported for bound
 	 *   actions only
@@ -212,9 +212,9 @@ sap.ui.define([
 	 *   of failure.
 	 *
 	 * @private
-	 * @see #execute for details
+	 * @see #invoke for details
 	 */
-	ODataContextBinding.prototype._execute = function (oGroupLock, mParameters, bIgnoreETag,
+	ODataContextBinding.prototype._invoke = function (oGroupLock, mParameters, bIgnoreETag,
 			fnOnStrictHandlingFailed, bReplaceWithRVC) {
 		var oMetaModel = this.oModel.getMetaModel(),
 			oOperationMetadata,
@@ -232,8 +232,10 @@ sap.ui.define([
 			return that.refreshDependentBindings("", oGroupLock.getGroupId(), true);
 		}
 
-		oPromise = oMetaModel.fetchObject(sResolvedMetaPath + "/@$ui5.overload")
-			.then(function (aOperationMetadata) {
+		oPromise = SyncPromise.all([
+				oMetaModel.fetchObject(sResolvedMetaPath + "/@$ui5.overload"),
+				this.ready2Inherit()
+			]).then(function ([aOperationMetadata]) {
 				var fnGetEntity, iIndex, sPath;
 
 				if (!aOperationMetadata) {
@@ -274,7 +276,7 @@ sap.ui.define([
 				});
 			}).catch(function (oError) {
 				oGroupLock.unlock(true);
-				that.oModel.reportError("Failed to execute " + sResolvedPath, sClassName, oError);
+				that.oModel.reportError("Failed to invoke " + sResolvedPath, sClassName, oError);
 				throw oError;
 			});
 
@@ -344,7 +346,7 @@ sap.ui.define([
 		if (this.oElementContext) {
 			this.oElementContext.adjustPredicate(sTransientPredicate, sPredicate);
 		}
-		// this.oReturnValueContext cannot have the transient predicate; it results from #execute
+		// this.oReturnValueContext cannot have the transient predicate; it results from #invoke
 		// which is not possible with a transient predicate
 	};
 
@@ -374,7 +376,7 @@ sap.ui.define([
 				this.refreshInternal("", undefined, true).catch(this.oModel.getReporter());
 			}
 		} else if (this.oOperation.bAction === false) {
-			this.execute().catch(this.oModel.getReporter());
+			this.invoke().catch(this.oModel.getReporter());
 		}
 	};
 
@@ -392,7 +394,7 @@ sap.ui.define([
 	 *   The reason for the 'change' event could be
 	 *   <ul>
 	 *     <li> {@link sap.ui.model.ChangeReason.Change Change} when the binding is initialized,
-	 *       when an operation has been processed (see {@link #execute}), or in {@link #resume} when
+	 *       when an operation has been processed (see {@link #invoke}), or in {@link #resume} when
 	 *       the binding has been modified while suspended,
 	 *     <li> {@link sap.ui.model.ChangeReason.Refresh Refresh} when the binding is refreshed,
 	 *     <li> {@link sap.ui.model.ChangeReason.Context Context} when the parent context is
@@ -412,7 +414,7 @@ sap.ui.define([
 	 * to switch off a busy indicator or to process an error. In case of a deferred operation
 	 * binding, 'dataReceived' is not fired: Whatever should happen in the event handler attached
 	 * to that event, can instead be done once the <code>oPromise</code> returned by
-	 * {@link #execute} fulfills or rejects (using <code>oPromise.then(function () {...}, function
+	 * {@link #invoke} fulfills or rejects (using <code>oPromise.then(function () {...}, function
 	 * () {...})</code>).
 	 *
 	 * If back-end requests are successful, the event has almost no parameters. For compatibility
@@ -452,7 +454,7 @@ sap.ui.define([
 	 * applications, for example to switch on a busy indicator. Registered event handlers are
 	 * called without parameters. In case of a deferred operation binding, 'dataRequested' is not
 	 * fired: Whatever should happen in the event handler attached to that event, can instead be
-	 * done before calling {@link #execute}.
+	 * done before calling {@link #invoke}.
 	 *
 	 * Since 1.106 this event is bubbled up to the model, unless a listener calls
 	 * {@link sap.ui.base.Event#cancelBubble oEvent.cancelBubble()}.
@@ -523,6 +525,14 @@ sap.ui.define([
 	};
 
 	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.ODataParentBinding#checkKeepAlive
+	 */
+	ODataContextBinding.prototype.checkKeepAlive = function () {
+		throw new Error("Unsupported " + this);
+	};
+
+	/**
 	 * Returns this operation binding's cache query options.
 	 *
 	 * @returns {object} The query options
@@ -531,14 +541,6 @@ sap.ui.define([
 	 */
 	ODataContextBinding.prototype.computeOperationQueryOptions = function () {
 		return Object.assign({}, this.oModel.mUriParameters, this.getQueryOptionsFromParameters());
-	};
-
-	/**
-	 * @override
-	 * @see sap.ui.model.odata.v4.ODataParentBinding#checkKeepAlive
-	 */
-	ODataContextBinding.prototype.checkKeepAlive = function () {
-		throw new Error("Unsupported " + this);
 	};
 
 	/**
@@ -552,7 +554,7 @@ sap.ui.define([
 	 * @param {object} oOperationMetadata
 	 *   The operation's metadata
 	 * @param {map} mParameters
-	 *   The parameter map at the time of the execute
+	 *   The parameter map at the time of the invocation
 	 * @param {function} [fnGetEntity]
 	 *   An optional function which may be called to access the existing entity data (if already
 	 *   loaded) in case of a bound operation
@@ -626,7 +628,7 @@ sap.ui.define([
 
 			oResult = fnOnStrictHandlingFailed(
 				_Helper.extractMessages(oError).map(function (oRawMessage) {
-					return that.oModel.createUI5Message(oRawMessage);
+					return oModel.createUI5Message(oRawMessage);
 				})
 			);
 
@@ -646,7 +648,7 @@ sap.ui.define([
 		if (bAction && fnGetEntity) {
 			vEntity = fnGetEntity();
 		}
-		if (bIgnoreETag && !(bAction && oOperationMetadata.$IsBound && vEntity)) {
+		if (bIgnoreETag && !(bAction && oOperationMetadata.$IsBound && vEntity !== null)) {
 			throw new Error("Not a bound action: " + sPath);
 		}
 		if (this.bInheritExpandSelect
@@ -715,7 +717,7 @@ sap.ui.define([
 		}
 
 		// In case the uppermost parent reached with empty paths is a list binding, delete there.
-		if (!oEmptyPathParentBinding.execute) {
+		if (!oEmptyPathParentBinding.invoke) {
 			// In the Cache, the request is generated with a reference to the entity data
 			// first. So, hand over the complete entity to have the ETag of the correct binding
 			// in the request.
@@ -800,194 +802,6 @@ sap.ui.define([
 	};
 
 	/**
-	 * @override
-	 * @see sap.ui.model.odata.v4.ODataBinding#doFetchOrGetQueryOptions
-	 */
-	ODataContextBinding.prototype.doFetchOrGetQueryOptions = function (oContext) {
-		return this.fetchResolvedQueryOptions(oContext);
-	};
-
-	/**
-	 * Handles setting a parameter property in case of a deferred operation binding, otherwise it
-	 * returns <code>undefined</code>.
-	 */
-	// @override sap.ui.model.odata.v4.ODataParentBinding#doSetProperty
-	ODataContextBinding.prototype.doSetProperty = function (sPath, vValue, oGroupLock) {
-		if (this.oOperation && (sPath === "$Parameter" || sPath.startsWith("$Parameter/"))) {
-			_Helper.updateAll(this.oOperation.mChangeListeners, "", this.oOperation.mParameters,
-				_Helper.makeUpdateData(sPath.split("/").slice(1), vValue));
-			this.oOperation.bAction = undefined; // "not yet executed"
-			if (oGroupLock) {
-				oGroupLock.unlock();
-			}
-			return SyncPromise.resolve();
-		}
-	};
-
-	/**
-	 * @override
-	 * @see sap.ui.model.odata.v4.ODataParentBinding#doSuspend
-	 */
-	ODataContextBinding.prototype.doSuspend = function () {
-		if (this.bInitial && !this.oOperation) {
-			// if the binding is still initial, it must fire an event in resume
-			this.sResumeChangeReason = ChangeReason.Change;
-		}
-	};
-
-	/**
-	 * Calls the OData operation that corresponds to this operation binding.
-	 *
-	 * Parameters for the operation must be set via {@link #setParameter} beforehand.
-	 *
-	 * The value of this binding is the result of the operation. To access a result of primitive
-	 * type, bind a control to the path "value", for example
-	 * <code>&lt;Text text="{value}"/></code>. If the result has a complex or entity type, you
-	 * can bind properties as usual, for example <code>&lt;Text text="{street}"/></code>.
-	 *
-	 * Since 1.98.0, a single-valued navigation property can be treated like a function if
-	 * <ul>
-	 *   <li> it has the same type as the operation binding's parent context,
-	 *   <li> that parent context is in a list binding for a top-level entity set,
-	 *   <li> there is a navigation property binding which points to that same entity set,
-	 *   <li> no operation parameters have been set,
-	 *   <li> the <code>bReplaceWithRVC</code> parameter is used.
-	 * </ul>
-	 *
-	 * @param {string} [sGroupId]
-	 *   The group ID to be used for the request; if not specified, the group ID for this binding is
-	 *   used, see {@link sap.ui.model.odata.v4.ODataContextBinding#constructor} and
-	 *   {@link #getGroupId}. To use the update group ID, see {@link #getUpdateGroupId}, it needs to
-	 *   be specified explicitly.
-	 *   Valid values are <code>undefined</code>, '$auto', '$auto.*', '$direct' or application group
-	 *   IDs as specified in {@link sap.ui.model.odata.v4.ODataModel}.
-	 * @param {boolean} [bIgnoreETag]
-	 *   Whether the entity's ETag should be actively ignored (If-Match:*); supported for bound
-	 *   actions only, since 1.90.0. Ignored if there is no ETag (since 1.93.0).
-	 * @param {function(sap.ui.core.message.Message[]):Promise<boolean>} [fnOnStrictHandlingFailed]
-	 *   If this callback is given for an action, the preference "handling=strict" is applied. If
-	 *   the service responds with the HTTP status code 412 and a
-	 *   "Preference-applied: handling=strict" header, the details from the OData error response are
-	 *   extracted and passed to the callback as an array of {@link sap.ui.core.message.Message}
-	 *   items. The callback has to return a <code>Promise</code> resolving with a
-	 *   <code>boolean</code> value in order to indicate whether the bound action should either be
-	 *   repeated <b>without</b> applying the preference or rejected with an <code>Error</code>
-	 *   instance <code>oError</code> where <code>oError.canceled === true</code>.
-	 *   Since 1.92.0.
-	 * @param {boolean} [bReplaceWithRVC]
-	 *   Whether this operation binding's parent context, which must belong to a list binding, is
-	 *   replaced with the operation's return value context (see below) and that list context is
-	 *   returned instead. That list context may be a newly created context or an existing context.
-	 *   A newly created context has the same <code>keepAlive</code> attribute and
-	 *   <code>fnOnBeforeDestroy</code> function as the parent context, see
-	 *   {@link sap.ui.model.odata.v4.Context#setKeepAlive}; <code>fnOnBeforeDestroy</code> will be
-	 *   called with the new context instance as the only argument in this case. An existing context
-	 *   does not change its <code>keepAlive</code> attribute. In any case, the resulting context
-	 *   takes the place (index, position) of the parent context (see
-	 *   {@link sap.ui.model.odata.v4.Context#getIndex}), which need not be in the collection
-	 *   currently if it is {@link sap.ui.model.odata.v4.Context#isKeepAlive kept alive}. If the
-	 *   parent context has requested messages when it was kept alive, they will be inherited if the
-	 *   $$inheritExpandSelect binding parameter is set to <code>true</code>. Since 1.97.0.
-	 * @returns {Promise<sap.ui.model.odata.v4.Context|undefined>}
-	 *   A promise that is resolved without data or with a return value context when the operation
-	 *   call succeeded, or rejected with an <code>Error</code> instance <code>oError</code> in case
-	 *   of failure, for instance if the operation metadata is not found, if overloading is not
-	 *   supported, if a collection-valued function parameter is encountered, or if
-	 *   <code>bIgnoreETag</code> is used for an operation other than a bound action. It is also
-	 *   rejected if <code>fnOnStrictHandlingFailed</code> is supplied and
-	 *   <ul>
-	 *     <li> is used for an operation other than an action,
-	 *     <li> another request that applies the preference "handling=strict" exists in a different
-	 *       change set of the same $batch request,
-	 *     <li> it does not return a <code>Promise</code>,
-	 *     <li> returns a <code>Promise</code> that resolves with <code>false</code>. In this case
-	 *       <code>oError.canceled === true</code>.
-	 *   </ul>
-	 *   It is also rejected if <code>bReplaceWithRVC</code> is supplied, and there is no return
-	 *   value context at all or the existing context as described above is currently part of the
-	 *   list's collection (that is, has an index).
-	 *   <br>
-	 *   A return value context is an {@link sap.ui.model.odata.v4.Context} which represents a bound
-	 *   operation response. It is created only if the operation is bound and these conditions
-	 *   apply:
-	 *   <ul>
-	 *     <li> The operation has a single entity return value from the same entity set as the
-	 *       operation's binding parameter.
-	 *     <li> It has a parent context which is an {@link sap.ui.model.odata.v4.Context} and points
-	 *       to (an entity from) an entity set. The path of the parent context must not contain a
-	 *       navigation property (but see last paragraph).
-	 *   </ul>
-	 *   <b>Note:</b> A return value context is destroyed the next time the operation binding is
-	 *   executed again.
-	 *   <br>
-	 *   If a return value context is created, it must be used instead of
-	 *   <code>this.getBoundContext()</code>. All bound messages will be related to the return value
-	 *   context only. Such a message can only be connected to a corresponding control if the
-	 *   control's property bindings use the return value context as binding context.
-	 *   <br>
-	 *   A return value context may also be provided if the parent context's path contains a maximum
-	 *   of one navigation property. In addition to the existing preconditions for a return value
-	 *   context, the metadata has to specify a partner attribute for the navigation property and
-	 *   the partner relationship has to be bi-directional. Also the navigation property binding has
-	 *   to be available in the entity set of the first segment in the parent context's path
-	 *   (@experimental as of version 1.119.0).
-	 * @throws {Error} If
-	 *   <ul>
-	 *     <li> the binding's root binding is suspended,
-	 *     <li> the given group ID is invalid,
-	 *     <li> the binding is not a deferred operation binding (see
-	 *       {@link sap.ui.model.odata.v4.ODataContextBinding}),
-	 *     <li> the binding is unresolved (see
-	 *       {@link sap.ui.model.Binding#isResolved})
-	 *     <li> the binding is relative to a transient context (see
-	 *       {@link sap.ui.model.odata.v4.Context#isTransient}),
-	 *     <li> deferred operation bindings are nested,
-	 *     <li> the OData resource path for a deferred operation binding's context cannot be
-	 *       determined,
-	 *     <li> <code>bReplaceWithRVC</code> is given, but this operation binding is not relative to
-	 *       a row context of a list binding which uses the <code>$$ownRequest</code> parameter (see
-	 *       {@link sap.ui.model.odata.v4.ODataModel#bindList}) and no data aggregation (see
-	 *       {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}).
-	 *
-	 * @public
-	 * @since 1.37.0
-	 */
-	ODataContextBinding.prototype.execute = function (sGroupId, bIgnoreETag,
-			fnOnStrictHandlingFailed, bReplaceWithRVC) {
-		var sResolvedPath = this.getResolvedPath();
-
-		this.checkSuspended();
-		_Helper.checkGroupId(sGroupId);
-		if (!this.oOperation) {
-			throw new Error("The binding must be deferred: " + this.sPath);
-		}
-		if (this.bRelative) {
-			if (!sResolvedPath) {
-				throw new Error("Unresolved binding: " + this.sPath);
-			}
-			if (this.oContext.isTransient && this.oContext.isTransient()) {
-				throw new Error("Execute for transient context not allowed: " + sResolvedPath);
-			}
-			if (this.oContext.getPath().includes("(...)")) {
-				throw new Error("Nested deferred operation bindings not supported: "
-					+ sResolvedPath);
-			}
-			if (bReplaceWithRVC) {
-				if (!this.oContext.getBinding) {
-					throw new Error("Cannot replace this parent context: " + this.oContext);
-				} // Note: parent context need not have a key predicate!
-				this.oContext.getBinding().checkKeepAlive(this.oContext, true);
-			}
-		} else if (bReplaceWithRVC) {
-			throw new Error("Cannot replace when operation is not relative");
-		}
-
-		return this._execute(this.lockGroup(sGroupId, true),
-			_Helper.publicClone(this.oOperation.mParameters, true), bIgnoreETag,
-				fnOnStrictHandlingFailed, bReplaceWithRVC);
-	};
-
-	/**
 	 * Fetches all properties described in $expand and $select of the binding parameters, unless
 	 * the binding already has fetched it. This is only done if the model uses autoExpandSelect. The
 	 * goal is that these properties are also requested as late properties.
@@ -1017,6 +831,44 @@ sap.ui.define([
 	};
 
 	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.ODataBinding#doFetchOrGetQueryOptions
+	 */
+	ODataContextBinding.prototype.doFetchOrGetQueryOptions = function (oContext) {
+		return this.fetchResolvedQueryOptions(oContext);
+	};
+
+	/**
+	 * Handles setting a parameter property in case of a deferred operation binding, otherwise it
+	 * returns <code>undefined</code>.
+	 *
+	 * @private
+	 */
+	// @override sap.ui.model.odata.v4.ODataParentBinding#doSetProperty
+	ODataContextBinding.prototype.doSetProperty = function (sPath, vValue, oGroupLock) {
+		if (this.oOperation && (sPath === "$Parameter" || sPath.startsWith("$Parameter/"))) {
+			_Helper.updateAll(this.oOperation.mChangeListeners, "", this.oOperation.mParameters,
+				_Helper.makeUpdateData(sPath.split("/").slice(1), vValue));
+			this.oOperation.bAction = undefined; // "not yet invoked"
+			if (oGroupLock) {
+				oGroupLock.unlock();
+			}
+			return SyncPromise.resolve();
+		}
+	};
+
+	/**
+	 * @override
+	 * @see sap.ui.model.odata.v4.ODataParentBinding#doSuspend
+	 */
+	ODataContextBinding.prototype.doSuspend = function () {
+		if (this.bInitial && !this.oOperation) {
+			// if the binding is still initial, it must fire an event in resume
+			this.sResumeChangeReason = ChangeReason.Change;
+		}
+	};
+
+	/**
 	 * Requests the value for the given path; the value is requested from this binding's
 	 * cache or from its context in case it has no cache. For a suspended binding, requesting the
 	 * value is canceled by throwing a "canceled" error.
@@ -1026,7 +878,7 @@ sap.ui.define([
 	 * @param {sap.ui.model.odata.v4.ODataPropertyBinding} [oListener]
 	 *   A property binding which registers itself as listener at the cache
 	 * @param {boolean} [bCached]
-	 *   Whether to return cached values only and not trigger a request
+	 *   Whether to return cached values only and not initiate a request
 	 * @returns {sap.ui.base.SyncPromise}
 	 *   A promise on the outcome of the cache's <code>fetchValue</code> call; it is rejected in
 	 *   case cached values are asked for, but not found, or if the cache is no longer the active
@@ -1039,12 +891,11 @@ sap.ui.define([
 		var oCachePromise = bCached && this.oCache !== undefined
 				? SyncPromise.resolve(this.oCache)
 				: this.oCachePromise,
-			oError,
 			that = this;
 
 		// dependent binding will update its value when the suspended binding is resumed
 		if (this.isRootBindingSuspended()) {
-			oError = new Error("Suspended binding provides no value");
+			const oError = new Error("Suspended binding provides no value");
 			oError.canceled = "noDebugLog";
 			throw oError;
 		}
@@ -1056,8 +907,7 @@ sap.ui.define([
 				sRelativePath = oCache || that.oOperation
 					? that.getRelativePath(sPath)
 					: undefined,
-				aSegments,
-				vValue;
+				aSegments;
 
 			if (that.oOperation) {
 				if (sRelativePath === undefined) {
@@ -1072,7 +922,8 @@ sap.ui.define([
 					_Helper.registerChangeListener(that.oOperation,
 						sRelativePath.slice(/*"$Parameter/".length*/11), oListener);
 
-					vValue = _Helper.drillDown(that.oOperation.mParameters, aSegments.slice(1));
+					const vValue = _Helper.drillDown(that.oOperation.mParameters,
+						aSegments.slice(1));
 
 					return vValue === undefined ? null : vValue;
 				}
@@ -1197,7 +1048,7 @@ sap.ui.define([
 			// keep $select before $expand
 			if ("$select" in mInheritableQueryOptions) {
 				// avoid that this.mQueryOptions.$select is modified
-				mQueryOptions.$select = mQueryOptions.$select && mQueryOptions.$select.slice();
+				mQueryOptions.$select &&= mQueryOptions.$select.slice();
 				_Helper.addToSelect(mQueryOptions, mInheritableQueryOptions.$select);
 			}
 			if ("$expand" in mInheritableQueryOptions) {
@@ -1253,11 +1104,12 @@ sap.ui.define([
 	 * a collection.
 	 *
 	 * @param {object} oResponseEntity
-	 *   The result of the executed operation
-	 * @returns {string|undefined} The path for the return value context or <code>undefined</code>
-	 *   if it is not possible to create one
+	 *   The result of the invoked operation
+	 * @returns {string|undefined}
+	 *   The path for the return value context, but w/o(!) the initial slash, or
+	 *   <code>undefined</code> if it is not possible to create one
 	 *
-	 * @privat
+	 * @private
 	 */
 	ODataContextBinding.prototype.getReturnValueContextPath = function (oResponseEntity) {
 		if (!this.hasReturnValueContext()) {
@@ -1281,18 +1133,18 @@ sap.ui.define([
 			return undefined;
 		}
 		return sBindingParameterPath.split("/").map((sSegment, i) => {
-			return sSegment.slice(0, sSegment.lastIndexOf("("))
+			return sSegment.slice(0, sSegment.indexOf("("))
 				+ (i ? sPredicate : sPartnerPredicate);
 		}).join("/");
 	};
 
 	/**
-	 * Handles the result of an executed operation and creates a return value context if possible.
+	 * Handles the result of an invoked operation and creates a return value context if possible.
 	 *
 	 * @param {object} oOperationMetadata
 	 *   The operation's metadata
 	 * @param {object} oResponseEntity
-	 *   The result of the executed operation
+	 *   The result of the invoked operation
 	 * @param {boolean} [bReplaceWithRVC]
 	 *   Whether this operation binding's parent context, which must belong to a list binding, is
 	 *   replaced with the operation's return value context and that new list context is returned
@@ -1320,21 +1172,23 @@ sap.ui.define([
 					// the context (we already read its predicate)
 					this.oContext.patch(oResponseEntity);
 				}
-				sNewPath = this.getReturnValueContextPath(oResponseEntity);
+				sNewPath = this.getReturnValueContextPath(oResponseEntity); // w/o initial "/"!
 				if (sNewPath) {
 					if (bReplaceWithRVC) {
 						// replace is only possible if the path does not contain any navigation
 						// property or the key predicate of the first segment has not changed!
 						if (this.oOperation.bAdditionalQueryOptionsForRVC
 								&& this.oContext.getPath().split("/")[1]
-									!== sNewPath.split("/")[1]) {
-							throw new Error("Cannot replace due changed key predicates "
-								+ "and navigation property in path");
+									!== sNewPath.split("/")[0]) {
+							throw new Error("Cannot replace due to changed key predicate"
+								+ " for navigation property in path");
 						}
 						this.oCache = null;
 						this.oCachePromise = SyncPromise.resolve(null);
-						oResult = this.oContext.getBinding()
-							.doReplaceWith(this.oContext, oResponseEntity, sResponsePredicate);
+						oResult = this.oContext.getPath().indexOf(sNewPath) === 1
+							? this.oContext
+							: this.oContext.getBinding()
+								.doReplaceWith(this.oContext, oResponseEntity, sResponsePredicate);
 						oResult.setNewGeneration();
 
 						return oResult;
@@ -1356,7 +1210,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Determines whether an operation binding creates a return value context on {@link #execute}.
+	 * Determines whether an operation binding creates a return value context on {@link #invoke}.
 	 * The following conditions must hold for a return value context to be created:
 	 * 1. Operation is bound.
 	 * 2. Operation has single entity return value. Note: existence of EntitySetPath
@@ -1412,6 +1266,188 @@ sap.ui.define([
 	};
 
 	/**
+	 * Invokes the OData operation that corresponds to this operation binding. Note that this method
+	 * has been available since 1.37.0 under a different name.
+	 *
+	 * Parameters for the operation must be set via {@link #setParameter} beforehand.
+	 *
+	 * The value of this binding is the result of the operation. To access a result of primitive
+	 * type, bind a control to the path "value", for example
+	 * <code>&lt;Text text="{value}"/></code>. If the result has a complex or entity type, you
+	 * can bind properties as usual, for example <code>&lt;Text text="{street}"/></code>.
+	 *
+	 * Since 1.98.0, a single-valued navigation property can be treated like a function if
+	 * <ul>
+	 *   <li> it has the same type as the operation binding's parent context,
+	 *   <li> that parent context is in a list binding for a top-level entity set,
+	 *   <li> there is a navigation property binding which points to that same entity set,
+	 *   <li> no operation parameters have been set,
+	 *   <li> the <code>bReplaceWithRVC</code> parameter is used.
+	 * </ul>
+	 *
+	 * @param {string} [sGroupId]
+	 *   The group ID to be used for the request; if not specified, the group ID for this binding is
+	 *   used, see {@link #constructor} and {@link #getGroupId}. To use the update group ID, see
+	 *   {@link #getUpdateGroupId}, it needs to be specified explicitly.
+	 *   Valid values are <code>undefined</code>, '$auto', '$auto.*', '$direct', '$single', or
+	 *   application group IDs as specified in {@link sap.ui.model.odata.v4.ODataModel}. If
+	 *   '$single' is used, the request will be sent as fast as '$direct', but wrapped in a batch
+	 *   request like '$auto' (since 1.121.0).
+	 * @param {boolean} [bIgnoreETag]
+	 *   Whether the entity's ETag should be actively ignored (If-Match:*); supported for bound
+	 *   actions only, since 1.90.0. This parameter is ignored if there is no ETag (since 1.93.0)
+	 *   unless no data has been read so far (since 1.132.0).
+	 * @param {function(sap.ui.core.message.Message[]):Promise<boolean>} [fnOnStrictHandlingFailed]
+	 *   If this callback is given for an action, the preference "handling=strict" is applied. If
+	 *   the service responds with the HTTP status code 412 and a
+	 *   "Preference-applied: handling=strict" header, the details from the OData error response are
+	 *   extracted and passed to the callback as an array of {@link sap.ui.core.message.Message}
+	 *   items. The callback has to return a <code>Promise</code> resolving with a
+	 *   <code>boolean</code> value in order to indicate whether the bound action should either be
+	 *   repeated <b>without</b> applying the preference or rejected with an <code>Error</code>
+	 *   instance <code>oError</code> where <code>oError.canceled === true</code>.
+	 *   Since 1.92.0.
+	 * @param {boolean} [bReplaceWithRVC]
+	 *   Whether this operation binding's parent context, which must belong to a list binding, is
+	 *   replaced with the operation's return value context (see below) and that list context is
+	 *   returned instead. That list context may be a newly created context or an existing context.
+	 *   A newly created context has the same <code>keepAlive</code> attribute and
+	 *   <code>fnOnBeforeDestroy</code> function as the parent context, see
+	 *   {@link sap.ui.model.odata.v4.Context#setKeepAlive}; <code>fnOnBeforeDestroy</code> will be
+	 *   called with the new context instance as the only argument in this case. An existing context
+	 *   does not change its <code>keepAlive</code> attribute. In any case, the resulting context
+	 *   takes the place (index, position) of the parent context (see
+	 *   {@link sap.ui.model.odata.v4.Context#getIndex}), which need not be in the collection
+	 *   currently if it is {@link sap.ui.model.odata.v4.Context#isKeepAlive kept alive}. If the
+	 *   parent context has requested messages when it was kept alive, they will be inherited if the
+	 *   $$inheritExpandSelect binding parameter is set to <code>true</code>. Since 1.97.0.
+	 * @returns {Promise<sap.ui.model.odata.v4.Context|undefined>}
+	 *   A promise that is resolved without data or with a return value context when the invocation
+	 *   succeeded, or rejected with an <code>Error</code> instance <code>oError</code> in case of
+	 *   failure, for instance if the operation metadata is not found, if overloading is not
+	 *   supported, if a collection-valued function parameter is encountered, or if
+	 *   <code>bIgnoreETag</code> is used for an operation other than a bound action. It is also
+	 *   rejected if <code>fnOnStrictHandlingFailed</code> is supplied and
+	 *   <ul>
+	 *     <li> is used for an operation other than an action,
+	 *     <li> another request that applies the preference "handling=strict" exists in a different
+	 *       change set of the same $batch request,
+	 *     <li> it does not return a <code>Promise</code>,
+	 *     <li> returns a <code>Promise</code> that resolves with <code>false</code>. In this case
+	 *       <code>oError.canceled === true</code>.
+	 *   </ul>
+	 *   It is also rejected if <code>bReplaceWithRVC</code> is supplied, and there is no return
+	 *   value context at all or the existing context as described above is currently part of the
+	 *   list's collection (that is, has an index).
+	 *   <br>
+	 *   A return value context is an {@link sap.ui.model.odata.v4.Context} which represents a bound
+	 *   operation response. It is created only if the operation is bound and these conditions
+	 *   apply:
+	 *   <ul>
+	 *     <li> The operation has a single entity return value from the same entity set as the
+	 *       operation's binding parameter.
+	 *     <li> It has a parent context which is an {@link sap.ui.model.odata.v4.Context} and points
+	 *       to (an entity from) an entity set. The path of the parent context must not contain a
+	 *       navigation property (but see last paragraph).
+	 *   </ul>
+	 *   <b>Note:</b> A return value context is destroyed the next time the operation binding is
+	 *    invoked again.
+	 *   <br>
+	 *   If a return value context is created, it must be used instead of
+	 *   <code>this.getBoundContext()</code>. All bound messages will be related to the return value
+	 *   context only. Such a message can only be connected to a corresponding control if the
+	 *   control's property bindings use the return value context as binding context.
+	 *   <br>
+	 *   A return value context may also be provided if the parent context's path contains a maximum
+	 *   of one navigation property. In addition to the existing preconditions for a return value
+	 *   context, the metadata has to specify a partner attribute for the navigation property and
+	 *   the partner relationship has to be bi-directional. Also the navigation property binding has
+	 *   to be available in the entity set of the first segment in the parent context's path
+	 *   (@experimental as of version 1.119.0).
+	 * @throws {Error} If
+	 *   <ul>
+	 *     <li> the binding's root binding is suspended,
+	 *     <li> the given group ID is invalid,
+	 *     <li> the binding is not a deferred operation binding (see
+	 *       {@link sap.ui.model.odata.v4.ODataContextBinding}),
+	 *     <li> the binding is unresolved (see
+	 *       {@link sap.ui.model.Binding#isResolved})
+	 *     <li> the binding is relative to a transient context (see
+	 *       {@link sap.ui.model.odata.v4.Context#isTransient}),
+	 *     <li> deferred operation bindings are nested,
+	 *     <li> the OData resource path for a deferred operation binding's context cannot be
+	 *       determined,
+	 *     <li> <code>bReplaceWithRVC</code> is given, but this operation binding is not relative to
+	 *       a row context of a list binding which uses the <code>$$ownRequest</code> parameter (see
+	 *       {@link sap.ui.model.odata.v4.ODataModel#bindList}) and no data aggregation (see
+	 *       {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}).
+	 *   </ul>
+	 *
+	 * @public
+	 * @since 1.123.0
+	 */
+	ODataContextBinding.prototype.invoke = function (sGroupId, bIgnoreETag,
+			fnOnStrictHandlingFailed, bReplaceWithRVC) {
+		var sResolvedPath = this.getResolvedPath();
+
+		this.checkSuspended();
+		_Helper.checkGroupId(sGroupId, false, true);
+		if (!this.oOperation) {
+			throw new Error("The binding must be deferred: " + this.sPath);
+		}
+		if (this.bRelative) {
+			if (!sResolvedPath) {
+				throw new Error("Unresolved binding: " + this.sPath);
+			}
+			if (this.oContext.isTransient && this.oContext.isTransient()) {
+				throw new Error("Invoke for transient context not allowed: " + sResolvedPath);
+			}
+			if (this.oContext.getPath().includes("(...)")) {
+				throw new Error("Nested deferred operation bindings not supported: "
+					+ sResolvedPath);
+			}
+			if (bReplaceWithRVC) {
+				if (!this.oContext.getBinding) {
+					throw new Error("Cannot replace this parent context: " + this.oContext);
+				} // Note: parent context need not have a key predicate!
+				this.oContext.getBinding().checkKeepAlive(this.oContext, true);
+			}
+		} else if (bReplaceWithRVC) {
+			throw new Error("Cannot replace when operation is not relative");
+		}
+
+		return this._invoke(this.lockGroup(sGroupId, true),
+			_Helper.publicClone(this.oOperation.mParameters, true), bIgnoreETag,
+				fnOnStrictHandlingFailed, bReplaceWithRVC);
+	};
+
+	/**
+	 * Invokes the OData operation that corresponds to this operation binding.
+	 *
+	 * @param {string} [sGroupId]
+	 *   The group ID to be used for the request.
+	 * @param {boolean} [bIgnoreETag]
+	 *   Whether the entity's ETag should be actively ignored (If-Match:*).
+	 * @param {function(sap.ui.core.message.Message[]):Promise<boolean>} [fnOnStrictHandlingFailed]
+	 *   If this callback is given for an action, the preference "handling=strict" is applied.
+	 * @param {boolean} [bReplaceWithRVC]
+	 *   Whether this operation binding's parent context, which must belong to a list binding, is
+	 *   replaced with the operation's return value context and that list context is returned
+	 *   instead.
+	 * @returns {Promise<sap.ui.model.odata.v4.Context|undefined>}
+	 *   A promise that is resolved without data or with a return value context when the operation
+	 *   call succeeded, or rejected with an <code>Error</code> instance <code>oError</code> in case
+	 *   of failure.
+	 * @throws {Error} If {@link #invoke} fails
+	 *
+	 * @deprecated As of version 1.123.0, use {@link #invoke} instead
+	 * @function
+	 * @public
+	 * @since 1.37.0
+	 */
+	ODataContextBinding.prototype.execute = ODataContextBinding.prototype.invoke;
+
+	/**
 	 * Determines whether an operation's return value is like its binding parameter in the following
 	 * sense:
 	 * 1. Operation is bound.
@@ -1460,6 +1496,20 @@ sap.ui.define([
 			&& oMetadata.$ReturnType && !oMetadata.$ReturnType.$isCollection
 				&& oMetadata.$EntitySetPath // case 2
 			&& !oMetadata.$EntitySetPath.includes("/"); // case 3
+	};
+
+	/**
+	 * Returns a sync promise that tells whether we are ready to inherit $expand/$select.
+	 *
+	 * @returns {sap.ui.base.SyncPromise}
+	 *   A sync promise that resolves without a defined result as soon as we are ready to inherit
+	 *   $expand/$select
+	 *
+	 * @private
+	 */
+	ODataContextBinding.prototype.ready2Inherit = function () {
+		return this.bInheritExpandSelect && this.bRelative && this.oContext.getBinding?.().ready()
+			|| SyncPromise.resolve();
 	};
 
 	/**
@@ -1526,15 +1576,20 @@ sap.ui.define([
 			}
 			if (that.oOperation) {
 				that.oReadGroupLock = undefined;
-				return that._execute(oReadGroupLock, that.oOperation.mRefreshParameters);
+				return that._invoke(oReadGroupLock, that.oOperation.mRefreshParameters);
 			}
 			if (oCache && !oPromise) { // do not refresh twice
 				// check here because fetchCache deactivates the cache which removes the listeners
 				bHasChangeListeners = oCache.hasChangeListeners();
 				// remove all cached Caches before fetching a new one
 				that.removeCachesAndMessages(sResourcePathPrefix);
-				that.fetchCache(that.oContext, false, /*bKeepQueryOptions*/false,
-					bKeepCacheOnError ? sGroupId : undefined);
+				if (that.mLateQueryOptions) {
+					// with a refresh, late properties become regular properties
+					that.mAggregatedQueryOptions = that.mLateQueryOptions;
+					that.mLateQueryOptions = undefined;
+				}
+				that.fetchCache(that.oContext, false, /*bKeepQueryOptions*/false, sGroupId,
+					bKeepCacheOnError);
 				// Do not fire a change event, or else ManagedObject destroys and recreates the
 				// binding hierarchy causing a flood of events.
 				if (bHasChangeListeners) {
@@ -1626,6 +1681,36 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns a promise on the value for the given path relative to this binding. The function
+	 * allows access to the complete data the binding points to (if <code>sPath</code> is "") or
+	 * any part thereof. The data is a JSON structure as described in <a href=
+	 * "https://docs.oasis-open.org/odata/odata-json-format/v4.0/odata-json-format-v4.0.html"
+	 * >"OData JSON Format Version 4.0"</a>.
+	 * Note that the function clones the result. Modify values via
+	 * {@link sap.ui.model.odata.v4.Context#setProperty}.
+	 *
+	 * If you want {@link #requestObject} to read fresh data, call
+	 * <code>oBinding.refresh()</code> first.
+	 *
+	 * @param {string} [sPath=""]
+	 *   A path relative to this context binding
+	 * @returns {Promise<any|undefined>}
+	 *   A promise on the requested value; in case there is no bound context this promise resolves
+	 *   with <code>undefined</code>
+	 * @throws {Error}
+	 *   If the context's root binding is suspended
+	 *
+	 * @public
+	 * @see sap.ui.model.odata.v4.Context#requestObject
+	 * @since 1.69.0
+	 */
+	ODataContextBinding.prototype.requestObject = function (sPath) {
+		return this.oElementContext
+			? this.oElementContext.requestObject(sPath)
+			: Promise.resolve();
+	};
+
+	/**
 	 * @override
 	 * @see sap.ui.model.odata.v4.ODataParentBinding#requestSideEffects
 	 */
@@ -1672,36 +1757,6 @@ sap.ui.define([
 		return oContext
 			&& this.refreshReturnValueContext(oContext, sGroupId, /*bKeepCacheOnError*/true)
 			|| this.refreshInternal("", sGroupId, true, true);
-	};
-
-	/**
-	 * Returns a promise on the value for the given path relative to this binding. The function
-	 * allows access to the complete data the binding points to (if <code>sPath</code> is "") or
-	 * any part thereof. The data is a JSON structure as described in <a href=
-	 * "https://docs.oasis-open.org/odata/odata-json-format/v4.0/odata-json-format-v4.0.html"
-	 * >"OData JSON Format Version 4.0"</a>.
-	 * Note that the function clones the result. Modify values via
-	 * {@link sap.ui.model.odata.v4.Context#setProperty}.
-	 *
-	 * If you want {@link #requestObject} to read fresh data, call
-	 * <code>oBinding.refresh()</code> first.
-	 *
-	 * @param {string} [sPath=""]
-	 *   A path relative to this context binding
-	 * @returns {Promise<any|undefined>}
-	 *   A promise on the requested value; in case there is no bound context this promise resolves
-	 *   with <code>undefined</code>
-	 * @throws {Error}
-	 *   If the context's root binding is suspended
-	 *
-	 * @public
-	 * @see sap.ui.model.odata.v4.Context#requestObject
-	 * @since 1.69.0
-	 */
-	ODataContextBinding.prototype.requestObject = function (sPath) {
-		return this.oElementContext
-			? this.oElementContext.requestObject(sPath)
-			: Promise.resolve();
 	};
 
 	/**
@@ -1817,7 +1872,7 @@ sap.ui.define([
 		this.oOperation.mParameters[sParameterName] = vValue;
 		_Helper.informAll(this.oOperation.mChangeListeners, sParameterName, vOldValue, vValue);
 
-		this.oOperation.bAction = undefined; // "not yet executed"
+		this.oOperation.bAction = undefined; // "not yet invoked"
 
 		return this;
 	};

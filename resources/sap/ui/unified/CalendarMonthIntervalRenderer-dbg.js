@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define([],
-	function() {
+sap.ui.define(["sap/ui/core/Lib"],
+	function(Library) {
 	"use strict";
 
 	/**
@@ -36,10 +36,13 @@ sap.ui.define([],
 			oRm.class("sapUiCalIntHead");
 		}
 
-		var rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
+		var rb = Library.getResourceBundleFor("sap.ui.unified");
 		var mAccProps = {labelledby: {value: "", append: false}}; // render on Month
 		if (oCal._bPoupupMode) {
 			mAccProps["role"] = "dialog";
+		} else {
+			mAccProps["role"] = "group";
+			mAccProps["roledescription"] = rb.getText("CALENDAR_DIALOG");
 		}
 		oRm.accessibilityState(oCal, mAccProps);
 

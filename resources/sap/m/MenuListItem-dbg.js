@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,12 +8,13 @@
 sap.ui.define([
 	'./ListItemBase',
 	'./library',
+	"sap/ui/core/Element",
 	'sap/ui/core/IconPool',
 	'sap/ui/core/library',
 	'./MenuListItemRenderer',
-    'sap/m/Image'
+	'sap/m/Image'
 ],
-	function(ListItemBase, library, IconPool, coreLibrary, MenuListItemRenderer, Image) {
+	function(ListItemBase, library, Element, IconPool, coreLibrary, MenuListItemRenderer, Image) {
 		"use strict";
 
 		// shortcut for sap.ui.core.TextDirection
@@ -21,6 +22,9 @@ sap.ui.define([
 
 		// shortcut for sap.m.ListType
 		var ListType = library.ListType;
+
+		// shortcut for sap.ui.core.ItemSelectionMode
+		var ItemSelectionMode = coreLibrary.ItemSelectionMode;
 
 		/**
 		 * Constructor for a new <code>MenuListItem</code>.
@@ -33,7 +37,7 @@ sap.ui.define([
 		 * @extends sap.m.ListItemBase
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
@@ -67,6 +71,11 @@ sap.ui.define([
 					iconDensityAware : {type : "boolean", group : "Misc", defaultValue : true},
 
 					/**
+					 * Defines the selection mode of the child items (e.g. <code>None</code>, <code>SingleSelect</code>, <code>MultiSelect</code>)
+					 */
+					itemSelectionMode : {type : "sap.ui.core.ItemSelectionMode", group : "Behavior", defaultValue : ItemSelectionMode.None},
+
+					/**
 					 * Defines the <code>title</code> text directionality with enumerated options. By default, the control inherits text direction from the DOM.
 					 */
 					titleTextDirection : {type : "sap.ui.core.TextDirection", group : "Appearance", defaultValue : TextDirection.Inherit},
@@ -78,6 +87,12 @@ sap.ui.define([
 					startsSection : {type : "boolean", group : "Behavior", defaultValue : false}
 				},
 				associations: {
+
+					/**
+					 * MenuItemGroup associated with this item.
+					 */
+					_group : {type : "sap.ui.unified.MenuItemGroup",  group : "Behavior", visibility : "hidden"},
+
 					/**
 					 * The <code>MenuItem</code> that this control renders.
 					 * Used internally in sap.m.Menu.
@@ -155,7 +170,7 @@ sap.ui.define([
 		};
 
 		MenuListItem.prototype._hasSubItems = function() {
-			return !!(this.getMenuItem() && sap.ui.getCore().byId(this.getMenuItem()).getItems().length);
+			return !!(this.getMenuItem() && Element.getElementById(this.getMenuItem())._getItems().length);
 		};
 
 		MenuListItem.prototype.setProperty = function(sPropertyKey, vPropertyValue) {
@@ -164,6 +179,47 @@ sap.ui.define([
 			if (sPropertyKey === "enabled") {
 				this.setType(vPropertyValue ? ListType.Active : ListType.Inactive);
 			}
+		};
+
+		MenuListItem.prototype._getMenuItemGroup = function() {
+			return Element.getElementById(this.getAssociation("_group"));
+		};
+
+		MenuListItem.prototype._getItemSelectionMode = function() {
+			var oGroup = this._getMenuItemGroup();
+			return oGroup ? oGroup.getItemSelectionMode() : ItemSelectionMode.None;
+		};
+
+		MenuListItem.prototype._hasGroupSeparator = function() {
+			var oMenuItem = Element.getElementById(this.getMenuItem()),
+				oMenuItemParent = oMenuItem && oMenuItem.getParent(),
+				aItems,
+				iIndex;
+
+			if (!oMenuItemParent) {
+				return false;
+			}
+
+			if (oMenuItemParent.getItemSelectionMode) {
+				oMenuItemParent = oMenuItemParent.getParent();
+			}
+
+			aItems = oMenuItemParent._getItems();
+			iIndex = aItems.indexOf(oMenuItem);
+
+			return iIndex > 0 && aItems[iIndex - 1] && aItems[iIndex - 1].getAssociation("_group") !== oMenuItem.getAssociation("_group");
+		};
+
+		MenuListItem.prototype._hasEndContent = function() {
+			var oMenuItem = Element.getElementById(this.getMenuItem());
+
+			return !!oMenuItem?.getEndContent().length;
+		};
+
+		MenuListItem.prototype._getEndContent = function() {
+			var oMenuItem = Element.getElementById(this.getMenuItem());
+
+			return oMenuItem?.getEndContent();
 		};
 
 		return MenuListItem;

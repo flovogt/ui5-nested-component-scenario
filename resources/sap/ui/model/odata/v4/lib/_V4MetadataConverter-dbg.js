@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -545,7 +545,7 @@ sap.ui.define([
 	 * @param {object} $$ The prototype for V4MetadataConverter
 	 */
 	(function ($$) {
-		// Note: this function is executed at load time only!
+		// Note: this function is run at load time only!
 		var oActionOrFunctionConfig,
 			oEntitySetConfig,
 			oStructuredTypeConfig;

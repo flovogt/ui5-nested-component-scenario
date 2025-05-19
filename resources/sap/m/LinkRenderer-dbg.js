@@ -1,18 +1,18 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
  sap.ui.define([
+	 "sap/ui/core/Lib",
 	 "sap/ui/core/Renderer",
 	 "sap/ui/core/library",
 	 'sap/ui/core/AccessKeysEnablement',
 	 "sap/ui/util/defaultLinkTypes",
-	 './library',
-	 'sap/ui/core/Core'
+	 './library'
 	],
-	function(Renderer, coreLibrary, AccessKeysEnablement, defaultLinkTypes, mobileLibrary, Core) {
+	function(Library, Renderer, coreLibrary, AccessKeysEnablement, defaultLinkTypes, mobileLibrary) {
 	"use strict";
 
 	// shortcut for sap.ui.core.TextDirection
@@ -23,6 +23,9 @@
 
 	// shortcut for sap.m.LinkAccessibleRole
 	var LinkAccessibleRole = mobileLibrary.LinkAccessibleRole;
+
+	// shortcut for sap.m.ReactiveAreaMode
+	var ReactiveAreaMode = mobileLibrary.ReactiveAreaMode;
 
 	/**
 	 * Link renderer
@@ -36,7 +39,7 @@
 	var EmptyIndicatorMode = mobileLibrary.EmptyIndicatorMode;
 
 	// shortcut for library resource bundle
-	var oRb = Core.getLibraryResourceBundle("sap.m");
+	var oRb = Library.getResourceBundleFor("sap.m");
 
 
 	/**
@@ -59,12 +62,17 @@
 			},
 			bEnabled = oControl.getEnabled(),
 			sTypeSemanticInfo = "",
+			sText = oControl.getText(),
 			sAcccessKey = oControl.getProperty("accesskey");
 
 		// Link is rendered as a "<a>" element
 		oRm.openStart("a", oControl);
 
 		oRm.class("sapMLnk");
+		if (oControl.getReactiveAreaMode() === ReactiveAreaMode.Overlay) {
+			oRm.class("sapMLnkLargeReactiveArea");
+		}
+
 		if (oControl.getSubtle()) {
 			oRm.class("sapMLnkSubtle");
 			sTypeSemanticInfo += oControl._sAriaLinkSubtleId;
@@ -143,10 +151,27 @@
 		// opening <a> tag
 		oRm.openEnd();
 
+		// Render icon only if there is text
+		if (sText && oControl.getIcon()) {
+			oRm.renderControl(oControl._getIcon());
+		}
+
+		// Text is rendered in "<span>" element to apply ellipsis only on the text
+		oRm.openStart("span");
+		oRm.class("sapMLnkText");
+		oRm.openEnd();
+
 		if (this.writeText) {
 			this.writeText(oRm, oControl);
 		} else {
 			this.renderText(oRm, oControl);
+		}
+
+		oRm.close("span");
+
+		// Render end icon only if there is text
+		if (sText && oControl.getEndIcon()) {
+			oRm.renderControl(oControl._getEndIcon());
 		}
 
 		oRm.close("a");

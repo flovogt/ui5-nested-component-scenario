@@ -12,10 +12,6 @@
 	margin: 0.8125rem 0;
 }
 
-.sapUiSizeCompact .sapMRI {
-	margin: 0.5rem 0;
-}
-
 html.sap-phone .sapMRI:focus,
 html.sap-tablet .sapMRI:focus {
 	outline: none;
@@ -32,9 +28,9 @@ html.sap-tablet .sapMRI:focus {
 	float: left;
 	display: block;
 	overflow: hidden;
-	padding:0;
-	margin:0;
-	color: @sapUiAccent1;
+	padding: 0;
+	margin: 0;
+	color: var(--sapAccentColor1);
 	word-wrap: normal;
 	white-space: nowrap;
 }
@@ -61,12 +57,15 @@ html.sap-tablet .sapMRI:focus {
 	color: darken(@sapUiAccent1, 5);
 }
 
-.sapMRIIconSel, .sapMRIIconUnsel, .sapMRIIconHov, .sapMRIIconReadOnly {
-    font-family: SAP-icons;
+.sapMRIIconSel,
+.sapMRIIconUnsel,
+.sapMRIIconHov,
+.sapMRIIconReadOnly {
+	font-family: var(--sapContent_IconFontFamily);
 }
 
 .sapMListTblCell > .sapMRI {
-  margin: 0;
+	margin: 0;
 }
 
 .sapUiSizeCondensed .sapUiTableDataCell > .sapUiTableCellInner > .sapMRI {
@@ -74,29 +73,6 @@ html.sap-tablet .sapMRI:focus {
 	padding: 0;
 	margin: 0 0.5rem;
 }
-
-.sapUiRatingIndicatorXS .sapMRI .sapUiIcon,
-.sapUiRatingIndicatorXS .sapMRI .sapMImg {
-	padding-right: @sapUiRIIconPaddingXS;
-	vertical-align:top;
-}
-	.sapUiRatingIndicatorS .sapMRI .sapUiIcon,
-	.sapUiRatingIndicatorS .sapMRI .sapMImg {
-		padding-right: @sapUiRIIconPaddingS;
-		vertical-align:top;
-	}
-
-	.sapUiRatingIndicatorM .sapMRI .sapUiIcon,
-	.sapUiRatingIndicatorM .sapMRI .sapMImg {
-		padding-right: @sapUiRIIconPaddingM;
-		vertical-align:top;
-	}
-
-	.sapUiRatingIndicatorL .sapMRI .sapUiIcon,
-	.sapUiRatingIndicatorL .sapMRI .sapMImg {
-		padding-right: @sapUiRIIconPaddingL;
-		vertical-align:top;
-	}
 
 .sapMRI.sapUiRatingIndicatorXS .sapUiIcon:last-child,
 .sapMRI.sapUiRatingIndicatorXS .sapMImg:last-child,
@@ -107,11 +83,6 @@ html.sap-tablet .sapMRI:focus {
 .sapMRI.sapUiRatingIndicatorL .sapUiIcon:last-child,
 .sapMRI.sapUiRatingIndicatorL .sapMImg:last-child {
 	padding-right: 0;
-}
-
-.sapMRIIcon { /* required for size calculation */
-	height: 1.375rem; /* default size */
-	overflow: hidden;
 }
 
 .sapMRIDisabled {
@@ -125,9 +96,18 @@ html.sap-tablet .sapMRI:focus {
 	margin: 0;
 }
 
+.sapMRI.sapMRIDisplayOnly .sapUiIcon,
+.sapMRI.sapMRIDisplayOnly .sapMImg {
+	padding-right: @sapUiRIIconPaddingDisplayOnly;
+	height: @sapUiRIIconSizeDisplayOnly;
+}
+
 .sapMRI .sapUiIcon,
 .sapMRI .sapMImg {
-	padding-right: 0.25rem;
+	padding-right: @sapUiRIIconPaddingCozy;
+	height: @sapUiRIIconSizeCozy;
+	overflow: hidden;
+	vertical-align:top;
 }
 
 .sapMRI .sapUiIcon:last-child,
@@ -137,65 +117,94 @@ html.sap-tablet .sapMRI:focus {
 
 /* Compact mode */
 .sapUiSizeCompact {
+
 	.sapMRI {
 		margin: 0.5rem 0;
-
-		&.sapMRIDisplayOnly {
-			margin: 0;
-		}
 	}
-	.sapMRIIcon {
-		height: 1rem; /* default size for the compact mode */
+
+	.sapMRI.sapMRIDisplayOnly {
+		margin: 0;
+	}
+
+	.sapMRI .sapUiIcon,
+	.sapMRI .sapMImg {
+		padding-right: @sapUiRIIconPaddingCompact;
+		height: @sapUiRIIconSizeCompact;
+	}
+
+	.sapMRI.sapMRIDisplayOnly.sapMRINoCustomIconSize .sapUiIcon,
+	.sapMRI.sapMRIDisplayOnly.sapMRINoCustomIconSize .sapMImg {
+		padding-right: @sapUiRIIconPaddingDisplayOnly;
+		height: @sapUiRIIconSizeDisplayOnly;
+	}
+
+	.sapMRI .sapUiIcon:last-child,
+	.sapMRI .sapMImg:last-child {
+		padding-right: 0;
 	}
 }
+
 /* Condensed mode */
 .sapUiSizeCondensed .sapUiTableDataCell .sapMRI .sapUiIcon,
-.sapUiSizeCondensed .sapUiTableDataCell .sapMRI .sapMImg{
+.sapUiSizeCondensed .sapUiTableDataCell .sapMRI .sapMImg {
 	vertical-align: top;
 }
 
 .sapUiSizeCondensed .sapMRI .sapUiIcon,
-.sapUiSizeCondensed .sapMRI .sapMImg{
+.sapUiSizeCondensed .sapMRI .sapMImg {
 	padding-right: 0;
 }
 
 .sapMRI.sapUiRatingIndicatorXS {
-	.sapUiIcon, .sapMImg {
+
+	.sapUiIcon,
+	.sapMImg {
 		padding-right: @sapUiRIIconPaddingXS;
 		vertical-align: top;
 	}
 }
 
 .sapMRI.sapUiRatingIndicatorS {
-	.sapUiIcon, .sapMImg {
+
+	.sapUiIcon,
+	.sapMImg {
 		padding-right: @sapUiRIIconPaddingS;
 		vertical-align: top;
 	}
 }
 
 .sapMRI.sapUiRatingIndicatorM {
-	.sapUiIcon, .sapMImg {
+
+	.sapUiIcon,
+	.sapMImg {
 		padding-right: @sapUiRIIconPaddingM;
 		vertical-align: top;
 	}
 }
 
 .sapMRI.sapUiRatingIndicatorL {
-	.sapUiIcon, .sapMImg {
+
+	.sapUiIcon,
+	.sapMImg {
 		padding-right: @sapUiRIIconPaddingL;
 		vertical-align: top;
 	}
 }
 
-.sapMRI.sapUiRatingIndicatorXS, .sapMRI.sapUiRatingIndicatorS, .sapMRI.sapUiRatingIndicatorM,
+.sapMRI.sapUiRatingIndicatorXS,
+.sapMRI.sapUiRatingIndicatorS,
+.sapMRI.sapUiRatingIndicatorM,
 .sapMRI.sapUiRatingIndicatorL {
-	.sapUiIcon:last-child, .sapMImg:last-child {
+
+	.sapUiIcon:last-child,
+	.sapMImg:last-child {
 		padding-right: 0;
 	}
 }
 
 .sapMRI.sapMRIDisplayOnly {
+
 	.sapMRIIconSel {
-		color: @sapUiBaseText;
+		color: var(--sapTextColor);
 	}
 }

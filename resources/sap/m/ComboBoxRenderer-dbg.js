@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define(['./ComboBoxBaseRenderer', 'sap/ui/core/Renderer', 'sap/m/inputUtils/ListHelpers'
@@ -83,7 +83,7 @@ sap.ui.define(['./ComboBoxBaseRenderer', 'sap/ui/core/Renderer', 'sap/m/inputUti
 
 			// If the picker is not opened, no active descendant should be set
 			// If there is no focused element in the picker, no active descendant should be set
-			if (!bOpen || !oFocusedItem) {
+			if (!bOpen || (!oFocusedItem)) {
 				return;
 			}
 

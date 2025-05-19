@@ -1,22 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.IconTabSeparator.
 sap.ui.define([
-	"sap/ui/core/Core",
 	"sap/ui/core/Element",
 	"sap/ui/core/Item",
 	"sap/m/IconTabFilter",
-	"sap/m/ImageHelper"
+	"sap/m/ImageHelper",
+	"sap/ui/core/Lib"
 ], function (
-	Core,
 	Element,
 	Item,
 	IconTabFilter,
-	ImageHelper
+	ImageHelper,
+	Library
 ) {
 	"use strict";
 
@@ -33,7 +33,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -132,7 +132,7 @@ sap.ui.define([
 
 		var sIcon = this.getIcon(),
 			oIconTabHeader = this.getParent(),
-			oRB = Core.getLibraryResourceBundle('sap.m'),
+			oRB = Library.getResourceBundleFor('sap.m'),
 			mAriaParams = {};
 
 		if (sIcon) {
@@ -176,7 +176,7 @@ sap.ui.define([
 
 		var sIcon = this.getIcon(),
 			oIconTabHeader = oSelectList._oIconTabHeader,
-			oRB = Core.getLibraryResourceBundle('sap.m'),
+			oRB = Library.getResourceBundleFor('sap.m'),
 			mAriaParams = {};
 
 		if (sIcon) {

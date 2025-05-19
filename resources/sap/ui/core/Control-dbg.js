@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -15,24 +15,25 @@ sap.ui.define([
 	'./RenderManager',
 	'./BusyIndicatorUtils',
 	'./BlockLayerUtils',
+	"sap/base/future",
 	"sap/base/Log",
 	"sap/ui/performance/trace/Interaction",
 	"sap/ui/thirdparty/jquery"
-],
-	function(
-		CustomStyleClassSupport,
-		Core,
-		Element,
-		ElementRegistry,
-		UIArea,
-		StaticArea,
-		RenderManager,
-		BusyIndicatorUtils,
-		BlockLayerUtils,
-		Log,
-		Interaction,
-		jQuery
-	) {
+], function(
+	CustomStyleClassSupport,
+	Core,
+	Element,
+	ElementRegistry,
+	UIArea,
+	StaticArea,
+	RenderManager,
+	BusyIndicatorUtils,
+	BlockLayerUtils,
+	future,
+	Log,
+	Interaction,
+	jQuery
+) {
 	"use strict";
 
 	// soft dependency
@@ -83,7 +84,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @alias sap.ui.core.Control
 	 */
 	var Control = Element.extend("sap.ui.core.Control", /** @lends sap.ui.core.Control.prototype */ {
@@ -408,13 +409,15 @@ sap.ui.define([
 	 * Note that this method can only be called when the control already has a DOM representation (it has
 	 * been rendered before) and when the control still is assigned to a UIArea.
 	 *
-	 * @deprecated As of 1.70, using this method is no longer recommended, but still works. Synchronous DOM
-	 *   updates via this method have several drawbacks: they only work when the control has been rendered
-	 *   before (no initial rendering possible), multiple state changes won't be combined automatically into
-	 *   a single re-rendering, they might cause additional layout trashing, standard invalidation might
-	 *   cause another async re-rendering.
+	 * @deprecated As of 1.70, using this method is no longer recommended, but calling it still
+	 * causes a re-rendering of the control. Synchronous DOM updates via this method have several
+	 * drawbacks: they only work when the control has been rendered before (no initial rendering
+	 * possible), multiple state changes won't be combined automatically into a single re-rendering,
+	 * they might cause additional layout thrashing, standard invalidation might cause another
+	 * async re-rendering.
 	 *
-	 *   The recommended alternative is to rely on invalidation and standard re-rendering.
+	 * The recommended alternative is to rely on invalidation and standard re-rendering.
+	 *
 	 * @protected
 	 */
 	Control.prototype.rerender = function() {
@@ -664,7 +667,7 @@ sap.ui.define([
 
 			if (oContainer instanceof Element) {
 				if (!isSuitableAsContainer(oContainer)) {
-					Log.warning("[FUTURE FATAL] placeAt cannot be processed because container " + oContainer + " does not have an aggregation 'content'.");
+					future.warningThrows("placeAt cannot be processed because container " + oContainer + " does not have an aggregation 'content'.");
 					return this;
 				}
 			} else {
@@ -693,7 +696,7 @@ sap.ui.define([
 						oContainer.addContent(this);
 						break;
 					default:
-						Log.warning("[FUTURE FATAL] Position " + vPosition + " is not supported for function placeAt.");
+						future.warningThrows("Position " + vPosition + " is not supported for function placeAt.");
 				}
 			}
 		}.bind(this));
@@ -752,7 +755,7 @@ sap.ui.define([
 	 * 	This implies that, for instance, no async function returning a Promise should be used.
 	 *
 	 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
-	 * 	implementation of this hook must not return anything but undefined. Any other
+	 *	implementation of this hook must not return anything but undefined. Any other
 	 * 	return value will cause an error log in this version of UI5 and will fail in future
 	 * 	major versions of UI5.
 	 * @protected
@@ -775,7 +778,7 @@ sap.ui.define([
 	 * 	This implies that, for instance, no async function returning a Promise should be used.
 	 *
 	 * 	<b>Note:</b> While the return type is currently <code>void|undefined</code>, any
-	 * 	implementation of this hook must not return anything but undefined. Any other
+	 *	implementation of this hook must not return anything but undefined. Any other
 	 * 	return value will cause an error log in this version of UI5 and will fail in future
 	 * 	major versions of UI5.
 	 * @protected
@@ -836,6 +839,9 @@ sap.ui.define([
 		 * @private
 		 */
 		onBeforeRendering: function() {
+			if (this.getBusy()) {
+				fnRemoveBusyIndicator.call(this);
+			}
 			// remove all block-layers to prevent leftover DOM elements and eventhandlers
 			fnRemoveAllBlockLayers.call(this);
 		},
@@ -860,19 +866,29 @@ sap.ui.define([
 				if (iDelay) {
 					this._busyIndicatorDelayedCallId = setTimeout(fnAppendBusyIndicator.bind(this), iDelay);
 				} else {
-					fnAppendBusyIndicator.call(this);
+					// To win against the focus restoration from RenderManager, we have to set focus asynchronously.
+					fnAppendBusyIndicator.call(this, /* bAsyncFocus */ true);
 				}
 			}
 		}
 	};
 
+	function checkAndFocusBlockLayer() {
+		if (this._oBusyBlockState && this.getDomRef(this._sBusySection)?.contains(document.activeElement)) {
+			// Move focus to the busy indicator if the focus is currently within the busy control's DOM.
+			this._oBusyBlockState.lastFocusPosition = document.activeElement;
+			this._oBusyBlockState.$blockLayer.get(0).focus({ preventScroll: true });
+		}
+	}
 
 	/**
 	 * Add busy indicator to DOM
 	 *
+	 * @param {boolean} [asyncFocus=false] whether focus should be set asynchronously.
+	 * This is need to set the focus after the restoration from RenderManager
 	 * @private
 	 */
-	function fnAppendBusyIndicator() {
+	function fnAppendBusyIndicator(bAsyncFocus) {
 
 		// Only append if busy state is still set
 		if (!this.getBusy()) {
@@ -903,12 +919,18 @@ sap.ui.define([
 				this._oBusyBlockState = this._oBlockState;
 
 			} else {
-				// BusyIndicator is the first blocking element created (and )
+				// BusyIndicator is the first blocking element created
 				fnAddStandaloneBusyIndicator.call(this);
 			}
 		} else {
 			// Standalone busy indicator
 			fnAddStandaloneBusyIndicator.call(this);
+		}
+
+		if (bAsyncFocus) {
+			setTimeout(checkAndFocusBlockLayer.bind(this), 0);
+		} else {
+			checkAndFocusBlockLayer.call(this);
 		}
 	}
 
@@ -961,9 +983,28 @@ sap.ui.define([
 			return;
 		}
 
-		var $this = this.$(this._sBusySection);
+		// Restore focus on last focus position, if possible
+		let oLastFocusedElement;
+		if (this._oBusyBlockState) {
+			const oBlockLayerDOM = this._oBusyBlockState.$blockLayer.get(0);
 
+			// Focus might be moved from the busy indicator
+			// If it is still on the busy indicator, we restore the focus. Otherwise do nothing.
+			if (oBlockLayerDOM === document.activeElement) {
+				// Check if last focused DOM element is still available, restore focus on the DOM element
+				// Otherwise, move focus to the control's DOM Ref
+				if (jQuery(this._oBusyBlockState.lastFocusPosition).is(":sapFocusable")) {
+					oLastFocusedElement = this._oBusyBlockState.lastFocusPosition;
+				} else {
+					oLastFocusedElement = Element.closestTo(this._oBusyBlockState.lastFocusPosition) || this;
+				}
+				oLastFocusedElement.focus();
+			}
+		}
+
+		const $this = this.$(this._sBusySection);
 		$this.removeClass('sapUiLocalBusy');
+		$this.removeAttr("aria-busy");
 
 		if (this._sBlockSection === this._sBusySection) {
 			if (!this.getBlocked() && !this.getBusy()) {
@@ -971,11 +1012,11 @@ sap.ui.define([
 				fnRemoveAllBlockLayers.call(this);
 
 			} else if (this.getBlocked()) {
-				// Hide animation in shared block layer
-				BlockLayerUtils.toggleAnimationStyle(this._oBlockState || this._oBusyBlockState, false);
-
-				this._oBlockState = this._oBusyBlockState;
-
+				if (this._oBlockState || this._oBusyBlockState) {
+					// Hide animation in shared block layer
+					BlockLayerUtils.toggleAnimationStyle(this._oBlockState || this._oBusyBlockState, false);
+					this._oBlockState = this._oBusyBlockState;
+				}
 			} else if (this._oBusyBlockState) {
 				BlockLayerUtils.unblock(this._oBusyBlockState);
 
@@ -994,8 +1035,9 @@ sap.ui.define([
 	 *
 	 * @param {boolean} bBlocked The new blocked state to be set
 	 * @returns {this} <code>this</code> to allow method chaining
+	 *
 	 * @private
-	 * @ui5-restricted sap.ui.core, sap.m, sap.viz
+	 * @ui5-restricted sap.ui.core, sap.m, sap.viz, sap.ui.rta, sap.ui.table
 	 * @deprecated since version 1.69, the blocked property is deprecated.
 	 * There is no accessibility support for this property.
 	 * Blocked controls should not be used inside Controls, which rely on keyboard navigation, e.g. List controls.
@@ -1055,6 +1097,19 @@ sap.ui.define([
 		}
 
 		return this;
+	};
+
+	/**
+	 * Gets current value of property blocked.
+	 * @returns {boolean} Whether the control is currently in blocked state. Default is 'false'.
+	 * @public
+	 *
+	 * @deprecated since version 1.69, the blocked property is deprecated.
+	 * There is no accessibility support for this property.
+	 * Blocked controls should not be used inside Controls, which rely on keyboard navigation, e.g. List controls.
+	 */
+	Control.prototype.getBlocked = function() {
+		return this.getProperty("blocked");
 	};
 
 	/**
@@ -1267,7 +1322,7 @@ sap.ui.define([
 	 * @return {sap.ui.core.AccessibilityInfo} Current accessibility state of the control.
 	 * @since 1.37.0
 	 * @function
-	 * @name sap.ui.core.Control.prototype.getAccessibilityInfo
+	 * @name sap.ui.core.Control.prototype.getAccessibilityInfo?
 	 * @protected
 	 */
 	//Control.prototype.getAccessibilityInfo = function() { return null; };

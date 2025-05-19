@@ -1,11 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-sap.ui.define(["sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
-	function(Log, View, Component) {
+sap.ui.define(["sap/base/future", "sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
+	function(future, Log, View, Component) {
 
 	"use strict";
 
@@ -51,12 +51,19 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
 	 * @namespace
 	 * @public
 	 */
-	// Following we attach all additional module API functions to the original sap.ui.extensionpoint factory.
-	// For compatibility we cannot change the actual return value of this module.
-	var ExtensionPoint = sap.ui.extensionpoint || {};
+	let ExtensionPoint = {};
 
 	/**
-	 * API documentation see ExtensionPoint.load() and sap.ui.extensionpoint().
+	 * Following we attach all additional module API functions to the original sap.ui.extensionpoint factory.
+	 * For compatibility we cannot change the actual return value of this module.
+	 * @deprecated since 1.56
+	 */
+	(() => {
+		ExtensionPoint = sap.ui.extensionpoint;
+	})();
+
+	/**
+	 * API documentation see ExtensionPoint.load() (v2 API) and sap.ui.extensionpoint() (v1 API).
 	 *
 	 * Used only internally by this module, as well as the XMLTemplateProcessor.
 	 *
@@ -68,6 +75,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
 	 * @param {boolean} [bAsync=false] whether the ExtensionPoint content should be loaded asynchronously, defaults to sync
 	 *
 	 * @private
+	 * @ui5-transform-hint replace-param bAsync true
 	 */
 	ExtensionPoint._factory = function(oContainer, sExtName, fnCreateDefaultContent, oTargetControl, sAggregationName, bAsync) {
 		var oExtensionConfig, oView, vResult, sViewOrFragmentName;
@@ -104,7 +112,12 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
 					type: oExtensionConfig.type
 				};
 
-				// processingMode must not be set for sync path
+				/**
+				 * @deprecated because the 'Sequential' Mode is used by default and it's the only mode that will be supported
+				 * in the next major release
+				 *
+				 * processingMode must not be set for sync path
+				 */
 				if (bAsync && oView._sProcessingMode) {
 					oFactoryConfig.processingMode = oView._sProcessingMode;
 				}
@@ -139,23 +152,32 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
 				} else if (oExtensionConfig.className === "sap.ui.core.mvc.View") {
 					oFactoryConfig.viewName = oExtensionConfig.viewName;
 
-					// Call View._create in order to keep the processingMode (e.g. 'SequentialLegacy')
-					// View.create always overrides the processingMode to 'Sequential'
-					var oExtensionView = View._create(oFactoryConfig);
+					/**
+					 * @ui5-transform-hint replace-local false
+					 */
+					const bLegacyCreate = true;
 
-					if (bAsync) {
-						vResult = oExtensionView.loaded();
+					if (bLegacyCreate) {
+						// Call View._create in order to keep the processingMode (e.g. 'SequentialLegacy')
+						// View.create always overrides the processingMode to 'Sequential'
+						const oExtensionView = View._create(oFactoryConfig);
+						if (bAsync) {
+							vResult = oExtensionView.loaded();
+						} else {
+							// sync view creation
+							vResult = [oExtensionView]; // vResult is now an array, even if empty - so if a Fragment is configured, the default content below is not added anymore
+						}
 					} else {
-						// sync view creation
-						vResult = [oExtensionView]; // vResult is now an array, even if empty - so if a Fragment is configured, the default content below is not added anymore
+						vResult = View.create(oFactoryConfig);
 					}
+
 				} else {
 					// unknown extension class
-					Log.warning("[FUTURE FATAL] Customizing: Unknown extension className configured (and ignored) in Component.js for extension point '" + sExtName
-							+ "' in View '" + oView.sViewName + "': " + oExtensionConfig.className);
+					future.warningThrows("Customizing: Unknown extension className configured in Component.js for extension point '" + sExtName
+							+ "' in View '" + oView.sViewName + "': " + oExtensionConfig.className + ".", { suffix: "Extension className will be ignored."});
 				}
 			} else {
-				Log.warning("[FUTURE FATAL] Customizing: no extension className configured in Component.js for extension point '" + sExtName
+				future.warningThrows("Customizing: no extension className configured in Component.js for extension point '" + sExtName
 						+ "' in View '" + oView.sViewName + "': " + oExtensionConfig.className);
 			}
 		} else if (ExtensionPoint._fnExtensionProvider) {
@@ -180,7 +202,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
 				if (!oView) {
 					// Someone could create a Fragment via the factory with a Controller without an associated view,
 					// e.g. by creating a Controller instance via Controller.create().
-					Log.warning("[FUTURE FATAL] View instance could not be passed to ExtensionPoint Provider for extension point '" + sExtName + "' " +
+					future.warningThrows("View instance could not be passed to ExtensionPoint Provider for extension point '" + sExtName + "' " +
 								"in fragment '" + sFragmentId + "'.");
 				}
 				/**
@@ -275,7 +297,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
 					}
 				} else {
 					// the target control has no default aggregation, or the aggregationName provided doesn't match an existing aggregation as defined at the targetControl
-					Log.error("[FUTURE FATAL] Creating extension point failed - Tried to add extension point with name " + sExtName + " to an aggregation of " +
+					future.errorThrows("Creating extension point failed - Tried to add extension point with name " + sExtName + " to an aggregation of " +
 							oTargetControl.getId() + " in view " + oView.sViewName + ", but sAggregationName was not provided correctly and I could not find a default aggregation");
 				}
 			}
@@ -310,7 +332,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
 		} else if (typeof fnExtensionProvider == "function") {
 			ExtensionPoint._fnExtensionProvider = fnExtensionProvider;
 		} else {
-			Log.error("[FUTURE FATAL] ExtensionPoint provider must be a function!");
+			future.errorThrows("ExtensionPoint provider must be a function!");
 		}
 	};
 
@@ -333,6 +355,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/mvc/View", "sap/ui/core/Component"],
 	 * @since 1.56.0
 	 * @public
 	 * @static
+	 * @ui5-transform-hint replace-param mOptions.async true
 	 */
 	ExtensionPoint.load = function(mOptions) {
 		return Promise.resolve(

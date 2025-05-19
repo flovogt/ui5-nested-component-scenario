@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -18,9 +18,11 @@
  * sap.ui.lazyRequire("sap.ui.core.Control");
  * sap.ui.lazyRequire("sap.m.Button");
  *
- * @version 1.120.30
+ * @version 1.136.0
  * @author  SAP SE
  * @public
+ * @fileoverview
+ * @deprecated Version and buildtime information can be retrieved via sap/ui/core/Core.versionInfo
  */
 
 /*global OpenAjax */
@@ -35,7 +37,7 @@ sap.ui.define([
 	"use strict";
 
 	// Register to the OpenAjax Hub if it exists
-	if (window.OpenAjax && window.OpenAjax.hub) {
+	if (globalThis.OpenAjax && globalThis.OpenAjax.hub) {
 		OpenAjax.hub.registerLibrary("sap", "http://www.sap.com/", "0.1", {});
 	}
 
@@ -43,43 +45,35 @@ sap.ui.define([
 	var BaseObject;
 
 	/**
-	 * Root namespace for JavaScript functionality provided by SAP SE.
-	 *
-	 * The <code>sap</code> namespace is automatically registered with the
-	 * OpenAjax hub if it exists.
-	 *
-	 * @version 1.120.30
-	 * @namespace
-	 * @public
-	 * @name sap
-	 */
-	if ( typeof window.sap !== "object" && typeof window.sap !== "function"  ) {
-	  window.sap = {};
-	}
-
-	/**
 	 * The <code>sap.ui</code> namespace is the central OpenAjax compliant entry
 	 * point for UI related JavaScript functionality provided by SAP.
 	 *
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @namespace
 	 * @name sap.ui
 	 * @public
 	 */
-	if ( typeof window.sap.ui !== "object") {
-		window.sap.ui = {};
-	}
 
-	sap.ui = Object.assign(sap.ui, {
+	let Global = {
 		/**
 		 * The version of the SAP UI Library
 		 * @type string
 		 */
-		version: "1.120.30",
+		version: "1.136.0",
 		// buildinfo.lastchange is deprecated and is therefore defaulted to empty string
-		buildinfo : { lastchange : "", buildtime : "20250519-0142" }
-	});
+		buildinfo : { lastchange : "", buildtime : "20250519-0802" }
+	};
 
+	/**
+	 * Module export must be the global sap.ui namespace in UI5 v1.
+	 * In UI5 v2, the export is a plain object containing the version and buildinfo.
+	 * @deprecated since 1.120
+	 */
+	Global = Object.assign(sap.ui, Global);
+
+	/**
+	 * @deprecated As of version 1.120
+	 */
 	var syncCallBehavior = sap.ui.loader._.getSyncCallBehavior();
 
 	/**
@@ -120,7 +114,7 @@ sap.ui.define([
 
 	/**
 	 * Ensures that a given a namespace or hierarchy of nested namespaces exists in the
-	 * current <code>window</code>.
+	 * current <code>globalThis</code>.
 	 *
 	 * @param {string} sNamespace
 	 * @return {object} the innermost namespace of the hierarchy
@@ -360,6 +354,6 @@ sap.ui.define([
 		sap.ui.loader.config({paths:mPaths});
 	};
 
-	return sap.ui;
+	return Global;
 
 });

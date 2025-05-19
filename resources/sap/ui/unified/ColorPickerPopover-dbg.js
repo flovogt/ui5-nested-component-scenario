@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -13,8 +13,9 @@ sap.ui.define([
 	'./ColorPicker',
 	'./library',
 	'sap/m/library',
+	"sap/ui/core/Lib",
 	"sap/ui/thirdparty/jquery"
-], function (
+], function(
 	Control,
 	Device,
 	Button,
@@ -22,6 +23,7 @@ sap.ui.define([
 	ColorPicker,
 	library,
 	mLibrary,
+	Library,
 	jQuery
 ) {
 		"use strict";
@@ -47,7 +49,7 @@ sap.ui.define([
 		 * A thin wrapper over {@link sap.ui.unified.ColorPicker} allowing the latter to be used in a popover.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -204,7 +206,7 @@ sap.ui.define([
 		});
 
 		// get resource translation bundle;
-		var oLibraryResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.ui.unified");
+		var oLibraryResourceBundle = Library.getResourceBundleFor("sap.ui.unified");
 
 		/**
 		 * Keeps reference to all API properties and/or methods that are about to be forwarded to either a

@@ -1,17 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*global QUnit */
 sap.ui.define([
 	'sap/base/util/each',
-	'sap/ui/Global',
+	'sap/ui/core/Core',
 	'sap/ui/test/Opa',
 	'sap/ui/test/Opa5',
 	'sap/ui/test/qunitPause',
 	'sap/ui/thirdparty/jquery'
-], function(each, Global, Opa, Opa5, QUnitPause, jQuery) {
+], function(each, Core, Opa, Opa5, QUnitPause, jQuery) {
 	"use strict";
 
 	QUnitPause.setupAfterQUnit();
@@ -20,7 +20,7 @@ sap.ui.define([
 		// add ui5 version in the user agent string bar
 		var oQUnitUserAgent = document.getElementById("#qunit-userAgent");
 		if (oQUnitUserAgent) {
-			oQUnitUserAgent.innerText += "; UI5: " + Global.version;
+			oQUnitUserAgent.innerText += "; UI5: " + Core.version;
 		}
 
 		Opa._usageReport.begin({uri: window.location.href, totalTests: oDetails.totalTests});

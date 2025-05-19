@@ -1,22 +1,17 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 /* global QUnit */
 /* eslint-disable no-eval */
 
-// Load synchronously to avoid QUnit issue where tests run before QUnit is loaded
-// Only load QUnit if it has not been loaded via script tag
-if (!window.QUnit || !window.QUnit.test) {
-	sap.ui.requireSync("sap/ui/thirdparty/qunit"); // legacy-relevant - sync fallback when caller did not load QUnit
-}
-
 // put qunit-coverage last so library files don't get measured
 sap.ui.define([
 	"sap/base/Log",
 	"sap/base/util/ObjectPath",
+	"sap/base/future",
 	"sap/ui/test/opaQunit",
 	"sap/ui/test/Opa5",
 	"sap/ui/test/gherkin/GherkinTestGenerator",
@@ -24,10 +19,9 @@ sap.ui.define([
 	"sap/ui/test/gherkin/StepDefinitions",
 	"sap/ui/test/launchers/componentLauncher",
 	"sap/ui/test/launchers/iFrameLauncher",
-	"sap/ui/qunit/qunit-css",
 	"sap/ui/qunit/qunit-junit",
 	"sap/ui/qunit/qunit-coverage"
-], function(Log, ObjectPath, opaTest, Opa5, GherkinTestGenerator, dataTableUtils, StepDefinitions, componentLauncher,
+], function(Log, ObjectPath, future, opaTest, Opa5, GherkinTestGenerator, dataTableUtils, StepDefinitions, componentLauncher,
 	iFrameLauncher) {
 	"use strict";
 
@@ -86,7 +80,10 @@ sap.ui.define([
 				};
 			} else {
 				func = function(Given, When, Then) {
-					Log.info("[GHERKIN] Generated Step (eval): " + sToEval);
+					future.errorThrows("[GHERKIN]: Deprecated Step Generation method (eval) detected! Replace the following with an OPA5 page object call: " + sToEval);
+					/**
+					 * @deprecated
+					 */
 					eval(sToEval);
 				};
 			}

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -61,7 +61,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.DateTimeBase
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @alias sap.ui.model.odata.type.DateTime
 	 * @param {object} [oFormatOptions]
@@ -135,7 +135,7 @@ sap.ui.define([
 	 *   If the constraints of this type instance are violated
 	 *
 	 * @public
-	 * @see {@link sap.ui.core.Configuration#getTimezone}
+	 * @see {@link module:sap/base/i18n/Localization.getTimezone Localization.getTimezone}
 	 * @since 1.111.0
 	 */
 	DateTime.prototype.getModelValue = function (oDate) {

@@ -1,20 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.Column.
 sap.ui.define([
 	"./library",
-	"sap/ui/core/Core",
 	"sap/ui/core/Element",
 	"sap/ui/core/Renderer",
 	"sap/ui/core/library",
 	"sap/ui/Device",
 	"sap/ui/core/InvisibleText"
 ],
-	function(library, Core, Element, Renderer, coreLibrary, Device, InvisibleText) {
+	function(library, Element, Renderer, coreLibrary, Device, InvisibleText) {
 	"use strict";
 
 
@@ -46,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -193,7 +192,13 @@ sap.ui.define([
 			/**
 			 * Control to be displayed in the column footer.
 			 */
-			footer : {type : "sap.ui.core.Control", multiple : false}
+			footer : {type : "sap.ui.core.Control", multiple : false},
+
+			/**
+			 * Control to be displayed as an action in the column header.
+			 * @since 1.136
+			 */
+			_action: {type: "sap.ui.core.Control", multiple: false, visibility: "hidden"}
 		},
 		associations: {
 			/**
@@ -584,22 +589,26 @@ sap.ui.define([
 	 * @private
 	 */
 	Column.prototype.getHeaderMenuInstance = function () {
-		return Core.byId(this.getHeaderMenu());
+		return Element.getElementById(this.getHeaderMenu());
 	};
 
 	Column.prototype.setHeader = function (oControl) {
 		var oOldHeader = this.getHeader();
-		if (oOldHeader && oOldHeader.isA("sap.m.Label")) {
-			oOldHeader.detachEvent("_change", this._onLabelPropertyChange, this);
-			oOldHeader.setIsInColumnHeaderContext(false);
+		if (oOldHeader) {
+			if (oOldHeader.isA("sap.m.Label")) {
+				oOldHeader.detachEvent("_change", this._onLabelPropertyChange, this);
+			}
+			oOldHeader.setIsInColumnHeaderContext?.(false);
 		}
 
 		this.setAggregation("header", oControl);
 
 		var oNewHeader = this.getHeader();
-		if (oNewHeader && oNewHeader.isA("sap.m.Label")) {
-			oNewHeader.attachEvent("_change", this._onLabelPropertyChange, this);
-			oNewHeader.setIsInColumnHeaderContext(true);
+		if (oNewHeader) {
+			if (oNewHeader.isA("sap.m.Label")) {
+				oNewHeader.attachEvent("_change", this._onLabelPropertyChange, this);
+			}
+			oNewHeader.setIsInColumnHeaderContext?.(true);
 		}
 
 		return this;
@@ -614,6 +623,12 @@ sap.ui.define([
 		if (oTable.bActiveHeaders || this.getHeaderMenuInstance()) {
 			this.$()[oEvent.getSource().getRequired() ? "addAriaDescribedBy" : "removeAriaDescribedBy"](InvisibleText.getStaticId("sap.m", "CONTROL_IN_COLUMN_REQUIRED"));
 		}
+	};
+
+	Column.prototype.getFieldHelpInfo = function() {
+		return {
+			label: this.getHeader()?.getText?.() || ""
+		};
 	};
 
 	return Column;

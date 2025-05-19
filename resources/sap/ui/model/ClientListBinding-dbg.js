@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -27,8 +27,11 @@ sap.ui.define([
 	 * @param {sap.ui.model.Model} oModel Model instance that this binding is created for and that it belongs to
 	 * @param {string} sPath Binding path to be used for this binding, syntax depends on the concrete subclass
 	 * @param {sap.ui.model.Context} oContext Binding context relative to which a relative binding path will be resolved
-	 * @param {sap.ui.model.Sorter|sap.ui.model.Sorter[]} [aSorters] Initial sort order (can be either a sorter or an array of sorters)
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} [aFilters] Predefined filter/s (can be either a filter or an array of filters)
+	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [aSorters=[]]
+	 *   The sorters used initially; call {@link #sort} to replace them
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call {@link #filter} to
+	 *   replace them
 	 * @param {object} [mParameters] Map of optional parameters as defined by subclasses; this class does not introduce any own parameters
 	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
 	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in <code>aFilters</code>
@@ -288,6 +291,7 @@ sap.ui.define([
 		this.bIgnoreSuspend = true;
 
 		this._fireChange({reason: ChangeReason.Sort});
+		/** @deprecated As of version 1.11.0 */
 		this._fireSort({sorter: aSorters});
 		this.bIgnoreSuspend = false;
 
@@ -319,10 +323,14 @@ sap.ui.define([
 	 * When no <code>sFilterType</code> is given, any previously configured application
 	 * filters are cleared and the given filters are used as control filters
 	 *
-	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} aFilters Single filter object or an array of filter objects
-	 * @param {sap.ui.model.FilterType} [sFilterType=undefined] Type of the filter which should
-	 *  be adjusted; if no type is given, then any previously configured application filters are
-	 *  cleared and the given filters are used as control filters
+	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
+	 *   The filters to use; in case of type {@link sap.ui.model.FilterType.Application} this replaces the filters given
+	 *   in {@link sap.ui.model.ClientModel#bindList}; a falsy value is treated as an empty array and thus removes all
+	 *   filters of the specified type
+	 * @param {sap.ui.model.FilterType} [sFilterType]
+	 *   The type of the filter to replace; if no type is given, all filters previously configured with type
+	 *   {@link sap.ui.model.FilterType.Application} are cleared, and the given filters are used as filters of type
+	 *   {@link sap.ui.model.FilterType.Control}
 	 * @returns {this} returns <code>this</code> to facilitate method chaining
 	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
 	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
@@ -362,6 +370,7 @@ sap.ui.define([
 		this.bIgnoreSuspend = true;
 
 		this._fireChange({reason: ChangeReason.Filter});
+		/** @deprecated As of version 1.11.0 */
 		if (sFilterType == FilterType.Application) {
 			this._fireFilter({filters: this.aApplicationFilters});
 		} else {

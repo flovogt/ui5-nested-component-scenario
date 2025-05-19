@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -44,11 +44,13 @@ sap.ui.define([
 
 
 	/**
-	 * Creates a GrowingEnablement delegate that can be attached to ListBase Controls requiring capabilities for growing
+	 * Creates a GrowingEnablement delegate that can be attached to ListBase Controls requiring capabilities for growing.
+	 *
+	 * <b>Note</b>: Do not extend this class.
 	 *
 	 * @extends sap.ui.base.Object
 	 * @alias sap.m.GrowingEnablement
-	 * @experimental Since 1.16. This class is experimental and provides only limited functionality. Also the API might be changed in future.
+	 * @since 1.16
 	 *
 	 * @param {sap.m.ListBase} oControl the ListBase control of which this Growing is the delegate
 	 *
@@ -508,7 +510,7 @@ sap.ui.define([
 
 		// render all the collected items in the chunk and flush them into the DOM
 		// vInsert whether to append (true) or replace (falsy) or to insert at a certain position (int)
-		applyChunk : function(vInsert, bAsync) {
+		applyChunk : function(vInsert, bAsync, bUpdateAccesibility) {
 			if (!this._oControl) {
 				return;
 			}
@@ -523,8 +525,15 @@ sap.ui.define([
 				this._iChunkTimer = clearTimeout(iTimer);
 			}
 
-			if (!iLength || !oDomRef || !this._oControl.shouldRenderItems()) {
+			if (!oDomRef || !this._oControl.shouldRenderItems()) {
 				this._aChunk = [];
+				return;
+			}
+
+			if (!iLength) {
+				if (bUpdateAccesibility) {
+					this._oControl.updateAccessbilityOfItems();
+				}
 				return;
 			}
 
@@ -554,15 +563,18 @@ sap.ui.define([
 			if (!this._oControl.getBusy()) {
 				this._bHadFocus = false;
 			}
+			if (bUpdateAccesibility) {
+				this._oControl.updateAccessbilityOfItems();
+			}
 			this._aChunk = [];
 		},
 
 		// async version of applyChunk
-		applyChunkAsync : function(vInsert) {
+		applyChunkAsync : function(vInsert, bUpdateAccesibility) {
 			if (this._bApplyChunkAsync) {
-				this._iChunkTimer = setTimeout(this.applyChunk.bind(this, vInsert, true));
+				this._iChunkTimer = setTimeout(this.applyChunk.bind(this, vInsert, true, bUpdateAccesibility));
 			} else {
-				this.applyChunk(vInsert);
+				this.applyChunk(vInsert, false, bUpdateAccesibility);
 			}
 		},
 
@@ -645,7 +657,8 @@ sap.ui.define([
 				oBinding = oControl.getBinding("items"),
 				oBindingInfo = oControl.getBindingInfo("items"),
 				aItems = oControl.getItems(true),
-				sGroupingPath = this._sGroupingPath;
+				sGroupingPath = this._sGroupingPath,
+				bUpdateAccesibility = false;
 
 			// set limit to initial value if not set yet or no items at the control yet
 			if (!this._iLimit || this.shouldReset(sChangeReason) || !aItems.length) {
@@ -698,6 +711,7 @@ sap.ui.define([
 			} else {
 				// diff handling case for grouping and merging
 				var bFromScratch = false, vInsertIndex = true;
+				const bSetSizeRequiredOnItems = !oControl.isA("sap.m.Table");
 				if (oBinding.isGrouped() || oControl.checkGrowingFromScratch()) {
 
 					if (sGroupingPath != this._sGroupingPath) {
@@ -729,6 +743,7 @@ sap.ui.define([
 					if (sGroupingPath != undefined && this._sGroupingPath == undefined) {
 						// if it was already grouped then we need to remove group headers first
 						oControl.removeGroupHeaders(true);
+						bUpdateAccesibility = true;
 					}
 
 					vInsertIndex = -1;
@@ -737,6 +752,18 @@ sap.ui.define([
 						var oDiff = aDiff[i],
 							iDiffIndex = oDiff.index,
 							oContext = aContexts[iDiffIndex];
+
+						if (!bUpdateAccesibility && oDiff.type != "replace" && this._iRenderedDataItems > 0) {
+							if (bSetSizeRequiredOnItems) {
+								bUpdateAccesibility = true;
+							} else if (oDiff.type == "insert" && iDiffIndex != this._iRenderedDataItems) {
+								// the item will not be inserted as last item of the control
+								bUpdateAccesibility = true;
+							} else if (oDiff.type == "delete" && iDiffIndex != this._iRenderedDataItems - 1) {
+								// the item will not be deleted as last item of the control
+								bUpdateAccesibility = true;
+							}
+						}
 
 						if (oDiff.type == "delete") {
 							if (vInsertIndex != -1) {
@@ -752,7 +779,7 @@ sap.ui.define([
 								// the subsequent of items needs to be inserted at this position
 								vInsertIndex = iDiffIndex;
 							} else if (iLastInsertIndex > -1 && iDiffIndex != iLastInsertIndex + 1) {
-								// this item is not simply appended to the last one but has been inserted
+								// this item is not simply appended to the last insertion chunk
 								this.applyChunk(vInsertIndex);
 								vInsertIndex = iDiffIndex;
 							}
@@ -768,7 +795,7 @@ sap.ui.define([
 				} else {
 					// set the binding context of items inserting/deleting entries shifts the index of all following items
 					this.updateItemsBindingContext(aContexts, oBindingInfo.model);
-					this.applyChunkAsync(vInsertIndex);
+					this.applyChunkAsync(vInsertIndex, bUpdateAccesibility);
 				}
 			}
 
@@ -824,7 +851,6 @@ sap.ui.define([
 
 				// put the focus to the newly added item if growing button is pressed
 				// or to the item if the focus was on the items container
-
 				if (this._bHadFocus) {
 					this._bHadFocus = false;
 					jQuery(this._oControl.getNavigationRoot()).trigger("focus");
@@ -855,7 +881,7 @@ sap.ui.define([
 					oControl.$("triggerList").css("display", "");
 					oControl.$("listUl").addClass("sapMListHasGrowing");
 					oTrigger.$().removeClass("sapMGrowingListBusyIndicatorVisible");
-					this.adaptTriggerButtonWidth();
+					setTimeout(this.adaptTriggerButtonWidth.bind(this));
 				}
 
 				// store the last item count to be able to focus to the newly added item when the growing button is pressed
@@ -883,13 +909,13 @@ sap.ui.define([
 		// adapt trigger button width if dummy col is rendered
 		adaptTriggerButtonWidth: function() {
 			var oControl = this._oControl;
-			if (!oControl.isA("sap.m.Table") || oControl.hasPopin() || !oControl.shouldRenderDummyColumn()) {
+			if (!oControl || !oControl.isA("sap.m.Table") || oControl.hasPopin() || !oControl.shouldRenderDummyColumn()) {
 				return;
 			}
 
 			window.requestAnimationFrame(function() {
 				var oTriggerDomRef = this._oTrigger && this._oTrigger.getDomRef();
-				if (!oTriggerDomRef) {
+				if (!oTriggerDomRef || !oTriggerDomRef.clientWidth) {
 					return;
 				}
 

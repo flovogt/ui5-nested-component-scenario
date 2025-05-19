@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -14,12 +14,12 @@ sap.ui.define([
 	'./calendar/YearRangePicker',
 	'./calendar/CalendarDate',
 	'./library',
+	"sap/base/i18n/Localization",
+	"sap/base/i18n/date/CalendarType",
 	'sap/ui/Device',
 	"./CalendarDateIntervalRenderer",
 	"sap/base/util/deepEqual",
 	"sap/m/Popover",
-	"sap/ui/core/CalendarType",
-	"sap/ui/core/Core",
 	"sap/base/Log",
 	"./DateRange",
 	"sap/ui/core/date/UI5Date"
@@ -33,12 +33,12 @@ sap.ui.define([
 	YearRangePicker,
 	CalendarDate,
 	library,
+	Localization,
+	CalendarType,
 	Device,
 	CalendarDateIntervalRenderer,
 	deepEqual,
 	Popover,
-	CalendarType,
-	Core,
 	Log,
 	DateRange,
     UI5Date
@@ -59,7 +59,7 @@ sap.ui.define([
 	 * @class
 	 * <code>CalendarDateInterval</code> only visualizes the dates in a one-line interval and allows the selection of a single day.
 	 * @extends sap.ui.unified.Calendar
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -155,7 +155,10 @@ sap.ui.define([
 	};
 
 	CalendarDateInterval.prototype._initializeYearRangePicker = function() {
-		this.setAggregation("yearRangePicker", this._createYearRangePicker());
+		var oYearRangePicker =  this._createYearRangePicker();
+		this.setAggregation("yearRangePicker", oYearRangePicker);
+
+		oYearRangePicker._setSelectedDatesControlOrigin(this);
 	};
 
 	CalendarDateInterval.prototype.setPickerPopup = function(bPickerPopup) {
@@ -1042,7 +1045,7 @@ sap.ui.define([
 			var $Popover = this._oPopup.$();
 			var iOffsetX = Math.floor(($Popover.width() - $Button.width()) / 2);
 
-			this._oPopup.setOffsetX(Core.getConfiguration().getRTL() ? iOffsetX : -iOffsetX);
+			this._oPopup.setOffsetX(Localization.getRTL() ? iOffsetX : -iOffsetX);
 
 			var iOffsetY = $Button.height();
 

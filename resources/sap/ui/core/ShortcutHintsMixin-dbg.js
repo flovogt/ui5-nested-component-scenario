@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -459,6 +459,11 @@ sap.ui.define([
 				return;
 			}
 
+			// add native tooltip to element so it can override the native tooltip of the container / parent element
+			if (!oDOMRef.getAttribute('title')) {
+				oDOMRef.setAttribute('title', '');
+			}
+
 			if (checkMouseEnterOrLeave(oEvent, oDOMRef)) {
 				ShortcutHintsMixin.hideAll();
 
@@ -482,6 +487,10 @@ sap.ui.define([
 					return;
 				}
 
+				// remove the native tooltip that was set onmouseover
+				if (oShortcutHintRefs[0].ref.getAttribute('title') === '') {
+					oShortcutHintRefs[0].ref.removeAttribute('title');
+				}
 				this.hideShortcutHint();
 			}
 		},
@@ -497,7 +506,7 @@ sap.ui.define([
 			for (var i = 0; i < aInfos.length; i++) {
 				sDOMRefID = aInfos[i].id;
 				oElement = document.getElementById(sDOMRefID);
-				oElement.setAttribute("aria-keyshortcuts", _getShortcutHintText(sDOMRefID));
+				oElement && oElement.setAttribute("aria-keyshortcuts", _getShortcutHintText(sDOMRefID));
 			}
 		}
 	};

@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides class sap.ui.core.date.Japanese
-sap.ui.define(['./UniversalDate', '../CalendarType', './_Calendars'],
-	function(UniversalDate, CalendarType, _Calendars) {
+sap.ui.define(['./UniversalDate', './_Calendars', 'sap/base/i18n/date/CalendarType'],
+	function(UniversalDate, _Calendars, CalendarType) {
 	"use strict";
 
 

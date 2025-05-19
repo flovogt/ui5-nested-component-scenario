@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -77,21 +77,25 @@ sap.ui.define(['./BarInPageEnabler'],
 		oRm.style("height", oToolbar.getHeight());
 	};
 
-	ToolbarRenderer.renderBarContent = function(rm, oToolbar) {
+	ToolbarRenderer.renderBarContent = function (rm, oToolbar) {
 		var oFirstVisibleControl = null;
 
 		if (oToolbar.getActive()) {
 			rm.renderControl(oToolbar._getActiveButton());
 		}
-		oToolbar.getContent().forEach(function(oControl) {
-			BarInPageEnabler.addChildClassTo(oControl, oToolbar);
-			if (!oFirstVisibleControl && oControl.getVisible()) {
-				oControl.addStyleClass("sapMBarChildFirstChild");
-				oFirstVisibleControl = oControl;
+		oToolbar.getContent().forEach(function (oControl) {
+			if (oControl.isA("sap.ui.core.HTML")) {
+				rm.renderControl(oControl);
 			} else {
-				oControl.removeStyleClass("sapMBarChildFirstChild");
+				BarInPageEnabler.addChildClassTo(oControl, oToolbar);
+				if (!oFirstVisibleControl && oControl.getVisible()) {
+					oControl.addStyleClass("sapMBarChildFirstChild");
+					oFirstVisibleControl = oControl;
+				} else {
+					oControl.removeStyleClass("sapMBarChildFirstChild");
+				}
+				rm.renderControl(oControl);
 			}
-			rm.renderControl(oControl);
 		});
 	};
 

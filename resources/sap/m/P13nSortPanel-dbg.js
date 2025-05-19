@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,8 +9,9 @@ sap.ui.define([
 	'./library',
 	'./P13nConditionPanel',
 	'./P13nPanel',
-	'./P13nSortItem'
-], function(library, P13nConditionPanel, P13nPanel, P13nSortItem) {
+	'./P13nSortItem',
+	"sap/ui/core/Lib"
+], function(library, P13nConditionPanel, P13nPanel, P13nSortItem, Library) {
 	"use strict";
 
 	// shortcut for sap.m.P13nPanelType
@@ -26,7 +27,7 @@ sap.ui.define([
 	 * @param {object} [mSettings] initial settings for the new control
 	 * @class The P13nSortPanel control is used to define settings for sorting in table personalization.
 	 * @extends sap.m.P13nPanel
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @constructor
 	 * @deprecated As of version 1.98. Use the {@link sap.m.p13n.SortPanel} instead.
 	 * @public
@@ -207,7 +208,7 @@ sap.ui.define([
 	 */
 	P13nSortPanel.prototype.init = function() {
 		this.setType(P13nPanelType.sort);
-		this.setTitle(sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("SORTPANEL_TITLE"));
+		this.setTitle(Library.getResourceBundleFor("sap.m").getText("SORTPANEL_TITLE"));
 
 		this._aKeyFields = [];
 
@@ -264,7 +265,7 @@ sap.ui.define([
 			});
 			aKeyFields.splice(0, 0, {
 				key: null,
-				text: sap.ui.getCore().getLibraryResourceBundle("sap.m").getText("P13NDIALOG_SELECTION_NONE")
+				text: Library.getResourceBundleFor("sap.m").getText("P13NDIALOG_SELECTION_NONE")
 			});
 			this._oSortPanel.setKeyFields(aKeyFields);
 

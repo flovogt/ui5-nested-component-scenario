@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -22,7 +22,11 @@ sap.ui.define([
 	'./OverflowToolbarLayoutData',
 	'./OverflowToolbarButton',
 	'./ToolbarSpacer',
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Element",
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
+	"sap/ui/core/Locale",
 	'sap/ui/model/ChangeReason',
 	'sap/ui/model/json/JSONModel',
 	'sap/ui/model/BindingMode',
@@ -30,8 +34,7 @@ sap.ui.define([
 	'sap/ui/core/Item',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/IconPool',
-	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/Configuration"
+	"sap/ui/thirdparty/jquery"
 ], function(
 	library,
 	P13nPanel,
@@ -49,7 +52,11 @@ sap.ui.define([
 	OverflowToolbarLayoutData,
 	OverflowToolbarButton,
 	ToolbarSpacer,
+	Localization,
+	Element,
+	Library,
 	CoreLibrary,
+	Locale,
 	ChangeReason,
 	JSONModel,
 	BindingMode,
@@ -57,8 +64,7 @@ sap.ui.define([
 	Item,
 	InvisibleText,
 	IconPool,
-	jQuery,
-	Configuration
+	jQuery
 ) {
 	"use strict";
 
@@ -89,7 +95,7 @@ sap.ui.define([
 	 *        dimensions and measures for table personalization.
 	 * @extends sap.m.P13nPanel
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @constructor
 	 * @public
 	 * @since 1.34.0
@@ -97,77 +103,77 @@ sap.ui.define([
      * @deprecated As of 1.120, replaced by the artifacts in {@link sap.m.p13n}.
 	 */
 	var P13nDimMeasurePanel = P13nPanel.extend("sap.m.P13nDimMeasurePanel", /** @lends sap.m.P13nDimMeasurePanel.prototype */
-	{
-		metadata: {
-			library: "sap.m",
-			properties: {
+		{
+			metadata: {
+				library: "sap.m",
+				properties: {
 
-				/**
-				 * Specifies a chart type key.
-				 */
-				chartTypeKey: {
-					type: "string",
-					defaultValue: ""
+					/**
+					 * Specifies a chart type key.
+					 */
+					chartTypeKey: {
+						type: "string",
+						defaultValue: ""
+					}
+				},
+				aggregations: {
+					/**
+					 * List of columns that has been changed.
+					 */
+					dimMeasureItems: {
+						type: "sap.m.P13nDimMeasureItem",
+						multiple: true,
+						singularName: "dimMeasureItem",
+						bindable: "bindable"
+					},
+
+					/**
+					 * Internal aggregation for the toolbar content.
+					 */
+					content: {
+						type: "sap.ui.core.Control",
+						multiple: true,
+						singularName: "content",
+						visibility: "hidden"
+					},
+
+					/**
+					 * Specifies available chart types.
+					 */
+					availableChartTypes: {
+						type: "sap.ui.core.Item",
+						multiple: true,
+						singularName: "availableChartType"
+					}
+				},
+				events: {
+					// TODO
+					/**
+					 * Event raised when one or more <code>DimMeasureItems</code> has been updated.
+					 * Aggregation <code>DimMeasureItems</code> should be updated outside...
+					 * @since 1.50.0
+					 */
+					changeDimMeasureItems: {},
+					/**
+					 * Event raised when a <code>ChartType</code> has been updated.
+					 * @since 1.50.0
+					 */
+					changeChartType: {}
 				}
 			},
-			aggregations: {
-				/**
-				 * List of columns that has been changed.
-				 */
-				dimMeasureItems: {
-					type: "sap.m.P13nDimMeasureItem",
-					multiple: true,
-					singularName: "dimMeasureItem",
-					bindable: "bindable"
-				},
-
-				/**
-				 * Internal aggregation for the toolbar content.
-				 */
-				content: {
-					type: "sap.ui.core.Control",
-					multiple: true,
-					singularName: "content",
-					visibility: "hidden"
-				},
-
-				/**
-				 * Specifies available chart types.
-				 */
-				availableChartTypes: {
-					type: "sap.ui.core.Item",
-					multiple: true,
-					singularName: "availableChartType"
+			renderer: {
+				apiVersion: 2,
+				render: function(oRm, oControl) {
+					oRm.openStart("div", oControl);
+					oRm.class("sapMP13nColumnsPanel");
+					oRm.openEnd();
+					oControl.getAggregation("content").forEach(function(oChildren) {
+						oRm.renderControl(oChildren);
+					});
+					oRm.close("div");
 				}
-			},
-			events: {
-				// TODO
-				/**
-				 * Event raised when one or more <code>DimMeasureItems</code> has been updated.
-				 * Aggregation <code>DimMeasureItems</code> should be updated outside...
-				 * @since 1.50.0
-				 */
-				changeDimMeasureItems: {},
-				/**
-				 * Event raised when a <code>ChartType</code> has been updated.
-				 * @since 1.50.0
-				 */
-				changeChartType: {}
 			}
-		},
-		renderer: {
-			apiVersion: 2,
-			render: function(oRm, oControl){
-				oRm.openStart("div", oControl);
-				oRm.class("sapMP13nColumnsPanel");
-				oRm.openEnd();
-				oControl.getAggregation("content").forEach(function(oChildren){
-					oRm.renderControl(oChildren);
-				});
-				oRm.close("div");
-			}
-		}
-	});
+		});
 
 	P13nDimMeasurePanel.prototype.init = function() {
 		// The panel is using internal JSON model which is bound to internal sap.m.Table.
@@ -201,7 +207,7 @@ sap.ui.define([
 
 		this._bOnAfterRenderingFirstTimeExecuted = false;
 
-		var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oRb = Library.getResourceBundleFor("sap.m");
 		this.oAvailableRoleTypes = {
 			Dimension: [
 				{
@@ -535,7 +541,7 @@ sap.ui.define([
 	};
 
 	P13nDimMeasurePanel.prototype._createTable = function() {
-		var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oRb = Library.getResourceBundleFor("sap.m");
 		this._oTable = new Table({
 			mode: ListMode.MultiSelect,
 			rememberSelections: false,
@@ -624,7 +630,7 @@ sap.ui.define([
 	 */
 	P13nDimMeasurePanel.prototype._createToolbar = function() {
 		var that = this;
-		var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oRb = Library.getResourceBundleFor("sap.m");
 
 		var oInvisibleChartTypeText = new InvisibleText({
 			text: oRb.getText('COLUMNSPANEL_CHARTTYPE')
@@ -880,22 +886,22 @@ sap.ui.define([
 	};
 
 	P13nDimMeasurePanel.prototype._sortModelItemsByPersistentIndex = function(aModelItems) {
-        // BCP 0020751294 0000593415 2018
-        var oCollator;
-        var sLanguage = Configuration.getLocale().toString();
-        try {
-            if (typeof window.Intl !== 'undefined') {
-                oCollator = window.Intl.Collator(sLanguage, {
-                    numeric: true
-                });
-            }
-        } catch (oException) {
-            // this exception can happen if the configured language is not convertible to BCP47 -> getLocale will deliver an exception
-        }
-        // BCP 0020751295 0000514259 2018
-        aModelItems.forEach(function(oMItem, iIndex) {
-            oMItem.localIndex = iIndex;
-        });
+		// BCP 0020751294 0000593415 2018
+		var oCollator;
+		var sLanguage = new Locale(Localization.getLanguageTag()).toString();
+		try {
+			if (typeof window.Intl !== 'undefined') {
+				oCollator = window.Intl.Collator(sLanguage, {
+					numeric: true
+				});
+			}
+		} catch (oException) {
+			// this exception can happen if the configured language is not convertible to BCP47 -> getLocale will deliver an exception
+		}
+		// BCP 0020751295 0000514259 2018
+		aModelItems.forEach(function(oMItem, iIndex) {
+			oMItem.localIndex = iIndex;
+		});
 		aModelItems.sort(function(a, b) {
 			if (a.persistentSelected === true && (b.persistentSelected === false || b.persistentSelected === undefined)) {
 				return -1;
@@ -907,17 +913,17 @@ sap.ui.define([
 				} else if (b.persistentIndex > -1 && a.persistentIndex > b.persistentIndex) {
 					return 1;
 				} else {
-                    return a.localIndex - b.localIndex;
+					return a.localIndex - b.localIndex;
 				}
 			} else if ((a.persistentSelected === false || a.persistentSelected === undefined) && (b.persistentSelected === false || b.persistentSelected === undefined)) {
-                return oCollator ? oCollator.compare(a.text, b.text) : a.text.localeCompare(b.text, sLanguage, {
-                    numeric: true
-                });
+				return oCollator ? oCollator.compare(a.text, b.text) : a.text.localeCompare(b.text, sLanguage, {
+					numeric: true
+				});
 			}
 		});
-        aModelItems.forEach(function(oMItem) {
-            delete oMItem.localIndex;
-        });
+		aModelItems.forEach(function(oMItem) {
+			delete oMItem.localIndex;
+		});
 	};
 
 	P13nDimMeasurePanel.prototype._getColumnKeyByTableItem = function(oTableItem) {
@@ -960,10 +966,10 @@ sap.ui.define([
 	};
 
 	P13nDimMeasurePanel.prototype._getToolbar = function() {
-		return sap.ui.getCore().byId(this.getId() + "-toolbar") || null;
+		return Element.getElementById(this.getId() + "-toolbar") || null;
 	};
 	P13nDimMeasurePanel.prototype._getSearchField = function() {
-		return sap.ui.getCore().byId(this.getId() + "-searchField") || null;
+		return Element.getElementById(this.getId() + "-searchField") || null;
 	};
 	P13nDimMeasurePanel.prototype._getSearchText = function() {
 		var oSearchField = this._getSearchField();
@@ -985,7 +991,7 @@ sap.ui.define([
 		this._getInternalModel().setProperty("/isMoveDownButtonEnabled", aVisibleTableItems.indexOf(this._getMarkedTableItem()) > -1 && aVisibleTableItems.indexOf(this._getMarkedTableItem()) < aVisibleTableItems.length - 1);
 
 		// Switch off the "Select all (n/m)" checkbox if search
-		var oTableCB = sap.ui.getCore().byId(this._oTable.getId() + '-sa');
+		var oTableCB = Element.getElementById(this._oTable.getId() + '-sa');
 		if (oTableCB) {
 			oTableCB.setEnabled(!bIsSearchActive && !bShowOnlySelectedItems);
 		}

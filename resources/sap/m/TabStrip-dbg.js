@@ -1,17 +1,22 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
+	"sap/ui/core/ControlBehavior",
 	'sap/ui/core/Element',
 	'sap/ui/core/IconPool',
+	"sap/ui/core/Lib",
+	"sap/ui/core/RenderManager",
 	'sap/ui/core/delegate/ItemNavigation',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/core/delegate/ScrollEnablement',
 	'./AccButton',
+	'sap/ui/core/InvisibleText',
 	'./TabStripItem',
 	'sap/m/Select',
 	'sap/m/SelectList',
@@ -27,18 +32,25 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/events/KeyCodes",
+	"sap/ui/core/Theming",
 	"sap/ui/core/Configuration",
 	"sap/ui/base/Object",
-	"sap/ui/dom/jquery/scrollLeftRTL" // jQuery Plugin "scrollLeftRTL"
+	// jQuery Plugin "scrollLeftRTL"
+	"sap/ui/dom/jquery/scrollLeftRTL"
 ],
 function(
+	Localization,
 	Control,
+	ControlBehavior,
 	Element,
 	IconPool,
+	Library,
+	RenderManager,
 	ItemNavigation,
 	ManagedObject,
 	ScrollEnablement,
 	AccButton,
+	InvisibleText,
 	TabStripItem,
 	Select,
 	SelectList,
@@ -54,6 +66,7 @@ function(
 	Log,
 	jQuery,
 	KeyCodes,
+	Theming,
 	Configuration,
 	BaseObject
 ) {
@@ -76,7 +89,7 @@ function(
 		 * space is exceeded, a horizontal scrollbar appears.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @private
@@ -200,7 +213,7 @@ function(
 		 *
 		 * @type {module:sap/base/i18n/ResourceBundle}
 		 */
-		var oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		var oRb = Library.getResourceBundleFor("sap.m");
 
 		/**
 		 * Icon buttons used in <code>TabStrip</code>.
@@ -241,7 +254,7 @@ function(
 		 * @type {number}
 		 */
 		TabStrip.SCROLL_ANIMATION_DURATION = (function(){
-			var sAnimationMode = Configuration.getAnimationMode();
+			var sAnimationMode = ControlBehavior.getAnimationMode();
 
 			return (sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal ? 500 : 0);
 		})();
@@ -255,11 +268,13 @@ function(
 		 */
 		TabStrip.prototype.init = function () {
 			this._bDoScroll = !Device.system.phone;
-			this._bRtl = Configuration.getRTL();
+			this._bRtl = Localization.getRTL();
 			this._iCurrentScrollLeft = 0;
 			this._iMaxOffsetLeft = null;
 			this._scrollable = null;
 			this._oTouchStartX = null;
+			this._bThemeApplied = false;
+			this._handleThemeAppliedBound = this._handleThemeApplied.bind(this);
 
 			if (!Device.system.phone) {
 				this._oScroller = new ScrollEnablement(this, this.getId() + "-tabs", {
@@ -326,8 +341,8 @@ function(
 				this._adjustScrolling();
 
 				if (this.getSelectedItem()) {
-					if (!sap.ui.getCore().isThemeApplied()) {
-						sap.ui.getCore().attachThemeChanged(this._handleInititalScrollToItem, this);
+					if (!this._bThemeApplied) {
+						Theming.attachApplied(this._handleThemeAppliedBound);
 					} else {
 						this._handleInititalScrollToItem();
 					}
@@ -346,11 +361,10 @@ function(
 		 * @private
 		 */
 		TabStrip.prototype._handleInititalScrollToItem = function() {
-			var oItem = sap.ui.getCore().byId(this.getSelectedItem());
+			var oItem = Element.getElementById(this.getSelectedItem());
 			if (oItem && oItem.$().length > 0) { // check if the item is already in the DOM
 				this._scrollIntoView(oItem, 500);
 			}
-			sap.ui.getCore().detachThemeChanged(this._handleInititalScrollToItem, this);
 		};
 
 		/**
@@ -361,7 +375,7 @@ function(
 		 * @override
 		 */
 		TabStrip.prototype.getFocusDomRef = function () {
-			var oTab = sap.ui.getCore().byId(this.getSelectedItem());
+			var oTab = Element.getElementById(this.getSelectedItem());
 
 			if (!oTab) {
 				return null;
@@ -457,7 +471,7 @@ function(
 			if (bScrollNeeded && !this.getAggregation("_rightArrowButton") && !this.getAggregation("_leftArrowButton")) {
 				this._getLeftArrowButton();
 				this._getRightArrowButton();
-				var oRm = sap.ui.getCore().createRenderManager();
+				var oRm = new RenderManager().getInterface();
 				this.getRenderer().renderRightOverflowButtons(oRm, this, true);
 				this.getRenderer().renderLeftOverflowButtons(oRm, this, true);
 				oRm.destroy();
@@ -876,7 +890,7 @@ function(
 			// propagate the selection change to the select aggregation
 			if (this.getHasSelect()) {
 				var oSelectItem = this._findSelectItemFromTabStripItem(oSelectedItem);
-				this.getAggregation('_select').setSelectedItem(oSelectItem);
+				this.getAggregation('_select').setAssociation("selectedItem", oSelectItem, true);
 			}
 
 			return this.setAssociation("selectedItem", oSelectedItem, bNotMobile);
@@ -1190,6 +1204,12 @@ function(
 			}
 		};
 
+		TabStrip.prototype._handleThemeApplied = function () {
+			this._bThemeApplied = true;
+			this._handleInititalScrollToItem();
+			Theming.detachApplied(this._handleThemeAppliedBound);
+		};
+
 		/**
 		 * Handles ARIA-selected attributes depending on the currently selected item.
 		 *
@@ -1349,7 +1369,7 @@ function(
 
 
 			oPicker.setOffsetX(Math.round(
-				Configuration.getRTL() ?
+				Localization.getRTL() ?
 					this.getPicker().$().width() - this.$().width() :
 					this.$().width() - this.getPicker().$().width()
 			)); // LTR or RTL mode considered
@@ -1407,6 +1427,14 @@ function(
 				oRm.class(SelectListRenderer.CSS_CLASS + "ItemBaseSelected");
 			}
 			oRm.attr("tabindex", 0);
+
+			// aria-describedby references
+			var sDescribedBy = InvisibleText.getStaticId("sap.m", "TABSTRIP_ITEM_CLOSABLE") + " ";
+			sDescribedBy += InvisibleText.getStaticId("sap.m", oItem.getModified() ? "TABSTRIP_ITEM_MODIFIED" : "TABSTRIP_ITEM_NOT_MODIFIED");
+			if (sDescribedBy !== "") {
+				oRm.attr("aria-describedby", sDescribedBy);
+			}
+
 			this.writeItemAccessibilityState.apply(this, arguments);
 			oRm.openEnd();
 

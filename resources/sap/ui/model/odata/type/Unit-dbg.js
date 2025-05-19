@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -47,8 +47,14 @@ sap.ui.define([
 	 *   Whether to skip validation of the number of decimals based on the code list customizing;
 	 *   since 1.93.0
 	 * @param {string[]} [aDynamicFormatOptionNames] Not supported
-	 * @throws {Error} If called with more parameters than <code>oFormatOptions</code> or if the
-	 *   format option <code>customUnits</code> is set
+	 * @throws {Error}
+	 *   If
+	 *   <ul>
+	 *     <li>More parameters than <code>oFormatOptions</code> and <code>oConstraints</code> are given</li>
+	 *     <li>The <code>customUnits</code> format option is set</li>
+	 *     <li>Any constraint other than <code>skipDecimalsValidation</code> is set</li>
+	 *     <li>The <code>oFormatOptions.decimalPadding</code> is set but is not allowed</li>
+	 *   </ul>
 	 *
 	 * @alias sap.ui.model.odata.type.Unit
 	 * @author SAP SE
@@ -66,7 +72,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.type.Unit
 	 * @public
 	 * @since 1.63.0
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 */
 	var Unit = BaseUnit.extend("sap.ui.model.odata.type.Unit", {
 		constructor : function (oFormatOptions, oConstraints, aDynamicFormatOptionNames) {
@@ -79,6 +85,29 @@ sap.ui.define([
 	/**
 	 * Formats the given values of the parts of the <code>Unit</code> composite type to the given
 	 * target type.
+	 *
+	 * If CLDR or custom units are used and the <code>preserveDecimals</code> format option is set to
+	 * <code>false</code>, the maximal number of decimal places for the numeric part of the
+	 * {@link sap.ui.model.odata.type.Unit} type depends on:
+	 *   <ul>
+	 *     <li>The <code>DecimalPlaces</code> property of the current unit code.
+	 *     <li>The <code>maxFractionDigits</code> format option of the {@link sap.ui.model.odata.type.Unit} type.
+	 *     <li>The <code>scale</code> constraint of the {@link sap.ui.model.odata.type.Decimal} type for the
+	 *       quantity part.
+	 *   </ul>
+	 *   The maximal number of decimal places is determined as follows:
+	 *   <ul>
+	 *     <li>If <code>maxFractionDigits</code> is provided and is less than the current unit code's
+	 *       <code>DecimalPlaces</code>, the <code>maxFractionDigits</code> is used to determine the
+	 *       number of decimal places. Conversely, if <code>DecimalPlaces</code> is less than
+	 *       <code>maxFractionDigits</code>, <code>DecimalPlaces</code> wins.
+	 *     <li>If <code>maxFractionDigits</code> is not provided, the <code>DecimalPlaces</code> of the current unit
+	 *       code is applied, unless it is greater than the <code>scale</code> of the
+	 *       {@link sap.ui.model.odata.type.Decimal} type for the numeric part, in which case <code>scale</code> wins.
+	 *     <li>A <code>scale='variable'</code> is treated as being always greater than the <code>DecimalPlaces</code>
+	 *       of the current unit code. In this case, the <code>DecimalPlaces</code> of the current unit code is
+	 *       applied.
+	 *   </ul>
 	 *
 	 * @param {any[]} aValues
 	 *   Array of part values to be formatted; contains in the following order: measure, unit,

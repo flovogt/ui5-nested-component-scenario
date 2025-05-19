@@ -1,12 +1,11 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.SearchField.
 sap.ui.define([
-	'sap/ui/core/Theming',
 	'./library',
 	'sap/ui/core/Control',
 	'sap/ui/core/EnabledPropagator',
@@ -21,7 +20,6 @@ sap.ui.define([
 	"sap/ui/dom/jquery/cursorPos"
 ],
 	function(
-		Theming,
 		library,
 		Control,
 		EnabledPropagator,
@@ -69,7 +67,7 @@ sap.ui.define([
 	* @extends sap.ui.core.Control
 	* @implements sap.ui.core.IFormContent
 	* @author SAP SE
-	* @version 1.120.30
+	* @version 1.136.0
 	*
 	* @constructor
 	* @public
@@ -133,7 +131,7 @@ sap.ui.define([
 
 				/**
 				 * Tooltip text of the refresh button. If it is not set, the Default tooltip text is the word "Refresh" in the current local language (if supported) or in English. Tooltips are not displayed on touch devices.
-				 * @deprecated Since version 1.110.0.
+				 * @deprecated As of version 1.110.0, the concept has been discarded.
 				 * @since 1.16
 				 */
 				refreshButtonTooltip : {type : "string", group : "Misc", defaultValue : null},

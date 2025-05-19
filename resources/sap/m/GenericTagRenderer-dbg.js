@@ -1,14 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	"./library",
-	"sap/ui/core/library",
-	"sap/ui/core/Core"
-], function(library, coreLibrary, oCore) {
+	"sap/ui/core/Lib",
+	"sap/ui/core/library"
+], function(library, Library, coreLibrary) {
 	"use strict";
 	//shortcut for sap.m.GenericTagDesign
 	var GenericTagDesign = library.GenericTagDesign,
@@ -31,7 +31,7 @@ sap.ui.define([
 
 	GenericTagRenderer.render = function(oRm, oControl) {
 		var aLabelledBy = this._getAriaLabelledBy(oControl),
-			oResourceBundle = oCore.getLibraryResourceBundle("sap.m"),
+			oResourceBundle = Library.getResourceBundleFor("sap.m"),
 			sTooltip = oControl.getTooltip_AsString();
 
 		oRm.openStart("div", oControl);
@@ -127,7 +127,7 @@ sap.ui.define([
 	};
 
 	GenericTagRenderer._getGenericTagStatusText = function(oControl) {
-		var oResourceBundle = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+		var oResourceBundle = Library.getResourceBundleFor("sap.m"),
 			sARIAStatusText;
 
 		switch (oControl.getStatus()) {

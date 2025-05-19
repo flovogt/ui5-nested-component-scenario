@@ -1,19 +1,20 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Lib",
 	"sap/ui/core/Renderer",
 	"sap/ui/core/library",
-	"sap/ui/core/Core",
 	"sap/ui/Device",
 	"sap/base/Log",
 	"./library",
 	"./ListItemBaseRenderer"
 ],
-	function(Renderer, coreLibrary, Core, Device, Log, library, ListItemBaseRenderer) {
+	function(ControlBehavior, Library, Renderer, coreLibrary, Device, Log, library, ListItemBaseRenderer) {
 	"use strict";
 
 	// shortcut for sap.m.PopinDisplay
@@ -210,7 +211,7 @@ sap.ui.define([
 
 					if (vLastColumnValue === vCellValue) {
 						// it is not necessary to render the cell content but screen readers need the content to announce it
-						bRenderCell = Core.getConfiguration().getAccessibility();
+						bRenderCell = ControlBehavior.isAccessibilityEnabled();
 						oCell.addStyleClass("sapMListTblCellDupCnt");
 						rm.class("sapMListTblCellDup");
 					} else {
@@ -224,7 +225,12 @@ sap.ui.define([
 			rm.openEnd();
 
 			if (oCell && bRenderCell) {
-				this.applyAriaLabelledBy(oColumn.getHeader(), oCell, true);
+				this.applyAriaLabelledBy(oColumn.getHeader(), oCell);
+
+				if (!oCell.getFieldHelpDisplay()) {
+					oCell.setFieldHelpDisplay(oColumn);
+				}
+
 				rm.renderControl(oCell);
 			}
 
@@ -240,14 +246,12 @@ sap.ui.define([
 		rm.close("td");
 	};
 
-	ColumnListItemRenderer.applyAriaLabelledBy = function(oHeader, oCell, bRemove) {
+	ColumnListItemRenderer.applyAriaLabelledBy = function(oHeader, oCell) {
 		if (!oHeader || !oHeader.getText || !oHeader.getVisible() || !oCell.getAriaLabelledBy) {
 			return;
 		}
 
-		if (bRemove) {
-			oCell.removeAriaLabelledBy(oHeader);
-		} else if (!oCell.getAriaLabelledBy().includes(oHeader.getId())) {
+		if (!oCell.getAriaLabelledBy().includes(oHeader.getId())) {
 			oCell.addAriaLabelledBy(oHeader);
 		}
 	};
@@ -323,8 +327,15 @@ sap.ui.define([
 				oColumn.addDependent(oHeader);
 				oLI._addClonedHeader(oHeader);
 				rm.renderControl(oHeader);
+				const oColumnAction = oColumn.getAggregation("_action");
+				if (oColumnAction) {
+					const oColumnActionClone = oColumnAction.clone();
+					oColumn.addDependent(oColumnActionClone);
+					oLI._addClonedHeader(oColumnActionClone);
+					rm.renderControl(oColumnActionClone);
+				}
 				rm.openStart("span").class("sapMListTblSubCntSpr");
-				rm.attr("data-popin-colon", Core.getLibraryResourceBundle("sap.m").getText("TABLE_POPIN_LABEL_COLON"));
+				rm.attr("data-popin-colon", Library.getResourceBundleFor("sap.m").getText("TABLE_POPIN_LABEL_COLON"));
 				rm.openEnd().close("span");
 				rm.close("div");
 			}
@@ -336,6 +347,11 @@ sap.ui.define([
 				rm.class("sapMListTblSubCntVal" + sPopinDisplay);
 				rm.openEnd();
 				this.applyAriaLabelledBy(oOriginalHeader, oCell);
+
+				if (oCell.getFieldHelpDisplay() === oColumn.getId()) {
+					oCell.setFieldHelpDisplay(); // Display the field help on the cell itself, because the column is hidden (in popin)
+				}
+
 				rm.renderControl(oCell);
 				rm.close("div");
 			}

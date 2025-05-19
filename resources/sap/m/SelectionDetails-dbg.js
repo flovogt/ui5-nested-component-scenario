@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 // Provides control sap.m.SelectionDetails.
@@ -10,6 +10,8 @@ sap.ui.define([
 	'sap/m/Button',
 	'sap/ui/base/Interface',
 	'sap/ui/Device',
+	"sap/ui/core/ControlBehavior",
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'./SelectionDetailsRenderer',
 	'sap/base/util/uid',
@@ -21,6 +23,8 @@ function(
 	Button,
 	Interface,
 	Device,
+	ControlBehavior,
+	Library,
 	CoreLibrary,
 	SelectionDetailsRenderer,
 	uid,
@@ -39,7 +43,7 @@ function(
 	 * <b><i>Note:</i></b>It is protected and should only be used within the framework itself.
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @extends sap.ui.core.Control
 	 * @constructor
@@ -157,7 +161,7 @@ function(
 		// Indicates whether the labels are wrapped
 		this._bWrapLabels = false;
 
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = Library.getResourceBundleFor("sap.m");
 		this.setAggregation("_button", new Button({
 			id: this.getId() + "-button",
 			type: library.ButtonType.Transparent,
@@ -333,7 +337,8 @@ function(
 		if (showBackButton) {
 			var oBackButton = new Button({
 				icon: "sap-icon://nav-back",
-				press: this._onBackButtonPress.bind(this)
+				press: this._onBackButtonPress.bind(this),
+				tooltip: this._oRb.getText("SELECTIONDETAILS_BACK_BUTTON")
 			});
 			oToolbar.addAggregation("content", oBackButton, true);
 		}
@@ -369,7 +374,7 @@ function(
 
 			height = Math.min(SelectionDetails._POPOVER_MAX_HEIGHT, height);
 			oPopover._oControl._deregisterContentResizeHandler();
-			var bAnimationMode = Configuration.getAnimationMode() !== Configuration.AnimationMode.none;
+			var bAnimationMode = ControlBehavior.getAnimationMode() !== Configuration.AnimationMode.none;
 			$PopoverContent.animate({
 				"height": Math.min(height, iMaxHeight)
 			}, bAnimationMode ? 100 : 0, function() {
@@ -677,12 +682,6 @@ function(
 			oNavContainer.addPage(oPage);
 			oPopover.addAggregation("content", oNavContainer, true);
 
-			if (!Device.system.phone) {
-				oPopover.addEventDelegate({
-					onAfterRendering: this._updatePopoverContentHeight.bind(this)
-				});
-			}
-
 			oPopover.addEventDelegate({
 				onBeforeRendering: function () {
 					this.getWrapLabels() ? oPopover.addStyleClass("sapMSDWrapLabels") : oPopover.removeStyleClass("sapMSDWrapLabels");
@@ -710,28 +709,6 @@ function(
 			this._oControl.setProperty.apply(this._oControl, arguments);
 		}
 		return Control.prototype.setProperty.apply(this, arguments);
-	};
-
-	/**
-	 * Adds an event delegate to the popover instance in order to minimize white space inside its contents.
-	 * @private
-	 * @static
-	 */
-	SelectionDetails.prototype._updatePopoverContentHeight = function() {
-		var iContentHeight = this._getInitialPageHeight(),
-			oPopover = this._getPopover();
-
-		if (Device.browser.edge && this._oMainList.getDomRef() && this._oMainList.getDomRef().getBoundingClientRect().height === 0) {
-			// Force rendering if for some reason the main list has not been rendered in MS Edge
-			oPopover.setContentHeight(SelectionDetails._POPOVER_MAX_HEIGHT + "px");
-			return;
-		}
-
-		if (this._oNavContainer.getCurrentPage() === this._oInitialPage && iContentHeight < SelectionDetails._POPOVER_MAX_HEIGHT) {
-			oPopover.setProperty("contentHeight", iContentHeight + "px", true);
-		} else {
-			oPopover.setProperty("contentHeight", SelectionDetails._POPOVER_MAX_HEIGHT + "px", true);
-		}
 	};
 
 	/**

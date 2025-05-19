@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.m.PlanningCalendarHeader.
 sap.ui.define([
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Element',
 	'sap/ui/core/Control',
 	'./library',
@@ -17,12 +18,13 @@ sap.ui.define([
 	'./Title',
 	'./ToolbarSpacer',
 	'./SegmentedButton',
+	"sap/ui/core/Lib",
 	'sap/ui/unified/Calendar',
 	'sap/ui/unified/calendar/CustomMonthPicker',
 	'sap/ui/unified/calendar/CustomYearPicker',
 	'sap/ui/unified/calendar/IndexPicker',
-	'sap/ui/core/Configuration',
-	'sap/ui/core/date/CalendarWeekNumbering',
+	'sap/base/i18n/date/CalendarType',
+	'sap/base/i18n/date/CalendarWeekNumbering',
 	'sap/ui/unified/calendar/CalendarDate',
 	'sap/ui/core/IconPool',
 	'sap/ui/core/InvisibleText',
@@ -31,6 +33,7 @@ sap.ui.define([
 	'sap/ui/core/date/UI5Date'
 ],
 function(
+	Localization,
 	Element,
 	Control,
 	library,
@@ -42,12 +45,13 @@ function(
 	Title,
 	ToolbarSpacer,
 	SegmentedButton,
+	Library,
 	Calendar,
 	CustomMonthPicker,
 	CustomYearPicker,
 	IndexPicker,
-	Configuration,
-	CalendarWeekNumbering,
+	_CalendarType, // type of `_primaryCalendarType` and `_secondaryCalendarType`
+	_CalendarWeekNumbering, // type of `calendarWeekNumbering`
 	CalendarDate,
 	IconPool,
 	InvisibleText,
@@ -98,7 +102,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @private
@@ -137,25 +141,28 @@ function(
 				/**
 				 * Defines the calendar week numbering used for display.
 				 * @private
+				 * @ui5-restricted sap.m.PlanningCalendarHeader
 				 * @since 1.110.0
 				 */
-				calendarWeekNumbering : { type : "sap.ui.core.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
+				calendarWeekNumbering : { type : "sap.base.i18n.date.CalendarWeekNumbering", group : "Appearance", defaultValue: null},
 
 				/**
 				 * If set, the calendar type is used for display.
 				 * If not set, the calendar type of the global configuration is used.
 				 * @private
+				 * @ui5-restricted sap.m.PlanningCalendarHeader
 				 * @since 1.108.0
 				 */
-				_primaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"},
+				_primaryCalendarType : {type : "sap.base.i18n.date.CalendarType", group : "Appearance"},
 
 				/**
 				 * If set, the days are also displayed in this calendar type
 				 * If not set, the dates are only displayed in the primary calendar type
-				 * @privates
+				 * @private
+				 * @ui5-restricted sap.m.PlanningCalendarHeader
 				 * @since 1.109.0
 				 */
-				_secondaryCalendarType : {type : "sap.ui.core.CalendarType", group : "Appearance"}
+				_secondaryCalendarType : {type : "sap.base.i18n.date.CalendarType", group : "Appearance"}
 
 			},
 
@@ -280,7 +287,7 @@ function(
 
 		var sOPHId = this.getId(),
 			sNavToolbarId = sOPHId + "-NavToolbar",
-			oRB = sap.ui.getCore().getLibraryResourceBundle("sap.m"),
+			oRB = Library.getResourceBundleFor("sap.m"),
 			sCalendarType = this.getProperty("_primaryCalendarType"),
 			oPicker,
 			oCalendarPicker,
@@ -318,7 +325,6 @@ function(
 			}.bind(this)
 		});
 		oCalendarPicker = new Calendar(sOPHId + "-Cal", {
-			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_RANGE_PICKER"),
 			calendarWeekNumbering: this.getCalendarWeekNumbering(),
 			primaryCalendarType: sCalendarType
 		});
@@ -338,7 +344,6 @@ function(
 		this.setAssociation("currentPicker", oCalendarPicker);
 
 		oMonthPicker = new CustomMonthPicker(sOPHId + "-MonthCal", {
-			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_RANGE_PICKER"),
 			primaryCalendarType: sCalendarType
 		});
 		oMonthPicker.attachEvent("select", this._handlePickerDateSelect, this);
@@ -347,7 +352,6 @@ function(
 		this._oMonthPicker = oMonthPicker;
 
 		oYearPicker = new CustomYearPicker(sOPHId + "-YearCal", {
-			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "PCH_RANGE_PICKER"),
 			primaryCalendarType: sCalendarType
 		});
 		oYearPicker.attachEvent("select", this._handlePickerDateSelect, this);
@@ -368,8 +372,15 @@ function(
 			press: function () {
 				if (this.fireEvent("_pickerButtonPress", {}, true)) {
 					var oDate = this.getStartDate() || UI5Date.getInstance(),
-						sCurrentPickerId = this.getAssociation("currentPicker");
-					oPicker = Element.registry.get(sCurrentPickerId);
+						sCurrentPickerId = this.getAssociation("currentPicker"),
+						oMinDate;
+					oPicker = Element.getElementById(sCurrentPickerId);
+					if (oPicker instanceof Calendar) {
+						oMinDate = oPicker.getMinDate();
+						if (oMinDate && oMinDate.getTime() > oDate.getTime()) {
+							oDate = oMinDate;
+						}
+					}
 					if (oPicker.displayDate) {
 						oPicker.displayDate(oDate);
 					}
@@ -394,6 +405,9 @@ function(
 	PlanningCalendarHeader.prototype.exit = function () {
 		this._getActionsToolbar().removeAllContent();
 		if (this._oTitle) {
+			if (this._oToolbarAfterRenderingDelegate) {
+				this._oTitle.removeDelegate(this._oToolbarAfterRenderingDelegate);
+			}
 			this._oTitle.destroy();
 			this._oTitle = null;
 		}
@@ -434,8 +448,22 @@ function(
 	};
 
 	PlanningCalendarHeader.prototype.setTitle = function (sTitle) {
-		this._getOrCreateTitleControl().setText(sTitle).setVisible(!!sTitle);
+		const oInnerTitle = this._getOrCreateTitleControl();
+		oInnerTitle.setText(sTitle).setVisible(!!sTitle);
+		if (this._oToolbarAfterRenderingDelegate) {
+			oInnerTitle.removeDelegate(this._oToolbarAfterRenderingDelegate);
+		}
+		this._oToolbarAfterRenderingDelegate = {
+			onAfterRendering: function () {
+				const oTitle = this.getActions().find((oAction) => oAction.isA("sap.m.Title"));
+				const oTitleDomRef = this.getDomRef().querySelector(`[data-sap-ui='${oInnerTitle.getId()}']`);
+				if (oTitle && oTitleDomRef) {
+					oTitleDomRef.setAttribute("id", oTitle.getId());
+				}
+			}
+		};
 
+		oInnerTitle.addDelegate(this._oToolbarAfterRenderingDelegate, this);
 		return this.setProperty("title", sTitle);
 	};
 
@@ -609,7 +637,7 @@ function(
 	 */
 	PlanningCalendarHeader.prototype._handlePickerDateSelect = function () {
 		var sCurrentPickerId = this.getAssociation("currentPicker"),
-			oPicker = Element.registry.get(sCurrentPickerId),
+			oPicker = Element.getElementById(sCurrentPickerId),
 			oSelectedDate = oPicker.getSelectedDates()[0].getStartDate();
 
 		this.setStartDate(oSelectedDate);
@@ -647,13 +675,17 @@ function(
 	 * @private
 	 */
 	PlanningCalendarHeader.prototype._openCalendarPickerPopup = function(oPicker){
-		var aContent, oContent;
+		var aContent, oContent, sAccessibleNameId;
 
 		if (!this._oPopup) {
 			this._oPopup = this._createPopup();
 		}
 
 		aContent = this._oPopup.getContent();
+		sAccessibleNameId = InvisibleText.getStaticId("sap.m", this._getPopoverAccessibleName());
+		this._oPopup.removeAllAssociation("ariaLabelledBy");
+		this._oPopup.addAriaLabelledBy(sAccessibleNameId);
+
 		if (aContent.length) {
 			oContent = this._oPopup.getContent()[0];
 			if (oContent.isA("sap.ui.unified.internal.CustomYearPicker")) {
@@ -672,7 +704,7 @@ function(
 			var $Popover = this._oPopup.$();
 			var iOffsetX = Math.floor(($Popover.width() - this._oPickerBtn.$().width()) / 2);
 
-			this._oPopup.setOffsetX(Configuration.getRTL() ? iOffsetX : -iOffsetX);
+			this._oPopup.setOffsetX(Localization.getRTL() ? iOffsetX : -iOffsetX);
 
 			var iOffsetY = this._oPickerBtn.$().height();
 
@@ -703,6 +735,24 @@ function(
 		this._oPopup = oPopover;
 
 		return this._oPopup;
+	};
+
+	/**
+	 * Returns the message bundle key of the invisible text for the accessible name of the popover.
+	 * @private
+	 * @returns {string} The message bundle key
+	 */
+	PlanningCalendarHeader.prototype._getPopoverAccessibleName = function() {
+		var sPickerName = Element.getElementById(this.getAssociation("currentPicker")).getMetadata().getName();
+
+		switch (sPickerName) {
+			case "sap.ui.unified.internal.CustomYearPicker":
+				return "DATEPICKER_YEAR_POPOVER_ACCESSIBLE_NAME";
+			case "sap.ui.unified.internal.CustomMonthPicker":
+				return "DATEPICKER_MONTH_POPOVER_ACCESSIBLE_NAME";
+			default:
+				return "DATEPICKER_POPOVER_ACCESSIBLE_NAME";
+		}
 	};
 
 	/**

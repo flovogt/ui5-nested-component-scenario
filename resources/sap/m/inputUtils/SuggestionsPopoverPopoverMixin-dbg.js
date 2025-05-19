@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*
@@ -8,11 +8,11 @@
  * Code other than the OpenUI5 libraries must not introduce dependencies to this module.
  */
 sap.ui.define([
+	"sap/base/i18n/Localization",
 	"sap/m/library",
 	"sap/m/Popover",
-	"sap/m/ValueStateHeader",
-	"sap/ui/core/Configuration"
-], function (library, Popover, ValueStateHeader, Configuration) {
+	"sap/m/ValueStateHeader"
+], function (Localization, library, Popover, ValueStateHeader) {
 	"use strict";
 
 	// shortcut for sap.m.PlacementType
@@ -27,7 +27,7 @@ sap.ui.define([
 		 * @returns {sap.m.Popover} The newly created picker.
 		 */
 		this.createPopover = function (oInput) {
-			var bRTL = Configuration.getRTL();
+			var bRTL = Localization.getRTL();
 			var that = this,
 				oPopover = new Popover(oInput.getId() + "-popup", {
 					showArrow: false,
@@ -75,8 +75,12 @@ sap.ui.define([
 
 				// resize suggestion popup to minimum size of the input field
 				setTimeout(function () {
-					if (oPopover && oPopover.isOpen() && oPopover.$().outerWidth() < oInput.$().outerWidth()) {
-						oPopover.setContentWidth((oInput.$().outerWidth()) + "px");
+					if (oPopover && oPopover.isOpen()) {
+						const fPopoverWidth = oPopover.$().outerWidth(true) + 2 * oPopover._fThickShadowSize;
+
+						if (fPopoverWidth < oInput.$().outerWidth()) {
+							oPopover.setContentWidth((oInput.$().outerWidth()) + "px");
+						}
 					}
 				}, 0);
 			}

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([], function() {
@@ -10,11 +10,10 @@ sap.ui.define([], function() {
 	 * Static collection of utility functions to handle time zone related conversions
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @namespace
 	 * @alias module:sap/base/i18n/date/TimezoneUtils
 	 * @private
-	 * @ui5-restricted sap.ui.core.Configuration, sap/base/i18n/format/DateFormat
 	 */
 	var TimezoneUtils = {};
 
@@ -92,7 +91,8 @@ sap.ui.define([], function() {
 	 * @param {string} sTimezone The IANA timezone ID which is checked, e.g <code>"Europe/Berlin"</code>
 	 * @returns {boolean} Whether the time zone is a valid IANA timezone ID
 	 * @private
-	 * @ui5-restricted sap.ui.core.Configuration, sap.ui.core.format.DateFormat
+	 * @ui5-restricted sap.ui.comp.util.DateTimeUtil, sap.ui.core.format.DateFormat, sap.viz,
+	 *   sap/base/i18n/Localization, sap/ui/core/format/TimezoneUtil
 	 */
 	TimezoneUtils.isValidTimezone = function(sTimezone) {
 		if (!sTimezone) {
@@ -137,7 +137,8 @@ sap.ui.define([], function() {
 	 * @param {string} sTargetTimezone The target IANA timezone ID, e.g <code>"Europe/Berlin"</code>
 	 * @returns {Date} The new date in the target time zone.
 	 * @private
-	 * @ui5-restricted sap.ui.core.format.DateFormat, sap.ui.unified, sap.m
+	 * @ui5-restricted sap.ui.core.format.DateFormat, sap.ui.comp.util.DateTimeUtil, sap.viz,
+	 *   sap/ui/core/format/TimezoneUtil
 	 */
 	TimezoneUtils.convertToTimezone = function(oDate, sTargetTimezone) {
 		var oFormatParts = this._getParts(oDate, sTargetTimezone);
@@ -163,6 +164,7 @@ sap.ui.define([], function() {
 	 *     year: string
 	 * }} An object containing the date and time fields considering the target time zone.
 	 * @private
+	 * @ui5-restricted sap.viz, sap/ui/core/date/UI5Date, sap/ui/core/format/TimezoneUtil
 	 */
 	TimezoneUtils._getParts = function(oDate, sTargetTimezone) {
 		var sKey, oPart,
@@ -188,6 +190,7 @@ sap.ui.define([], function() {
 	 * @param {object} oParts Separated date and time fields as object, see {@link #_getParts}.
 	 * @returns {Date} Returns the date object created from the provided parts.
 	 * @private
+	 * @ui5-restricted sap.viz, sap/ui/core/date/UI5Date, sap/ui/core/format/TimezoneUtil
 	 */
 	TimezoneUtils._getDateFromParts = function(oParts) {
 		// no need to use UI5Date.getInstance as only the UTC timestamp is used
@@ -253,7 +256,8 @@ sap.ui.define([], function() {
 	 * @param {string} sTimezoneSource The source IANA timezone ID, e.g <code>"Europe/Berlin"</code>
 	 * @returns {number} The difference to UTC between the date in the time zone.
 	 * @private
-	 * @ui5-restricted sap.ui.core.format.DateFormat
+	 * @ui5-restricted sap.ui.core.format.DateFormat, sap.viz, sap/ui/core/date/UI5Date,
+	 *   sap/ui/core/format/TimezoneUtil
 	 */
 	TimezoneUtils.calculateOffset = function(oDate, sTimezoneSource) {
 		const oDateInTimezone = TimezoneUtils.convertToTimezone(oDate, sTimezoneSource);
@@ -281,28 +285,163 @@ sap.ui.define([], function() {
 	};
 
 	/**
-	 * Map outdated IANA timezone IDs used in CLDR to correct and up-to-date IANA IDs as maintained in ABAP systems.
+	 * Map outdated IANA timezone IDs used in CLDR to correct and IANA IDs as maintained in ABAP systems.
 	 *
 	 * @private
  	 */
-	TimezoneUtils.mCLDR2ABAPTimezones = {
+	TimezoneUtils.mTimezoneAliases2ABAPTimezones = {
+		"Africa/Asmera": "Africa/Asmara",
+		"Africa/Timbuktu": "Africa/Bamako",
+		"America/Argentina/ComodRivadavia": "America/Argentina/Catamarca",
+		"America/Atka": "America/Adak",
 		"America/Buenos_Aires": "America/Argentina/Buenos_Aires",
 		"America/Catamarca": "America/Argentina/Catamarca",
+		"America/Coral_Harbour": "America/Atikokan",
 		"America/Cordoba": "America/Argentina/Cordoba",
-		"America/Jujuy": "America/Argentina/Jujuy",
-		"America/Mendoza": "America/Argentina/Mendoza",
-		"America/Indianapolis": "America/Indiana/Indianapolis",
-		"America/Louisville": "America/Kentucky/Louisville",
-		"Africa/Asmera": "Africa/Asmara",
-		"Asia/Katmandu": "Asia/Kathmandu",
-		"Asia/Calcutta": "Asia/Kolkata",
-		"Atlantic/Faeroe": "Atlantic/Faroe",
-		"Pacific/Ponape": "Pacific/Pohnpei",
-		"Asia/Rangoon": "Asia/Yangon",
-		"Pacific/Truk": "Pacific/Chuuk",
+		"America/Ensenada": "America/Tijuana",
+		"America/Fort_Wayne": "America/Indiana/Indianapolis",
 		"America/Godthab": "America/Nuuk",
+		"America/Indianapolis": "America/Indiana/Indianapolis",
+		"America/Jujuy": "America/Argentina/Jujuy",
+		"America/Knox_IN": "America/Indiana/Knox",
+		"America/Louisville": "America/Kentucky/Louisville",
+		"America/Mendoza": "America/Argentina/Mendoza",
+		"America/Montreal": "America/Toronto",
+		"America/Nipigon": "America/Toronto",
+		"America/Pangnirtung": "America/Iqaluit",
+		"America/Porto_Acre": "America/Rio_Branco",
+		"America/Rainy_River": "America/Winnipeg",
+		"America/Rosario": "America/Argentina/Cordoba",
+		"America/Santa_Isabel": "America/Tijuana",
+		"America/Shiprock": "America/Denver",
+		"America/Thunder_Bay": "America/Toronto",
+		"America/Virgin": "America/St_Thomas",
+		"America/Yellowknife": "America/Edmonton",
+		"Antarctica/South_Pole": "Pacific/Auckland",
+		"Asia/Ashkhabad": "Asia/Ashgabat",
+		"Asia/Calcutta": "Asia/Kolkata",
+		"Asia/Choibalsan": "Asia/Ulaanbaatar",
+		"Asia/Chongqing": "Asia/Shanghai",
+		"Asia/Chungking": "Asia/Shanghai",
+		"Asia/Dacca": "Asia/Dhaka",
+		"Asia/Harbin": "Asia/Shanghai",
+		"Asia/Istanbul": "Europe/Istanbul",
+		"Asia/Kashgar": "Asia/Urumqi",
+		"Asia/Katmandu": "Asia/Kathmandu",
+		"Asia/Macao": "Asia/Macau",
+		"Asia/Rangoon": "Asia/Yangon",
 		"Asia/Saigon": "Asia/Ho_Chi_Minh",
-		"America/Coral_Harbour": "America/Atikokan"
+		"Asia/Tel_Aviv": "Asia/Jerusalem",
+		"Asia/Thimbu": "Asia/Thimphu",
+		"Asia/Ujung_Pandang": "Asia/Makassar",
+		"Asia/Ulan_Bator": "Asia/Ulaanbaatar",
+		"Atlantic/Faeroe": "Atlantic/Faroe",
+		"Atlantic/Jan_Mayen": "Arctic/Longyearbyen",
+		"Australia/ACT": "Australia/Sydney",
+		"Australia/Canberra": "Australia/Sydney",
+		"Australia/Currie": "Australia/Hobart",
+		"Australia/LHI": "Australia/Lord_Howe",
+		"Australia/NSW": "Australia/Sydney",
+		"Australia/North": "Australia/Darwin",
+		"Australia/Queensland": "Australia/Brisbane",
+		"Australia/South": "Australia/Adelaide",
+		"Australia/Tasmania": "Australia/Hobart",
+		"Australia/Victoria": "Australia/Melbourne",
+		"Australia/West": "Australia/Perth",
+		"Australia/Yancowinna": "Australia/Broken_Hill",
+		"Brazil/Acre": "America/Rio_Branco",
+		"Brazil/DeNoronha": "America/Noronha",
+		"Brazil/East": "America/Sao_Paulo",
+		"Brazil/West": "America/Manaus",
+		"CET": "Europe/Brussels",
+		"CST6CDT": "America/Chicago",
+		"Canada/Atlantic": "America/Halifax",
+		"Canada/Central": "America/Winnipeg",
+		"Canada/East-Saskatchewan": "America/Regina",
+		"Canada/Eastern": "America/Toronto",
+		"Canada/Mountain": "America/Edmonton",
+		"Canada/Newfoundland": "America/St_Johns",
+		"Canada/Pacific": "America/Vancouver",
+		"Canada/Saskatchewan": "America/Regina",
+		"Canada/Yukon": "America/Whitehorse",
+		"Chile/Continental": "America/Santiago",
+		"Chile/EasterIsland": "Pacific/Easter",
+		"Cuba": "America/Havana",
+		"EET": "Europe/Athens",
+		"EST": "America/Panama",
+		"EST5EDT": "America/New_York",
+		"Egypt": "Africa/Cairo",
+		"Eire": "Europe/Dublin",
+		"Etc/GMT+0": "Etc/GMT",
+		"Etc/GMT-0": "Etc/GMT",
+		"Etc/GMT0": "Etc/GMT",
+		"Etc/Greenwich": "Etc/GMT",
+		"Etc/UCT": "Etc/UTC",
+		"Etc/Zulu": "Etc/UTC",
+		"Europe/Belfast": "Europe/London",
+		"Europe/Kyiv": "Europe/Kiev",
+		"Europe/Nicosia": "Asia/Nicosia",
+		"Europe/Tiraspol": "Europe/Chisinau",
+		"Europe/Uzhgorod": "Europe/Kiev",
+		"Europe/Zaporozhye": "Europe/Kiev",
+		"GB": "Europe/London",
+		"GB-Eire": "Europe/London",
+		"GMT": "Etc/GMT",
+		"GMT+0": "Etc/GMT",
+		"GMT-0": "Etc/GMT",
+		"GMT0": "Etc/GMT",
+		"Greenwich": "Etc/GMT",
+		"HST": "Pacific/Honolulu",
+		"Hongkong": "Asia/Hong_Kong",
+		"Iceland": "Atlantic/Reykjavik",
+		"Iran": "Asia/Tehran",
+		"Israel": "Asia/Jerusalem",
+		"Jamaica": "America/Jamaica",
+		"Japan": "Asia/Tokyo",
+		"Kwajalein": "Pacific/Kwajalein",
+		"Libya": "Africa/Tripoli",
+		"MET": "Europe/Brussels",
+		"MST": "America/Phoenix",
+		"MST7MDT": "America/Denver",
+		"Mexico/BajaNorte": "America/Tijuana",
+		"Mexico/BajaSur": "America/Mazatlan",
+		"Mexico/General": "America/Mexico_City",
+		"NZ": "Pacific/Auckland",
+		"NZ-CHAT": "Pacific/Chatham",
+		"Navajo": "America/Denver",
+		"PRC": "Asia/Shanghai",
+		"PST8PDT": "America/Los_Angeles",
+		"Pacific/Enderbury": "Pacific/Kanton",
+		"Pacific/Johnston": "Pacific/Honolulu",
+		"Pacific/Ponape": "Pacific/Pohnpei",
+		"Pacific/Samoa": "Pacific/Pago_Pago",
+		"Pacific/Truk": "Pacific/Chuuk",
+		"Pacific/Yap": "Pacific/Chuuk",
+		"Poland": "Europe/Warsaw",
+		"Portugal": "Europe/Lisbon",
+		"ROC": "Asia/Taipei",
+		"ROK": "Asia/Seoul",
+		"Singapore": "Asia/Singapore",
+		"Turkey": "Europe/Istanbul",
+		"UCT": "Etc/UTC",
+		"US/Alaska": "America/Anchorage",
+		"US/Aleutian": "America/Adak",
+		"US/Arizona": "America/Phoenix",
+		"US/Central": "America/Chicago",
+		"US/East-Indiana": "America/Indiana/Indianapolis",
+		"US/Eastern": "America/New_York",
+		"US/Hawaii": "Pacific/Honolulu",
+		"US/Indiana-Starke": "America/Indiana/Knox",
+		"US/Michigan": "America/Detroit",
+		"US/Mountain": "America/Denver",
+		"US/Pacific": "America/Los_Angeles",
+		"US/Pacific-New": "America/Los_Angeles",
+		"US/Samoa": "Pacific/Pago_Pago",
+		"UTC": "Etc/UTC",
+		"Universal": "Etc/UTC",
+		"W-SU": "Europe/Moscow",
+		"WET": "Europe/Lisbon",
+		"Zulu": "Etc/UTC"
 	};
 
 	/**
@@ -313,15 +452,28 @@ sap.ui.define([], function() {
 	 *   e.g. <code>"Europe/Berlin"</code> or <code>"Asia/Kolkata"</code>
 	 *
 	 * @private
-	 * @ui5-restricted sap.ui.core.Configuration,sap.m.DateTimeField
+	 * @ui5-restricted sap.gantt, sap.gantt, sap.viz, lib/cldr-openui5/lib/Generator,
+	 *   sap/base/i18n/Localization, sap/ui/core/date/UI5Date, sap/ui/core/format/TimezoneUtil
 	 */
 	TimezoneUtils.getLocalTimezone = function() {
 		if (sLocalTimezone === "") { // timezone may be undefined, only value "" means empty cache
 			sLocalTimezone = new Intl.DateTimeFormat().resolvedOptions().timeZone;
-			sLocalTimezone = TimezoneUtils.mCLDR2ABAPTimezones[sLocalTimezone] || sLocalTimezone;
+			sLocalTimezone = TimezoneUtils.getABAPTimezone(sLocalTimezone);
 		}
 
 		return sLocalTimezone;
+	};
+
+	/**
+	 * Returns the ABAP time zone ID for the given IANA time zone ID.
+	 *
+	 * @param {string} sTimezone The IANA time zone ID
+	 *
+	 * @returns {string} The ABAP time zone ID
+	 * @private
+	 */
+	TimezoneUtils.getABAPTimezone = function (sTimezone) {
+		return TimezoneUtils.mTimezoneAliases2ABAPTimezones[sTimezone] || sTimezone;
 	};
 
 	/**

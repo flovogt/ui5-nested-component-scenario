@@ -1,14 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 		'./library',
-		'sap/ui/core/Core',
 		'sap/ui/core/Element',
 		'sap/ui/Device',
+		"sap/ui/core/Lib",
 		"sap/ui/dom/isHidden",
 		'sap/ui/core/ResizeHandler',
 		'./ListItemBase',
@@ -22,9 +22,9 @@ sap.ui.define([
 		'sap/ui/core/library'
 	],
 	function (library,
-			  Core,
 			  Element,
 			  Device,
+			  Library,
 			  isHidden,
 			  ResizeHandler,
 			  ListItemBase,
@@ -53,7 +53,7 @@ sap.ui.define([
 		// shortcut for sap.m.OverflowToolbarPriority
 		var OverflowToolbarPriority = library.OverflowToolbarPriority;
 
-		var resourceBundle = Core.getLibraryResourceBundle('sap.m'),
+		var resourceBundle = Library.getResourceBundleFor('sap.m'),
 			closeText = resourceBundle.getText('NOTIFICATION_LIST_ITEM_CLOSE'), // this is used for tooltip for the "X" button and the text of the button "X" when it is in the overflow toolbar on mobile
 			closeAllText = resourceBundle.getText('NOTIFICATION_LIST_GROUP_CLOSE'); // this is used for tooltip for the "X" button and the text of the button "X" when it is in the overflow toolbar on mobile
 
@@ -91,7 +91,7 @@ sap.ui.define([
 		 * @extends sap.m.ListItemBase
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -114,10 +114,11 @@ sap.ui.define([
 					/**
 					 * Determines the title of the NotificationListBase item.
 					 */
-					title: {type: 'string', group: 'Appearance', defaultValue: ''},
+					title: {type: 'string', group: 'Data', defaultValue: ''},
 
 					/**
 					 * The time stamp of the Notification.
+					 * @deprecated As of version 1.123, this property is available directly on {@link sap.m.NotificationListItem}.
 					 */
 					datetime: {type: 'string', group: 'Appearance', defaultValue: ''},
 
@@ -135,11 +136,13 @@ sap.ui.define([
 
 					/**
 					 * Determines the notification author name.
+					 * @deprecated As of version 1.123. This property is available directly on {@link sap.m.NotificationListItem}.
 					 */
 					authorName: {type: 'string', group: 'Appearance', defaultValue: ''},
 
 					/**
 					 * Determines the URL of the notification author picture.
+					 * @deprecated As of version 1.123. This property is available directly on {@link sap.m.NotificationListItem}.
 					 */
 					authorPicture: {type: 'sap.ui.core.URI'}
 

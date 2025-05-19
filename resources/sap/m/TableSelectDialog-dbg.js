@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -11,6 +11,7 @@ sap.ui.define([
 	'./SearchField',
 	'./Table',
 	'./library',
+	"sap/ui/core/Lib",
 	'sap/ui/core/library',
 	'./SelectDialogBase',
 	'sap/ui/core/InvisibleText',
@@ -22,13 +23,15 @@ sap.ui.define([
 	'sap/m/BusyIndicator',
 	'sap/m/Bar',
 	'sap/m/Title',
-	'sap/base/Log'
-], function (
+	'sap/base/Log',
+	'sap/ui/core/Element'
+], function(
 	Button,
 	Dialog,
 	SearchField,
 	Table,
 	library,
+	Library,
 	CoreLibrary,
 	SelectDialogBase,
 	InvisibleText,
@@ -40,7 +43,8 @@ sap.ui.define([
 	BusyIndicator,
 	Bar,
 	Title,
-	Log
+	Log,
+	Element
 ) {
 	"use strict";
 
@@ -98,6 +102,8 @@ sap.ui.define([
 	 * <li>The property <code>growing</code> must not be used together with two-way binding.
 	 * <li>When the property <code>growing</code> is set to <code>true</code> (default value), selected count (if present) and search, will work for currently loaded items only.
 	 * To make sure that all items in the table are loaded at once and the above features work properly, set the property to <code>false</code>.
+	 * <b>Note: </b>The default size limit for entries used for table bindings is set to 100.
+	 * To change this behavior, you can adjust the size limit by using <code>sap.ui.model.Model.prototype.setSizeLimit</code>; see {@link sap.ui.model.Model#setSizeLimit}.
 	 * <li>Since version 1.58, the columns headers and the info toolbar are sticky (remain fixed on top when scrolling). This feature is not supported in all browsers.
 	 * <li>The TableSelectDialog is usually displayed at the center of the screen. Its size and position can be changed by the user.
 	 * To enable this you need to set the <code>resizable</code> and <code>draggable</code> properties. Both properties are available only in desktop mode.</li>
@@ -110,7 +116,7 @@ sap.ui.define([
 	 * When using the <code>sap.m.TableSelectDialog</code> in SAP Quartz and Horizon themes, the breakpoints and layout paddings could be determined by the dialog's width. To enable this concept and add responsive paddings to an element of the control, you have to add the following classes depending on your use case: <code>sapUiResponsivePadding--header</code>, <code>sapUiResponsivePadding--subHeader</code>, <code>sapUiResponsivePadding--content</code>, <code>sapUiResponsivePadding--footer</code>.
 	 * @extends sap.m.SelectDialogBase
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -267,7 +273,7 @@ sap.ui.define([
 						 * Note: In contrast to the parameter "selectedItems", this parameter includes the selected but NOT visible items (due to list filtering). An empty array is set for this parameter if no Databinding is used.
 						 * NOTE: When the list binding is pre-filtered and there are items in the selection that are not visible upon opening the dialog, these contexts are not loaded. Therefore, these items will not be included in the selectedContexts array unless they are displayed at least once.
 						 */
-						selectedContexts : {type : "string"}
+						selectedContexts: { type: "object[]"}
 					}
 				},
 
@@ -338,21 +344,16 @@ sap.ui.define([
 	 */
 	TableSelectDialog.prototype.init = function () {
 		var that = this,
-			iLiveChangeTimer = 0,
-			fnResetAfterClose = null;
-
-		fnResetAfterClose = function () {
-			that._oSelectedItem = that._oTable.getSelectedItem();
-			that._aSelectedItems = that._oTable.getSelectedItems();
-
-			that._oDialog.detachAfterClose(fnResetAfterClose);
-			that._fireConfirmAndUpdateSelection();
-		};
-
+			iLiveChangeTimer = 0;
 		this._bAppendedToUIArea = false;
 		this._bInitBusy = false;
 		this._bFirstRender = true;
-		this._oRb = sap.ui.getCore().getLibraryResourceBundle("sap.m");
+		this._oRb = Library.getResourceBundleFor("sap.m");
+		this._bAfterCloseAttached = false;
+		this._oItemDelegate = {
+			ontap: this._tableColumnsEventDelegates.bind(this),
+			onsapselect: this._tableColumnsEventDelegates.bind(this)
+		};
 
 		// store a reference to the table for binding management
 		this._oTable = new Table(this.getId() + "-table", {
@@ -371,22 +372,16 @@ sap.ui.define([
 				]
 			}),
 			ariaLabelledBy: SelectDialogBase.getInvisibleText(),
-			selectionChange: function (oEvent) {
-				that.fireSelectionChange(oEvent.getParameters());
-
-				if (that._oDialog) {
-					if (!that.getMultiSelect()) {
-						// attach the reset function to afterClose to hide the dialog changes from the end user
-						that._oDialog.attachAfterClose(fnResetAfterClose);
-						that._oDialog.close();
-					} else {
-						// update the selection label
-						that._updateSelectionIndicator();
-					}
-				}
-			},
+			selectionChange: this._selectionChange.bind(this),
 			updateStarted: this._updateStarted.bind(this),
-			updateFinished: this._updateFinished.bind(this)
+			updateFinished: this._updateFinished.bind(this),
+			popinChanged: function (oEvent) {
+				if (oEvent.getParameter("hasPopin")) {
+					this._oTable.getItems().forEach(function (oItem) {
+						oItem._oPopin?.addEventDelegate(this._oItemDelegate);
+					}, this);
+				}
+			}.bind(this)
 		});
 
 		this._table = this._oTable; // for downward compatibility
@@ -564,8 +559,9 @@ sap.ui.define([
 		this._oSearchField.setValue(sSearchValue);
 		this._sSearchFieldValue = sSearchValue || "";
 
-		// open the dialog
-		this._setInitialFocus();
+		this._oDialog.setInitialFocus(this._getInitialFocus());
+		this._updateSelectionIndicator();
+		this.updateDialogAriaDescribedBy();
 		this._oDialog.open();
 
 		// open dialog with busy state if a list update is still in progress
@@ -575,9 +571,6 @@ sap.ui.define([
 
 		// store the current selection for the cancel event
 		this._aInitiallySelectedItems = this._oTable.getSelectedItems();
-
-		// refresh the selection indicator to be in sync with the model
-		this._updateSelectionIndicator();
 
 		//now return the control for chaining
 		return this;
@@ -1036,6 +1029,47 @@ sap.ui.define([
 		return this;
 	};
 
+
+	TableSelectDialog.prototype._resetAfterClose = function() {
+		this._oSelectedItem = this._oTable.getSelectedItem();
+		this._aSelectedItems = this._oTable.getSelectedItems();
+
+		this._bAfterCloseAttached = false;
+		this._fireConfirmAndUpdateSelection();
+	};
+
+	/**
+	 * Handles user interaction on pressing OK, Space or clicking on item in the list.
+	 *
+	 * @private
+	 */
+	TableSelectDialog.prototype._selectionChange = function (oEvent) {
+		if (oEvent.getParameters) {
+			this.fireSelectionChange(oEvent.getParameters());
+		}
+
+		if (!this._oDialog) {
+			return;
+		}
+
+		// The following logic handles the item tap / select when:
+		// -- the TableSelectDialog is in multi select mode - only update the indicator
+		if (this.getMultiSelect()) {
+			this._updateSelectionIndicator();
+			this._announceSelectionIndicator();
+			return; // the TableSelectDialog should remain open
+		}
+
+		// -- the TableSelectDialog in single select mode - close and update the selection of the dialog
+		if (!this._bAfterCloseAttached) {
+			// if the resetAfterclose function is not attached already
+			// attach it to afterClose to hide the dialog changes from the end user
+			this._oDialog.attachEventOnce("afterClose", this._resetAfterClose, this);
+			this._bAfterCloseAttached = true;
+		}
+		this._oDialog.close();
+	};
+
 	/**
 	 * Shows/hides a local busy indicator, hides/shows the list based on the parameter flag and enables/disables the search field.
 	 * @private
@@ -1092,6 +1126,12 @@ sap.ui.define([
 
 		// we received a request (from this or from another control) so set the counter to 0
 		this._iTableUpdateRequested = 0;
+
+		// List items' delegates to handle mouse clicks/taps & keyboard when an item is already selected
+		this._oTable.getItems().forEach(function (oItem) {
+				oItem.addEventDelegate(this._oItemDelegate);
+				oItem._oPopin?.addEventDelegate(this._oItemDelegate);
+		}, this);
 	};
 
 	/**
@@ -1160,8 +1200,7 @@ sap.ui.define([
 				press: function() {
 					this._removeSelection();
 					this._updateSelectionIndicator();
-					//when clear is executed focus should stay in sap.mTableSelectDialog
-					this._oDialog.focus();
+					this._getInitialFocus().focus();
 				}.bind(this)
 			});
 		}
@@ -1210,12 +1249,17 @@ sap.ui.define([
 		if (this.getShowClearButton() && this._oClearButton) {
 			this._oClearButton.setEnabled(iSelectedContexts > 0);
 		}
-		// update the selection label
+
 		oInfoBar.setVisible(!!iSelectedContexts);
 		oInfoBar.getContent()[0].setText(this._oRb.getText("TABLESELECTDIALOG_SELECTEDITEMS", [iSelectedContexts]));
+		SelectDialogBase.getSelectionIndicatorInvisibleText().setText(iSelectedContexts > 0 ? this._oRb.getText("TABLESELECTDIALOG_SELECTEDITEMS_SR", [iSelectedContexts]) : "");
+	};
 
-		if (this._oDialog.isOpen()) {
-			InvisibleMessage.getInstance().announce(iSelectedContexts > 0 ? this._oRb.getText("TABLESELECTDIALOG_SELECTEDITEMS_SR", [iSelectedContexts]) : "", InvisibleMessageMode.Polite);
+	TableSelectDialog.prototype._announceSelectionIndicator = function () {
+		const selectedContexts = this._oTable.getSelectedContextPaths(true).length;
+
+		if (selectedContexts) {
+			InvisibleMessage.getInstance().announce(this._oRb.getText("TABLESELECTDIALOG_SELECTEDITEMS_SR", [selectedContexts]), InvisibleMessageMode.Polite);
 		}
 	};
 
@@ -1279,6 +1323,38 @@ sap.ui.define([
 				this._oTable.setSelectedItem(this._aInitiallySelectedItems[i]);
 			}
 		}
+	};
+
+	TableSelectDialog.prototype._tableColumnsEventDelegates = function (oEvent) {
+		let oTarget = oEvent.target.closest(".sapMLIB"),
+				oListItem;
+
+			// popin is pressed not list item
+			if (!oTarget){
+
+				oTarget = oEvent.target.closest(".sapMListTblSubRow");
+
+				const oPopin = Element.closestTo(oTarget);
+
+				oListItem = oPopin.getParent();
+			} else {
+				oListItem = Element.closestTo(oTarget);
+			}
+
+			if (oListItem._eventHandledByControl) {
+				return;
+			}
+
+			if (oEvent && oEvent.isDefaultPrevented && oEvent.isMarked &&
+				(oEvent.isDefaultPrevented() || oEvent.isMarked("preventSelectionChange"))) {
+				return;
+			}
+
+			if (oEvent && oEvent.srcControl.isA("sap.m.GroupHeaderListItem")){
+				return;
+			}
+
+			this._selectionChange(oEvent); // Mouse and Touch events
 	};
 
 	/* =========================================================== */

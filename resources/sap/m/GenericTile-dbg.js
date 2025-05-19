@@ -1,11 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 sap.ui.define([
 	'./library',
+	"sap/base/i18n/Localization",
 	'sap/ui/core/Control',
 	'sap/m/Text',
 	'sap/ui/core/HTML',
@@ -16,6 +17,7 @@ sap.ui.define([
 	'sap/m/GenericTileLineModeRenderer',
 	'sap/m/Image',
 	'sap/ui/Device',
+	"sap/ui/core/Lib",
 	'sap/ui/core/ResizeHandler',
 	"sap/base/strings/camelize",
 	"sap/base/util/deepEqual",
@@ -23,12 +25,13 @@ sap.ui.define([
 	"sap/ui/core/theming/Parameters",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/core/library",
-	"sap/ui/core/Configuration",
 	"sap/ui/core/InvisibleText",
 	"sap/ui/core/Core",
-	"sap/ui/core/Theming"
-], function (
+	"sap/ui/core/Theming",
+	"./LinkTileContent"
+], function(
 	library,
+	Localization,
 	Control,
 	Text,
 	HTML,
@@ -39,6 +42,7 @@ sap.ui.define([
 	LineModeRenderer,
 	Image,
 	Device,
+	Library,
 	ResizeHandler,
 	camelize,
 	deepEqual,
@@ -46,13 +50,13 @@ sap.ui.define([
 	Parameters,
 	jQuery,
 	coreLibrary,
-	Configuration,
 	InvisibleText,
 	Core,
-	Theming
+	Theming,
+	LinkTileContent
 ) {
 	"use strict";
-
+	var frameTypes = library.FrameType;
 	var GenericTileScope = library.GenericTileScope,
 		LoadState = library.LoadState,
 		CSSColor = coreLibrary.CSSColor,
@@ -85,7 +89,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -93,8 +97,10 @@ sap.ui.define([
 	 */
 	var GenericTile = Control.extend("sap.m.GenericTile", /** @lends sap.m.GenericTile.prototype */ {
 		metadata: {
-
 			library: "sap.m",
+			interfaces: [
+				"sap.f.IGridContainerItem"
+			],
 			properties: {
 				/**
 				 * The mode of the GenericTile.
@@ -124,13 +130,11 @@ sap.ui.define([
 				/**
 				 * Backend system context information
 				 * @since 1.92.0
-				 * @experimental Since 1.92
 				 */
 				systemInfo: {type:"string",  group: "Misc", defaultValue:null},
 				/**
 				 * Application information such as ID/Shortcut
 				 * @since 1.92.0
-				 * @experimental Since 1.92
 				 */
 				appShortcut: {type:"string",  group: "Misc", defaultValue:null},
 				/**
@@ -167,6 +171,10 @@ sap.ui.define([
 				ariaLabel: {type: "string", group: "Accessibility", defaultValue: null},
 				/**
 				 * Additional description for aria-role.
+				 *
+				 * **Note:** When the control is placed inside a <code>sap.f.GridContainer</code>,
+				 * its accessibility role is overridden by the accessibility role specified by the <code>sap.f.GridContainer</code>.
+				 *
 				 * @since 1.83
 				 */
 				ariaRole: {type: "string", group: "Accessibility", defaultValue: null},
@@ -183,18 +191,18 @@ sap.ui.define([
 				/**
 				 * Renders the given link as a button, enabling the option of opening the link in new tab/window functionality.
 				 * Works only in ArticleMode.
-				 * @experimental since 1.96
+				 * @since 1.96
 				 */
 				enableNavigationButton: {type: "boolean", group: "Misc", defaultValue: false},
 				/**
 				 * Disables press event for the tile control.
-				 * @experimental since 1.96
+				 * @since 1.96
 				 */
 				 pressEnabled: {type: "boolean", group: "Misc", defaultValue: true},
 				 /**
 				 * Text for navigate action button. Default Value is "Read More".
 				 * Works only in ArticleMode.
-				 * @experimental since 1.96
+				 * @since 1.96
 				 */
 				navigationButtonText: {type: "string", group: "Misc", defaultValue: null},
 				/**
@@ -215,30 +223,25 @@ sap.ui.define([
 				/**
 				 * Icon of the GenericTile. Only applicable for IconMode.
 				 * @since 1.96
-				 * @experimental Since 1.96
 				*/
 				tileIcon: {type: "sap.ui.core.URI"},
 				/**
 				 * Background color of the GenericTile. Only applicable for IconMode.
 				 * @since 1.96
-				 * @experimental Since 1.96
 				*/
 				backgroundColor: {type: "string", group: "Appearance",defaultValue : DEFAULT_BG_COLOR},
 				/**
 				 * The semantic color of the value.
-				 * @experimental Since 1.95
 				 * @since 1.95
 				 */
 				valueColor: {type: "sap.m.ValueColor", group: "Appearance", defaultValue: "None"},
 				/**
 				 * The load state of the tileIcon.
-				 * @experimental Since 1.103
 				 * @since 1.103
 				 */
 				iconLoaded: {type: "boolean", group: "Misc", defaultValue: true},
 				/**
 				 * The Tile rerenders on theme change.
-				 * @experimental Since 1.106
 				 * @since 1.106
 				 */
 				 renderOnThemeChange: {type: "boolean", group: "Misc", defaultValue: false},
@@ -247,15 +250,12 @@ sap.ui.define([
 				 * When enabled, the badge information is displayed inside a folder icon.
 				 * Display limited only for tile in IconMode in TwoByHalf frameType.
 				 * Characters currently trimmed to 3.
-				 * @experimental Since 1.113
 				 * @since 1.113
 				 */
 				tileBadge: { type: "string", group: "Misc", defaultValue: "" },
 				/**
 				 * Sets the offset for the Drop Area associated with a Generic Tile.
 				 * The offset is applied uniformly to all the tile edges.
-				 * @experimental Since 1.113
-				 * @internal
 				 * @since 1.118
 				 * @ui5-restricted Used by S/4 MyHome (ux.eng.s4producthomes1)
 				 */
@@ -271,7 +271,7 @@ sap.ui.define([
 				 * LinkTileContent is being added to the GenericTile, it is advised to use in TwoByOne frameType
 				 * @since 1.120
 				 */
-				linkTileContents: {type: "sap.m.LinkTileContent", multiple: true, singularName: "linkTileContent"},
+				linkTileContents: {type: "sap.m.LinkTileContent", multiple: true, singularName: "linkTileContent", defaultClass: LinkTileContent},
 				/**
 				 * An icon or image to be displayed in the control.
 				 * This aggregation is deprecated since version 1.36.0, to display an icon or image use sap.m.ImageContent control instead.
@@ -280,9 +280,14 @@ sap.ui.define([
 				icon: {type: "sap.ui.core.Control", multiple: false, deprecated: true},
 				/**
 				 * Action buttons added in ActionMode.
-				 * @experimental since 1.96
+				 * @since 1.96
 				 */
 				actionButtons: {type: "sap.m.Button", multiple: true, bindable: "bindable"},
+				/**
+				 *  A badge that is attached to the GenericTile.
+				 * @since 1.124
+				 */
+				badge: {type: "sap.m.TileInfo",multiple:false,bindable: "bindable"},
 				/**
 				 * The hidden aggregation for the title.
 				 */
@@ -297,13 +302,11 @@ sap.ui.define([
 				_invisibleText: {type:"sap.ui.core.InvisibleText",multiple: false, visibility: "hidden"},
 				/**
 				 * The hidden aggregation for the Tile Icon Works only in IconMode.
-				 * @experimental since 1.96
 				 * @private
 				 */
 				_tileIcon: {type: "sap.ui.core.Icon", multiple: false, visibility: "hidden"},
 				 /**
 				 * The hidden aggregation for the Tile Icon Image. Works only in IconMode.
-				 * @experimental since 1.96
 				 * @private
 				 */
 				_tileIconImage: {type: "sap.m.Image", multiple: false, visibility: "hidden"}
@@ -360,7 +363,7 @@ sap.ui.define([
 	/* --- Lifecycle Handling --- */
 
 	GenericTile.prototype.init = function () {
-		this._oRb = Core.getLibraryResourceBundle("sap.m");
+		this._oRb = Library.getResourceBundleFor("sap.m");
 
 		// Defines custom screen range set: smaller than or equal to 449px defines 'small' and bigger than 449px defines 'large' screen
 		if (!Device.media.hasRangeSet(DEVICE_SET)) {
@@ -369,20 +372,16 @@ sap.ui.define([
 
 		this._oTitle = new Text(this.getId() + "-title");
 		this._oTitle.addStyleClass("sapMGTTitle");
-		this._oTitle.cacheLineHeight = false;
 		this.setAggregation("_titleText", this._oTitle, true);
 
 
 		this._oAppShortcut = new Text(this.getId() + "-appShortcut");
-		this._oAppShortcut.cacheLineHeight = false;
 		this.addDependent(this._oAppShortcut);
 
 		this._oSystemInfo = new Text(this.getId() + "-systemInfo");
-		this._oSystemInfo.cacheLineHeight = false;
 		this.addDependent(this._oSystemInfo);
 
 		this._oSubTitle = new Text(this.getId() + "-subTitle");
-		this._oSubTitle.cacheLineHeight = false;
 		this.addDependent(this._oSubTitle);
 
 		this._sFailedToLoad = this._oRb.getText("INFOTILE_CANNOT_LOAD_TILE");
@@ -391,7 +390,7 @@ sap.ui.define([
 		this._oFailedText = new Text(this.getId() + "-failed-txt", {
 			maxLines: 2
 		});
-		this._oFailedText.cacheLineHeight = false;
+
 		this._oFailedText.addStyleClass("sapMGTFailed");
 		this.setAggregation("_failedMessageText", this._oFailedText, true);
 
@@ -402,6 +401,9 @@ sap.ui.define([
 			src: "sap-icon://error",
 			size: "1.375rem"
 		});
+
+		this._oBadgeIcon = new Icon(this.getId() + '-badgeIcon');
+		this.addDependent(this._oBadgeIcon);
 
 		this._oErrorIcon.addStyleClass("sapMGTFtrFldIcnMrk");
 		 //If parameter is not available synchronously it will be available through callback
@@ -420,8 +422,6 @@ sap.ui.define([
 		this._oBusy.setBusyIndicatorDelay(0);
 
 		this._bTilePress = true;
-
-		this._sBGColor = DEFAULT_BG_COLOR;
 		this._bThemeApplied = false;
 		Core.ready(this._handleCoreInitialized.bind(this));
 
@@ -429,6 +429,12 @@ sap.ui.define([
 		this._oNavigateAction = new Button(this.getId() + "-navigateAction");
 		this._oNavigateAction._bExcludeFromTabChain = true;
 		this.addDependent(this._oNavigateAction);
+		jQuery(window).on("resize", this._setupResizeClassHandler.bind(this));
+		this._oBadgeColors = {
+			backgroundColor: DEFAULT_BG_COLOR
+		};
+
+		this._sGridItemRole = null;
 	};
 
 	GenericTile.prototype.setWrappingType = function (sWrappingType) {
@@ -476,7 +482,6 @@ sap.ui.define([
 	 */
 	GenericTile.prototype._handleThemeApplied = function () {
 		this._bThemeApplied = true;
-		this._oTitle.clampHeight();
 		Theming.detachApplied(this._handleThemeApplied.bind(this));
 	};
 
@@ -504,7 +509,7 @@ sap.ui.define([
 				this._oMoreIcon.destroy();
 				this._oMoreIcon = null;
 			}
-			if (this.isA("sap.m.GenericTile") && this._isIconMode() && this.getFrameType() === FrameType.TwoByHalf){
+			if (this.isA("sap.m.GenericTile") && this._isIconModeOfTypeTwoByHalf()){
 				// Acts Like an actual Button in Icon mode for TwoByHalf Tile
 				this._oMoreIcon = this._oMoreIcon || new Button({
 					id: this.getId() + "-action-more",
@@ -609,10 +614,12 @@ sap.ui.define([
 		if (this._oNavigateAction) {
 			this._oNavigateAction.destroy();
 		}
+		jQuery(window).off("resize", this._setupResizeClassHandler);
 	};
 
 	GenericTile.prototype.onBeforeRendering = function () {
 		var bSubheader = !!this.getSubheader();
+		var oBadge = this.getBadge();
 		if (this.getMode() === GenericTileMode.HeaderMode || this.getMode() === GenericTileMode.IconMode) {
 			this._applyHeaderMode(bSubheader);
 		} else {
@@ -665,9 +672,12 @@ sap.ui.define([
 		}
 		//Validates the color that is getting applied on icon mode tiles so that it changes by theme
 		if (this._isIconMode()) {
-			this._validateBackgroundColor();
+			this._applyColors("backgroundColor",this.getBackgroundColor());
 		}
 		this._isLinkTileContentPresent = this.getLinkTileContents().length > 0;
+		if (oBadge) {
+			this._oBadgeIcon.setSrc(oBadge.getSrc());
+		}
 	};
 
 	GenericTile.prototype.onAfterRendering = function () {
@@ -713,7 +723,7 @@ sap.ui.define([
 		}
 
 		//Adds the classes for the action-more buton in IconMode for TwoByHalf Tile
-		if (this._isIconMode() && this.getFrameType() === FrameType.TwoByHalf && this._oMoreIcon.getDomRef()){
+		if (this._isIconModeOfTypeTwoByHalf() && this._oMoreIcon.getDomRef()){
 			this._addClassesForButton();
 		}
 
@@ -732,6 +742,62 @@ sap.ui.define([
 		if (this.getDomRef() && this.getParent() && this.getParent().isA("sap.m.SlideTile")) {
 			this.getDomRef().setAttribute("tabindex","-1");
 		}
+
+		//Adding the aria roles and events to the more button in the IconMode tile
+		if (this._oMoreIcon && this._oMoreIcon.getDomRef() && (this._isIconModeOfTypeTwoByHalf())) {
+			this._attachFocusHandlingOnMoreButton(this._oMoreIcon.getDomRef());
+		}
+	};
+
+	/**
+	 * Checks if a tile is in IconMode and TwoByHalf frameType
+	 * @returns {boolean} indicates whether the tile is in IconMode and TwoByHalf frameType
+	 * @private
+	 */
+
+	GenericTile.prototype._isIconModeOfTypeTwoByHalf = function() {
+		return this._isIconMode() && this.getFrameType() === FrameType.TwoByHalf;
+	};
+
+	/**
+	 * Attaching focus handlers to the more button to adhere to the ACC guidelines
+	 * @param {HTMLElement} [oButton] The DOM reference of the more button
+	 * @private
+	 */
+	GenericTile.prototype._attachFocusHandlingOnMoreButton = function(oButton){
+		var aText = [this.getHeader(),this.getSubheader(),this._oRb.getText("GENERICTILE_MORE_ACTIONBUTTON_TEXT")];
+		var aFilteredTexts = aText.filter(function(sText){
+			return sText.trim() !== '';
+		});
+		oButton.removeAttribute("title");
+		oButton.removeAttribute("aria-describedby");
+		oButton.setAttribute("aria-label",aFilteredTexts.join(" "));
+		//Removes the mouseenter event if its already present
+		oButton.removeEventListener("mouseenter",this._setTooltipForMoreButton.bind(this,oButton));
+		oButton.addEventListener("mouseenter",this._setTooltipForMoreButton.bind(this,oButton));
+		//Removes the mouseleave event if its already present
+		oButton.removeEventListener("mouseleave",this._removeTooltipForButton.bind(null,oButton));
+		oButton.addEventListener("mouseleave",this._removeTooltipForButton.bind(null,oButton));
+	};
+
+	/**
+	 * Sets tooltip for the more button
+	 * @param {HTMLElement} oButton
+	 * @private
+	 */
+
+	GenericTile.prototype._setTooltipForMoreButton = function(oButton) {
+		oButton.setAttribute("title",this._oRb.getText("GENERICTILE_MORE_ACTIONBUTTON_TEXT"));
+	};
+
+	/**
+	 * Removes tooltip for the more button
+	 * @param {HTMLElement} oButton
+	 * @private
+	 */
+
+	GenericTile.prototype._removeTooltipForButton = function(oButton) {
+		oButton.removeAttribute("title");
 	};
 	/**
 	 * Increases the height of the TileContent when the header-text has one line
@@ -765,27 +831,32 @@ sap.ui.define([
 			i--;
 		}
 	};
+
 	/**
-	 * If the given background color is not from the parameters then the default color is applied
+	 * It saves the color inside the _oBadgeColors object with the respective key
+	 *
+	 * @param {string} sKey The key to which the color is mapped
+	 * @param {string} sColor The color that is being fetched, it can be any css color or parameter color
 	 * @private
 	 */
-	GenericTile.prototype._validateBackgroundColor = function() {
-		var sBGColor = this.getBackgroundColor();
-		if (CSSColor.isValid(sBGColor)) {
-			this._sBGColor = sBGColor;
+	GenericTile.prototype._applyColors = function(sKey,sColor) {
+		if (CSSColor.isValid(sColor)) {
+			this._oBadgeColors[sKey] = sColor;
 		} else {
 			//Fetching the color from the parameters asynchronously if its not loaded initially
-			var sColor = Parameters.get({
-				name:sBGColor,
+			var sFetchedColor = Parameters.get({
+				name: sColor,
 				callback: function(sParamColor) {
-					this._sBGColor = sParamColor ? sParamColor : DEFAULT_BG_COLOR;
+					this._oBadgeColors[sKey] = sParamColor;
+					this.invalidate();
 				}.bind(this)
 			});
-			if (sColor) {
-				this._sBGColor = sColor;
+			if (sFetchedColor) {
+				this._oBadgeColors[sKey] = sFetchedColor;
 			}
 		}
 	};
+
 	GenericTile.prototype._setMaxLines = function() {
 		var sFrameType = this.getFrameType(),
 			iLines = sFrameType === FrameType.OneByOne || sFrameType === FrameType.TwoByHalf ? 1 : 2;
@@ -888,7 +959,6 @@ sap.ui.define([
 	 * @private
 	 */
 	GenericTile.prototype._setupResizeClassHandler = function () {
-		var fnCheckMedia = function () {
 			var oParent = this.getParent();
 			if (oParent && oParent.isA("sap.f.GridContainer")) {
 				this._applyNewDim();
@@ -905,10 +975,6 @@ sap.ui.define([
 			if (this.__isLinkTileContentPresent) {
 				this._applyExtraHeight();
 			}
-		}.bind(this);
-
-		jQuery(window).on("resize", fnCheckMedia);
-		fnCheckMedia();
 	};
 
 	/**
@@ -967,7 +1033,7 @@ sap.ui.define([
 			bLineBreak = this.$().is(":not(:first-child)") && iLines > 1,
 			$LineBreak = jQuery("<span><br></span>"),
 			i = 0,
-			bRTL = Configuration.getRTL(),
+			bRTL = Localization.getRTL(),
 			oEndMarkerPosition = $End.position();
 
 		if (bLineBreak) { //tile does not fit in line without breaking --> add line-break before tile
@@ -1171,7 +1237,7 @@ sap.ui.define([
 	 * Provides an interface to the tile's layout information consistent in all modes and content densities.
 	 *
 	 * @returns {object[]} An array containing all of the tile's bounding rectangles
-	 * @experimental since 1.44.1 This method's implementation is subject to change
+	 * @since 1.44.1 This method's implementation is subject to change
 	 * @protected
 	 */
 	GenericTile.prototype.getBoundingRects = function () {
@@ -1259,6 +1325,9 @@ sap.ui.define([
 	var preventPress = false;
 	GenericTile.prototype.onkeydown = function (event) {
 		if (!_isInnerTileButtonPressed(event, this) && !this._isLinkPressed(event)) {
+			var bIsShiftKeyPressed = event.shiftKey;
+			var bIsTabKeyPressed = event.key === "Tab";
+			var bIsMoreButton = event.srcControl.getId() == this._oMoreIcon.getId();
 			preventPress = (event.keyCode === 16 || event.keyCode === 27) ? true : false;
 			var currentKey = keyPressed[event.keyCode];
 			if (!currentKey) {
@@ -1274,8 +1343,19 @@ sap.ui.define([
 				}
 				event.preventDefault();
 			}
-		}
-	};
+			//Below logic is for the visibility of the more button inside the iconMode tile
+			if (this._isIconModeOfTypeTwoByHalf() && bIsTabKeyPressed) {
+				//Remove the visibility on the more button when user presses on "Shift Tab" or "Tab" on the more button
+				//Make the more button visible when user clicks tab key on the tile
+				//We don't have to take care of the scenario when the focus comes/goes off on the tile because its already taken care from the CSS side
+				if (bIsMoreButton) {
+					this._oMoreIcon.removeStyleClass("sapMGTVisible");
+				} else if (!bIsMoreButton && !bIsShiftKeyPressed) {
+					this._oMoreIcon.addStyleClass("sapMGTVisible");
+				}
+			}
+	}
+};
 
 	/*--- update Aria Label when Generic Tile change. Used while navigate using Tab Key and focus is on Generic Tile  ---*/
 
@@ -1291,20 +1371,6 @@ sap.ui.define([
 		return bIsAriaUpd;
 	};
 
-	GenericTile.prototype.onsaptabnext = function(oEvt) {
-		if (this._isIconMode() && this.getFrameType() === FrameType.TwoByHalf && oEvt && oEvt.keyCode) {
-			if (oEvt.keyCode === 9 && oEvt.srcControl.getId() == this._oMoreIcon.getId()) {
-					this._oMoreIcon.removeStyleClass("sapMGTVisible");
-			} else if (oEvt.keyCode === 9) {
-				this._oMoreIcon.addStyleClass("sapMGTVisible");
-			}
-		}
-    };
-	GenericTile.prototype.onsaptabprevious = function() {
-		if (this._isIconMode() && this.getFrameType() === FrameType.TwoByHalf) {
-			this._oMoreIcon.removeStyleClass("sapMGTVisible");
-		}
-	};
 	GenericTile.prototype.onkeyup = function (event) {
 		if (!_isInnerTileButtonPressed(event, this) && !this._isLinkPressed(event)) {
 			var currentKey = keyPressed[event.keyCode];    //disable navigation to other tiles when one tile is selected
@@ -1386,7 +1452,16 @@ sap.ui.define([
 
 				this._oImage.addStyleClass("sapMGTHdrIconImage");
 			}
+
+			//update Avatar source if icon frame is enabled
+			if (this.isA("sap.m.ActionTile") && this.getProperty("enableIconFrame")) {
+				var oIconFrame = this._getIconFrame();
+				if (oIconFrame) {
+					oIconFrame.setSrc(uri);
+				}
+			}
 		}
+
 		return this.setProperty("headerImage", uri);
 	};
 
@@ -1459,7 +1534,8 @@ sap.ui.define([
 				this._oTitle.setMaxLines(2);
 			}
 		} else if (frameType === FrameType.TwoByOne && (this.getLinkTileContents().length > 0 || this.getMode() === GenericTileMode.ActionMode)) {
-			if (bSubheader) {
+			var bIsPriorityPresent = this.isA("sap.m.ActionTile") && this.getProperty("priority") && this.getProperty("priorityText");
+			if (bSubheader && !bIsPriorityPresent) {
 				this._oTitle.setMaxLines(1);
 			} else {
 				this._oTitle.setMaxLines(2);
@@ -1507,7 +1583,10 @@ sap.ui.define([
 			bIsFirst = false;
 		}
 
-		if (this.getSubheader()) {
+		if (this.isA("sap.m.ActionTile") && this.getProperty("priority") && this.getProperty("priorityText")) {
+			sText += (bIsFirst ? "" : "\n") + this.getProperty("priorityText");
+			bIsFirst = false;
+		} else if (this.getSubheader()) {
 			sText += (bIsFirst ? "" : "\n") + this.getSubheader();
 			bIsFirst = false;
 		}
@@ -1556,7 +1635,8 @@ sap.ui.define([
 	 * @returns {string} The ARIA label text
 	 */
 	GenericTile.prototype._getAriaAndTooltipText = function () {
-		var sAriaText = this._getHeaderAriaAndTooltipText() + "\n" + this._getContentAriaAndTooltipText();
+		var sBadgeText = this.getBadge()?.getText();
+		var sAriaText = ((sBadgeText) ? sBadgeText + " " + this._oRb.getText("GENERICTILE_BADGE_APP") + "\n" : "") + this._getHeaderAriaAndTooltipText() + "\n" + this._getContentAriaAndTooltipText();
 		switch (this.getState()) {
 			case LoadState.Disabled:
 				return "";
@@ -1597,7 +1677,9 @@ sap.ui.define([
 			if (this.getLinkTileContents().length > 0) {
 				sAriaText += ("\n" + this._oRb.getText("GENERICTILE_LINK_TILE_CONTENT_DESCRIPTION"));
 			} else {
-				sAriaText += ("\n" + this._getSizeDescription());
+				if (this.getFrameType() !== FrameType.Stretch) {
+					sAriaText += ("\n" + this._getSizeDescription());
+				}
 			}
 		}
 		return sAriaText.trim();  // ARIA label set by the app, equal to tooltip
@@ -1694,7 +1776,16 @@ sap.ui.define([
 		var oLinkTileContent = this.getLinkTileContents().find(function(oLinkTileContent){
 			return oLinkTileContent._getLink().getDomRef().id === sEventId;
 		});
-		return !!oLinkTileContent;
+
+		//The below piece of code is written for the scenario if the link inside the TileAttribute has been clicked
+		var bIsLinkClicked = false;
+		this.getTileContent().forEach(function(oActionTileContent){
+			if (oActionTileContent._isLinkPressed) {
+				bIsLinkClicked = true;
+				oActionTileContent._isLinkPressed = false;
+			}
+		});
+		return !!oLinkTileContent || bIsLinkClicked;
 	};
 
 	/**
@@ -1714,7 +1805,7 @@ sap.ui.define([
 	 * @private
 	 */
 	 GenericTile.prototype._isActionMoreButtonVisibleIconMode = function (oEvent)  {
-		return (this.getScope() === GenericTileScope.ActionMore || this.getScope() === GenericTileScope.Actions) && this._isIconMode() && this.getFrameType() === FrameType.TwoByHalf && oEvent.target.id.indexOf("-action-more") > -1;
+		return (this.getScope() === GenericTileScope.ActionMore || this.getScope() === GenericTileScope.Actions) && this._isIconModeOfTypeTwoByHalf() && oEvent.target.id.indexOf("-action-more") > -1;
 	};
 
 	/**
@@ -1750,6 +1841,7 @@ sap.ui.define([
 	 *
 	 * @private
 	 * @returns {boolean} true or false
+	 * @deprecated Since version 1.135
 	 */
 	GenericTile.prototype._isHeaderTextTruncated = function () {
 		var oDom, iMaxHeight, $Header, iWidth;
@@ -1999,7 +2091,7 @@ GenericTile.prototype._isNavigateActionEnabled = function() {
 	 * @returns {boolean} - true if the GenericTile is in ActionMode
 	 */
 	GenericTile.prototype._isActionMode = function () {
-		return this.getFrameType() === FrameType.TwoByOne && this.getMode() === GenericTileMode.ActionMode && this.getActionButtons().length;
+		return this.getFrameType() === FrameType.TwoByOne && this.getMode() === GenericTileMode.ActionMode;
 	};
 
 	/**
@@ -2020,6 +2112,25 @@ GenericTile.prototype._isNavigateActionEnabled = function() {
 		oEvent.preventDefault();
 		var sURL = oEvent.getSource().getParent().getUrl();
 		URLHelper.redirect(sURL, true);
+	};
+
+	/**
+	* Function to apply CSS class when the footer property of TileContent is applied later
+	* @param {sap.m.TileContent} oTileContent The tileContent object
+	* @private
+	*/
+	GenericTile.prototype._applyCssStyle = function(oTileContent) {
+		var isFooterPresent = this._checkFooter(oTileContent, this) && (oTileContent.getFooter() ||  oTileContent.getUnit());
+		var frameType = this.getFrameType();
+		if (this.getSystemInfo() || this.getAppShortcut()) {
+			if (isFooterPresent && frameType !== frameTypes.OneByHalf) {
+			        this.getDomRef("content").classList.add("appInfoWithFooter");
+			        this.getDomRef("content").classList.remove("appInfoWithoutFooter");
+                        } else if (!isFooterPresent){
+                                this.getDomRef("content").classList.add("appInfoWithoutFooter");
+				this.getDomRef("content").classList.remove("appInfoWithFooter");
+                       }
+		}
 	};
 
 	/**
@@ -2045,6 +2156,29 @@ GenericTile.prototype._isNavigateActionEnabled = function() {
 	};
 
 	/**
+	 * Sets the accessibility role for the <code>sap.f.GridContainer</code> item.
+	 *
+	 * **Note:** This method is automatically called by the <code>sap.f.GridContainer</code> control.
+	 *
+	 * @param {string} sRole The accessibility role for the <code>sap.f.GridContainer</code> item
+	 * @private
+	 * @ui5-restricted sap.f.GridContainer
+	 */
+	GenericTile.prototype.setGridItemRole = function (sRole) {
+		this._sGridItemRole = sRole;
+	};
+
+	/**
+	 * Returns the accessibility role for the <code>sap.f.GridContainer</code> item.
+	 *
+	 * @returns {string} The accessibility role for the <code>sap.f.GridContainer</code> item
+	 * @public
+	 */
+	GenericTile.prototype.getGridItemRole = function () {
+		return this._sGridItemRole;
+	};
+
+	/**
 	 * Checks if any of the inner buttons in the Tile are focused or clicked
 	 * @param {object} event - jQuery event object
 	 * @param {object} oTile - tile object
@@ -2055,7 +2189,7 @@ GenericTile.prototype._isNavigateActionEnabled = function() {
 		var bIsActionButtonPressed = false,
 		bIsNavigateActionPressed = false;
 
-		if (oTile._isActionMode()) {
+		if (oTile._isActionMode() && oTile.getActionButtons().length > 0) {
             var oActionsContainerNode = document.querySelector('[id="'  + oTile.getId() + "-actionButtons" + '"]');
             bIsActionButtonPressed = oActionsContainerNode && oActionsContainerNode !== event.target &&  oActionsContainerNode.contains(event.target);
         }

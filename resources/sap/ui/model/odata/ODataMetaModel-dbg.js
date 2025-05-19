@@ -1,15 +1,14 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
 sap.ui.define([
 	"./_ODataMetaModelUtils",
 	"sap/base/Log",
-	"sap/base/util/extend",
+	"sap/base/i18n/Localization",
 	"sap/base/util/isEmptyObject",
-	"sap/base/util/UriParameters",
 	"sap/ui/base/BindingParser",
 	"sap/ui/base/ManagedObject",
 	"sap/ui/base/SyncPromise",
@@ -22,11 +21,10 @@ sap.ui.define([
 	"sap/ui/model/json/JSONListBinding",
 	"sap/ui/model/json/JSONModel",
 	"sap/ui/model/json/JSONPropertyBinding",
-	"sap/ui/model/json/JSONTreeBinding",
-	"sap/ui/performance/Measurement"
-], function (Utils, Log, extend, isEmptyObject, UriParameters, BindingParser, ManagedObject,
-		SyncPromise, _Helper, BindingMode, ClientContextBinding, Context, FilterProcessor, MetaModel,
-		JSONListBinding, JSONModel, JSONPropertyBinding, JSONTreeBinding, Measurement) {
+	"sap/ui/model/json/JSONTreeBinding"
+], function (Utils, Log, Localization, isEmptyObject, BindingParser, ManagedObject, SyncPromise, _Helper, BindingMode,
+		ClientContextBinding, Context, FilterProcessor, MetaModel, JSONListBinding, JSONModel, JSONPropertyBinding,
+		JSONTreeBinding) {
 	"use strict";
 
 	/**
@@ -706,11 +704,13 @@ sap.ui.define([
 		// list customizing as needed by the OData type
 		mCodeListUrl2Promise = new Map(),
 		sODataMetaModel = "sap.ui.model.odata.ODataMetaModel",
-		aPerformanceCategories = [sODataMetaModel],
-		sPerformanceLoad = sODataMetaModel + "/load",
 		// path to a type's property e.g. ("/dataServices/schema/<i>/entityType/<j>/property/<k>")
 		rPropertyPath =
 			/^((\/dataServices\/schema\/\d+)\/(?:complexType|entityType)\/\d+)\/property\/\d+$/;
+	// path to a function import's parameter e.g.:
+	// '/dataServices/schema/0/entityContainer/0/functionImport/12/parameter/0'
+	const rFunctionImportParameterPath =
+			/^(((\/dataServices\/schema\/\d+)\/entityContainer\/\d+)\/functionImport\/\d+)\/parameter\/\d+$/;
 
 	/**
 	 * @class List binding implementation for the OData meta model which supports filtering on
@@ -881,7 +881,7 @@ sap.ui.define([
 	 * {@link #loaded loaded} has been resolved!
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @alias sap.ui.model.odata.ODataMetaModel
 	 * @extends sap.ui.model.MetaModel
 	 * @public
@@ -898,13 +898,21 @@ sap.ui.define([
 					if (that.bDestroyed) {
 						throw new Error("Meta model already destroyed");
 					}
-					Measurement.average(sPerformanceLoad, "", aPerformanceCategories);
 					oData = JSON.parse(JSON.stringify(oMetadata.getServiceMetadata()));
 					that.oModel = new JSONModel(oData);
 					that.oModel.setDefaultBindingMode(that.sDefaultBindingMode);
-					Utils.merge(oAnnotations ? oAnnotations.getData() : {}, oData, that,
-						oDataModel.bIgnoreAnnotationsFromMetadata);
-					Measurement.end(sPerformanceLoad);
+					/** @deprecated As of version 1.48.0, reason sap.ui.model.odata.ODataModel */
+					if (!oDataModel._requestAnnotationChanges) {
+						Utils.merge(oAnnotations ? oAnnotations.getData() : {}, oData, that,
+							oDataModel.bIgnoreAnnotationsFromMetadata);
+						return undefined;
+					}
+					return oDataModel._requestAnnotationChanges().then((aAnnotationChanges) => {
+						Utils.merge(oAnnotations ? oAnnotations.getData() : {}, oData, that,
+							oDataModel.bIgnoreAnnotationsFromMetadata);
+						that.aAnnotationChanges = _Helper.deepClone(aAnnotationChanges, 20);
+						that._applyAnnotationChanges();
+					});
 				}
 
 				MetaModel.apply(this); // no arguments to pass!
@@ -931,6 +939,30 @@ sap.ui.define([
 		});
 
 	/**
+	 * Apply the annotation changes for this model.
+	 *
+	 * @private
+	 * @see sap.ui.model.odata.v2.ODataModel#setAnnotationChangePromise
+	 */
+	ODataMetaModel.prototype._applyAnnotationChanges = function () {
+		if (!this.aAnnotationChanges) {
+			return;
+		}
+		const aNotAppliedChanges = [];
+		this.aAnnotationChanges.forEach((oAnnotationChange) => {
+			const sResolvedPath = this._getObject(oAnnotationChange.path, undefined, /*bAsPath*/true);
+			// value help metadata maybe loaded and merged later; if the path cannot be resolved yet ignore the
+			// annotation change and process it later
+			if (sResolvedPath) {
+				this.oModel.setProperty(sResolvedPath, oAnnotationChange.value);
+			} else {
+				aNotAppliedChanges.push(oAnnotationChange);
+			}
+		});
+		this.aAnnotationChanges = aNotAppliedChanges.length ? aNotAppliedChanges : undefined;
+	};
+
+	/**
 	 * Returns the value of the object or property inside this model's data which can be reached,
 	 * starting at the given context, by following the given path.
 	 *
@@ -938,12 +970,14 @@ sap.ui.define([
 	 *   a relative or absolute path
 	 * @param {object|sap.ui.model.Context} [oContext]
 	 *   the context to be used as a starting point in case of a relative path
+	 * @param {boolean} [bAsPath]
+	 *   Whether to return the JSON model path instead of the value for the given path and context
 	 * @returns {any}
 	 *   the value of the object or property or <code>null</code> in case a relative path without
 	 *   a context is given
 	 * @private
 	 */
-	ODataMetaModel.prototype._getObject = function (sPath, oContext) {
+	ODataMetaModel.prototype._getObject = function (sPath, oContext, bAsPath) {
 		var oBaseNode = oContext,
 			oBinding,
 			sCacheKey,
@@ -1003,6 +1037,9 @@ sap.ui.define([
 				}
 			}
 			if (!oNode) {
+				if (bAsPath) {
+					return null;
+				}
 				if (Log.isLoggable(Log.Level.WARNING, sODataMetaModel)) {
 					Log.warning("Invalid part: " + vPart,
 						"path: " + sPath + ", context: "
@@ -1048,7 +1085,7 @@ sap.ui.define([
 			oNode = oNode[vPart];
 			sProcessedPath = sProcessedPath + vPart + "/";
 		}
-		return oNode;
+		return bAsPath ? sProcessedPath : oNode;
 	};
 
 	/**
@@ -1123,6 +1160,7 @@ sap.ui.define([
 
 		Utils.visitChildren(oEntityContainer.entitySet, mChildAnnotations, "EntitySet", aSchemas,
 			/*fnCallback*/null, iFirstNewEntitySet);
+		Utils.addUnitAnnotations(aSchemas, this);
 	};
 
 
@@ -1161,6 +1199,7 @@ sap.ui.define([
 							mQName2PendingRequest[sQualifiedPropertyName].reject(oError);
 						}
 					}
+					that._applyAnnotationChanges(); // new metadata is merged, apply annotation changes again
 				},
 				function (oError) {
 					var sQualifiedPropertyName;
@@ -1195,6 +1234,38 @@ sap.ui.define([
 			delete this.oSharedModelCache;
 		}
 		return this.oModel && this.oModel.destroy.apply(this.oModel, arguments);
+	};
+
+	/**
+	 * Removes all parameters from the given model's <code>aUrlParams</code> except "sap-language" and "sap-client".
+	 * Other parameters are not relevant for fetching the code lists.
+	 *
+	 * @param {sap.ui.model.odata.v2.ODataModel} oModel The code list OData model
+	 * @param {string} sMetaDataUrl The metadata URL
+	 *
+	 * @private
+	 */
+	ODataMetaModel.cleanupCodeListModelURLParameters = function (oModel, sMetaDataUrl) {
+		let bHasLanguage = false;
+		// aUrlParams may have single or multiple with "&" joined parameters per entry, e.g.
+		// ["sap-language=EN&sap-client=123", "sap-statistics=true", ...]
+		oModel.aUrlParams = oModel.aUrlParams.join("&").split("&").filter((sParameter) => {
+			if (sParameter.startsWith("sap-language=")) {
+				bHasLanguage = true;
+				return true;
+			}
+			return sParameter.startsWith("sap-client=");
+		});
+		if (!bHasLanguage) {
+			const oURLSearchParams = new URL(sMetaDataUrl, "https://localhost").searchParams;
+			// ensure that "sap-language" is always set for caching purposes (browser cache);
+			// if the model has been created via sap.ui.core.Component the metadata URL always contains
+			// "sap-language" parameter; if the model is created otherwise "sap-language" parameter might
+			// be missing; no need to add sap-client, as is automatically added if given via
+			// configuration or parameters
+			oModel.aUrlParams.push("sap-language="
+				+ (oURLSearchParams.get("sap-language") ?? Localization.getSAPLogonLanguage()));
+		}
 	};
 
 	/**
@@ -1269,22 +1340,12 @@ sap.ui.define([
 			oCodeListModel = oCodeListModelCache.oModel;
 
 			oReadPromise = new SyncPromise(function (fnResolve, fnReject) {
-				var oUriParams = UriParameters.fromURL(sMetaDataUrl),
-					sClient = oUriParams.get("sap-client"),
-					sLanguage = oUriParams.get("sap-language"),
-					mUrlParameters = {$skip : 0, $top : 5000}; // avoid server-driven paging
-
-				if (sClient) {
-					mUrlParameters["sap-client"] = sClient;
-				}
-				if (sLanguage) {
-					mUrlParameters["sap-language"] = sLanguage;
-				}
-				oCodeListModel.read("/" + sCollectionPath, {
+				ODataMetaModel.cleanupCodeListModelURLParameters(oCodeListModel, sMetaDataUrl);
+				oCodeListModel._read("/" + sCollectionPath, {
 					error : fnReject,
 					success : fnResolve,
-					urlParameters : mUrlParameters
-				});
+					urlParameters : {$skip : 0, $top : 5000}
+				}, undefined, that.oDataModel._request.bind(that.oDataModel));
 			});
 			oMappingPromise = new SyncPromise(function (fnResolve, fnReject) {
 				try {
@@ -1623,6 +1684,36 @@ sap.ui.define([
 	};
 
 	/**
+	 * Gets the metadata context for the given function import and parameter name. The result can be
+	 * used with {@link sap.ui.model.ODataMetaModel#getODataValueLists} to request the metadata for
+	 * the value lists for that function import parameter.
+	 *
+	 * @param {string} sFunctionName
+	 *   The function import name, either unqualified or qualified, e.g. "Save" or "MyService.Entities/Save";
+	 *   if an unqualified name is used, the function import is searched for in the default entity container
+	 * @param {string} sParameter
+	 *   The name of the function import parameter
+	 * @returns {sap.ui.model.Context}
+	 *   The metadata context referencing the given function import parameter
+	 * @throws {Error}
+	 *   If the function import or the parameter of that function import is not found
+	 * @public
+	 * @since 1.129.0
+	 */
+	ODataMetaModel.prototype.getFunctionImportParameterContext = function (sFunctionName, sParameter) {
+		const sFunctionImportPath = this.getODataFunctionImport(sFunctionName, true);
+		if (!sFunctionImportPath) {
+			throw new Error(`Function import "${sFunctionName}" not found`);
+		}
+		const oFunctionImport = this.getObject(sFunctionImportPath);
+		const iParameterIndex = Utils.findIndex(oFunctionImport.parameter, sParameter);
+		if (iParameterIndex < 0) {
+			throw new Error(`Parameter "${sParameter}" not found for function import "${sFunctionName}"`);
+		}
+		return this.createBindingContext(sFunctionImportPath + "/parameter/" + iParameterIndex);
+	};
+
+	/**
 	 * Returns the given OData type's property (not navigation property!) of given name.
 	 *
 	 * If an array is given instead of a single name, it is consumed (via
@@ -1708,42 +1799,49 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns a <code>Promise</code> which is resolved with a map representing the
-	 * <code>com.sap.vocabularies.Common.v1.ValueList</code> annotations of the given property or
-	 * rejected with an error.
+	 * Returns a <code>Promise</code> which either resolves with a map representing the
+	 * <code>com.sap.vocabularies.Common.v1.ValueList</code> annotations of the property or function
+	 * import parameter referenced by the given metamodel context or rejects with an error.
 	 * The key in the map provided on successful resolution is the qualifier of the annotation or
 	 * the empty string if no qualifier is defined. The value in the map is the JSON object for
 	 * the annotation. The map is empty if the property has no
 	 * <code>com.sap.vocabularies.Common.v1.ValueList</code> annotations.
 	 *
-	 * @param {sap.ui.model.Context} oPropertyContext
+	 * @param {sap.ui.model.Context} oPropertyOrParameterContext
 	 *   A model context for a structural property of an entity type or a complex type, as
-	 *   returned by {@link #getMetaContext getMetaContext}
+	 *   returned by {@link #getMetaContext getMetaContext}, or (since 1.129.0) a model context for
+	 *   a parameter of a function import, as returned by {@link #getFunctionImportParameterContext}
 	 * @returns {Promise<Object<string,sap.ui.model.odata.ODataMetaModel.ValueListType>>}
-	 *   A Promise that gets resolved into the value lists for the given context, as soon as the value lists as well as
-	 *   the required model elements have been loaded
+	 *   A Promise that gets resolved into the value lists for the given context, as soon as the
+	 *   value lists as well as the required model elements have been loaded
+	 * @throws {Error}
+	 *   If the given context neither references a structural property of an entity type or a
+	 *   complex type nor a parameter of a function import
 	 * @since 1.29.1
 	 * @public
 	 */
-	ODataMetaModel.prototype.getODataValueLists = function (oPropertyContext) {
+	ODataMetaModel.prototype.getODataValueLists = function (oPropertyOrParameterContext) {
 		var bCachePromise = false, // cache only promises which trigger a request
 			aMatches,
-			sPropertyPath = oPropertyContext.getPath(),
+			sPropertyPath = oPropertyOrParameterContext.getPath(),
 			oPromise = this.mContext2Promise[sPropertyPath],
 			that = this;
 
 		if (oPromise) {
 			return oPromise;
 		}
-
+		let bFunctionImport = false;
 		aMatches = rPropertyPath.exec(sPropertyPath);
 		if (!aMatches) {
-			throw new Error("Unsupported property context with path " + sPropertyPath);
+			aMatches = rFunctionImportParameterPath.exec(sPropertyPath);
+			bFunctionImport = true;
+		}
+		if (!aMatches) {
+			throw new Error(`"${sPropertyPath}" neither references a property nor a function import parameter`);
 		}
 
 		oPromise = new Promise(function (fnResolve, fnReject) {
-			var oProperty = oPropertyContext.getObject(),
-				sQualifiedTypeName,
+			var oProperty = oPropertyOrParameterContext.getObject(),
 				mValueLists = Utils.getValueLists(oProperty);
 
 			const bValueListLoaded = "" in mValueLists
@@ -1751,15 +1849,21 @@ sap.ui.define([
 			if (!bValueListLoaded && oProperty["sap:value-list"]) {
 				// property with value list which is not yet (fully) loaded
 				bCachePromise = true;
-				sQualifiedTypeName = that.oModel.getObject(aMatches[2]).namespace
-					+ "." + that.oModel.getObject(aMatches[1]).name;
-				that.mQName2PendingRequest[sQualifiedTypeName + "/" + oProperty.name] = {
+				const sQualifiedName = that.oModel.getObject(aMatches[aMatches.length - 1]).namespace
+					+ "." + that.oModel.getObject(aMatches[aMatches.length - 2]).name;
+				const sTarget = (bFunctionImport ? that.oModel.getObject(aMatches[1]).name + "/" : "") + oProperty.name;
+				that.mQName2PendingRequest[sQualifiedName + "/" + sTarget] = {
 					resolve : function (oResponse) {
-						// enhance property by annotations from response to get value lists
-						extend(oProperty,
-							(oResponse.annotations.propertyAnnotations[sQualifiedTypeName] || {})
-								[oProperty.name]
-						);
+						const oAnnotations = oResponse.annotations
+							[bFunctionImport ? "EntityContainer" : "propertyAnnotations"]
+							?.[sQualifiedName]?.[sTarget] || {};
+						// enhance property/parameter by annotations from response to get value lists
+						Object.keys(oAnnotations).forEach((sAnnotation) => {
+							if (!oProperty.hasOwnProperty(sAnnotation)) {
+								// apply only new annotations to avoid overwriting annotation changes
+								oProperty[sAnnotation] = oAnnotations[sAnnotation];
+							}
+						});
 						mValueLists = Utils.getValueLists(oProperty);
 						if (isEmptyObject(mValueLists)) {
 							fnReject(new Error("No value lists returned for " + sPropertyPath));
@@ -2002,6 +2106,15 @@ sap.ui.define([
 		}
 
 		return undefined;
+	};
+
+	/**
+	 * Clears the cache used in {@link #fetchCodeList}. To be used by test code only!
+	 *
+	 * @private
+	 */
+	ODataMetaModel.clearCodeListsCache = function () {
+		mCodeListUrl2Promise.clear();
 	};
 
 	return ODataMetaModel;

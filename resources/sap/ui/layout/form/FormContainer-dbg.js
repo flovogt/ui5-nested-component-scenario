@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -8,10 +8,11 @@
 sap.ui.define([
 	'sap/ui/core/Element',
 	'sap/ui/base/ManagedObjectObserver',
+	"sap/ui/core/Lib",
 	'sap/ui/core/theming/Parameters',
 	'./FormHelper',
 	'sap/base/Log'
-	], function(Element, ManagedObjectObserver, Parameters, FormHelper, Log) {
+], function(Element, ManagedObjectObserver, Library, Parameters, FormHelper, Log) {
 	"use strict";
 
 
@@ -28,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -112,6 +113,10 @@ sap.ui.define([
 			 *
 			 * <b>Note:</b> This attribute is only rendered if the <code>FormContainer</code> has it's own
 			 * DOM representation in the used <code>FormLayout</code>.
+			 *
+			 * <b>Note:</b> If there is more than one <code>FormContainers</code>, every <code>FormContainer</code> needs to have some title or label
+			 * (at least for screen reader support).
+			 * If no <code>Title</code> is set, a label or title needs to be assigned using the <code>ariaLabelledBy</code> association.
 			 * @since 1.36.0
 			 */
 			ariaLabelledBy: { type: "sap.ui.core.Control", multiple: true, singularName: "ariaLabelledBy" }
@@ -124,7 +129,7 @@ sap.ui.define([
 		this._oInitPromise = FormHelper.init(); // check for used library and request needed controls
 
 
-		this._rb = sap.ui.getCore().getLibraryResourceBundle("sap.ui.layout");
+		this._rb = Library.getResourceBundleFor("sap.ui.layout");
 
 		this._oObserver = new ManagedObjectObserver(this._observeChanges.bind(this));
 
@@ -360,6 +365,17 @@ sap.ui.define([
 
 	};
 
+	FormContainer.prototype.onThemeChanged = function() {
+		_setExpanderIcon.call(this);
+	};
+
+	function _getIconUrl(sParamName) {
+		return Parameters.get({
+			name: [sParamName],
+			_restrictedParseUrls: true
+		});
+	}
+
 	function _setExpanderIcon(){
 
 		if (!this._oExpandButton) {
@@ -369,13 +385,13 @@ sap.ui.define([
 		var sIcon, sIconHovered, sText, sTooltip;
 
 		if (this.getExpanded()) {
-			sIcon = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerColImageURL');
-			sIconHovered = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerColImageDownURL');
+			sIcon = _getIconUrl('_sap_ui_layout_Form_FormContainerColImageURL');
+			sIconHovered = _getIconUrl('_sap_ui_layout_Form_FormContainerColImageDownURL');
 			sText = "-";
 			sTooltip = this._rb.getText("FORM_COLLAPSE");
 		} else {
-			sIcon = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerExpImageURL');
-			sIconHovered = Parameters._getThemeImage('_sap_ui_layout_Form_FormContainerExpImageDownURL');
+			sIcon = _getIconUrl('_sap_ui_layout_Form_FormContainerExpImageURL');
+			sIconHovered = _getIconUrl('_sap_ui_layout_Form_FormContainerExpImageDownURL');
 			sText = "+";
 			sTooltip = this._rb.getText("FORM_EXPAND");
 		}

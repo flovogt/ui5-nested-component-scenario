@@ -1,11 +1,13 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides control sap.ui.unified.MenuTextFieldItem.
 sap.ui.define([
+	"sap/base/i18n/Localization",
+	"sap/ui/core/Lib",
 	'sap/ui/core/ValueStateSupport',
 	'./MenuItemBase',
 	'./library',
@@ -14,12 +16,12 @@ sap.ui.define([
 	'sap/base/Log',
 	'sap/ui/events/PseudoEvents',
 	'sap/ui/core/InvisibleText',
-	'sap/ui/core/Core',
-	'sap/ui/core/Configuration',
 	'sap/ui/core/IconPool', // required by RenderManager#icon
 	'sap/ui/dom/jquery/cursorPos' // provides jQuery.fn.cursorPos
 ],
 	function(
+		Localization,
+		Library,
 		ValueStateSupport,
 		MenuItemBase,
 		library,
@@ -27,9 +29,7 @@ sap.ui.define([
 		Device,
 		Log,
 		PseudoEvents,
-		InvisibleText,
-		Core,
-		Configuration
+		InvisibleText
 	) {
 	"use strict";
 
@@ -50,9 +50,10 @@ sap.ui.define([
 	 * Special menu item which contains a label and a text field. This menu item is e.g. helpful for filter implementations.
 	 * The aggregation <code>submenu</code> (inherited from parent class) is not supported for this type of menu item.
 	 * @extends sap.ui.unified.MenuItemBase
+	 * @implements sap.ui.unified.IMenuItem
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @since 1.21.0
 	 *
 	 * @constructor
@@ -61,6 +62,9 @@ sap.ui.define([
 	 */
 	var MenuTextFieldItem = MenuItemBase.extend("sap.ui.unified.MenuTextFieldItem", /** @lends sap.ui.unified.MenuTextFieldItem.prototype */ { metadata : {
 
+		interfaces: [
+			"sap.ui.unified.IMenuItem"
+		],
 		library : "sap.ui.unified",
 		properties : {
 
@@ -105,8 +109,8 @@ sap.ui.define([
 		} else if (oInfo.iItemNo == oInfo.iTotalItems) {
 			rm.class("sapUiMnuItmLast");
 		}
-		if (!oMenu.checkEnabled(oItem)) {
-			rm.class("sapUiMnuItmDsbl");
+		if (!bIsEnabled) {
+				rm.class("sapUiMnuItmDsbl");
 		}
 		if (oItem.getStartsSection()) {
 			rm.class("sapUiMnuItmSepBefore");
@@ -122,14 +126,11 @@ sap.ui.define([
 
 		rm.openEnd();
 
-		// Left border
-		rm.openStart("div").class("sapUiMnuItmL").openEnd().close("div");
-
 		if (oItem.getIcon()) {
 			// icon/check column
 			rm.openStart("div").class("sapUiMnuItmIco").openEnd();
 
-			oIcon = oItem._getIcon(oItem);
+			oIcon = oItem._getIcon();
 
 			rm.renderControl(oIcon);
 
@@ -161,9 +162,6 @@ sap.ui.define([
 		}
 		rm.voidEnd().close("div").close("div");
 
-		// Right border
-		rm.openStart("div").class("sapUiMnuItmR").openEnd().close("div");
-
 		rm.close("li");
 	};
 
@@ -191,7 +189,6 @@ sap.ui.define([
 	};
 
 	MenuTextFieldItem.prototype.onAfterRendering = function(){
-		this._adaptSizes();
 		this.setValueState(this.getValueState());
 	};
 
@@ -307,7 +304,6 @@ sap.ui.define([
 	MenuTextFieldItem.prototype.setLabel = function(sLabel){
 		this.setProperty("label", sLabel, true);
 		this.$("lbl").text(sLabel);
-		this._adaptSizes();
 		return this;
 	};
 
@@ -341,22 +337,8 @@ sap.ui.define([
 		return $FocusRef.length ? $FocusRef.get(0) : null;
 	};
 
-
-	MenuTextFieldItem.prototype._adaptSizes = function(){
-		var $tf = this.$("tf");
-		var $lbl = this.$("lbl");
-		var offsetLeft = $lbl.length ? $lbl.get(0).offsetLeft : 0;
-
-		if (Core.getConfiguration().getRTL()) {
-			$tf.parent().css({"width": "auto", "right": (this.$().outerWidth(true) - offsetLeft + ($lbl.outerWidth(true) - $lbl.outerWidth())) + "px"});
-		} else {
-			$tf.parent().css({"width": "auto", "left": (offsetLeft + $lbl.outerWidth(true)) + "px"});
-		}
-	};
-
-
 	MenuTextFieldItem.prototype._checkCursorPosForNav = function(bForward) {
-		var bRtl = Configuration.getRTL();
+		var bRtl = Localization.getRTL();
 		var bBack = bForward ? bRtl : !bRtl;
 		var $input = this.$("tf");
 		var iPos = $input.cursorPos();
@@ -374,7 +356,7 @@ sap.ui.define([
 		var sCountInfo, sTypeInfo, oUnifiedBundle;
 
 		if (!this._invisibleDescription) {
-			oUnifiedBundle = Core.getLibraryResourceBundle("sap.ui.unified");
+			oUnifiedBundle = Library.getResourceBundleFor("sap.ui.unified");
 			sCountInfo = oUnifiedBundle.getText("UNIFIED_MENU_ITEM_COUNT_TEXT", [oInfo.iItemNo, oInfo.iTotalItems]);
 			sTypeInfo = oUnifiedBundle.getText("UNIFIED_MENU_ITEM_HINT_TEXT");
 			this._invisibleDescription = new InvisibleText({
@@ -384,7 +366,6 @@ sap.ui.define([
 
 		return this._invisibleDescription;
 	};
-
 
 	return MenuTextFieldItem;
 

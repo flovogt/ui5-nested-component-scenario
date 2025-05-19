@@ -1,9 +1,9 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/base/Log", "sap/ui/core/Component"], function(Log, Component) {
+sap.ui.define(["sap/base/future", "sap/ui/core/Component"], function(future, Component) {
 	"use strict";
 
 	// contains all external ExtensionProvider instances, mapped by their class-name
@@ -32,16 +32,90 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/Component"], function(Log, Component
 	ControllerExtensionProvider._sExtensionProvider = null;
 
 	/**
-	 * Called by sap.ui.core.mvc.Controller.
-	 * Forwarding of the external ExtensionProvider.
+	 * Registers a callback module, which provides code enhancements for the
+	 * lifecycle and event handler functions of a specific controller. The code
+	 * enhancements are returned either in sync or async mode.
 	 *
-	 * See {@link sap.ui.core.mvc.Controller.registerExtensionProvider}.
+	 * The extension provider module provides the <code>getControllerExtensions</code> function
+	 * which returns either directly an array of objects or a Promise that returns an array
+	 * of objects when it resolves. These objects are object literals defining the
+	 * methods and properties of the controller in a similar way as for {@link sap.ui.core.mvc.Controller Controller} subclasses.
+	 *
+	 *
+	 * <b>Example for a callback module definition (sync):</b>
+	 * <pre>
+	 * sap.ui.define("my/custom/sync/ExtensionProvider", [], function() {
+	 *   var ExtensionProvider = function() {};
+	 *   ExtensionProvider.prototype.getControllerExtensions = function(sControllerName, sComponentId, bAsync) {
+	 *     if (!bAsync && sControllerName == "my.own.Controller") {
+	 *       // IMPORTANT: only return extensions for a specific controller
+	 *       return [{
+	 *         onInit: function() {
+	 *           // Do something here...
+	 *         },
+	 *         onAfterRendering: function() {
+	 *           // Do something here...
+	 *         },
+	 *         onButtonClick: function(oEvent) {
+	 *           // Handle the button click event
+	 *         }
+	 *       }
+	 *     }];
+	 *   };
+	 *   return ExtensionProvider;
+	 * });
+	 * </pre>
+	 *
+	 *
+	 * <b>Example for a callback module definition (async):</b>
+	 * <pre>
+	 * sap.ui.define("my/custom/async/ExtensionProvider", [], function() {
+	 *   var ExtensionProvider = function() {};
+	 *   ExtensionProvider.prototype.getControllerExtensions = function(sControllerName, sComponentId, bAsync) {
+	 *     if (bAsync && sControllerName == "my.own.Controller") {
+	 *       // IMPORTANT:
+	 *       // only return a Promise for a specific controller since it
+	 *       // requires the View/Controller and its parents to run in async
+	 *       // mode!
+	 *       return new Promise(function(fnResolve, fnReject) {
+	 *         fnResolve([{
+	 *           onInit: function() {
+	 *             // Do something here...
+	 *           },
+	 *           onAfterRendering: function() {
+	 *             // Do something here...
+	 *           },
+	 *           onButtonClick: function(oEvent) {
+	 *             // Handle the button click event
+	 *           }
+	 *         }]);
+	 *       }
+	 *     };
+	 *   };
+	 *   return ExtensionProvider;
+	 * });
+	 * </pre>
+	 *
+	 *
+	 * The lifecycle functions <code>onInit</code>, <code>onExit</code>,
+	 * <code>onBeforeRendering</code> and <code>onAfterRendering</code>
+	 * are added before or after the lifecycle functions of the original
+	 * controller. The event handler functions, such as <code>onButtonClick</code>,
+	 * are replacing the original controller's function.
+	 *
+	 * When using an async extension provider, you need to ensure that the
+	 * view is loaded in async mode.
+	 *
+	 * In both cases, return <code>undefined</code> if no controller extension shall be applied.
 	 *
 	 * @param {string} sExtensionProvider the module name of the extension provider
+	 *
+	 * See {@link sap.ui.core.mvc.Controller} for an overview of the available functions for controllers.
+	 *
 	 * @alias sap.ui.core.mvc.ControllerExtensionProvider.registerExtensionProvider
 	 * @static
 	 * @private
-	 * @ui5-restricted sap.ui.core.mvc.Controller
+	 * @ui5-restricted sap/ui/fl
 	 */
 	ControllerExtensionProvider.registerExtensionProvider = function(sExtensionProvider) {
 		ControllerExtensionProvider._sExtensionProvider = sExtensionProvider;
@@ -61,6 +135,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/Component"], function(Log, Component
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.core.mvc.Controller
+	 * @ui5-transform-hint replace-param bAsync true
 	 */
 	ControllerExtensionProvider.getControllerExtensions = function(sControllerName, sComponentId, sViewId, bAsync) {
 		var mControllerExtensions = {
@@ -104,7 +179,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/Component"], function(Log, Component
 						// add provider-extensions
 						mControllerExtensions.providerControllers = aExternalExtensions;
 					} else {
-						Log.error("[FUTURE FATAL] Controller Extension Provider: Error in ExtensionProvider.getControllerExtensions: " + ControllerExtensionProvider._sExtensionProvider +
+						future.errorThrows("Controller Extension Provider: Error in ExtensionProvider.getControllerExtensions: " + ControllerExtensionProvider._sExtensionProvider +
 								" - no valid extensions returned. Return value must be an array of ControllerExtensions.");
 					}
 				}
@@ -164,6 +239,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/Component"], function(Log, Component
 	 * @param {boolean} bAsync Load async or not
 	 * @return {ExtensionProvider|Promise|undefined} ExtensionProvider <code>Promise</code> in case of asynchronous loading
 	 *           or the <code>ExtensionProvider</code> in case of synchronous loading or undefined in case no provider exists
+	 * @ui5-transform-hint replace-param bAsync true
 	 */
 	function loadExtensionProvider(bAsync) {
 		var sProviderName = ControllerExtensionProvider._sExtensionProvider.replace(/\./g, "/"),

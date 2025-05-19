@@ -3,22 +3,31 @@
 /* Evening Horizon theme        */
 /* ============================ */
 
-@_sap_m_Table_SelNavColWidth: 2.75rem;
-@_sap_m_Table_CustomFocusMargin: 0px;
-
 .sapMListBGTransparent .sapMListTblHeader,
 .sapMListBGTransparent .sapMListTblFooter {
 	background-color: fade(@sapUiListBackground, 0%);
 }
 
+.sapMListTblSelCol,
+.sapMListTblHasNav .sapMListTblNavCol {
+	width: 2.75rem;
+}
+
+.sapMTableRowCustomFocus:focus {
+	& + .sapMListTblSubRow > td::before,
+	& > :not(.sapMListTblDummyCell:last-child)::before {
+		margin-right: 0; /* make the focus border clearly visible on all sides */
+	}
+}
+
 .sapMListBGTranslucent .sapMListTblHeader,
 .sapMListBGTranslucent .sapMListTblFooter {
-	background-color: @sapUiListBackground;
+	background-color: var(--sapList_Background);
 }
 
 .sapMListBGSolid .sapMListTblHeader,
 .sapMListBGSolid .sapMListTblFooter {
-	background-color: @sapUiListBackground;
+	background-color: var(--sapList_Background);
 }
 
 /* make the focus visible on all sides */
@@ -26,10 +35,6 @@
 	border-top-color: transparent;
 }
 
-.sapMTableRowCustomFocus:focus > :not(.sapMListTblDummyCell:last-child)::before {
-	margin-right: 0; // Avoid gaps in the focus viszualization between the cells
-}
-
 .sapMListTblDummyCell:last-child {
-	background-color: @sapUiListBackground;
+	background-color: var(--sapList_Background);
 }

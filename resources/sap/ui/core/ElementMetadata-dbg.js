@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -9,9 +9,10 @@ sap.ui.define([
 	'sap/base/Log',
 	'sap/base/util/ObjectPath',
 	'sap/ui/base/ManagedObjectMetadata',
+	'sap/ui/core/Lib',
 	'sap/ui/core/Renderer'
 ],
-	function(Log, ObjectPath, ManagedObjectMetadata, Renderer) {
+	function(Log, ObjectPath, ManagedObjectMetadata, Library, Renderer) {
 	"use strict";
 
 	/**
@@ -36,7 +37,7 @@ sap.ui.define([
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @since 0.8.6
 	 * @alias sap.ui.core.ElementMetadata
 	 * @extends sap.ui.base.ManagedObjectMetadata
@@ -100,25 +101,31 @@ sap.ui.define([
 
 		// check if renderer class exists already, in case it was passed inplace,
 		// and written to the global namespace during applySettings().
-		this._oRenderer =
-			sap.ui.require(sRendererName.replace(/\./g, "/"))
-			|| ObjectPath.get(sRendererName);
-		if (this._oRenderer) {
-			return this._oRenderer;
-		}
+		this._oRenderer = sap.ui.require(sRendererName.replace(/\./g, "/"));
 
-		// if not, try to load a module with the same name
-		Log.warning("Synchronous loading of Renderer for control class '" + this.getName() + "', due to missing Renderer dependency.", "SyncXHR", null, function() {
-			return {
-				type: "SyncXHR",
-				name: sRendererName
-			};
-		});
+		/**
+		 * @deprecated
+		 */
+		(() => {
+			if (!this._oRenderer) {
+				this._oRenderer = ObjectPath.get(sRendererName);
+			}
 
-		// Relevant for all controls that don't maintain the renderer module in their dependencies
-		this._oRenderer =
-			sap.ui.requireSync(sRendererName.replace(/\./g, "/")) // legacy-relevant
-			|| ObjectPath.get(sRendererName);
+			if (!this._oRenderer) {
+				// if not, try to load a module with the same name
+				Log.warning("Synchronous loading of Renderer for control class '" + this.getName() + "', due to missing Renderer dependency.", "SyncXHR", null, function() {
+					return {
+						type: "SyncXHR",
+						name: sRendererName
+					};
+				});
+
+				// Relevant for all controls that don't maintain the renderer module in their dependencies
+				this._oRenderer =
+					sap.ui.requireSync(sRendererName.replace(/\./g, "/")) // legacy-relevant
+					|| ObjectPath.get(sRendererName);
+			}
+		})();
 
 		return this._oRenderer;
 	};
@@ -154,7 +161,13 @@ sap.ui.define([
 
 			// try to identify fully built renderers
 			if ( (typeof vRenderer === "object" || typeof vRenderer === "function") && typeof vRenderer.render === "function" ) {
-				var oRenderer = sap.ui.require(this.getRendererName().replace(/\./g, "/")) || ObjectPath.get(this.getRendererName());
+				var oRenderer = sap.ui.require(this.getRendererName().replace(/\./g, "/"));
+				/**
+				 * @deprecated
+				 */
+				if (!oRenderer) {
+					oRenderer = ObjectPath.get(this.getRendererName());
+				}
 				if ( oRenderer === vRenderer ) {
 					// the given renderer has been exported globally already, it can be used without further action
 					this._oRenderer = vRenderer;
@@ -163,6 +176,9 @@ sap.ui.define([
 				if ( oRenderer === undefined && typeof vRenderer.extend === "function" ) {
 					// the given renderer has an 'extend' method, so it most likely has been created by one of the
 					// extend methods and it is usable already; it just has to be exported globally
+					/**
+					 * @deprecated
+					 */
 					ObjectPath.set(this.getRendererName(), vRenderer);
 					this._oRenderer = vRenderer;
 					return;
@@ -183,7 +199,7 @@ sap.ui.define([
 
 	ElementMetadata.prototype.afterApplySettings = function() {
 		ManagedObjectMetadata.prototype.afterApplySettings.apply(this, arguments);
-		this.register && this.register(this);
+		Library._registerElement(this);
 	};
 
 	ElementMetadata.prototype.isHidden = function() {

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -16,6 +16,7 @@ sap.ui.define([
 	"sap/base/util/each",
 	"sap/base/util/deepEqual",
 	"sap/base/util/isEmptyObject",
+	"sap/base/future",
 	"sap/base/Log",
 	"sap/ui/thirdparty/jquery",
 	"./RouterHashChanger",
@@ -33,6 +34,7 @@ sap.ui.define([
 		each,
 		deepEqual,
 		isEmptyObject,
+		future,
 		Log,
 		jQuery,
 		RouterHashChanger,
@@ -229,6 +231,8 @@ sap.ui.define([
 				this._oRoutes = {};
 				this._oOwner = oOwner;
 
+				this._oConfig.router = this;
+
 				// temporarily: for checking the url param
 				function checkUrl() {
 					if (new URLSearchParams(window.location.search).get("sap-ui-xx-asyncRouting") === "true") {
@@ -349,13 +353,13 @@ sap.ui.define([
 			/**
 			 * Adds a route to the router.
 			 *
-			 * @param {sap.ui.core.routing.$RouteSettings} oConfig Configuration object for the route @see sap.ui.core.routing.Route#constructor
+			 * @param {sap.ui.core.routing.$RouteSettings} oConfig Configuration object for the route, see {@link sap.ui.core.routing.Route#constructor}
 			 * @param {sap.ui.core.routing.Route} oParent The parent route - if a parent route is given, the <code>routeMatched</code> event of this route will also trigger the <code>routeMatched</code> of the parent and it will also create the view of the parent (if provided).
 			 * @public
 			 */
 			addRoute : function (oConfig, oParent) {
 				if (!oConfig.name) {
-					Log.error("[FUTURE FATAL] A name has to be specified for every route", this);
+					future.errorThrows(`${this}: A name has to be specified for every route`);
 				}
 
 				if (this._oRoutes[oConfig.name]) {
@@ -374,7 +378,7 @@ sap.ui.define([
 				if (this._oRouter) {
 					this._oRouter.parse(sNewHash);
 				} else {
-					Log.warning("[FUTURE FATAL] This router has been destroyed while the hash changed. No routing events where fired by the destroyed instance.", this);
+					future.warningThrows(`${this}: This router has been destroyed while the hash changed. No routing events where fired by the destroyed instance.`);
 				}
 			},
 
@@ -407,7 +411,7 @@ sap.ui.define([
 				};
 
 				if (!this.oHashChanger) {
-					Log.error("[FUTURE FATAL] navTo of the router is called before the router is initialized. If you want to replace the current hash before you initialize the router you may use getUrl and use replaceHash of the Hashchanger.", this);
+					future.errorThrows(`${this}: navTo of the router is called before the router is initialized. If you want to replace the current hash before you initialize the router you may use getUrl and use replaceHash of the Hashchanger.`);
 					return this;
 				}
 
@@ -618,13 +622,15 @@ sap.ui.define([
 			 * @param {object} [oParameters] Parameters for the route
 			 * @returns {string | undefined} The unencoded pattern with interpolated arguments or <code>undefined</code> if no matching route can be determined
 			 * @public
+			 * @throws {Error} Error will be thrown when any mandatory parameter in the route's pattern is missing from
+			 *  <code>oParameters</code> or assigned with empty string.
 			 */
 			getURL : function (sName, oParameters) {
 				var oRoute = this.getRoute(sName);
 				if (oRoute) {
 					return oRoute.getURL(oParameters);
 				} else {
-					Log.warning("[FUTURE FATAL] Route with name " + sName + " does not exist", this);
+					future.warningThrows(`${this}: Route with name "${sName}" does not exist`);
 				}
 			},
 
@@ -840,6 +846,8 @@ sap.ui.define([
 			 * @ui5-omissible-params oComponentTargetInfo
 			 * @public
 			 * @returns {this} this for chaining.
+			 * @throws {Error} Error will be thrown when any mandatory parameter in the route's pattern is missing from
+			 *  <code>oParameters</code> or assigned with empty string.
 			 */
 			navTo : function (sName, oParameters, oComponentTargetInfo, bReplace) {
 				var that = this,
@@ -852,7 +860,7 @@ sap.ui.define([
 				}
 
 				if (!oRoute) {
-					Log.warning("[FUTURE FATAL] Route with name " + sName + " does not exist", this);
+					future.warningThrows(`${this}: Route with name "${sName}" does not exist`);
 					return this;
 				}
 
@@ -1589,7 +1597,7 @@ sap.ui.define([
 
 		function getHomeEntry(oOwnerComponent, oHomeRoute) {
 			var sHomeRoutePattern = oHomeRoute.getPattern(),
-				sAppTitle = oOwnerComponent && oOwnerComponent.getManifestEntry("sap.app/title");
+				sAppTitle = oOwnerComponent && oOwnerComponent.getManifestEntry("/sap.app/title");
 
 			// check for placeholders - they are not allowed
 			if (sHomeRoutePattern === "" || (sHomeRoutePattern !== undefined && !/({.*})+/.test(sHomeRoutePattern))) {
@@ -1600,7 +1608,7 @@ sap.ui.define([
 					title: sAppTitle
 				};
 			} else {
-				Log.error("[FUTURE FATAL] Routes with dynamic parts cannot be resolved as home route.");
+				future.errorThrows("Routes with dynamic parts cannot be resolved as home route.");
 			}
 		}
 

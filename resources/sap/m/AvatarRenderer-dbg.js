@@ -1,12 +1,12 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides default renderer for control sap.m.Avatar
-sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS"],
-	function (library, encodeCSS) {
+sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", 	"sap/ui/core/IconPool"],
+	function (library, encodeCSS, IconPool) {
 		"use strict";
 
 		// shortcut for sap.m.AvatarSize
@@ -43,16 +43,26 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS"],
 				sCustomDisplaySize = oAvatar.getCustomDisplaySize(),
 				sCustomFontSize = oAvatar.getCustomFontSize(),
 				sSrc = oAvatar._getAvatarSrc(),
+				bIsIconURI = IconPool.isIconURI(sSrc),
+				bHasDetailBox = !!oAvatar.getDetailBox(),
+				bHasBadgeIcon = !!oAvatar.getBadgeIcon(),
 				sAvatarClass = "sapFAvatar",
 				sTooltip = oAvatar.getTooltip_AsString(),
 				aLabelledBy = oAvatar._getAriaLabelledBy(),
 				aDescribedBy = oAvatar.getAriaDescribedBy(),
 				aHasPopup = oAvatar.getAriaHasPopup(),
 				bHasListener = oAvatar.hasListeners("press"),
-				oBadge = bHasListener ?  oAvatar._getBadge() : null,
+				bHasSrc = (!oAvatar._bIsDefaultIcon && bHasDetailBox) || (!bHasDetailBox),
+				bHideBadge = bHasDetailBox && bIsIconURI && !bHasBadgeIcon,
+				bShouldBeClickable = bHasListener && bHasSrc,
+				oBadge = bHasSrc && !bHideBadge ?  oAvatar._getBadge() : null,
 				sDefaultTooltip = oAvatar._getDefaultTooltip(),
 				sInitialsLength = sInitials.length,
-				bActive = oAvatar.getActive() && bHasListener;
+				bActive = oAvatar.getActive() && bShouldBeClickable,
+				sCustomBadgeTooltip = oAvatar._getBadgeTooltip(),
+				sDefaultBadgeTooltip = oAvatar._getDefaultTooltip(),
+				bDecorative = oAvatar.getDecorative(),
+				sBadgeTooltip = (sCustomBadgeTooltip && sCustomBadgeTooltip !== sDefaultBadgeTooltip) ? sDefaultTooltip + " " + sCustomBadgeTooltip : sDefaultBadgeTooltip;
 
 			oRm.openStart("span", oAvatar);
 			oRm.class(sAvatarClass);
@@ -66,12 +76,12 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS"],
 			}
 
 			if (bEnabled) {
-				if (bHasListener) {
+				if (bShouldBeClickable) {
 					oRm.class("sapMPointer");
 					oRm.class(sAvatarClass + "Focusable");
 					oRm.attr("role", "button");
 					oRm.attr("tabindex", 0);
-				} else if (oAvatar.getDecorative()) {
+				} else if (bDecorative) {
 					oRm.attr("role", "presentation");
 					oRm.attr("aria-hidden", "true");
 				} else {
@@ -89,16 +99,25 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS"],
 				oRm.style("height", sCustomDisplaySize);
 				oRm.style("font-size", sCustomFontSize);
 			}
-			if (sTooltip) {
-				// if tooltip property is set the initials should be overwritten
-				oRm.attr("title", sTooltip);
-				oRm.attr("aria-label", sTooltip);
-			} else if (sInitials) {
-				// default "Avatar" text + initials
-				oRm.attr("aria-label", sDefaultTooltip + " " + sInitials);
-			} else {
-				// no tooltip set nor initials - set only the default "Avatar" text
-				oRm.attr("aria-label", sDefaultTooltip);
+			if (!bDecorative || bHasListener) {
+				if (sTooltip) {
+					// if tooltip property is set the initials should be overwritten
+					oRm.attr("title", sTooltip);
+					oRm.attr("aria-label", sTooltip);
+				} else if (sBadgeTooltip) {
+					// if both initials and badgeTooltip are available, their value should also be incorporated into the aria-label
+					if (sInitials) {
+						sBadgeTooltip += " " + sInitials;
+					}
+					// if only badgeTooltip is available, its value should be incorporated into the aria-label
+					oRm.attr("aria-label", sBadgeTooltip);
+				} else if (sInitials) {
+					// default "Avatar" text + initials
+					oRm.attr("aria-label", sDefaultTooltip + " " + sInitials);
+				} else {
+					// no tooltip set nor initials - set only the default "Avatar" text
+					oRm.attr("aria-label", sDefaultTooltip);
+				}
 			}
 			// aria-labelledby references
 			if (aLabelledBy && aLabelledBy.length > 0) {

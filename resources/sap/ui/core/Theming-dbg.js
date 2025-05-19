@@ -7,6 +7,7 @@ sap.ui.define([
 	"sap/base/config",
 	"sap/base/Event",
 	"sap/base/Eventing",
+	"sap/base/future",
 	"sap/base/Log",
 	"sap/base/i18n/Localization",
 	"sap/base/util/deepEqual",
@@ -16,6 +17,7 @@ sap.ui.define([
 	BaseConfig,
 	BaseEvent,
 	Eventing,
+	future,
 	Log,
 	Localization,
 	deepEqual,
@@ -25,7 +27,8 @@ sap.ui.define([
 
 	const oWritableConfig = BaseConfig.getWritableInstance();
 	const oEventing = new Eventing();
-	let mChanges;
+	// Remember the initial favicon path in case there was already a favicon provided
+	const sInitialFaviconPath = document.querySelector("link[rel=icon]")?.getAttribute("href");
 	let oThemeManager;
 
 	/**
@@ -95,21 +98,17 @@ sap.ui.define([
 					throw new TypeError("Providing a theme root as part of the theme parameter is not allowed.");
 				}
 
-				const bFireChange = !mChanges;
-				mChanges ??= {};
 				const sOldTheme = Theming.getTheme();
 				oWritableConfig.set("sapTheme", sTheme);
 				const sNewTheme = Theming.getTheme();
 				const bThemeChanged = sOldTheme !== sNewTheme;
 				if (bThemeChanged) {
-					mChanges.theme = {
-						"new": sNewTheme,
-						"old": sOldTheme
+					const mChanges = {
+						theme: {
+							"new": sNewTheme,
+							"old": sOldTheme
+						}
 					};
-				} else {
-					mChanges = undefined;
-				}
-				if (bFireChange) {
 					fireChange(mChanges);
 				}
 				if (!oThemeManager && bThemeChanged) {
@@ -197,9 +196,6 @@ sap.ui.define([
 			assert(typeof sThemeName === "string", "sThemeName must be a string");
 			assert(typeof sThemeBaseUrl === "string", "sThemeBaseUrl must be a string");
 
-			const bFireChange = !mChanges;
-			mChanges ??= {};
-
 			const oThemeRootConfigParam = {
 				name: "sapUiThemeRoots",
 				type: oWritableConfig.Type.MergedObject
@@ -237,24 +233,106 @@ sap.ui.define([
 				mNewThemeRoots[sThemeName][""] = sThemeBaseUrl;
 			}
 			if (!deepEqual(mOldThemeRoots, mNewThemeRoots)) {
+				const mChanges = {};
 				oWritableConfig.set("sapUiThemeRoots", mNewThemeRoots);
 				if (aLibraryNames) {
-					mChanges.themeRoots = {
+					mChanges["themeRoots"] = {
 						"new": Object.assign({}, mNewThemeRoots[sThemeName]),
 						"old": Object.assign({}, mOldThemeRoots[sThemeName])
 					};
 				} else {
-					mChanges.themeRoots = {
+					mChanges["themeRoots"] = {
 						"new": sThemeBaseUrl,
 						"old": mOldThemeRoots[sThemeName]?.[""]
 					};
 				}
-				mChanges.themeRoots.forceUpdate = bForceUpdate && sThemeName === Theming.getTheme();
-			} else {
-				mChanges = undefined;
+				mChanges["themeRoots"].forceUpdate = bForceUpdate && sThemeName === Theming.getTheme();
+				fireChange(mChanges);
 			}
-			if (bFireChange) {
-				fireChange();
+		},
+
+		/**
+		 * Derives the favicon path based on the configuration and the current theme.
+		 *
+		 * @returns {Promise<string>} The favicon path
+		 * @private
+		 * @since 1.135
+		 */
+		getFavicon: async () => {
+			const sDefaultFavicon = sInitialFaviconPath || sap.ui.require.toUrl("sap/ui/core/themes/base/icons/favicon.ico");
+			const sFaviconFromConfig = oWritableConfig.get({
+				name: "sapUiFavicon",
+				type: (vValue) => {
+					const sValue = vValue.toString();
+					if (["", "false"].includes(sValue.toLowerCase())) {
+						return false;
+					} else if (["x", "true"].includes(sValue.toLowerCase())) {
+						return true;
+					}
+					if (!vValue || (new URL(vValue, window.location.origin)).href.startsWith(window.location.origin)) {
+						return sValue;
+					} else {
+						Log.error("Absolute URLs are not allowed for favicon. The configured favicon will be ignored.", undefined, "sap.ui.core.theming.Theming");
+						return true;
+					}
+				}
+			});
+
+			if (!sFaviconFromConfig) {
+				return sFaviconFromConfig;
+			}
+
+			if (typeof sFaviconFromConfig === "string") {
+				return sFaviconFromConfig;
+			} else if (oThemeManager && !ThemeHelper.isStandardTheme(Theming.getTheme())) {
+				const sFaviconPath = await new Promise((res) => {
+					sap.ui.require(["sap/ui/core/theming/Parameters"], (Parameters) => {
+						const sFavicon = Parameters.get({
+							name: "sapUiFavicon",
+							_restrictedParseUrls: true,
+							callback: (sFavicon) => {
+								res(sFavicon);
+							}
+						});
+						if (sFavicon !== undefined) {
+							res(sFavicon);
+						}
+					});
+				});
+				return sFaviconPath || sDefaultFavicon;
+			}
+			return sDefaultFavicon;
+		},
+
+		/**
+		 * Sets the favicon. The path must be relative to the current origin. Absolute URLs are not allowed.
+		 *
+		 * @param {string|boolean|undefined} vFavicon A string containing a specific relative path to the favicon,
+		 *											'true' to use a favicon from custom theme or the default favicon in case no custom favicon is maintained,
+		 *											'false' or undefined to disable the favicon
+		 * @returns {Promise<undefined>} A promise that resolves when the favicon has been set with undefined
+		 * @public
+		 * @since 1.135
+		 */
+		setFavicon: async (vFavicon) => {
+			if (typeof vFavicon === "string" && !(new URL(vFavicon, window.location.origin)).href.startsWith(window.location.origin)) {
+				throw new TypeError("Path to favicon must be relative to the current origin");
+			}
+
+			oWritableConfig.set("sapUiFavicon", vFavicon);
+			const sNewFaviconPath = await Theming.getFavicon();
+
+			if (sNewFaviconPath) {
+				await new Promise((res, rej) => {
+					sap.ui.require(["sap/ui/util/Mobile"], (Mobile) => {
+						Mobile.setIcons({
+							favicon: sNewFaviconPath
+						});
+						res();
+					}, rej);
+				});
+			} else {
+				document.querySelector("link[rel=icon]")?.remove();
 			}
 		},
 
@@ -283,7 +361,7 @@ sap.ui.define([
 		 * The theme applied Event.
 		 *
 		 * @typedef {object} module:sap/ui/core/Theming$AppliedEvent
-		 * @property {string} theme The newly set language.
+		 * @property {string} theme The newly set theme.
 		 * @public
 		 * @since 1.118.0
 		 */
@@ -501,10 +579,9 @@ sap.ui.define([
 		}
 	};
 
-	function fireChange() {
+	function fireChange(mChanges) {
 		if (mChanges) {
 			oEventing.fireEvent("change", mChanges);
-			mChanges = undefined;
 		}
 	}
 
@@ -517,9 +594,9 @@ sap.ui.define([
 		return !!sAllowedOrigins?.split(",").some((sAllowedOrigin) => {
 			try {
 				sAllowedOrigin = bNoProtocol && !sAllowedOrigin.startsWith("//") ? "//" + sAllowedOrigin : sAllowedOrigin;
-				return sAllowedOrigin === "*" || sOrigin === new URL(sAllowedOrigin.trim(), globalThis.location.href).origin;
+				return sAllowedOrigin === "*" || sOrigin === new URL(sAllowedOrigin.trim(), window.location.href).origin;
 			} catch (error) {
-				Log.error("[FUTURE FATAL] sapAllowedThemeOrigin provides invalid theme origin: " + sAllowedOrigin);
+				future.errorThrows("sapAllowedThemeOrigins provides invalid theme origin: " + sAllowedOrigin, {cause: error});
 				return false;
 			}
 		});
@@ -532,7 +609,7 @@ sap.ui.define([
 
 		try {
 			// Remove search query as they are not supported for themeRoots/resourceRoots
-			oThemeRoot = new URL(sThemeRoot, globalThis.location.href);
+			oThemeRoot = new URL(sThemeRoot, window.location.href);
 			oThemeRoot.search = "";
 
 			// If the URL is absolute, validate the origin
@@ -541,7 +618,7 @@ sap.ui.define([
 			} else {
 				// For relative URLs or not allowed origins
 				// ensure same origin and resolve relative paths based on origin
-				oThemeRoot = new URL(oThemeRoot.pathname, globalThis.location.href);
+				oThemeRoot = new URL(oThemeRoot.pathname, window.location.href);
 				sPath = oThemeRoot.toString();
 			}
 
@@ -555,6 +632,16 @@ sap.ui.define([
 		}
 		return sPath;
 	}
+
+	Theming.attachApplied(() => {
+		Theming.getFavicon().then((favicon) => {
+			if (favicon) {
+				sap.ui.require(["sap/ui/util/Mobile"], (Mobile) => {
+					Mobile.setIcons({ favicon });
+				});
+			}
+		});
+	});
 
 	return Theming;
 });

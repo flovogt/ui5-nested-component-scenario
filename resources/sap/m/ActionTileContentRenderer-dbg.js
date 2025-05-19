@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -24,14 +24,37 @@ sap.ui.define(["./library"],
 	 */
 	ActionTileContentRenderer.render = function(oRm, oControl) {
 		var Priority = library.Priority;
+		var oHeaderLink = oControl.getHeaderLink();
 
 		oRm.openStart("div",oControl );
 		oRm.class("sapMATC");
 		oRm.openEnd();
-		if (oControl.getPriority() !== Priority.None && oControl.getPriorityText()) {
+
+		//render header link if present
+		if (oHeaderLink) {
+			this._renderHeaderLink(oRm, oControl);
+		}
+
+		//render priority text if header link is not present
+		if (oControl.getPriority() !== Priority.None && oControl.getPriorityText() && !oHeaderLink) {
 			this._renderPriority(oRm,oControl);
 		}
 		this._renderContent(oRm,oControl);
+		oRm.close("div");
+	};
+
+	/**
+	 * Renders the header link for the ActionTileContent
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
+	 * @param {sap.m.ActionTileContent} oControl The control that is rendered
+	 * @private
+	 */
+	ActionTileContentRenderer._renderHeaderLink = function(oRm, oControl) {
+		oRm.openStart("div", oControl.getId() + "-header-link");
+		oRm.class("sapMTilePriorityValue");
+		oRm.openEnd();
+		oRm.renderControl(oControl.getHeaderLink());
 		oRm.close("div");
 	};
 
@@ -52,7 +75,7 @@ sap.ui.define(["./library"],
 	};
 
 	/**
-	 * Renders the CustomAttributes inside the ActionTileContent
+	 * Renders the TileAttributess inside the ActionTileContent
 	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
 	 * @param {sap.m.ActionTileContent} oControl The control that is rendered
 	 * @private
@@ -61,46 +84,9 @@ sap.ui.define(["./library"],
 		oRm.openStart("div",oControl.getId() + "-contentContainer");
 		oRm.class("sapMContainer");
 		oRm.openEnd();
-		oControl.getAttributes().forEach(function(oAttribute,iIndex) {
-			this._renderAttribute(oRm,oControl,oAttribute,iIndex);
-		}.bind(this));
-		oRm.close("div");
-	};
-
-	/**
-	 * Renders the individual attribute inside the CustomAttribute
-	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.m.ActionTileContent} oControl The control that is rendered
-	 * @param {sap.m.ActionTileContent} oAttribute It represents a custom attribute
-	 * @param {sap.m.ActionTileContent} iIndex It represents the index of the individual attribute
-	 * @private
-	 */
-	ActionTileContentRenderer._renderAttribute = function(oRm, oControl,oAttribute,iIndex) {
-		oRm.openStart("div",oControl.getId() + "-wrapper-" + iIndex);
-		oRm.class("sapMElementWrapper");
-		oRm.openEnd();
-		this._renderElement(oRm,oControl,oAttribute,iIndex,true);
-		this._renderElement(oRm,oControl,oAttribute,iIndex,false);
-		oRm.close("div");
-	};
-
-	/**
-	 * Renders label and value properties inside the CustomAttribute
-	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer
-	 * @param {sap.m.ActionTileContent} oControl The control that is rendered
-	 * @param {sap.m.ActionTileContent} oAttribute It represents a custom attribute
-	 * @param {sap.m.ActionTileContent} iIndex It represents the index of the individual attribute
-	 * @param {sap.m.ActionTileContent} bLabel If true, it renders a label, otherwise it renders a value
-	 * @private
-	 */
-	ActionTileContentRenderer._renderElement = function(oRm, oControl,oAttribute,iIndex,bLabel) {
-		var sClassName = (bLabel) ? "sapMATCLabel" : "sapMATCValue",
-			sId = (bLabel) ? "-label" : "-value",
-			sText = (bLabel) ? oAttribute.getLabel() : oAttribute.getValue();
-		oRm.openStart("div", oControl.getId() + "-" + iIndex + sId);
-		oRm.class(sClassName);
-		oRm.openEnd();
-		oRm.text(sText);
+		oControl.getAttributes().forEach(function(oAttribute) {
+			oRm.renderControl(oAttribute);
+		});
 		oRm.close("div");
 	};
 	return ActionTileContentRenderer;

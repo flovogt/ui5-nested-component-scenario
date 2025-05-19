@@ -1,20 +1,19 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
  * Defines support rules of the Link control of sap.m Table.
  */
-sap.ui.define(["sap/ui/support/library", "sap/m/ListBase", "sap/ui/core/library"],
-	function(SupportLib, ListBase, coreLibrary) {
+sap.ui.define(["sap/ui/support/library", "sap/m/ListBase", "sap/ui/core/message/MessageType"],
+	function(SupportLib, ListBase, MessageType) {
 		"use strict";
 
 		// shortcuts
 		var Categories = SupportLib.Categories, // Accessibility, Performance, Memory, ...
 			Severity = SupportLib.Severity,	// Hint, Warning, Error
 			Audiences = SupportLib.Audiences; // Control, Internal, Application
-		var MessageType = coreLibrary.MessageType;
 
 		//**********************************************************
 		// Rule Definitions

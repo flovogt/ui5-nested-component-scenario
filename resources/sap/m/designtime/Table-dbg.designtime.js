@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -53,8 +53,7 @@ sap.ui.define([
 						delegate: function (oTable) {
 							if (!fCheckPersoEnabled(oTable)){
 								return {
-									changeType: "addTableColumn",
-									supportsDefaultDelegate: true
+									changeType: "addTableColumn"
 								};
 							}
 						}

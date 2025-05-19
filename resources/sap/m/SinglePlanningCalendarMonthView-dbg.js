@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -28,7 +28,7 @@ sap.ui.define([
 		 * @extends sap.m.SinglePlanningCalendarView
 		 *
 		 * @author SAP SE
-		 * @version 1.120.30
+		 * @version 1.136.0
 		 *
 		 * @constructor
 		 * @public
@@ -54,21 +54,20 @@ sap.ui.define([
 		 *
 		 * @param {object} oStartDate The current start date
 		 * @param {int} iOffset The number of pages to scroll, negative means backwards
-		 * @return {int} The number of entities to be skipped by scrolling
+		 * @returns {int} The number of entities to be skipped by scrolling
 		 * @override
 		 * @public
 		 */
 		SinglePlanningCalendarMonthView.prototype.getScrollEntityCount = function(oStartDate, iOffset) {
 			var oNewDate = CalendarDate.fromLocalJSDate(oStartDate),
-				iMonth = oStartDate.getMonth() + iOffset,
-				iSign = iOffset > 0 ? 1 : -1;
+				iMonth = oNewDate.getMonth() + iOffset;
 
 			oNewDate.setMonth(iMonth);
 
 			// re-adjust if we skipped one month, because it has no such
 			// day(31 Jan -> 31 Feb -> 3 March)
 			while ((iMonth + 12) % 12 !== oNewDate.getMonth()) {
-				oNewDate.setDate(oNewDate.getDate() - iSign);
+				oNewDate.setDate(oNewDate.getDate() - 1);
 			}
 			return Math.abs(CalendarUtils._daysBetween(oNewDate, CalendarDate.fromLocalJSDate(oStartDate)));
 		};
@@ -77,13 +76,13 @@ sap.ui.define([
 		 * Calculates the <code>startDate</code> displayed in the <code>sap.m.SinglePlanningCalendar</code> based
 		 * on a given date.
 		 *
-		 * @param {object} oStartDate The given date
-		 * @return {object} The startDate of the view
+		 * @param {Date|module:sap/ui/core/date/UI5Date} oDate The given date
+		 * @returns {Date|module:sap/ui/core/date/UI5Date} The startDate of the view
 		 * @override
 		 * @public
 		 */
-		SinglePlanningCalendarMonthView.prototype.calculateStartDate = function(oStartDate) {
-			var oReturnDate = CalendarUtils.getFirstDateOfMonth(CalendarUtils._createUTCDate(oStartDate, true)).getJSDate();
+		SinglePlanningCalendarMonthView.prototype.calculateStartDate = function(oDate) {
+			var oReturnDate = CalendarUtils.getFirstDateOfMonth(CalendarUtils._createUTCDate(oDate, true)).getJSDate();
 			return CalendarUtils._createLocalDate(oReturnDate, true);
 		};
 

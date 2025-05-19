@@ -1,10 +1,10 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define(["sap/ui/core/library", "sap/ui/core/Configuration"],
-	function(coreLibrary, Configuration) {
+sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/library", "sap/ui/core/Locale", "./library"],
+	function(Localization, coreLibrary, Locale, library) {
 	"use strict";
 
 
@@ -13,6 +13,10 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Configuration"],
 
 	// shortcut for sap.ui.core.aria.HasPopup
 	var AriaHasPopup = coreLibrary.aria.HasPopup;
+
+	// shortcut for sap.m.ReactiveAreaMode
+	var ReactiveAreaMode = library.ReactiveAreaMode;
+
 	/**
 	 * ObjectAttribute renderer.
 	 * @namespace
@@ -54,6 +58,9 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Configuration"],
 		// e.g. when is active or the CustomContent is sap.m.Link
 		if (oOA._isClickable()) {
 			oRm.class("sapMObjectAttributeActive");
+			if (oOA.getReactiveAreaMode() === ReactiveAreaMode.Overlay) {
+				oRm.class("sapMLnkLargeReactiveArea");
+			}
 			if (!oOA.getTitle() && oOA.getText()) {
 			// in case of title only or text only, allow 100% of width to be taken
 				oRm.class("sapMObjectAttributeTextOnly");
@@ -112,7 +119,7 @@ sap.ui.define(["sap/ui/core/library", "sap/ui/core/Configuration"],
 		oRm.openStart("span", oOA.getId() + "-colon");
 		oRm.class("sapMObjectAttributeColon");
 		oRm.openEnd();
-		if (Configuration.getLocale().getLanguage().toLowerCase() === "fr") {
+		if (new Locale(Localization.getLanguageTag()).getLanguage().toLowerCase() === "fr") {
 			sColon = " " + sColon;
 		}
 		oRm.text(sColon);

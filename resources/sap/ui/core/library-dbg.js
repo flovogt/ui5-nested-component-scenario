@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -12,9 +12,10 @@ sap.ui.define([
 	'sap/ui/core/Lib',
 	'sap/ui/core/message/MessageType',
 	'sap/ui/core/mvc/ViewType', // provides sap.ui.core.mvc.ViewType
-	'./CalendarType' // provides sap.ui.core.CalendarType
+	'./CalendarType', // provides sap.ui.core.CalendarType
+	'sap/ui/core/date/CalendarWeekNumbering' // ensures availability of legacy DataType "sap.ui.core.date.CalendarWeekNumbering"
 ],
-	function(DataType, Library, MessageType, ViewType, CalendarType) {
+	function(DataType, Library, MessageType, ViewType, CalendarType, _CalendarWeekNumbering) {
 	"use strict";
 
 	/**
@@ -26,18 +27,17 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.core
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @since 0.8
 	 * @public
 	 */
 	 var thisLib = Library.init({
 		 name: "sap.ui.core",
-		 version: "1.120.30",
+		 version: "1.136.0",
 		 designtime: "sap/ui/core/designtime/library.designtime",
-		 // "apiVersion" is still WIP and in 1.120 restricted to the sap.ui.core library only!
-		 // TODO: Remove spread operator once UI5 Tooling can validate this new property
+		 apiVersion: 2,
 		 ...{
-			"apiVersion": 2
+			interactionDocumentation: true
 		 },
 		 types: [
 
@@ -59,6 +59,7 @@ sap.ui.define([
 			 "sap.ui.core.BusyIndicatorSize",
 			 "sap.ui.core.CalendarType",
 			 "sap.ui.core.CSSColor",
+			 "sap.ui.core.CSSGapShortHand",
 			 "sap.ui.core.CSSSize",
 			 "sap.ui.core.CSSSizeShortHand",
 			 "sap.ui.core.Collision",
@@ -70,6 +71,8 @@ sap.ui.define([
 			 "sap.ui.core.IconColor",
 			 "sap.ui.core.ImeMode",
 			 "sap.ui.core.IndicationColor",
+			 "sap.ui.core.ItemSelectionMode",
+			 /** @deprecated As of version 1.120. Please use {@link module:sap/ui/core/message/MessageType} instead. */
 			 "sap.ui.core.MessageType",
 			 "sap.ui.core.OpenState",
 			 "sap.ui.core.Orientation",
@@ -891,9 +894,12 @@ sap.ui.define([
 	};
 	DataType.registerEnum("sap.ui.core.BusyIndicatorSize", thisLib.BusyIndicatorSize);
 
+	/** @deprecated */
+	(() => {
 	// this assignment here is kept so that imports via the library module continue to work
 	// even when the export via globals is abandoned
 	thisLib.CalendarType = CalendarType;
+	})();
 
 	/**
 	 * @classdesc A string type that represents CSS color values (CSS Color Level 3).
@@ -920,6 +926,34 @@ sap.ui.define([
 			}
 		},
 		DataType.getType('string')
+	);
+
+	/**
+	 * @classdesc A string type that represents a short hand CSS gap.
+	 *
+	 * @see {@link https://developer.mozilla.org/en-US/docs/Web/CSS/gap}
+	 * @since 1.134
+	 * @public
+	 * @namespace
+	 */
+	thisLib.CSSGapShortHand = DataType.createType("sap.ui.core.CSSGapShortHand", {
+			isValid: function (vValue) {
+				var bResult = true,
+					aValues = vValue.split(/\s+/);
+
+				aValues.forEach(function (sValue) {
+					if (!thisLib.CSSSize.isValid(sValue)) {
+						bResult = false;
+					}
+				});
+
+				return bResult;
+			},
+			parseValue: function (sValue) {
+				return sValue.trim().split(/\s+/).join(" ");
+			}
+		},
+		DataType.getType("string")
 	);
 
 
@@ -1113,24 +1147,8 @@ sap.ui.define([
 	};
 	DataType.registerEnum("sap.ui.core.HorizontalAlign", thisLib.HorizontalAlign);
 
-
-	/**
-	 * @classdesc A string type representing an ID or a name.
-	 *
-	 * Allowed is a sequence of characters (capital/lowercase), digits, underscores, dashes, points and/or colons.
-	 * It may start with a character or underscore only.
-	 *
-	 * @final
-	 * @namespace
-	 * @public
-	 */
-	thisLib.ID = DataType.createType('sap.ui.core.ID', {
-			isValid : function(vValue) {
-				return /^([A-Za-z_][-A-Za-z0-9_.:]*)$/.test(vValue);
-			}
-		},
-		DataType.getType('string')
-	);
+	// expose ID type for compatibility reasons
+	thisLib.ID = DataType.getType('sap.ui.core.ID');
 
 	/**
 	 * Interface for the controls which are suitable to shrink.
@@ -1270,16 +1288,14 @@ sap.ui.define([
 	 * @since 1.121.0
 	 * @name sap.ui.core.ILabelable
 	 * @interface
-	 * @private
-	 * @ui5-restricted sap.ui.mdc
+	 * @public
 	 */
 
 	/**
 	 * Returns if the control can be bound to a label
 	 *
 	 * @returns {boolean} <code>true</code> if the control can be bound to a label
-	 * @private
-	 * @ui5-restricted sap.ui.mdc
+	 * @public
 	 * @function
 	 * @since 1.121.0
 	 * @name sap.ui.core.ILabelable.hasLabelableHTMLElement
@@ -1630,7 +1646,7 @@ sap.ui.define([
 	/**
 	 * Sort order of a column.
 	 *
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 * @enum {string}
 	 * @public
 	 * @since 1.61.0
@@ -1848,12 +1864,14 @@ sap.ui.define([
 	/**
 	 * Marker interface for controls that can serve as a menu for a table column header.
 	 *
-	 * Implementation of this interface implements the <code>openBy</code> and <code>getAriaHasPopupType</code> methods.
+	 * Implementation of this interface should include the <code>openBy</code>, <code>close</code>, <code>isOpen</code> and
+	 * <code>getAriaHasPopupType</code> methods and fire the <code>beforeOpen</code> and <code>afterClose</code> events.
+	 *
+	 * Refer to the base class {@link sap.m.table.columnmenu.MenuBase} for a detailed API description.
 	 *
 	 * @name sap.ui.core.IColumnHeaderMenu
 	 * @interface
 	 * @public
-	 * @experimental As of version 1.98
 	 * @since 1.98
 	 *
 	 */
@@ -1864,21 +1882,59 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @function
-	 * @experimental As of version 1.98
 	 * @since 1.98
 	 * @name sap.ui.core.IColumnHeaderMenu.openBy
 	 */
 
 	/**
-	 * Returns the <code>sap.ui.core.aria.HasPopup<\code> type of the menu.
-	 *
-	 * @returns {sap.ui.core.aria.HasPopup} <code>sap.ui.core.aria.HasPopup<\code> type of the menu
+	 * Closes the menu.
 	 *
 	 * @public
 	 * @function
-	 * @experimental As of version 1.98
+	 * @since 1.126
+	 * @name sap.ui.core.IColumnHeaderMenu.close
+	 */
+
+	/**
+	 * Determines whether the menu is open.
+	 *
+	 * @param {sap.ui.core.Element} openBy The element for which the menu is opened. If it is an <code>HTMLElement</code>,
+	 * the closest control is passed for this event (if it exists).
+	 * @returns {boolean} <code>true</code> if the menu is open, <code>false</code> otherwise
+	 *
+	 * @public
+	 * @function
+	 * @since 1.126
+	 * @name sap.ui.core.IColumnHeaderMenu.isOpen
+	 */
+
+	/**
+	 * Returns the <code>sap.ui.core.aria.HasPopup</code> type of the menu.
+	 *
+	 * @returns {sap.ui.core.aria.HasPopup} <code>sap.ui.core.aria.HasPopup</code> type of the menu
+	 *
+	 * @public
+	 * @function
 	 * @since 1.98.0
 	 * @name sap.ui.core.IColumnHeaderMenu.getAriaHasPopupType
+	 */
+
+	/**
+	 * Fires before the menu is opened.
+	 *
+	 * @public
+	 * @event
+	 * @since 1.126
+	 * @name sap.ui.core.IColumnHeaderMenu.beforeOpen
+	 */
+
+	/**
+	 * Fires after the menu is closed.
+	 *
+	 * @public
+	 * @event
+	 * @since 1.126
+	 * @name sap.ui.core.IColumnHeaderMenu.afterClose
 	 */
 
 	/**
@@ -2023,13 +2079,13 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Marker interface for controls that can be used as content of <code>sap.ui.layout.form.SemanticFormElement</code>.
+	 * Marker interface for controls that can be used as content of {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement}.
 	 *
 	 * If the value-holding property of the control is not <code>value</code or <code>text</code>, the name of the
-	 * value-holding property must be returned in the <code>getFormValueProperty</code> function.
+	 * value-holding property must be returned in the {@link sap.ui.core.ISemanticFormContent.getFormValueProperty getFormValueProperty} function.
 	 *
 	 * If the value of the control needs some special output formatting (to show a description instead of a key), this
-	 * formatted text needs to be returned in the <code>getFormFormattedValue</code> function.
+	 * formatted text needs to be returned in the {@link sap.ui.core.ISemanticFormContent.getFormFormattedValue getFormFormattedValue} function.
 	 *
 	 * @since 1.86.0
 	 * @name sap.ui.core.ISemanticFormContent
@@ -2038,12 +2094,12 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Returns the formatted value of a control used in a <code>SemanticFormElement</code>.
+	 * Returns the formatted value of a control used in a {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement}.
 	 *
-	 * In the <code>SemanticFormElement</code> element, the assigned fields are rendered in edit mode. In display mode, a text
+	 * In the {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement} element, the assigned fields are rendered in edit mode. In display mode, a text
 	 * is rendered that concatenates the values of all assigned fields. In some cases the displayed text does not match the value
 	 * of the field and needs some formatting. In other cases the control does not have a <code>value</code> property,
-	 * so the <code>SemanticFormElement</code> element cannot determine the value.
+	 * so the {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement} element cannot determine the value.
 	 *
 	 * This is an optional method. If not defined, the <code>value</code> property or the <code>text</code> property is used to determine the value.
 	 *
@@ -2055,12 +2111,12 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Returns the name of the value-holding property of a control used in a <code>SemanticFormElement</code>.
+	 * Returns the name of the value-holding property of a control used in a {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement}.
 	 *
-	 * In the <code>SemanticFormElement</code> element, the assigned fields are rendered in edit mode. In display mode, a text
+	 * In the {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement} element, the assigned fields are rendered in edit mode. In display mode, a text
 	 * is rendered that concatenates the values of all assigned fields.
 	 * So the concatenated text needs to be updated if the value of a control changes. If a control does not have a <code>value</code> property,
-	 * the <code>SemanticFormElement</code> element needs to know the propery it has to listen for changes.
+	 * the {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement} element needs to know the property it has to listen to for changes.
 	 *
 	 * This is an optional method. If not defined, the <code>value</code> property or the <code>text</code> property is used to determine the value.
 	 *
@@ -2072,14 +2128,14 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Returns the names of the properties of a control that might update the rendering in a <code>SemanticFormElement</code>.
+	 * Returns the names of the properties of a control that might update the rendering in a {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement}.
 	 *
-	 * In the <code>SemanticFormElement</code> element, the assigned fields are rendered in edit mode. In display mode, depending on <code>getFormRenderAsControl</code>,
+	 * In the {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement} element, the assigned fields are rendered in edit mode. In display mode, depending on {@link sap.ui.core.ISemanticFormContent.getFormRenderAsControl getFormRenderAsControl},
 	 * either a text is rendered, which concatenates the values of all assigned fields, or the control is rendered.
 	 * So if a property of the control changes that might lead to a different rendering (some controls have a special rendering in display mode), the
-	 * <code>SemanticFormElement</code> needs to check the rendering.
+	 * {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement} needs to check the rendering.
 	 *
-	 * This is an optional method. If not defined, no check for updates (only for property defined in <code>getFormValueProperty</code>) is done once the control has been assigned.
+	 * This is an optional method. If not defined, no check for updates (only for property defined in {@link sap.ui.core.ISemanticFormContent.getFormValueProperty getFormValueProperty}) is done once the control has been assigned.
 	 *
 	 * @returns {string[]} Name of the properties
 	 * @since 1.117.0
@@ -2089,7 +2145,7 @@ sap.ui.define([
 	 */
 
 	/**
-	 * If set to <code>true</code>, the <code>SemanticFormElement</code> also renders the control in display mode, if the used <code>FormLayout</code> supports this.
+	 * If set to <code>true</code>, the {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement} also renders the control in display mode, if the used {@link sap.ui.layout.form.FormLayout FormLayout} supports this.
 	 *
 	 * This is an optional method. If not defined, just the text is rendered.
 	 *
@@ -2366,6 +2422,37 @@ sap.ui.define([
 	thisLib.mvc = thisLib.mvc || {};
 
 	/**
+	 * Defines the selection mode of the menu items.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @name sap.ui.core.ItemSelectionMode
+	 * @since 1.127.0
+	 */
+	thisLib.ItemSelectionMode = {
+
+		/**
+		 * No selection mode.
+		 * @public
+		 */
+		None : "None",
+
+		/**
+		 * Single selection mode (only one menu item can be selected).
+		 * @public
+		 */
+		SingleSelect : "SingleSelect",
+
+		/**
+		 * Multi selection mode (more than one menu item can be selected).
+		 * @public
+		 */
+		MultiSelect : "MultiSelect"
+
+	};
+	DataType.registerEnum("sap.ui.core.ItemSelectionMode", thisLib.ItemSelectionMode);
+
+	/**
 	 * Specifies possible message types.
 	 *
 	 * @enum {string}
@@ -2471,7 +2558,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @experimental Since 1.73.
 	 * @since 1.78
 	 */
 	thisLib.InvisibleMessageMode =  {
@@ -2503,7 +2589,7 @@ sap.ui.define([
 				if ( sShortcutPkg ) {
 					lazy(sShortcutPkg, aClasses[i].toLowerCase(), sPackage + aClasses[i]);
 				} else {
-				  lazy(sPackage + aClasses[i], "new extend getMetadata");
+					lazy(sPackage + aClasses[i], "new extend getMetadata");
 				}
 			}
 		}
@@ -2512,7 +2598,7 @@ sap.ui.define([
 		lazy("sap.ui.core.message.MessageManager");
 		lazy("sap.ui.core.BusyIndicator", "show hide attachOpen detachOpen attachClose detachClose");
 		lazy("sap.ui.core.tmpl.Template", "registerType unregisterType");
-		lazy("sap.ui.core.Fragment", "registerType byId createId");
+		lazy("sap.ui.core.Fragment", "registerType byId createId load");
 		lazy("sap.ui.core.IconPool", "createControlByURI addIcon getIconURI getIconInfo isIconURI getIconCollectionNames getIconNames getIconForMimeType");
 		lazy("sap.ui.core.service.ServiceFactoryRegistry", "register unregister get");
 
@@ -2536,7 +2622,11 @@ sap.ui.define([
 		each("sap.ui.model.odata.type.", ["Boolean","Byte","Currency","Date","DateTime","DateTimeOffset","DateTimeWithTimezone","Decimal","Double","Guid","Int16","Int32","Int64","Raw","SByte","Single","Stream","String","Time","TimeOfDay","Unit"]);
 		each("sap.ui.core.", ["Locale","LocaleData","mvc.Controller", "UIComponent"]);
 		each("sap.ui.core.mvc.", ["Controller", "View", "JSView", "JSONView", "XMLView", "HTMLView", "TemplateView"], "sap.ui");
+		lazy("sap.ui.core.mvc.Controller", "create");
+		lazy("sap.ui.core.mvc.View", "create");
+		lazy("sap.ui.core.mvc.XMLView", "create");
 		each("sap.ui.core.", ["Component"], "sap.ui");
+		each("sap.ui.core.Component", "create");
 		each("sap.ui.core.tmpl.", ["Template"], "sap.ui");
 		each("sap.ui.core.routing.", ["HashChanger", "History", "Route", "Router", "Target", "Targets", "Views"]);
 		each("sap.ui.core.service.", ["ServiceFactory", "Service"]);

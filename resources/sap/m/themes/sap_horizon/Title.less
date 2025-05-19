@@ -1,7 +1,7 @@
-/* ======================================== */
-/* CSS for control sap.m/Title  			*/
-/* Horizon theme                            */
-/* ======================================== */
+/* =========================== */
+/* CSS for control sap.m/Title */
+/* Horizon theme               */
+/* =========================== */
 
 .sapFFCL {
 
@@ -11,16 +11,18 @@
 	.sapFDynamicPage-Std-Phone {
 
 		.sapFDynamicPageTitleMain {
+
 			.sapFDynamicPageTitleMainInner {
+
 				.sapFDynamicPageTitleMainHeading {
 					align-self: auto;
 
 					.sapFDynamicPageTitleMainHeadingInner {
 						margin-top: 0.6875rem;
 
-						.sapMTitle:not(.sapUICompVarMngmtTitle) {
-							font-size: @sapObjectHeader_Title_SnappedFontSize;
-							font-family: @sapObjectHeader_Title_FontFamily;
+						.sapMTitle:not(.sapUICompVarMngmtTitle):not(.sapMVarMngmtTitle) {
+							font-size: var(--sapObjectHeader_Title_SnappedFontSize);
+							font-family: var(--sapObjectHeader_Title_FontFamily);
 						}
 					}
 				}

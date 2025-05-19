@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -25,6 +25,7 @@ sap.ui.define([
 					with : "string"
 				}
 			},
+			/** @deprecated As of version 1.89.0 */
 			"grandTotal like 1.84" : "boolean",
 			grandTotalAtBottomOnly : "boolean",
 			group : {
@@ -44,10 +45,12 @@ sap.ui.define([
 			+ "(?:/" + _Parser.sODataIdentifier + ")*"
 			+ ")(?:" + _Parser.sWhitespace + "+(?:asc|desc))?$"),
 		mRecursiveHierarchyType = {
+			createInPlace : true,
 			expandTo : /^[1-9]\d*$/, // a positive integer
 			hierarchyQualifier : "string",
 			search : "string"
 		},
+		sSapHierarchy = "com.sap.vocabularies.Hierarchy.v1.",
 		/**
 		 * Collection of helper methods for data aggregation.
 		 *
@@ -171,7 +174,11 @@ sap.ui.define([
 			}
 
 			_Helper.copyPrivateAnnotation(oPlaceholder, "cache", oElement);
+			_Helper.copyPrivateAnnotation(oPlaceholder, "context", oElement);
 			_Helper.copyPrivateAnnotation(oPlaceholder, "spliced", oElement);
+			if ("@$ui5.context.isTransient" in oPlaceholder) {
+				oElement["@$ui5.context.isTransient"] = false;
+			}
 			if (_Helper.getPrivateAnnotation(oPlaceholder, "placeholder") === 1) {
 				if ((oPlaceholder["@$ui5.node.isExpanded"] === undefined)
 						!== (oElement["@$ui5.node.isExpanded"] === undefined)) {
@@ -207,7 +214,7 @@ sap.ui.define([
 		 * @param {object} oAggregation
 		 *   An object holding the information needed for data aggregation; see
 		 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}. The properties
-		 *   "aggregate", "group", and "groupLevels" are normalized if applicable!
+		 *   "aggregate", "group", "groupLevels", and "expandTo" are normalized if applicable!
 		* @param {string} [oAggregation.hierarchyQualifier]
 		*   If present, a recursive hierarchy w/o data aggregation is defined and
 		*   {@link _AggregationHelper.buildApply4Hierarchy} is invoked instead.
@@ -222,6 +229,10 @@ sap.ui.define([
 		 * @param {string} [mQueryOptions.$$filterBeforeAggregate]
 		 *   The value for a filter which is applied before the aggregation; it is removed from the
 		 *   returned map and turned into a "filter()" transformation
+		 * @param {string} [mQueryOptions.$$filterOnAggregate]
+		 *   The value for a filter which is applied on aggregates and thus contains the special
+		 *   syntax "$these/aggregate(...)"; it is removed from the returned map and turned into a
+		 *   "groupby((...),filter(...)" transformation
 		 * @param {boolean} [mQueryOptions.$$leaves]
 		 *   Tells whether the count of leaves is requested; it is removed from the returned map; it
 		 *   is turned into an aggregate "$count as UI5__leaves" for the first request
@@ -263,6 +274,7 @@ sap.ui.define([
 				sLeaves,
 				aMinMaxAggregate = [], // concat(aggregate(???),.) content for min/max or count
 				sSkipTop,
+				aSortedGroups,
 				aSubtotalsAggregate = []; // groupby(.,aggregate(???)) content for subtotals/leaves
 
 			/*
@@ -296,23 +308,29 @@ sap.ui.define([
 			}
 
 			mQueryOptions = Object.assign({}, mQueryOptions);
-			oAggregation.groupLevels = oAggregation.groupLevels || [];
-			bIsLeafLevel = !iLevel || iLevel > oAggregation.groupLevels.length;
+			oAggregation.groupLevels ??= [];
 
-			oAggregation.group = oAggregation.group || {};
+			oAggregation.group ??= {};
 			oAggregation.groupLevels.forEach(function (sGroup) {
-				oAggregation.group[sGroup] = oAggregation.group[sGroup] || {};
+				oAggregation.group[sGroup] ??= {};
 			});
+			aSortedGroups = Object.keys(oAggregation.group).sort();
+			if (aSortedGroups.length === oAggregation.groupLevels.length) {
+				// no other groups than those in groupLevels
+				oAggregation.groupLevels.pop();
+			}
+			bIsLeafLevel = !iLevel || iLevel > oAggregation.groupLevels.length;
 			aGroupBy = bIsLeafLevel
-				? Object.keys(oAggregation.group).sort().filter(function (sGroup) {
+				? aSortedGroups.filter(function (sGroup) {
 					return !oAggregation.groupLevels.includes(sGroup);
 				})
 				: [oAggregation.groupLevels[iLevel - 1]];
 			if (!iLevel) {
+				// Note: group levels are in front, in original order, followed by leaf level
 				aGroupBy = oAggregation.groupLevels.concat(aGroupBy);
 			}
 
-			oAggregation.aggregate = oAggregation.aggregate || {};
+			oAggregation.aggregate ??= {};
 			aAliases = Object.keys(oAggregation.aggregate).sort();
 			if (iLevel === 1 && !bFollowUp) {
 				aAliases.filter(function (sAlias) {
@@ -340,7 +358,7 @@ sap.ui.define([
 				aGroupBy.forEach(function (sGroup) {
 					var aAdditionally = oAggregation.group[sGroup].additionally;
 
-					if (aAdditionally) {
+					if (aAdditionally) { // Note: addt'l properties intentionally at end
 						aGroupBy.push.apply(aGroupBy, aAdditionally);
 					}
 				});
@@ -379,8 +397,7 @@ sap.ui.define([
 					sApply += "/" + sSkipTop;
 				}
 				if (iLevel === 1 && mQueryOptions.$$leaves && !bFollowUp) {
-					sLeaves = "groupby(("
-						+ Object.keys(oAggregation.group).sort().join(",")
+					sLeaves = "groupby((" + aSortedGroups.join(",")
 						+ "))/aggregate($count as UI5__leaves)";
 				}
 				delete mQueryOptions.$$leaves;
@@ -390,6 +407,11 @@ sap.ui.define([
 				} else if (sLeaves) {
 					sApply = "concat(" + sLeaves + "," + sApply + ")";
 				}
+			}
+			if (mQueryOptions.$$filterOnAggregate) {
+				sApply = "groupby((" + aSortedGroups.join(",") + "),filter("
+					+ mQueryOptions.$$filterOnAggregate + "))/" + sApply;
+				delete mQueryOptions.$$filterOnAggregate;
 			}
 			if (oAggregation.search) {
 				sApply = "search(" + oAggregation.search + ")/" + sApply;
@@ -411,22 +433,32 @@ sap.ui.define([
 		 * "$apply" is constructed to avoid timing issues with metadata. The paths for
 		 * DistanceFromRoot, DrillState, LimitedDescendantCount, LimitedRank, NodeProperty, and
 		 * ParentNavigationProperty are stored at <code>oAggregation</code> using a "$" prefix (if
-		 * not already stored).
+		 * not already stored). The "com.sap.vocabularies.Hierarchy.v1.RecursiveHierarchyActions"
+		 * annotation is stored as "$Actions".
 		 *
 		 * @param {object} oAggregation
 		 *   An object holding the information needed for a recursive hierarchy; see
-		 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}.
+		 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}. The property
+		 *   "expandTo" is normalized if applicable!
 		 * @param {function} [oAggregation.$fetchMetadata]
 		 *   Function which fetches metadata for a given meta path - NOT always available!
 		 * @param {string} [oAggregation.$metaPath]
 		 *   Meta path as set by {@link #setPath}
 		 * @param {string} [oAggregation.$path]
 		 *   Data path as set by {@link #setPath}
+		 * @param {number} [oAggregation.expandTo=1]
+		 *   The number (as a positive integer) of different levels initially available
+		 * @param {string} [oAggregation.hierarchyQualifier]
+		 *   The qualifier for the pair of "Org.OData.Aggregation.V1.RecursiveHierarchy" and
+		 *   "com.sap.vocabularies.Hierarchy.v1.RecursiveHierarchy" annotations
 		 * @param {string} [oAggregation.search]
 		 *   Like the value for a "$search" system query option (remember ODATA-1452); it is turned
 		 *   into the search expression parameter of an "ancestors()" transformation
 		 * @param {object} [mQueryOptions={}]
 		 *   A map of key-value pairs representing the query string; it is not modified
+		 * @param {string} [mQueryOptions.$$filterBeforeAggregate]
+		 *   The value for a filter which identifies a parent node; it is removed from the returned
+		 *   map and turned into a "filter()" transformation
 		 * @param {string} [mQueryOptions.$filter]
 		 *   The value for a "$filter" system query option; it is removed from the returned map and
 		 *   turned into the filter expression parameter of an "ancestors()" transformation
@@ -452,12 +484,10 @@ sap.ui.define([
 				if (mQueryOptions.$select) {
 					let sPropertyPath = oAggregation["$" + sProperty];
 					if (!sPropertyPath) {
-						if (!mRecursiveHierarchy) {
-							mRecursiveHierarchy = oAggregation.$fetchMetadata(oAggregation.$metaPath
-									+ "/@com.sap.vocabularies.Hierarchy.v1.RecursiveHierarchy#"
-									+ oAggregation.hierarchyQualifier
-								).getResult();
-						}
+						mRecursiveHierarchy ??= oAggregation.$fetchMetadata(oAggregation.$metaPath
+								+ "/@" + sSapHierarchy + "RecursiveHierarchy#"
+								+ oAggregation.hierarchyQualifier
+							).getResult();
 
 						sPropertyPath = oAggregation["$" + sProperty]
 							= mRecursiveHierarchy[sProperty + "Property"]?.$PropertyPath
@@ -489,6 +519,10 @@ sap.ui.define([
 				if (!mQueryOptions.$select.includes(sNodeProperty)) {
 					mQueryOptions.$select.push(sNodeProperty);
 				}
+				oAggregation.$Actions ??= oAggregation.$fetchMetadata(
+						oAggregation.$metaPath + "/@" + sSapHierarchy
+						+ "RecursiveHierarchyActions#" + oAggregation.hierarchyQualifier
+					).getResult();
 			}
 
 			let sApply = "";
@@ -511,7 +545,8 @@ sap.ui.define([
 			if (mQueryOptions.$$filterBeforeAggregate) { // children of a given parent
 				sApply += "descendants($root" + oAggregation.$path
 					+ "," + oAggregation.hierarchyQualifier + "," + sNodeProperty
-					+ ",filter(" + mQueryOptions.$$filterBeforeAggregate + "),1)";
+					+ ",filter(" + mQueryOptions.$$filterBeforeAggregate
+					+ (bAllLevels ? "))" : "),1)");
 				delete mQueryOptions.$$filterBeforeAggregate;
 				if (mQueryOptions.$orderby) {
 					sApply += "/orderby(" + mQueryOptions.$orderby + ")";
@@ -522,16 +557,20 @@ sap.ui.define([
 					sApply += "orderby(" + mQueryOptions.$orderby + ")/";
 					delete mQueryOptions.$orderby;
 				}
-				sApply += "com.sap.vocabularies.Hierarchy.v1.TopLevels(HierarchyNodes=$root"
+				oAggregation.expandTo ??= 1;
+				const sExpandLevels = !bAllLevels && oAggregation.$ExpandLevels;
+				sApply += sSapHierarchy + "TopLevels(HierarchyNodes=$root"
 					+ (oAggregation.$path || "")
 					+ ",HierarchyQualifier='" + oAggregation.hierarchyQualifier
 					+ "',NodeProperty='" + sNodeProperty + "'"
-					+ (bAllLevels || oAggregation.expandTo >= 999
-						? ")" // "all levels"
-						: ",Levels=" + (oAggregation.expandTo || 1) + ")");
+					+ (bAllLevels || oAggregation.expandTo >= Number.MAX_SAFE_INTEGER
+						? "" // "all levels"
+						: ",Levels=" + oAggregation.expandTo)
+					+ (sExpandLevels ? ",ExpandLevels=" + sExpandLevels : "")
+					+ ")";
 				if (bAllLevels) {
 					select("DistanceFromRoot");
-				} else if (oAggregation.expandTo > 1) {
+				} else if (oAggregation.expandTo > 1 || sExpandLevels) {
 					select("DistanceFromRoot");
 					select("LimitedDescendantCount");
 				}
@@ -576,7 +615,7 @@ sap.ui.define([
 
 		/**
 		 * Checks that the given value is of the given type. If <code>vType</code> is a string, then
-		 * <code>typeof vValue === vType<code> must hold. If <code>vType</code> is an array (of
+		 * <code>typeof vValue === vType</code> must hold. If <code>vType</code> is an array (of
 		 * length 1!), then <code>vValue</code> must be an array as well and each element is checked
 		 * recursively. If <code>vType</code> is an object, then <code>vValue</code> must be an
 		 * object (not an array, not <code>null</code>) as well, with a subset of keys, and each
@@ -619,6 +658,10 @@ sap.ui.define([
 					_AggregationHelper.checkTypeof(vValue[sKey], vType[bIsMap ? "*" : sKey],
 						sPath + "/" + sKey);
 				});
+			} else if (vType === true) {
+				if (vValue !== true) {
+					throw new Error("Not a true value for '" + sPath + "'");
+				}
 			} else if (typeof vValue !== vType) { // eslint-disable-line valid-typeof
 				throw new Error("Not a " + vType + " value for '" + sPath + "'");
 			}
@@ -652,6 +695,50 @@ sap.ui.define([
 			_Helper.setPrivateAnnotation(oPlaceholder, "rank", iRank);
 
 			return oPlaceholder;
+		},
+
+		/**
+		 * Drops filter, search, and other stuff from the given query options and recursive
+		 * hierarchy information, then adds the corresponding "$apply" system query option.
+		 *
+		 * @param {object} oAggregation
+		 *   An object holding the information needed for a recursive hierarchy; see
+		 *   {@link sap.ui.model.odata.v4.ODataListBinding#setAggregation}.
+		 * @param {string} [oAggregation.search] - Ignored
+		 * @param {object} mQueryOptions
+		 *   A map of key-value pairs representing the query string; it is not modified
+		 * @param {string} [mQueryOptions.$$filterBeforeAggregate] - Removed from the returned map
+		 * @param {string} [mQueryOptions.$apply] - Replaced in the returned map
+		 * @param {string} [mQueryOptions.$count] - Removed from the returned map
+		 * @param {string} [mQueryOptions.$expand] - Removed from the returned map
+		 * @param {string} [mQueryOptions.$filter] - Removed from the returned map
+		 * @param {string} [mQueryOptions.$orderby] - Removed from the returned map
+		 * @param {string} [mQueryOptions.$select] - Removed from the returned map
+		 * @param {string} [sFilterBeforeAggregate]
+		 *   The value for a filter which identifies a parent node; see
+		 *   {@link #buildApply4Hierarchy}
+		 * @returns {object}
+		 *   A map of key-value pairs representing the query string, including a value for the
+		 *   "$apply" system query option; it is a modified copy of <code>mQueryOptions</code>, with
+		 *   values changed as described above
+		 */
+		dropFilter : function (oAggregation, mQueryOptions, sFilterBeforeAggregate) {
+			oAggregation = {...oAggregation};
+			delete oAggregation.search;
+
+			mQueryOptions = {...mQueryOptions};
+			delete mQueryOptions.$count;
+			delete mQueryOptions.$expand;
+			delete mQueryOptions.$filter;
+			delete mQueryOptions.$orderby;
+			delete mQueryOptions.$select;
+			if (sFilterBeforeAggregate) {
+				mQueryOptions.$$filterBeforeAggregate = sFilterBeforeAggregate;
+			} else {
+				delete mQueryOptions.$$filterBeforeAggregate;
+			}
+
+			return _AggregationHelper.buildApply4Hierarchy(oAggregation, mQueryOptions);
 		},
 
 		/**
@@ -733,6 +820,44 @@ sap.ui.define([
 		},
 
 		/**
+		 * Finds the index of the previous sibling within the given list of elements (which is meant
+		 * to contain different levels), starting from an original node at the given index.
+		 *
+		 * @param {object[]} aElements - A list of elements with possible holes
+		 * @param {number} iIndex - The original node's index within list of elements
+		 * @returns {number}
+		 *   The previous sibling's index, or -1 if there is no previous sibling for sure, or
+		 *   <code>undefined</code> if we cannot tell
+		 *
+		 * @public
+		 */
+		findPreviousSiblingIndex : function (aElements, iIndex) {
+			let bHole;
+			const iLevel = aElements[iIndex]["@$ui5.node.level"];
+			for (let iSibling = iIndex - 1; iSibling >= 0; iSibling -= 1) {
+				const oCandidate = aElements[iSibling];
+				if (!oCandidate) {
+					bHole = true;
+					continue; // skip holes
+				}
+				if (oCandidate["@$ui5.node.level"] < iLevel) {
+					break; // sibling missed or no such sibling
+				}
+				if (oCandidate["@$ui5.node.level"] > iLevel) {
+					continue; // ignore descendants
+				}
+				// else: same level
+				if (iSibling + _Helper.getPrivateAnnotation(oCandidate, "descendants", 0)
+						=== iIndex - 1) {
+					return iSibling; // sibling found
+				}
+				break; // sibling missed (implies bHole)
+			}
+
+			return bHole ? undefined : -1;
+		},
+
+		/**
 		 * Returns an unsorted list of all aggregatable or groupable properties, including units.
 		 *
 		 * @param {object} oAggregation
@@ -758,15 +883,12 @@ sap.ui.define([
 			});
 
 			aGroups.forEach(function (sGroup) {
-				var aAdditionally = oAggregation.group[sGroup].additionally;
-
-				if (aAdditionally) {
-					aAdditionally.forEach(function (sAdditionally) {
+				oAggregation.group[sGroup].additionally
+					?.forEach(function (sAdditionally) {
 						aAllProperties.push(sAdditionally.includes("/")
 							? sAdditionally.split("/")
 							: sAdditionally);
 					});
-				}
 			});
 
 			return aAllProperties;
@@ -853,8 +975,7 @@ sap.ui.define([
 			 */
 			function isUsedFor(sName, sGroup) {
 				return sName === sGroup
-					|| oAggregation.group[sGroup].additionally
-					&& oAggregation.group[sGroup].additionally.includes(sName);
+					|| oAggregation.group[sGroup].additionally?.includes(sName);
 			}
 
 			if (sOrderby) {
@@ -912,6 +1033,97 @@ sap.ui.define([
 		},
 
 		/**
+		 * Creates the query options for requesting the data (all required $selects for UI) of
+		 * out-of-place nodes. The result is also used to check whether they still have the same
+		 * parent (resp. still are root).
+		 *
+		 * @param {object} oOutOfPlace
+		 *   Out-of-place node information containing key filters
+		 * @param {object} oAggregation
+		 *   An object holding the information needed for data aggregation; see {@link .buildApply}
+		 * @param {object} mQueryOptions
+		 *   A map of key-value pairs representing the query string; it is not modified
+		 * @returns {object}
+		 *   The created query options
+		 *
+		 * @public
+		 */
+		getQueryOptionsForOutOfPlaceNodesData : function (oOutOfPlace, oAggregation,
+				mQueryOptions) {
+			oAggregation = Object.assign({}, oAggregation);
+			oAggregation.expandTo = 1;
+			delete oAggregation.search;
+			delete oAggregation.$ExpandLevels;
+			mQueryOptions = Object.assign({}, mQueryOptions);
+			if (oOutOfPlace.parentFilter) {
+				// with $$filterBeforeAggregate the data is requested with descendants(...) instead
+				// of TopLevels(...)
+				mQueryOptions.$$filterBeforeAggregate = oOutOfPlace.parentFilter;
+			}
+			// count/filter/sorter are not relevant for the data request
+			delete mQueryOptions.$count;
+			delete mQueryOptions.$filter;
+			delete mQueryOptions.$orderby;
+			mQueryOptions = _AggregationHelper.buildApply(oAggregation, mQueryOptions, 1);
+			const aNodeFilters = oOutOfPlace.nodeFilters.slice().sort();
+			mQueryOptions.$filter = aNodeFilters.join(" or ");
+			mQueryOptions.$top = aNodeFilters.length;
+			const iDrillStateIndex = mQueryOptions.$select.indexOf(oAggregation.$DrillState);
+			if (iDrillStateIndex >= 0) {
+				mQueryOptions.$select.splice(iDrillStateIndex, 1);
+			}
+
+			return mQueryOptions;
+		},
+
+		/**
+		 * Creates the query options for requesting the rank of all out-of-place nodes and their
+		 * parents based on the current hierarchy transformation.
+		 *
+		 * @param {object[]} aOutOfPlaceByParent
+		 *   Out-of-place node information containing key filters grouped by parent
+		 * @param {object} oAggregation
+		 *   An object holding the information needed for data aggregation; see {@link .buildApply}
+		 * @param {object} mQueryOptions
+		 *   A map of key-value pairs representing the query string; it is not modified
+		 * @returns {object}
+		 *   The created query options
+		 *
+		 * @public
+		 */
+		getQueryOptionsForOutOfPlaceNodesRank : function (aOutOfPlaceByParent, oAggregation,
+				mQueryOptions) {
+			const oNodeFilters = new Set();
+			aOutOfPlaceByParent.forEach(function (oOutOfPlace) {
+				if (oOutOfPlace.parentFilter) {
+					oNodeFilters.add(oOutOfPlace.parentFilter);
+				}
+				oOutOfPlace.nodeFilters.forEach(function (sNodeFilter) {
+					oNodeFilters.add(sNodeFilter);
+				});
+			});
+			const aSelect = [
+				oAggregation.$DistanceFromRoot,
+				oAggregation.$DrillState,
+				oAggregation.$LimitedRank
+			];
+			if (oAggregation.$LimitedDescendantCount) {
+				aSelect.push(oAggregation.$LimitedDescendantCount);
+			}
+			mQueryOptions = Object.assign({}, mQueryOptions, {
+				$filter : [...oNodeFilters].sort().join(" or "),
+				$select : aSelect,
+				$top : oNodeFilters.size
+			});
+			delete mQueryOptions.$count;
+			delete mQueryOptions.$orderby;
+			_Helper.selectKeyProperties(mQueryOptions,
+				oAggregation.$fetchMetadata(oAggregation.$metaPath + "/").getResult());
+
+			return mQueryOptions;
+		},
+
+		/**
 		 * Tells whether grand total values are needed for at least one aggregatable property.
 		 *
 		 * @param {object} [mAggregate]
@@ -948,7 +1160,7 @@ sap.ui.define([
 		},
 
 		/**
-		 * Tells whether the binding with the given aggregation data and filters is affected when
+		 * Tells whether a binding with the given aggregation data and filters is affected when
 		 * requesting side effects for the given paths.
 		 *
 		 * @param {object} oAggregation
@@ -964,38 +1176,39 @@ sap.ui.define([
 		 * @public
 		 */
 		isAffected : function (oAggregation, aFilters, aSideEffectPaths) {
-			// returns true if the side effect path affects the property path
-			function affects(sSideEffectPath, sPropertyPath) {
-				if (sSideEffectPath.endsWith("/*")) {
+			return aSideEffectPaths.some(function (sSideEffectPath) {
+				// returns true if the mandatory property path is affected by the side effect path
+				function isAffected(sPropertyPath) {
 					// To avoid metadata access, we do not distinguish between properties and
 					// navigation properties, so there is no need to look at "/*".
-					sSideEffectPath = sSideEffectPath.slice(0, -2);
+					return _Helper.hasPathPrefix(sPropertyPath, sSideEffectPath.endsWith("/*")
+							? sSideEffectPath.slice(0, -2)
+							: sSideEffectPath)
+						|| _Helper.hasPathPrefix(sSideEffectPath, sPropertyPath);
 				}
-				return _Helper.hasPathPrefix(sPropertyPath, sSideEffectPath)
-					|| _Helper.hasPathPrefix(sSideEffectPath, sPropertyPath);
-			}
 
-			// returns true if the array contains a filter affected by the side effect path
-			function hasAffectedFilter(sSideEffectPath, aFilters0) {
-				return aFilters0.some(function (oFilter) {
-					return oFilter.aFilters
-						? hasAffectedFilter(sSideEffectPath, oFilter.aFilters)
-						: affects(sSideEffectPath, oFilter.sPath);
-				});
-			}
-
-			return aSideEffectPaths.some(function (sSideEffectPath) {
-				var fnAffects = affects.bind(null, sSideEffectPath);
+				// returns true if the array contains a filter affected by the side effect path
+				function hasAffectedFilter(aFilters0) {
+					return aFilters0.some(function (oFilter) {
+						return oFilter.getFilters()
+							? hasAffectedFilter(oFilter.getFilters())
+							: isAffected(oFilter.getPath());
+					});
+				}
 
 				return sSideEffectPath === "" || sSideEffectPath === "*"
-					|| Object.keys(oAggregation.aggregate).some(function (sAlias) {
-							var oDetails = oAggregation.aggregate[sAlias];
+					|| hasAffectedFilter(aFilters)
+					|| Object.keys(oAggregation.aggregate).some((sAlias) => {
+						const oDetails = oAggregation.aggregate[sAlias];
 
-							return affects(sSideEffectPath, oDetails.name || sAlias);
-						})
-					|| Object.keys(oAggregation.group).some(fnAffects)
-					|| oAggregation.groupLevels.some(fnAffects)
-					|| hasAffectedFilter(sSideEffectPath, aFilters);
+						return isAffected(oDetails.name || sAlias)
+							|| oDetails.unit && isAffected(oDetails.unit);
+					})
+					|| Object.keys(oAggregation.group).some((sGroup) => {
+						return isAffected(sGroup)
+							|| oAggregation.group[sGroup].additionally
+								?.some((sPath) => isAffected(sPath));
+					});
 			});
 		},
 
@@ -1029,7 +1242,7 @@ sap.ui.define([
 
 		/**
 		 * Sets the "@$ui5.node.*" annotations for the given element as indicated and adds
-		 * <code>null</code> values for all missing properties.
+		 * "...@$ui5.noData" annotations for all missing properties.
 		 *
 		 * @param {object} oElement
 		 *   Any node or leaf element
@@ -1055,7 +1268,8 @@ sap.ui.define([
 					if (Array.isArray(vProperty)) {
 						_Helper.createMissing(oElement, vProperty);
 					} else if (!(vProperty in oElement)) {
-						oElement[vProperty] = null;
+						oElement[vProperty] = undefined;
+						oElement[vProperty + "@$ui5.noData"] = true;
 					}
 				});
 			}
@@ -1081,8 +1295,7 @@ sap.ui.define([
 
 		/**
 		 * Splits a filter depending on the aggregation information into an array that consists of
-		 * two filters, one that must be applied after and one that must be applied before
-		 * aggregating the data.
+		 * three filters, depending on how they are related to data aggregation.
 		 *
 		 * @param {sap.ui.model.Filter} oFilter
 		 *   The filter object that is split
@@ -1090,43 +1303,69 @@ sap.ui.define([
 		 *   An object holding the information needed for data aggregation;
 		 *   (see {@link .buildApply}).
 		 * @returns {sap.ui.model.Filter[]}
-		 *   An array that consists of two filters, the first one has to be applied after and the
-		 *   second one has to be applied before aggregating the data. Both can be
-		 *   <code>undefined</code>.
+		 *   An array that consists of three filters where each can be <code>undefined</code>. The
+		 *   first one has to be applied after data aggregation. The second one can simply be
+		 *   applied before data aggregation (which improves performance) because it is unrelated to
+		 *   aggregates. The third one is special in that it has to be applied before data
+		 *   aggregation via the special syntax "$these/aggregate(...)" because it relates to
+		 *   aggregates; it is present only in case of visual grouping or if grand totals are used,
+		 *   but "grandTotal like 1.84" is not. If the third one is present, then there is an
+		 *   additional fourth element which again is an array of filters: those exceptions where
+		 *   the special syntax is not applicable (for example, a currency filter that accompanies
+		 *   its amount).
 		 *
 		 * @public
 		 */
 		splitFilter : function (oFilter, oAggregation) {
-			var aFiltersAfterAggregate = [],
-				aFiltersBeforeAggregate = [];
+			var aFiltersNoAggregate = [],
+				aFiltersNoThese = [],
+				aFiltersOnAggregate = [];
 
 			/*
-			 * Tells whether the given filter must be applied after aggregating data
+			 * Tells whether the given filter relates to an aggregate.
 			 *
 			 * @param {sap.ui.model.Filter} oFilter
 			 *   A filter
 			 * @returns {boolean}
-			 *   Whether the filter must be applied after aggregating
+			 *   Whether the filter relates to an aggregate
 			 */
-			function isAfter(oFilter) {
-				return oFilter.aFilters
-					? oFilter.aFilters.some(isAfter)
-					: oFilter.sPath in oAggregation.aggregate;
+			function isRelatedToAggregate(oFilter0) {
+				return oFilter0.getFilters()
+					? oFilter0.getFilters().some(isRelatedToAggregate)
+					: oFilter0.getPath() in oAggregation.aggregate;
+			}
+
+			/*
+			 * Tells whether the given filter path relates to an aggregate's unit.
+			 *
+			 * @param {string} sPath
+			 *   A filter's path (must not be <code>undefined</code>!)
+			 * @returns {boolean}
+			 *   Whether the filter path relates to an aggregate's unit
+			 */
+			function isRelatedToUnit(sPath) {
+				return Object.keys(oAggregation.aggregate).some((sAlias) => {
+						return oAggregation.aggregate[sAlias].unit === sPath;
+					});
 			}
 
 			/*
 			 * Splits the given filter tree along AND operations into filters that must be applied
-			 * after and filters that must be applied before aggregating the data.
+			 * with or without "$these/aggregate(...)".
 			 *
 			 * @param {sap.ui.model.Filter} oFilter
 			 *   A filter
 			 */
-			function split(oFilter) {
-				if (oFilter.aFilters && oFilter.bAnd) {
-					oFilter.aFilters.forEach(split);
+			function split(oFilter0) {
+				if (oFilter0.getFilters() && oFilter0.isAnd()) {
+					oFilter0.getFilters().forEach(split);
+				} else if (oFilter0.getPath() && isRelatedToUnit(oFilter0.getPath())) {
+					aFiltersNoAggregate.push(oFilter0);
+					aFiltersNoThese.push(oFilter0); // avoid "$these/..." here
+					aFiltersOnAggregate.push(oFilter0);
 				} else {
-					(isAfter(oFilter) ? aFiltersAfterAggregate : aFiltersBeforeAggregate)
-						.push(oFilter);
+					(isRelatedToAggregate(oFilter0) ? aFiltersOnAggregate : aFiltersNoAggregate)
+						.push(oFilter0);
 				}
 			}
 
@@ -1142,13 +1381,25 @@ sap.ui.define([
 				return aFilters.length > 1 ? new Filter(aFilters, true) : aFilters[0];
 			}
 
-			if (!oAggregation || !oAggregation.aggregate) {
+			if (!oAggregation?.aggregate) {
+				// no data aggregation at all
 				return [oFilter];
+			}
+			if (!oAggregation.$leafLevelAggregated) {
+				// no data aggregation on leaf level (all keys used for grouping)
+				return [undefined, oFilter];
 			}
 
 			split(oFilter);
+			let aResult = [wrap(aFiltersOnAggregate), wrap(aFiltersNoAggregate)];
 
-			return [wrap(aFiltersAfterAggregate), wrap(aFiltersBeforeAggregate)];
+			if (oAggregation.groupLevels.length
+					|| !oAggregation["grandTotal like 1.84"]
+					&& _AggregationHelper.hasGrandTotal(oAggregation.aggregate)) {
+				aResult = [undefined, aResult[1], aResult[0], aFiltersNoThese];
+			}
+
+			return aResult;
 		},
 
 		/**

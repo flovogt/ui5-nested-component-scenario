@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /*eslint-disable max-len */
@@ -9,13 +9,13 @@
 sap.ui.define([
 	"./_AnnotationHelperBasics",
 	"sap/base/Log",
+	"sap/base/i18n/date/CalendarType",
 	"sap/ui/base/BindingParser",
 	"sap/ui/base/ManagedObject",
-	"sap/ui/core/CalendarType",
 	"sap/ui/core/format/DateFormat",
 	"sap/ui/model/odata/ODataUtils",
 	"sap/ui/performance/Measurement"
-], function (Basics, Log, BindingParser, ManagedObject, CalendarType, DateFormat, ODataUtils,
+], function (Basics, Log, CalendarType, BindingParser, ManagedObject, DateFormat, ODataUtils,
 		Measurement) {
 	'use strict';
 

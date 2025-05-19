@@ -1,15 +1,16 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
 // Provides mixin sap.ui.model.odata.type.UnitMixin supporting unit customizing for types like
 // sap.ui.model.odata.type.Currency or sap.ui.model.odata.type.Unit
 sap.ui.define([
+	"sap/ui/core/Lib",
 	"sap/ui/model/ParseException",
 	"sap/ui/model/ValidateException"
-], function (ParseException, ValidateException) {
+], function(Library, ParseException, ValidateException) {
 	"use strict";
 
 	var mCodeList2CustomUnits = new Map(),
@@ -28,7 +29,7 @@ sap.ui.define([
 	 *   The message
 	 */
 	function getText(sKey, aParams) {
-		return sap.ui.getCore().getLibraryResourceBundle().getText(sKey, aParams);
+		return Library.getResourceBundleFor("sap.ui.core").getText(sKey, aParams);
 	}
 
 	/**
@@ -289,18 +290,30 @@ sap.ui.define([
 		 *   Whether the amount or measure is parsed if no currency or unit is entered; defaults to
 		 *   <code>true</code> if neither <code>showMeasure</code> nor <code>showNumber</code> is
 		 *   set to a falsy value, otherwise defaults to <code>false</code>
-		 * @param {any} [oFormatOptions.emptyString=0]
-		 *   Defines how an empty string is parsed into the amount/measure. With the default value
-		 *   <code>0</code> the amount/measure becomes <code>0</code> when an empty string is
-		 *   parsed.
+		 * @param {any} [oFormatOptions.emptyString=0|""]
+		 *   Defines which value to use if an empty string is parsed.
+		 *   <ul>
+		 *     <li> If the formatted value contains the amount/measure, <code>0</code> is used as
+		 *       the default amount/measure when an empty string is parsed.</li>
+		 *     <li> If the formatted value contains only the currency/unit because the
+		 *       <code>showNumber</code> format option is set to <code>false</code>, <code>""</code>
+		 *       (empty string) is used as the default currency/unit when an empty string is parsed.
+		 *     </li>
+		 *   </ul>
 		 * @param {object} [oConstraints]
 		 *   Only the 'skipDecimalsValidation' constraint is supported. Constraints are immutable,
 		 *   that is, they can only be set once on construction.
 		 * @param {boolean} [oConstraints.skipDecimalsValidation=false]
 		 *   Whether to skip validation of the number of decimals based on the code list
 		 *   customizing; since 1.93.0
-		 * @throws {Error} If called with more parameters than <code>oFormatOptions</code> or if the
-		 *   format option <code>sFormatOptionName</code> is set
+		 * @throws {Error}
+		 *   If
+		 *   <ul>
+		 *     <li>More parameters than <code>oFormatOptions</code> and <code>oConstraints</code> are given</li>
+		 *     <li>The <code>customCurrencies</code> or <code>customUnits</code> format option is set; the name is
+		 *       provided via <code>sFormatOptionName</code> when applying the <code>UnitMixin</code></li>
+		 *     <li>Any constraint other than <code>skipDecimalsValidation</code> is set</li>
+		 *   </ul>
 		 *
 		 * @alias sap.ui.model.odata.type.UnitMixin
 		 * @mixin
@@ -322,14 +335,13 @@ sap.ui.define([
 				throw new Error("Only parameters oFormatOptions and oConstraints are supported");
 			}
 
+			const bShowNumber = !oFormatOptions || !("showNumber" in oFormatOptions) || oFormatOptions["showNumber"];
+			const bShowMeasure = !oFormatOptions || !("showMeasure" in oFormatOptions) || oFormatOptions["showMeasure"];
 			// format option preserveDecimals is set in the base type
 			oFormatOptions = Object.assign({
-					emptyString: 0,
+					emptyString: bShowNumber ? 0 : "",
 					parseAsString : true,
-					unitOptional : !oFormatOptions
-						|| ["showMeasure", "showNumber"].every(function (sOption) {
-							return !(sOption in oFormatOptions) || oFormatOptions[sOption];
-						})
+					unitOptional : bShowNumber && bShowMeasure
 				}, oFormatOptions);
 
 			oConstraints = Object.assign({}, oConstraints);

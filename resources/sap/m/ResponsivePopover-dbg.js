@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -63,7 +63,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.120.30
+	 * @version 1.136.0
 	 *
 	 * @constructor
 	 * @public
@@ -145,9 +145,7 @@ sap.ui.define([
 
 				/**
 				 * Whether resize option is enabled.
-				 * @experimental since 1.36.4 Do not use directly on ResponsivePopover while in experimental mode!
 				 * @since 1.36.4
-				 * @private
 				 */
 				resizable: {type: "boolean", group: "Dimension", defaultValue: false},
 
@@ -187,6 +185,12 @@ sap.ui.define([
 				 * EndButton is supported by both variants. It is always show in the right part (left part in RTL mode) of the footer which is located at the bottom of the ResponsivePopover. If buttons need to be displayed in header, please use customHeader instead.
 				 */
 				endButton : {type : "sap.m.Button", multiple : false},
+
+				/**
+				 * The footer of this popover.
+				 * @since 1.129
+				 */
+				footer: {type: "sap.m.Toolbar", multiple: false},
 
 				/**
 				 * The internal popup instance which is either a dialog on phone or a popover on the rest of platforms

@@ -1,6 +1,6 @@
 /*!
 * OpenUI5
- * (c) Copyright 2009-2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2025 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
 */
 sap.ui.define([
@@ -52,6 +52,11 @@ sap.ui.define([
 		"3Q" : "en-US-x-saprigi"
 	};
 
+	/**
+	 * This mapping converts the old ISO639 codes into the corresponding language code used by ABAP systems,
+	 * particularly for processing the Accept-Language header
+	 * @private
+	 */
 	const M_ISO639_OLD_TO_NEW = {
 		"iw" : "he",
 		"ji" : "yi"
@@ -107,12 +112,12 @@ sap.ui.define([
 	/**
 	 * A list of locales for which the CLDR specifies "right-to-left"
 	 * as the character orientation.
+	 * The value of this constant must only be updated by the CLDR generator;
+	 * do not modify it manually.
 	 *
-	 * The string literal below is substituted during the build.
-	 * The value is determined from the CLDR JSON files which are
-	 * bundled with the UI5 runtime.
+	 * @private
 	 */
-	const A_RTL_LOCALES = getDesigntimePropertyAsArray("$cldr-rtl-locales:ar,fa,he$") || [];
+	const A_RTL_LOCALES = ["ar","ar_EG","ar_SA","fa","he"];
 
 	/**
 	 * List of locales for which translated texts have been bundled with the UI5 runtime.
@@ -304,7 +309,7 @@ sap.ui.define([
 		 *                                    represented as en-US with a private extension
 		 * </pre>
 		 *
-		 * Call {@link moduel:sap/base/i18n/Localization.getLanguageTag getLanguageTag} to get a
+		 * Call {@link module:sap/base/i18n/Localization.getLanguageTag getLanguageTag} to get a
 		 * {@link module:sap/base/i18n/LanguageTag LanguageTag} object matching the language.
 		 * For a normalized BCP47 tag, call {@link module:sap/base/i18n/LanguageTag.toString toString()}
 		 * on the returned <code>LanguageTag</code>
@@ -522,7 +527,7 @@ sap.ui.define([
 		/**
 		 * Returns a LanguageTag object for the current language.
 		 *
-		 * The LanguageTag is derived from {@link modue:sap/base/i18n/Localization.getLanguage Localization.getLanguage}.
+		 * The LanguageTag is derived from {@link module:sap/base/i18n/Localization.getLanguage Localization.getLanguage}.
 		 *
 		 * @returns {module:sap/base/i18n/LanguageTag} The LanguageTag
 		 * @public
@@ -698,7 +703,6 @@ sap.ui.define([
 		 * Might return undefined if the information is not available.
 		 *
 		 * @returns {string[]|undefined} List of Languages delivered with core
-		 * @experimental
 		 * @private
 		 * @ui5-restricted sap.ui.core
 		 * @since 1.120.0
@@ -709,7 +713,6 @@ sap.ui.define([
 
 		/**
 		 * @returns {string[]} List of supported languages
-		 * @experimental
 		 * @private
 		 * @ui5-restricted sap.ui.core
 		 * @since 1.120.0

@@ -1,1 +1,1 @@
-{"version":3,"file":"App.controller.js","names":["sap","ui","define","Controller","extend"],"sources":["App-dbg.controller.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,CAAC,qCAAuCC,IACrD,aACA,OAAOA,EAAWC,OAAO,yCAA0C,CACnE,EAAE","ignoreList":[]}
+{"version":3,"file":"App.controller.js","names":["sap","ui","define","Controller","extend"],"sources":["App-dbg.controller.js"],"mappings":"AAAAA,IAAIC,GAAGC,OAAO,CAAC,qCAAuCC,IACrD,aACA,OAAOA,EAAWC,OAAO,yCAA0C,CACnE","ignoreList":[]}

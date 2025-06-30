@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.MenuItem
 	 *
 	 * @author SAP SE
-	 * @version 1.136.0
+	 * @version 1.136.1
 	 *
 	 * @constructor
 	 * @private

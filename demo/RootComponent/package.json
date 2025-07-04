@@ -4,13 +4,12 @@
   "version": "0.0.1",
   "description": "This is the root component including components",
   "scripts": {
-    "start": "ui5 serve",
     "build": "ui5 build -a --clean-dest",
+    "lint": "eslint webapp && ui5lint",
     "serve": "ws --compress -d dist",
-    "test": "rimraf coverage && npm run karma-ci",
-    "lint": "eslint webapp",
-    "karma": "karma start",
-    "karma-ci": "karma start karma-ci.conf.js"
+    "start": "ui5 serve",
+    "test": "npm run lint && npm run test-runner",
+    "test-runner": "ui5-test-runner --url http://localhost:8080/test/testsuite.qunit.html --start start --start-timeout 30000 --coverage -ccb 100 -ccf 100 -ccl 100 -ccs 100"
   },
   "repository": {
     "type": "git",
@@ -31,18 +30,15 @@
     "my-lib-sample-products-component": "^0.0.1"
   },
   "devDependencies": {
-    "eslint": "^9.25.0",
+    "@eslint/js": "^9.30.1",
+    "eslint": "^9.30.1",
     "@ui5/cli": "^4.0.14",
+    "@ui5/linter": "^1.16.0",
+		"@ui5/middleware-code-coverage": "^2.0.1",
+    "globals": "^16.3.0",
     "local-web-server": "^5.4.0",
-    "karma": "^6.4.4",
-    "karma-coverage": "^2.2.1",
-    "karma-chrome-launcher": "^3.2.0",
-    "karma-ui5": "^4.1.0",
+    "ui5-test-runner": "^5.8.1",
     "rimraf": "^6.0.1"
-  },
-  "engines": {
-    "node": "^16.18.0 || >=18.12.0",
-    "npm": ">= 8"
   },
   "author": "Jiawei Cao, Florian Vogt",
   "license": "Apache-2.0"

@@ -1,2 +1,2 @@
-QUnit.config.autostart=false;sap.ui.getCore().attachInit(()=>{"use strict";sap.ui.require(["my/lib/sample/root/test/unit/AllTests"],()=>{QUnit.start()})});
+sap.ui.define(["./base/BaseController"]);
 //# sourceMappingURL=unitTests.qunit.js.map

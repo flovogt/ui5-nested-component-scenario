@@ -1,2 +1,2 @@
-sap.ui.define(["../localService/mockserver"],e=>{"use strict";const a=[];a.push(e.init());Promise.all(a).catch(async e=>{await sap.ui.getCore().loadLibrary("sap.m",{async:true});sap.ui.require(["sap/m/MessageBox"],a=>{a.error(e.message)})}).finally(()=>{sap.ui.require(["sap/ui/core/ComponentSupport"])})});
+sap.ui.define(["../localService/mockserver","sap/ui/core/Lib"],(e,a)=>{"use strict";const s=[];s.push(e.init());Promise.all(s).catch(async e=>{await a.load({name:"sap.m"});sap.ui.require(["sap/m/MessageBox"],a=>{a.error(e.message)})}).finally(()=>{sap.ui.require(["sap/ui/core/ComponentSupport"])})});
 //# sourceMappingURL=initMockServer.js.map

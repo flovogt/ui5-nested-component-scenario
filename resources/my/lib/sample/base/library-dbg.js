@@ -1,9 +1,12 @@
-sap.ui.define(() => {
+sap.ui.define([
+	"sap/ui/core/Lib"
+], (Library) => {
 
 	"use strict";
 
-	sap.ui.getCore().initLibrary({
+	return Library.init({
 		name : "my.lib.sample.base",
+		apiVersion: 2,
 		// eslint-disable-next-line no-template-curly-in-string
 		version : "0.0.1",
 		noLibraryCSS: true,
@@ -11,6 +14,4 @@ sap.ui.define(() => {
 		controls : [ ],
 		types : [ ]
 	});
-	// eslint-disable-next-line no-undef
-	return my.lib.sample.base;
 });

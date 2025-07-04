@@ -1,2 +1,2 @@
-sap.ui.define(()=>{"use strict";sap.ui.getCore().initLibrary({name:"my.lib.sample.base",version:"0.0.1",noLibraryCSS:true,dependencies:["sap.ui.core"],controls:[],types:[]});return my.lib.sample.base});
+sap.ui.define(["sap/ui/core/Lib"],e=>{"use strict";return e.init({name:"my.lib.sample.base",apiVersion:2,version:"0.0.1",noLibraryCSS:true,dependencies:["sap.ui.core"],controls:[],types:[]})});
 //# sourceMappingURL=library.js.map

@@ -1,5 +1,4 @@
 /*global QUnit*/
-/* eslint-disable no-undefined */
 
 sap.ui.define([
 	"my/lib/sample/base/BaseController"

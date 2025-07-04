@@ -1,12 +1,36 @@
-/* eslint-disable no-undef, new-cap */
-window.suite = () => {
+sap.ui.define(function () {
 	"use strict";
-
-	const oSuite = new parent.jsUnitTestSuite(),
-		sContextPath = location.pathname.substring(0, location.pathname.lastIndexOf("/") + 1);
-
-	oSuite.addTestPage(`${sContextPath  }unit/unitTests.qunit.html`);
-	oSuite.addTestPage(`${sContextPath  }integration/opaTests.qunit.html`);
-
-	return oSuite;
-};
+	return {
+		name: "QUnit test suite for RootComponent",
+		defaults: {
+			page: "ui5://test-resources/my/lib/sample/root/Test.qunit.html?testsuite={suite}&test={name}",
+			qunit: {
+				version: 2
+			},
+			sinon: {
+				version: 4
+			},
+			ui5: {
+				language: "EN",
+				theme: "sap_horizon"
+			},
+			coverage: {
+				only: "my/lib/sample/root/",
+				never: "test-resources/my/lib/sample/root/"
+			},
+			loader: {
+				paths: {
+					"my/lib/sample/root": "../"
+				}
+			}
+		},
+		tests: {
+			"unit/unitTests": {
+				title: "Unit tests for RootComponent"
+			},
+			"integration/opaTests": {
+				title: "Integration tests for RootComponent"
+			}
+		}
+	};
+});

@@ -1,9 +1,8 @@
 sap.ui.define([
 	"sap/ui/core/util/MockServer",
 	"sap/ui/model/json/JSONModel",
-	"sap/base/Log",
-	"sap/base/util/UriParameters"
-], (MockServer, JSONModel, Log, UriParameters) => {
+	"sap/base/Log"
+], (MockServer, JSONModel, Log) => {
 	"use strict";
 
 
@@ -30,7 +29,7 @@ sap.ui.define([
 					oManifestModel = new JSONModel(sManifestUrl);
 
 				oManifestModel.attachRequestCompleted(() =>  {
-					const oUriParameters = new UriParameters(window.location.href),
+					const oSearchParams = new URLSearchParams(window.location.search),
 						// Parse manifest for local metadata URI
 						sJsonFilesUrl = sap.ui.require.toUrl(sJsonFilesPath),
 						oMainDataSource = oManifestModel.getProperty("/sap.app/dataSources/mainService"),
@@ -50,7 +49,7 @@ sap.ui.define([
 					// Configure mock server with the given options or a default delay of 0.5s
 					MockServer.config({
 						autoRespond : true,
-						autoRespondAfter : (oOptions.delay || oUriParameters.get("serverDelay") || 500)
+						autoRespondAfter : (oOptions.delay || oSearchParams.get("serverDelay") || 500)
 					});
 
 					// Simulate all requests using mock data
@@ -69,7 +68,7 @@ sap.ui.define([
 					};
 
 					// Simulate metadata errors
-					if (oOptions.metadataError || oUriParameters.get("metadataError")) {
+					if (oOptions.metadataError || oSearchParams.get("metadataError")) {
 						aRequests.forEach((aEntry) => {
 							if (aEntry.path.toString().indexOf("$metadata") > -1) {
 								fnResponse(500, "metadata Error", aEntry);
@@ -78,7 +77,7 @@ sap.ui.define([
 					}
 
 					// Simulate request errors
-					const sErrorParam = oOptions.errorType || oUriParameters.get("errorType"),
+					const sErrorParam = oOptions.errorType || oSearchParams.get("errorType"),
 						iErrorCode = sErrorParam === "badRequest" ? 400 : 500;
 					if (sErrorParam) {
 						aRequests.forEach((aEntry) => {

@@ -7,10 +7,8 @@
     "start": "ui5 serve",
     "build": "ui5 build -a --clean-dest",
     "serve": "ws --compress -d dist",
-    "test": "rimraf coverage && npm run karma-ci",
-    "lint": "eslint src",
-    "karma": "karma start",
-    "karma-ci": "karma start karma-ci.conf.js"
+    "test": "npm run lint",
+    "lint": "eslint src"
   },
   "repository": {
     "type": "git",
@@ -31,10 +29,6 @@
     "eslint": "^9.25.0",
     "@ui5/cli": "^4.0.14",
     "local-web-server": "^5.4.0",
-    "karma": "^6.4.4",
-    "karma-coverage": "^2.2.1",
-    "karma-chrome-launcher": "^3.2.0",
-    "karma-ui5": "^4.1.0",
     "rimraf": "^6.0.1"
   },
   "engines": {

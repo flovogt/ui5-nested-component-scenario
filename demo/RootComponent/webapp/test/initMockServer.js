@@ -1,6 +1,7 @@
 sap.ui.define([
-	"../localService/mockserver"
-], (mockserver) => {
+	"../localService/mockserver",
+	"sap/ui/core/Lib"
+], (mockserver, Library) => {
 	"use strict";
 
 	const aMockservers = [];
@@ -9,7 +10,7 @@ sap.ui.define([
 	aMockservers.push(mockserver.init());
 
 	Promise.all(aMockservers).catch(async (oError) => {
-		await sap.ui.getCore().loadLibrary("sap.m", { async: true });
+		await Library.load({name: "sap.m"});
 		sap.ui.require(["sap/m/MessageBox"], (MessageBox) => {
 			MessageBox.error(oError.message);
 		});

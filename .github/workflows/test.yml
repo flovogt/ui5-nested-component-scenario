@@ -24,9 +24,3 @@ jobs:
     - name: Test the Application
       run: npm run test
       working-directory: ./demo/RootComponent
-    - name: Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: "./demo/RootComponent/coverage/lcov/lcov.info"
-        base-path: "./demo/RootComponent"

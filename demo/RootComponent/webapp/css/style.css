@@ -1,13 +1,16 @@
 li.sapTntNavLIItemSelected[id$="suppliersItem"] > div.sapTntNavLIItem {
-	background-color: antiquewhite;
+	background: #30914C;
+	background: radial-gradient(circle, rgba(48, 145, 76, 1) 0%, rgba(255, 164, 44, 0.79) 66%, rgba(231, 193, 0, 1) 100%);
 }
 
 li.sapTntNavLIItemSelected[id$="categoriesItem"] > div.sapTntNavLIItem {
-	background-color: aquamarine;
+	background: #FF5D17;
+	background: linear-gradient(298deg, rgba(255, 93, 23, 1) 0%, rgba(186, 6, 108, 1) 50%, rgba(231, 193, 0, 1) 100%);
 }
 
 li.sapTntNavLIItemSelected[id$="productsItem"] > div.sapTntNavLIItem {
-	background-color: lightblue;
+	background: #FFA42C;
+	background: linear-gradient(141deg, rgba(255, 164, 44, 1) 0%, rgba(231, 101, 0, 1) 50%, rgba(231, 193, 0, 1) 100%);
 }
 
 .maxWidth100 {

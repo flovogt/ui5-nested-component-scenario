@@ -1,3 +1,4 @@
 .productsPage {
-	background-color: lightblue;
+	background: #FFA42C;
+	background: linear-gradient(141deg, rgba(255, 164, 44, 1) 0%, rgba(231, 101, 0, 1) 50%, rgba(231, 193, 0, 1) 100%);
 }

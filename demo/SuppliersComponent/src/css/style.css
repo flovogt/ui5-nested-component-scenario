@@ -1,3 +1,4 @@
 .suppliersPage {
-	background-color: antiquewhite;
+	background: #30914C;
+	background: radial-gradient(circle, rgba(48, 145, 76, 1) 0%, rgba(255, 164, 44, 0.79) 66%, rgba(231, 193, 0, 1) 100%);
 }

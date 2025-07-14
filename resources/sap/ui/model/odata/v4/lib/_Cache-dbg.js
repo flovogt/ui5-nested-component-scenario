@@ -1323,6 +1323,22 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns this cache's query options corresponding to the given path (already cloned!) as
+	 * suitable for a single-entity GET request.
+	 *
+	 * @param {string} sPath
+	 *   The entity collection's path within this cache, may be <code>""</code>
+	 * @returns {object|undefined} The query options as a clone, if any
+	 *
+	 * @protected
+	 * @see #getQueryOptions
+	 * @see #refreshSingle
+	 */
+	_Cache.prototype.getQueryOptions4Single = function (sPath) {
+		return _Helper.clone(_Helper.getQueryOptionsForPath(this.mQueryOptions, sPath));
+	};
+
+	/**
 	 * Gets the cache's resource path.
 	 *
 	 * @returns {string} The resource path
@@ -1485,8 +1501,7 @@ sap.ui.define([
 					&& that.oRequestor.getModelInterface().fetchMetadata(
 						that.sMetaPath + "/@com.sap.vocabularies.Common.v1.Messages/$Path"
 					).getResult(),
-				mQueryOptions = _Helper.clone(
-					_Helper.getQueryOptionsForPath(that.mQueryOptions, sPath)),
+				mQueryOptions = that.getQueryOptions4Single(sPath),
 				sReadUrl;
 
 			if (iIndex >= 0) {
@@ -1820,7 +1835,7 @@ sap.ui.define([
 	 * @param {boolean} [bKeepReportedMessagesPath]
 	 *   Whether <code>this.sReportedMessagesPath</code> should be kept unchanged
 	 *
-	 * @private
+	 * @protected
 	 */
 	_Cache.prototype.replaceElement = function (aElements, iIndex, sPredicate, oElement,
 			mTypeForMetaPath, sPath, bKeepReportedMessagesPath) {
@@ -3208,6 +3223,8 @@ sap.ui.define([
 						const sNewPredicate = this.fixDuplicatePredicate(oElement, sPredicate);
 						if (sNewPredicate) {
 							sPredicate = sNewPredicate;
+							oKeptElement = oElement; // leads to no-op for _Helper.updateNonExisting
+						} else if (iIndex < iStart || iIndex >= iStart + iResultLength) {
 							oKeptElement = oElement; // leads to no-op for _Helper.updateNonExisting
 						} else {
 							throw new Error("Duplicate key predicate: " + sPredicate);

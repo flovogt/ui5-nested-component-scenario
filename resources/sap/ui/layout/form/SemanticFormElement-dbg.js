@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.ui.layout.form.FormElement
 	 *
 	 * @author SAP SE
-	 * @version 1.136.2
+	 * @version 1.136.3
 	 *
 	 * @constructor
 	 * @public

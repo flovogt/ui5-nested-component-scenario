@@ -10,7 +10,7 @@
  * @alias module:sap/base/util/restricted/_flattenDeep
  * @author SAP SE
  * @since 1.80
- * @version 1.136.2
+ * @version 1.136.3
  * @private
  * @ui5-restricted
 */

@@ -94,7 +94,7 @@ sap.ui.define([
 	 * @implements sap.m.ObjectHeaderContainer, sap.f.IDynamicPageStickyContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.2
+	 * @version 1.136.3
 	 *
 	 * @public
 	 * @alias sap.m.IconTabBar

@@ -11,7 +11,7 @@ sap.ui.define(() => {
 
 	/**
 	 * @author SAP SE
-	 * @version 1.136.2
+	 * @version 1.136.3
 	 *
 	 * Creates an event with the given <code>sType</code>,
 	 * linked to the provided <code>oTarget</code> and enriched with the <code>oParameters</code>.

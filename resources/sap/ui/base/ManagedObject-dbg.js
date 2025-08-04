@@ -264,7 +264,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.136.2
+	 * @version 1.136.3
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -1552,7 +1552,7 @@ sap.ui.define([
 			throw new Error("Property \"" + sPropertyName + "\" does not exist in " + this);
 		}
 
-		oType = DataType.getType(oProperty.type);
+		oType = DataType.getType(oProperty.type, oProperty);
 
 		// If property has an array type, clone the array to avoid modification of original data
 		if (oType instanceof DataType && oType.isArrayType() && Array.isArray(oValue)) {
@@ -1601,7 +1601,7 @@ sap.ui.define([
 			throw new Error("Property \"" + sPropertyName + "\" does not exist in " + this);
 		}
 
-		oType = DataType.getType(oProperty.type);
+		oType = DataType.getType(oProperty.type, oProperty);
 
 		// If property has an array type, clone the array to avoid modification of original data
 		if (oType instanceof DataType && oType.isArrayType() && Array.isArray(oValue)) {

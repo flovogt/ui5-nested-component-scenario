@@ -2698,7 +2698,7 @@
 	/**
 	 * Root namespace for JavaScript functionality provided by SAP SE.
 	 *
-	 * @version 1.136.2
+	 * @version 1.136.3
 	 * @namespace
 	 * @public
 	 * @name sap
@@ -4091,7 +4091,7 @@ globalThis["sap-ui-config"].xxMaxLoaderTaskDuration = 0;
 		function registerProvider(oProvider) {
 			if (aProvider.indexOf(oProvider) === -1) {
 				aProvider.push(oProvider);
-				invalidate();
+				Configuration._.invalidate();
 				bGlobalIgnoreExternal = get(mUrlParamOptions);
 			}
 		}

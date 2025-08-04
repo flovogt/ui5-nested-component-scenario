@@ -42,7 +42,7 @@ function(
 		 * @extends sap.m.SliderTooltipBase
 		 *
 		 * @author SAP SE
-		 * @version 1.136.2
+		 * @version 1.136.3
 		 *
 		 * @constructor
 		 * @private

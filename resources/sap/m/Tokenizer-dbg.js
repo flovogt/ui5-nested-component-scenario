@@ -79,7 +79,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.136.2
+	 * @version 1.136.3
 	 *
 	 * @constructor
 	 * @public
@@ -953,6 +953,14 @@ sap.ui.define([
 		}, this);
 
 		this._setTokensAria();
+
+		if (this.getTokensPopup() && this.getTokensPopup().isOpen() ) {
+			const nTokensLength = this._getTokensList().getItems().length;
+			// If tokens were deleted or added - update the popover list
+			if (aTokens.length !== nTokensLength){
+				this._fillTokensList(this._getTokensList());
+			}
+		}
 	};
 
 	/**

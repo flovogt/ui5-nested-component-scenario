@@ -19,7 +19,7 @@ sap.ui.define(['sap/m/semantic/SemanticControl', 'sap/m/Select', "sap/base/Log"]
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.136.2
+	 * @version 1.136.3
 	 *
 	 * @constructor
 	 * @public

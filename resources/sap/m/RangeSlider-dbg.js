@@ -53,7 +53,7 @@ sap.ui.define([
          * @extends sap.m.Slider
          *
          * @author SAP SE
-         * @version 1.136.3
+         * @version 1.136.4
          *
          * @constructor
          * @public

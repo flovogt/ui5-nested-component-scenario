@@ -49,7 +49,7 @@ sap.ui.define([
 	 * @extends sap.m.NavContainer
 	 *
 	 * @author SAP SE
-	 * @version 1.136.3
+	 * @version 1.136.4
 	 *
 	 * @constructor
 	 * @public

@@ -20,7 +20,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.layout.changeHandler.RenameForm
 	 * @author SAP SE
-	 * @version 1.136.3
+	 * @version 1.136.4
 	 * @since 1.40
 	 * @private
 	 */

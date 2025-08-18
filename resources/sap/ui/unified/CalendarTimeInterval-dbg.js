@@ -72,7 +72,7 @@ sap.ui.define([
 	 * @class
 	 * Calendar with granularity of time items displayed in one line.
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.3
+	 * @version 1.136.4
 	 *
 	 * @constructor
 	 * @public

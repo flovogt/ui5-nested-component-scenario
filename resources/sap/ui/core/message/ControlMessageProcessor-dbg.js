@@ -29,7 +29,7 @@ sap.ui.define(['sap/ui/core/Element', 'sap/ui/core/message/MessageProcessor'],
 	 * @extends sap.ui.core.message.MessageProcessor
 	 *
 	 * @author SAP SE
-	 * @version 1.136.3
+	 * @version 1.136.4
 	 *
 	 * @public
 	 * @alias sap.ui.core.message.ControlMessageProcessor

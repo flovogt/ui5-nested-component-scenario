@@ -32,7 +32,7 @@ sap.ui.define('sap/ui/debug/PropertyList', [
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author Martin Schaus
-	 * @version 1.136.4
+	 * @version 1.136.5
 	 *
 	 * @param {sap.ui.core.Core}
 	 *            oCore Core instance of the app; version might differ!

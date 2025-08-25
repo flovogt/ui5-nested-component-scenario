@@ -37,7 +37,7 @@ sap.ui.define('sap/ui/debug/DebugEnv', [
 	 * @class Central Class for the Debug Environment
 	 *
 	 * @author Martin Schaus, Frank Weigel
-	 * @version 1.136.4
+	 * @version 1.136.5
 	 * @private
 	 * @alias sap.ui.debug.DebugEnv
 	 * @deprecated As of Version 1.120

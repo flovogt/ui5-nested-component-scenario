@@ -95,7 +95,7 @@ sap.ui.define([
 	 * @borrows sap.ui.core.ISemanticFormContent.getFormRenderAsControl as #getFormRenderAsControl
 	 *
 	 * @author SAP SE
-	 * @version 1.136.5
+	 * @version 1.136.6
 	 *
 	 * @constructor
 	 * @public

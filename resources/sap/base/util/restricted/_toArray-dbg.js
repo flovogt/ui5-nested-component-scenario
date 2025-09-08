@@ -10,7 +10,7 @@
  * @alias module:sap/base/util/restricted/_toArray
  * @author SAP SE
  * @since 1.80
- * @version 1.136.5
+ * @version 1.136.6
  * @private
  * @ui5-restricted
 */

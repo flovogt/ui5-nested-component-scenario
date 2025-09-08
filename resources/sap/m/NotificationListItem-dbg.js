@@ -67,7 +67,7 @@ function(
 	 * @extends sap.m.NotificationListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.5
+	 * @version 1.136.6
 	 *
 	 * @constructor
 	 * @public

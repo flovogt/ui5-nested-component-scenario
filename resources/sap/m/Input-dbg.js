@@ -162,7 +162,7 @@ function(
 	 * @extends sap.m.InputBase
 	 * @implements sap.ui.core.IAccessKeySupport
 	 * @author SAP SE
-	 * @version 1.136.5
+	 * @version 1.136.6
 	 *
 	 * @constructor
 	 * @public

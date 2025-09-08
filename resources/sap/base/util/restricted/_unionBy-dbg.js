@@ -10,7 +10,7 @@
  * @alias module:sap/base/util/restricted/_unionBy
  * @author SAP SE
  * @since 1.81
- * @version 1.136.5
+ * @version 1.136.6
  * @private
  * @ui5-restricted
 */

@@ -21,7 +21,7 @@ sap.ui.define([
 	 * @extends sap.tnt.NavigationListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.5
+	 * @version 1.136.6
 	 *
 	 * @constructor
 	 * @public

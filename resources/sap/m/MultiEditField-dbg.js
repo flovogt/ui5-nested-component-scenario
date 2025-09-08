@@ -17,7 +17,7 @@ sap.ui.define(["sap/ui/core/Lib", "sap/ui/core/XMLComposite", "./library", "sap/
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.5
+	 * @version 1.136.6
 	 * @experimental since 1.52
 	 * @since 1.52.0
 	 * @alias sap.m.MultiEditField

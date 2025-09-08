@@ -42,7 +42,7 @@ sap.ui.define([
 	 * Provides methods to show or hide a waiting animation covering the whole
 	 * page and blocking user interaction.
 	 * @namespace
-	 * @version 1.136.5
+	 * @version 1.136.6
 	 * @public
 	 * @alias sap.ui.core.BusyIndicator
 	 */

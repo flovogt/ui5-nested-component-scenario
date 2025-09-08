@@ -28,7 +28,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @class text
-	 * @version 1.136.5
+	 * @version 1.136.6
 	 * @private
 	 * @since 1.38
 	 * @alias HeaderAdapter
@@ -249,7 +249,7 @@ sap.ui.define([
 	 * Constructor for an sap.m.Fiori20Adapter.
 	 *
 	 * @class text
-	 * @version 1.136.5
+	 * @version 1.136.6
 	 * @private
 	 * @since 1.38
 	 * @alias sap.m.Fiori20Adapter

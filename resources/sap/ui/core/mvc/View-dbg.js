@@ -148,7 +148,7 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.5
+	 * @version 1.136.6
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.View

@@ -22,7 +22,7 @@ sap.ui.define(['./List', './library', './GrowingListRenderer', 'sap/ui/core/Conf
 	 * @extends sap.m.List
 	 *
 	 * @author SAP SE
-	 * @version 1.136.6
+	 * @version 1.136.7
 	 *
 	 * @constructor
 	 * @public

@@ -59,7 +59,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataParentBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.136.6
+		 * @version 1.136.7
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getUpdateGroupId as #getUpdateGroupId
@@ -2660,7 +2660,7 @@ sap.ui.define([
 			oContext.oBinding = that;
 		});
 		oCache = oBinding.oCache;
-		oCache.setQueryOptions(mQueryOptions);
+		oCache.setQueryOptions(mQueryOptions, /*bForce*/true);
 		// avoid that the cache is set inactive or that contexts are destroyed
 		oBinding.oCache = null;
 		oBinding.oCachePromise = SyncPromise.resolve(null);

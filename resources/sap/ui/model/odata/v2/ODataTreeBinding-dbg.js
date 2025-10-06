@@ -103,7 +103,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.TreeBinding
 	 * @hideconstructor
 	 * @public
-	 * @version 1.136.6
+	 * @version 1.136.7
 	 */
 	var ODataTreeBinding = TreeBinding.extend("sap.ui.model.odata.v2.ODataTreeBinding", /** @lends sap.ui.model.odata.v2.ODataTreeBinding.prototype */ {
 
@@ -865,6 +865,10 @@ sap.ui.define([
 			oHeaders = this._getHeaders();
 		}
 
+		if (this.sCustomParams) {
+			aParams.push(this.sCustomParams);
+		}
+
 		// send the counting request
 		if (sAbsolutePath) {
 			this.oModel.read(sAbsolutePath + sCountType, {
@@ -940,6 +944,10 @@ sap.ui.define([
 
 			sFilterParams = "$filter=" + sFilterParams + sAnd + sNodeFilter;
 			aParams.push(sFilterParams);
+		}
+
+		if (this.sCustomParams) {
+			aParams.push(this.sCustomParams);
 		}
 
 		// Only send request, if path is defined

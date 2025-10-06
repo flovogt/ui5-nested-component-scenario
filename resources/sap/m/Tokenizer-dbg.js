@@ -79,7 +79,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.136.6
+	 * @version 1.136.7
 	 *
 	 * @constructor
 	 * @public
@@ -712,7 +712,7 @@ sap.ui.define([
 		// find the index of the first overflowing token
 		aTokens.some(function (oToken, iIndex) {
 			iTokenizerWidth = iTokenizerWidth - this._oTokensWidthMap[oToken.getId()];
-			if ((iTokenizerWidth <= 1 && iTokensCount === 1) || iTokenizerWidth < 0) {
+			if (iTokenizerWidth < 0) {
 				iFirstTokenToHide = iIndex;
 				return true;
 			} else {

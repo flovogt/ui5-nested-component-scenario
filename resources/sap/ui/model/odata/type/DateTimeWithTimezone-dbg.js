@@ -46,7 +46,7 @@ sap.ui.define([
 	 * @public
 	 * @see {sap.ui.model.odata.v2.ODataModel#bindProperty}
 	 * @since 1.99.0
-	 * @version 1.136.6
+	 * @version 1.136.7
 	 */
 	var DateTimeWithTimezone = CompositeType.extend("sap.ui.model.odata.type.DateTimeWithTimezone",
 		{

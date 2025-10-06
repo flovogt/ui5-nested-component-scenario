@@ -20,7 +20,7 @@ sap.ui.define(['sap/ui/base/ManagedObject'],
 	 * @extends sap.ui.base.ManagedObject
 	 *
 	 * @author SAP SE
-	 * @version 1.136.6
+	 * @version 1.136.7
 	 * @since 1.22.0
 	 *
 	 * @public

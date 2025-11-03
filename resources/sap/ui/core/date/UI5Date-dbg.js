@@ -66,7 +66,7 @@ sap.ui.define([
 	 * @hideconstructor
 	 * @public
 	 * @since 1.111.0
-	 * @version 1.136.7
+	 * @version 1.136.8
 	 */
 	function UI5Date(vDateParts, sTimezoneID) {
 		var oDateInstance = UI5Date._createDateInstance(vDateParts);

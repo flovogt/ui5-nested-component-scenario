@@ -23,7 +23,7 @@ sap.ui.define(['./library', 'sap/ui/core/Control', './ToolbarSeparatorRenderer']
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.7
+	 * @version 1.136.8
 	 *
 	 * @constructor
 	 * @public

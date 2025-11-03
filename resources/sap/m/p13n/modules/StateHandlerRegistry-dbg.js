@@ -21,7 +21,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.EventProvider
 	 *
 	 * @author SAP SE
-	 * @version 1.136.7
+	 * @version 1.136.8
 	 *
 	 * @private
 	 * @since 1.104

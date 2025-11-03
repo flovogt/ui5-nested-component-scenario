@@ -23,7 +23,7 @@ sap.ui.define([
 	 *        <code>Table, Form</code> etc, should not be aggregated as content.
 	 * @extends sap.m.TreeItemBase
 	 * @author SAP SE
-	 * @version 1.136.7
+	 * @version 1.136.8
 	 * @constructor
 	 * @public
 	 * @since 1.48.0

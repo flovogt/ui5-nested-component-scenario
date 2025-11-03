@@ -219,7 +219,7 @@ sap.ui.define([
 	 * This model is not prepared to be inherited from.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.7
+	 * @version 1.136.8
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel
@@ -2729,10 +2729,11 @@ sap.ui.define([
 	 * Create URL parameters from custom parameters
 	 *
 	 * @param {map} mParameters Map of custom parameters
+	 * @param {boolean} [bIgnoreExpandSelect] Whether to ignore the expand and select parameters
 	 * @returns {string} sCustomParameters & joined parameters
 	 * @private
 	 */
-	ODataModel.prototype.createCustomParams = function(mParameters) {
+	ODataModel.prototype.createCustomParams = function(mParameters, bIgnoreExpandSelect) {
 		var aCustomParams = [],
 		mCustomQueryOptions,
 		mSupportedParams = {
@@ -2740,7 +2741,7 @@ sap.ui.define([
 				select: true
 		};
 		for (var sName in mParameters) {
-			if (sName in mSupportedParams) {
+			if (sName in mSupportedParams && !bIgnoreExpandSelect) {
 				aCustomParams.push("$" + sName + "=" + encodeURL(mParameters[sName]));
 			}
 			if (sName === "custom") {

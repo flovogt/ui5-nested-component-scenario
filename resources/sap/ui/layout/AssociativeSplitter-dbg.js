@@ -25,7 +25,7 @@ sap.ui.define([
 	 * @extends sap.ui.layout.Splitter
 	 *
 	 * @author SAP SE
-	 * @version 1.136.7
+	 * @version 1.136.8
 	 *
 	 * @constructor
 	 * @private

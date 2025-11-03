@@ -103,7 +103,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.TreeBinding
 	 * @hideconstructor
 	 * @public
-	 * @version 1.136.7
+	 * @version 1.136.8
 	 */
 	var ODataTreeBinding = TreeBinding.extend("sap.ui.model.odata.v2.ODataTreeBinding", /** @lends sap.ui.model.odata.v2.ODataTreeBinding.prototype */ {
 
@@ -854,18 +854,19 @@ sap.ui.define([
 		}
 
 		// figure out how to request the count
-		var sCountType = "";
 		let oHeaders;
-		if (this.sCountMode == CountMode.Request || this.sCountMode == CountMode.Both) {
-			sCountType = "/$count";
-			// this.bTransitionMessagesOnly is not relevant for $count requests -> no sap-messages header
-		} else if (this.sCountMode == CountMode.Inline || this.sCountMode == CountMode.InlineRepeat) {
+		const bSeparateCountRequest = this.sCountMode === CountMode.Request || this.sCountMode === CountMode.Both;
+		const sCountType = bSeparateCountRequest ? "/$count" : "";
+		if (this.sCountMode == CountMode.Inline || this.sCountMode == CountMode.InlineRepeat) {
 			aParams.push("$top=0");
 			aParams.push("$inlinecount=allpages");
 			oHeaders = this._getHeaders();
 		}
 
-		if (this.sCustomParams) {
+		if (this.sCustomParams4CountRequest && bSeparateCountRequest) {
+			aParams.push(this.sCustomParams4CountRequest);
+		}
+		if (this.sCustomParams && !bSeparateCountRequest) {
 			aParams.push(this.sCustomParams);
 		}
 
@@ -946,8 +947,8 @@ sap.ui.define([
 			aParams.push(sFilterParams);
 		}
 
-		if (this.sCustomParams) {
-			aParams.push(this.sCustomParams);
+		if (this.sCustomParams4CountRequest) {
+			aParams.push(this.sCustomParams4CountRequest);
 		}
 
 		// Only send request, if path is defined
@@ -2365,6 +2366,8 @@ sap.ui.define([
 						}
 					}
 					this.sCustomParams = this.oModel.createCustomParams(this.mParameters);
+					this.sCustomParams4CountRequest = this.oModel.createCustomParams(this.mParameters,
+						/* bIgnoreExpandSelect */ true);
 				}
 				sAdapterModuleName = "sap/ui/model/odata/ODataTreeBindingFlat";
 			}
@@ -2420,6 +2423,8 @@ sap.ui.define([
 			}
 
 			this.sCustomParams = this.oModel.createCustomParams(this.mParameters);
+			this.sCustomParams4CountRequest = this.oModel.createCustomParams(this.mParameters,
+				/* bIgnoreExpandSelect */ true);
 		}
 
 		//after parameter processing:

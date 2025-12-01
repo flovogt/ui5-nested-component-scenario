@@ -264,7 +264,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.EventProvider
 	 * @author SAP SE
-	 * @version 1.136.8
+	 * @version 1.136.9
 	 * @public
 	 * @alias sap.ui.base.ManagedObject
 	 */
@@ -4362,7 +4362,9 @@ sap.ui.define([
 			if (bUpdateListener || bUpdateAll) {
 				oObject._callPropagationListener();
 			}
-			oObject.fireModelContextChange();
+			if (bUpdateListener !== true) {
+				oObject.fireModelContextChange();
+			}
 		}
 	};
 

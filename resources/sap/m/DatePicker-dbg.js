@@ -186,7 +186,7 @@ sap.ui.define([
 	 * the close event), or select Cancel.
 	 *
 	 * @extends sap.m.DateTimeField
-	 * @version 1.136.8
+	 * @version 1.136.9
 	 *
 	 * @constructor
 	 * @public
@@ -467,6 +467,11 @@ sap.ui.define([
 
 		InputBase.prototype.exit.apply(this, arguments);
 
+		// Clean up binding context listener
+		if (this.hasListeners("modelContextChange")) {
+			this.detachModelContextChange(this._closePopover, this);
+		}
+
 		if (this._oPopup) {
 			if (this._oPopup.isOpen()) {
 				this._oPopup.close();
@@ -517,6 +522,20 @@ sap.ui.define([
 			oValueHelpIcon.setProperty("visible", this.getEditable());
 		}
 
+		// Close picker when scrolling in a table
+		if (!this.hasListeners("modelContextChange")) {
+			this.attachModelContextChange(this._closePopover, this);
+		}
+	};
+
+	/**
+	 * Closes the popover of the DatePicker without setting the focus back to the input.
+	 * @private
+	 */
+	DatePicker.prototype._closePopover = function() {
+		if (this.isOpen()) {
+			this._oPopup.close();
+		}
 	};
 
 	/**

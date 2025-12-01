@@ -53,7 +53,7 @@ sap.ui.define([
 	 * be closed.
 	 *
 	 * @extends sap.m.List
-	 * @version 1.136.8
+	 * @version 1.136.9
 	 *
 	 * @constructor
 	 * @public

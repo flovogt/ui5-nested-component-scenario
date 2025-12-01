@@ -94,7 +94,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.8
+	 * @version 1.136.9
 	 *
 	 * @constructor
 	 * @public

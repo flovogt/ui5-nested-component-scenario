@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @class
 	 * Time range for use in <code>NonWorkingPeriod</code>
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.8
+	 * @version 1.136.9
 	 *
 	 * @constructor
 	 * @public

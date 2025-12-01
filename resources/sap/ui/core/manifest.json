@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.136.8"
+      "version": "1.136.9"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -171,7 +171,7 @@
       {
         "name": "requirejs",
         "packagedWithMySelf": true,
-        "version": "2.1.8"
+        "version": "2.3.7"
       },
       {
         "name": "crossroadsjs",

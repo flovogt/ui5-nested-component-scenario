@@ -24,7 +24,7 @@ sap.ui.define([
 	 * @class
 	 * NonWorkingPeriod
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.9
+	 * @version 1.136.10
 	 *
 	 * @constructor
 	 * @public

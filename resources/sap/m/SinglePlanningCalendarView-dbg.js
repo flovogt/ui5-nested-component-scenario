@@ -27,7 +27,7 @@ function (library, Log, _CalendarWeekNumbering, Element) {
 	 * @extends sap.ui.core.Element
 	 *
 	 * @author SAP SE
-	 * @version 1.136.9
+	 * @version 1.136.10
 	 *
 	 * @constructor
 	 * @public

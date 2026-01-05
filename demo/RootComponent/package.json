@@ -35,7 +35,7 @@
     "@ui5/cli": "^4.0.14",
     "@ui5/linter": "^1.16.0",
 		"@ui5/middleware-code-coverage": "^2.0.1",
-    "globals": "^16.3.0",
+    "globals": "^17.0.0",
     "local-web-server": "^5.4.0",
     "ui5-test-runner": "^5.8.1",
     "rimraf": "^6.0.1"

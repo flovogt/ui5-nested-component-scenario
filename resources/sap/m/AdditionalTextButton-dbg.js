@@ -21,7 +21,7 @@ sap.ui.define(['./Button','./AdditionalTextButtonRenderer'],
 	 * @extends sap.m.Button
 	 *
 	 * @author SAP SE
-	 * @version 1.136.10
+	 * @version 1.136.11
 	 *
 	 * @constructor
 	 * @private

@@ -32,7 +32,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.10
+	 * @version 1.136.11
 	 *
 	 * @constructor
 	 * @since 1.63

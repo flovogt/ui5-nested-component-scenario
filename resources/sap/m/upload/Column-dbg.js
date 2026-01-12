@@ -18,7 +18,7 @@ sap.ui.define(["sap/m/Column"], function (mColumn) {
 	 * @extends sap.m.Column
 	 *
 	 * @author SAP SE
-	 * @version 1.136.10
+	 * @version 1.136.11
 	 *
 	 * @constructor
 	 * @public

@@ -40,7 +40,7 @@ sap.ui.define([
 	 * @constructor
 	 * @alias sap.m.changeHandler.AddTableColumn
 	 * @author SAP SE
-	 * @version 1.136.10
+	 * @version 1.136.11
 	 * @private
 	 * @since 1.51.0
 	 */

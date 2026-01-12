@@ -62,7 +62,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IFormContent, sap.ui.core.ISemanticFormContent
-	 * @version 1.136.10
+	 * @version 1.136.11
 	 *
 	 * @borrows sap.ui.core.ISemanticFormContent.getFormFormattedValue as #getFormFormattedValue
 	 * @borrows sap.ui.core.ISemanticFormContent.getFormValueProperty as #getFormValueProperty

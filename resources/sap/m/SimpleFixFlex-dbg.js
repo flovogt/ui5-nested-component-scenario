@@ -31,7 +31,7 @@ function(Control, ResizeHandler, Log, SimpleFixFlexRenderer) {
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.10
+	 * @version 1.136.11
 	 *
 	 * @constructor
 	 * @private

@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -80,7 +80,7 @@ function(
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.136.11
+	 * @version 1.136.12
 	 *
 	 * @constructor
 	 * @public
@@ -352,6 +352,7 @@ function(
 			this.getDomRef().removeEventListener("keydown", this._handleKeyNavigationBound);
 			this.getDomRef().addEventListener("keydown", this._handleKeyNavigationBound);
 		}
+		this._updateActiveButtonText();
 	};
 
 	/**
@@ -623,6 +624,21 @@ function(
 		if (oLayout instanceof ToolbarLayoutData) {
 			oLayout.applyProperties();
 		}
+
+		var oToolbar = this.getParent();
+		if (oToolbar && oToolbar.isA("sap.m.Toolbar")) {
+			oToolbar._updateActiveButtonText();
+		}
+	};
+
+	/**
+	 * Updates the text of the active button when toolbar content changes
+	 * @private
+	 */
+	Toolbar.prototype._updateActiveButtonText = function() {
+		if (this.getActive()) {
+			this._getActiveButton().setText(this._getToolbarTextContent());
+		}
 	};
 
 	// gets called when any content property is changed
@@ -681,9 +697,39 @@ function(
 		}, this);
 	};
 
+	/**
+	 * Gets the text content of the toolbar for accessibility purposes
+	 * @returns {string} The concatenated text content from all toolbar items
+	 * @private
+	 */
+	Toolbar.prototype._getToolbarTextContent = function() {
+		const aContent = this.getContent();
+		const aTexts = [];
+
+		aContent.forEach(function(oControl) {
+			if (oControl.getVisible?.()) {
+				let sText = "";
+				const oDomRef = oControl.getDomRef();
+
+				if (oDomRef) {
+					sText = oDomRef.textContent?.trim();
+				}
+
+				if (sText) {
+					aTexts.push(sText);
+				}
+			}
+		});
+
+		return aTexts.join(" ");
+	};
+
 	Toolbar.prototype._getActiveButton = function() {
 		if (!this._activeButton) {
-			this._activeButton = new Button({text: "", id:"sapMTBActiveButton" + this.getId()}).addStyleClass("sapMTBActiveButton");
+			this._activeButton = new Button({
+				text: this._getToolbarTextContent(),
+				id:"sapMTBActiveButton" + this.getId()
+			}).addStyleClass("sapMTBActiveButton");
 			this._activeButton.onfocusin = function() {
 				this.addStyleClass("sapMTBFocused");
 				if (typeof Button.prototype.onfocusin === "function") {

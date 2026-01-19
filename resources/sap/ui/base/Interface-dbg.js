@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -58,7 +58,7 @@ sap.ui.define(['sap/ui/base/Object'], function(BaseObject) {
 	 * </code>
 	 *
 	 * @author Malte Wedel, Daniel Brinkmann
-	 * @version 1.136.11
+	 * @version 1.136.12
 	 * @param {sap.ui.base.Object} oObject
 	 *   Object for which a facade should be created
 	 * @param {string[]} aMethods

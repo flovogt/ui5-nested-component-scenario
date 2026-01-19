@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -1410,7 +1410,7 @@ sap.ui.define([
 		}
 		this.oVariantPopoverTrigger.$().attr("aria-expanded", "true");
 
-		if (this.bPopoverOpen) {
+		if (this.bPopoverOpen || this.iOpenTimer) {
 			return;
 		}
 
@@ -1439,7 +1439,12 @@ sap.ui.define([
 
 		var oControlRef = this._oCtrlRef ? this._oCtrlRef : this.oVariantLayout;
 		this._oCtrlRef = null;
-		this.oVariantPopOver.openBy(oControlRef);
+		this.iOpenTimer = setTimeout(() => { // otherwise screenreader would not announce the expanded-state of the button
+			delete this.iOpenTimer;
+			if (!this.isDestroyed()) {
+				this.oVariantPopOver.openBy(oControlRef);
+			}
+		}, 100);
 	};
 
 	VariantManagement.prototype._triggerSearch = function(oEvent, oVariantList) {

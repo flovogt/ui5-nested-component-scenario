@@ -2,7 +2,7 @@
 //@ui5-bundle-raw-include ui5loader.js
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -2718,7 +2718,7 @@
 	/**
 	 * Root namespace for JavaScript functionality provided by SAP SE.
 	 *
-	 * @version 1.136.11
+	 * @version 1.136.12
 	 * @namespace
 	 * @public
 	 * @name sap
@@ -3417,7 +3417,7 @@
 //@ui5-bundle-raw-include ui5loader-autoconfig.js
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 

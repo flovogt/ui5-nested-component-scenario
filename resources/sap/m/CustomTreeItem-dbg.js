@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -23,7 +23,7 @@ sap.ui.define([
 	 *        <code>Table, Form</code> etc, should not be aggregated as content.
 	 * @extends sap.m.TreeItemBase
 	 * @author SAP SE
-	 * @version 1.136.11
+	 * @version 1.136.12
 	 * @constructor
 	 * @public
 	 * @since 1.48.0

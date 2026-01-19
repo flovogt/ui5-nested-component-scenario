@@ -1,6 +1,6 @@
 /*!
  * OpenUI5
- * (c) Copyright 2025 SAP SE or an SAP affiliate company.
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
@@ -99,7 +99,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.11
+		 * @version 1.136.12
 		 *
 		 * @constructor
 		 * @private
@@ -318,7 +318,11 @@ sap.ui.define([
 							/**
 							 * All appointments with changed selected state.
 							 */
-							appointments : {type : "sap.ui.unified.CalendarAppointment[]"}
+							appointments : {type : "sap.ui.unified.CalendarAppointment[]"},
+							/**
+							 * The original browser event.
+							 */
+							originalEvent: {type: "object"}
 
 						}
 					}
@@ -858,17 +862,18 @@ sap.ui.define([
 				if (this._hasSelectedAppointments()) {
 					this.fireAppointmentSelect({
 						appointment: undefined,
-						appointments: this._toggleAppointmentSelection(undefined, true)
+						appointments: this._toggleAppointmentSelection(undefined, true),
+						originalEvent: oEvent.originalEvent
 					});
 				}
 			} else if (oSrcControl && oSrcControl.isA("sap.ui.unified.CalendarAppointment")) {
 				this._lastPressedAppointment = oSrcControl;
 				const bCtrlKeyOrMetaKey = oEvent.ctrlKey || oEvent.metaKey;
-				this._fireAppointmentSelection(oTarget, oSrcControl, bCtrlKeyOrMetaKey);
+				this._fireAppointmentSelection(oTarget, oSrcControl, bCtrlKeyOrMetaKey, oEvent);
 			}
 		};
 
-		SinglePlanningCalendarMonthGrid.prototype._fireAppointmentSelection = function (oTarget, oSrcControl, bCtrlKeyOrMetaKey) {
+		SinglePlanningCalendarMonthGrid.prototype._fireAppointmentSelection = function (oTarget, oSrcControl, bCtrlKeyOrMetaKey, oEvent) {
 			// add suffix in appointment
 			if (oTarget.parentElement && oTarget.parentElement.getAttribute("id")) {
 				var sTargetId = oTarget.parentElement.getAttribute("id");
@@ -883,7 +888,8 @@ sap.ui.define([
 
 			this.fireAppointmentSelect({
 				appointment: oSrcControl,
-				appointments: this._toggleAppointmentSelection(oSrcControl, !bCtrlKeyOrMetaKey)
+				appointments: this._toggleAppointmentSelection(oSrcControl, !bCtrlKeyOrMetaKey),
+				originalEvent: oEvent.originalEvent
 			});
 		};
 

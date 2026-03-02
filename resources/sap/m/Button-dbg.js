@@ -101,7 +101,7 @@ sap.ui.define([
 	 * @mixes sap.ui.core.ContextMenuSupport
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.136.13
 	 *
 	 * @constructor
 	 * @public
@@ -697,7 +697,7 @@ sap.ui.define([
 			this._inactiveButton();
 		}
 
-		if (oEvent.which === KeyCodes.SPACE) {
+		if (oEvent.which === KeyCodes.SPACE && this._bPressedSpace) {
 			if (!this._bPressedEscapeOrShift) {
 				// mark the event for components that needs to know if the event was handled by the button
 				oEvent.setMarked();

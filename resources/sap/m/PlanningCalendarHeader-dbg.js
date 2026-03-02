@@ -103,7 +103,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.136.13
 	 *
 	 * @constructor
 	 * @private
@@ -278,11 +278,11 @@ function(
 
 	// Number of items to be skipped when removing content from actions aggregation.
 	// In the _actionsToolbar content are placed the sap.m.Title control, containing the value from the title property,
-	// a sap.m.ToolbarSpacer and a sap.m.SegmentedButton, used for navigation through the views in the calendar.
+	// a sap.m.ToolbarSpacer, sap.m.Label and a sap.m.SegmentedButton, used for navigation through the views in the calendar.
 	// The other controls in this aggregation are forwarded from the actions aggregation of the
-	// sap.m.SinglePlanningCalendar. Therefore when manipulations of the latter are needed, the first three controls
+	// sap.m.SinglePlanningCalendar. Therefore when manipulations of the latter are needed, the first four controls
 	// must be skipped. (ex. when removeAllActions is used)
-	var RESERVED_ACTIONS_ITEMS_COUNT = 3;
+	var RESERVED_ACTIONS_ITEMS_COUNT = 4;
 
 	PlanningCalendarHeader.prototype.init = function() {
 

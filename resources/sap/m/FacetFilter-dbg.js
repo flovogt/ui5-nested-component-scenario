@@ -181,7 +181,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Control
 	 * @implements sap.ui.core.IShrinkable
-	 * @version 1.136.12
+	 * @version 1.136.13
 	 *
 	 * @constructor
 	 * @public

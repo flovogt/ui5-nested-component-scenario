@@ -38,7 +38,7 @@ function(
 	 * @extends sap.m.Input
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.136.13
 	 *
 	 * @constructor
 	 * @private
@@ -104,6 +104,13 @@ function(
 				this.setDOMValue(sTypedValue);
 			}
 
+			return;
+		}
+
+		var sDecimalSeparator = this._getNumberFormat().oFormatOptions.decimalSeparator;
+		if (oEvent.originalEvent.key === sDecimalSeparator && iCursorPos === 0) {
+			oEvent.preventDefault();
+			this.setDOMValue(sDecimalSeparator);
 			return;
 		}
 

@@ -116,7 +116,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.136.12
+	 * @version 1.136.13
 	 *
 	 * @abstract
 	 * @alias sap.ui.model.odata.type.ODataType

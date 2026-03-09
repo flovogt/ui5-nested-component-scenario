@@ -2,7 +2,7 @@
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
 	"extends": [
 		"config:recommended",
-		"github>ui5/renovate-config:lts#v1.1.1"
+		"github>ui5/renovate-config:lts#v1.2.1"
 	],
 	"lockFileMaintenance": {
 		"enabled": true,

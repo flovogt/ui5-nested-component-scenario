@@ -5,7 +5,7 @@
     "type": "library",
     "embeds": [],
     "applicationVersion": {
-      "version": "1.136.13"
+      "version": "1.136.14"
     },
     "title": "The SAPUI5 Core Runtime.",
     "description": "The SAPUI5 Core Runtime.\n\n  Contains the UI5 jQuery plugins (jQuery.sap.*), the Core and all its components,\n  base classes for Controls, Components and the Model View Controller classes.",
@@ -216,7 +216,7 @@
       {
         "name": "lodash",
         "packagedWithMySelf": true,
-        "version": "4.17.21"
+        "version": "4.17.23"
       },
       {
         "name": "hyphenopoly",

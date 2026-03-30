@@ -38,7 +38,7 @@ sap.ui.define([
 	 * @class Item that represents one file to be uploaded using the {@link sap.m.upload.UploadSet} control.
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.136.13
+	 * @version 1.136.14
 	 * @constructor
 	 * @public
 	 * @since 1.63

@@ -60,7 +60,7 @@ sap.ui.define([
 	 * This control cannot be used stand-alone, it just renders a {@link sap.ui.layout.form.Form Form} control,
 	 * so it must be assigned to a {@link sap.ui.layout.form.Form Form} control using the <code>layout</code> aggregation.
 	 * @extends sap.ui.layout.form.FormLayout
-	 * @version 1.136.13
+	 * @version 1.136.14
 	 *
 	 * @constructor
 	 * @public
@@ -692,8 +692,8 @@ sap.ui.define([
 		const aContainers = oForm.getFormContainers();
 
 		// Let Form render role="region" also if FormContainer has no title.
-		// If only one FormContainer exist and it has no title let Form render role "form".
-		return aContainers.length !== 1 || this.isContainerLabelled(aContainers[0]);
+		// If only one FormContainer exist and it has no title let Form render role "form" (only in edit mode).
+		return aContainers.length !== 1 || !oForm.getEditable() || this.isContainerLabelled(aContainers[0]);
 
 	};
 

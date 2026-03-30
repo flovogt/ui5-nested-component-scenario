@@ -12,7 +12,7 @@ sap.ui.define(function () {
 	 *
 	 * @alias sap.m.changeHandler.ChangeLinkTarget
 	 * @author SAP SE
-	 * @version 1.136.13
+	 * @version 1.136.14
 	 * @experimental Since 1.71
 	 */
 	var ChangeLinkTarget = {};

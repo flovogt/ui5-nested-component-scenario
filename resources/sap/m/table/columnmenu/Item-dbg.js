@@ -23,7 +23,7 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.ItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.14
+	 * @version 1.136.15
 	 *
 	 * @public
 	 * @since 1.110

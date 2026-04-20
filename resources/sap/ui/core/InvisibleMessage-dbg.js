@@ -35,7 +35,7 @@ sap.ui.define(["./library", "./Core", "sap/ui/base/ManagedObject", "sap/base/Log
 		 * @extends sap.ui.base.ManagedObject
 		 *
 		 * @author SAP SE
-		 * @version 1.136.14
+		 * @version 1.136.15
 		 * @hideconstructor
 		 * @public
 		 * @since 1.78

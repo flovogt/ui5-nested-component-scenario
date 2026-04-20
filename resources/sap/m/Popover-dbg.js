@@ -121,7 +121,7 @@ sap.ui.define([
 		* @extends sap.ui.core.Control
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.136.14
+		* @version 1.136.15
 		*
 		* @public
 		* @alias sap.m.Popover
@@ -3009,7 +3009,8 @@ sap.ui.define([
 		};
 
 		/*
-		 * Helps to prevent temporary appearance of a scrollbar in documentElement during Popover calculations.
+		 * Helps to prevent temporary appearance of a scrollbar
+		 * in documentElement during Popover calculations.
 		 */
 		Popover.prototype._preventDocumentElementScrolling = function () {
 			if (this._sDocumentElementOverflow !== undefined) {
@@ -3020,14 +3021,20 @@ sap.ui.define([
 
 			if (!bDocumentElementHasVerticalScrollbar) {
 				this._sDocumentElementOverflow = document.documentElement.style.overflow;
+				this._sDocumentElementScrollBehavior = document.documentElement.style.scrollBehavior;
+
 				document.documentElement.style.overflow = "hidden";
+				document.documentElement.style.scrollBehavior = "smooth";
 			}
 		};
 
 		Popover.prototype._restoreDocumentElementScrolling = function () {
 			if (this._sDocumentElementOverflow !== undefined) {
 				document.documentElement.style.overflow = this._sDocumentElementOverflow;
+				document.documentElement.style.scrollBehavior = this._sDocumentElementScrollBehavior;
+
 				delete this._sDocumentElementOverflow;
+				delete this._sDocumentElementScrollBehavior;
 			}
 		};
 

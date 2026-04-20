@@ -59,7 +59,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataParentBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.136.14
+		 * @version 1.136.15
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getUpdateGroupId as #getUpdateGroupId
@@ -1890,7 +1890,8 @@ sap.ui.define([
 				return oCache.read(iIndex, iLength, iMaximumPrefetchSize, oGroupLock,
 					fnDataRequested, undefined, that.fireSeparateReceived.bind(that)
 				).then(function (oResult) {
-					oResult.$checkStillValid = that.checkSameCache.bind(that, oCache);
+					oResult.$checkStillValid
+						= that.checkSameCache.bind(that, oCache, oResult["@$ui5.resetCount"]);
 
 					return oResult;
 				});

@@ -86,7 +86,7 @@ function(
 	 * @extends sap.m.InputBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.15
+	 * @version 1.136.16
 	 *
 	 * @constructor
 	 * @public

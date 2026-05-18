@@ -1124,7 +1124,7 @@ sap.ui.define([
 			aPromises = [];
 			mTypeForMetaPath = {};
 			aPromises.push(this.oRequestor.fetchType(mTypeForMetaPath, this.sMetaPath));
-			fetchExpandedTypes(this.sMetaPath, this.mQueryOptions);
+			fetchExpandedTypes(this.sMetaPath, this.mLateExpandSelect || this.mQueryOptions);
 			this.oTypePromise = SyncPromise.all(aPromises).then(function () {
 				return mTypeForMetaPath;
 			});

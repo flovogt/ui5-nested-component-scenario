@@ -50,7 +50,7 @@ sap.ui.define([
 	 * Applies a sap.ui.layout.cssgrid.GridSettings to a provided DOM element or Control.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.15
+	 * @version 1.136.16
 	 *
 	 * @extends sap.ui.layout.cssgrid.GridLayoutBase
 	 *

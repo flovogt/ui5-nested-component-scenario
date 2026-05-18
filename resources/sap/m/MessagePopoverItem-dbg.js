@@ -19,7 +19,7 @@ sap.ui.define(["./library", "./MessageItem"],
 		 * @extends sap.m.MessageItem
 		 *
 		 * @author SAP SE
-		 * @version 1.136.15
+		 * @version 1.136.16
 		 *
 		 * @constructor
 		 * @public

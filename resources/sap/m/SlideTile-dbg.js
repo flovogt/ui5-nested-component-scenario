@@ -53,7 +53,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @since 1.34
 	 *
 	 * @public
@@ -217,6 +217,7 @@ sap.ui.define([
 	 * Handler for afterrendering
 	 */
 	SlideTile.prototype.onAfterRendering = function () {
+		this.getDomRef()?.getElementsByClassName("sapMSTIconClickTapArea")[0]?.setAttribute("title", this._oRb.getText("SLIDETILEPAUSE"));
 		this._setupResizeClassHandler();
 
 		var cTiles = this.getTiles().length,
@@ -270,12 +271,9 @@ sap.ui.define([
 			this.getDomRef().setAttribute("aria-describedby",this.getAggregation("_invisibleText").getId());
 		}
 
-		var bIsScreenLarge = this.getDomRef()?.offsetWidth >= 800;
-		this.toggleStyleClass("sapMSTLargeScreen",bIsScreenLarge);
+
 		this.toggleStyleClass("sapMSTPhone",Device.system.phone);
-		if (bIsScreenLarge) {
-			this.getTiles().forEach((oTile) => oTile._setHeaderContentBackgroundImage());
-		}
+
 	};
 
 	/**
@@ -470,6 +468,16 @@ sap.ui.define([
 			} else {
 				this.$().removeClass("sapMTileSmallPhone");
 			}
+			/* Slide Tile content gets adjusted dynamically with 100% width, articleType and frameType as Stretch for more than 800px */
+            var bIsScreenLarge = this.getDomRef()?.offsetWidth >= 800;
+            this.toggleStyleClass("sapMSTLargeScreen", bIsScreenLarge);
+            if (bIsScreenLarge) {
+                this.getTiles().forEach((oTile) => oTile._setHeaderContentBackgroundImage());
+            }
+            /* Apply 4px padding between the title and the image of the slide tile when height is less than 180px */
+            if (this.getDomRef()?.offsetHeight < 180) {
+                this.addStyleClass("sapMSTSmallScreen");
+            }
 		}.bind(this);
 
 		jQuery(window).on("resize", fnCheckMedia);
@@ -1063,9 +1071,11 @@ sap.ui.define([
 			if (this._bAnimationPause) {
 				this.getAggregation("_pausePlayIcon").setSrc("sap-icon://media-play");
 				this.$().removeClass("sapMSTPauseIcon");
+				this.getDomRef().getElementsByClassName('sapMSTIconClickTapArea')[0].setAttribute("title", this._oRb.getText("SLIDETILEPLAY"));
 			} else {
 				this.getAggregation("_pausePlayIcon").setSrc("sap-icon://media-pause");
 				this.$().addClass("sapMSTPauseIcon");
+				this.getDomRef().getElementsByClassName('sapMSTIconClickTapArea')[0].setAttribute("title", this._oRb.getText("SLIDETILEPAUSE"));
 			}
 		}
 	};

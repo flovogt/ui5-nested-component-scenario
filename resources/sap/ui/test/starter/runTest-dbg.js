@@ -20,26 +20,6 @@
 (function(__global) {
 	"use strict";
 
-	// Polyfill `Promise.withResolvers` for older browsers.
-	if (typeof Promise.withResolvers === "undefined") {
-		Object.defineProperty(Promise, "withResolvers", {
-			writable: true,
-			configurable: true,
-			// enumerable: false
-			value: function() {
-				let resolve, reject;
-				return {
-					promise: new this((_resolve, _reject) => {
-						resolve = _resolve;
-						reject = _reject;
-					}),
-					resolve,
-					reject
-				};
-			}
-		});
-	}
-
 	/*
 	 * Helper function that removes any query and/or hash parts from the given URL.
 	 *
@@ -1487,13 +1467,7 @@
 	function loadScript(oModule, sAlternativeURL) {
 
 		const oScript = document.createElement('SCRIPT');
-		// Accessing the 'src' property of the script in this strange way prevents Safari 12 (or WebKit) from
-		// wrongly optimizing access. SF12 seems to check at optimization time whether there's a setter for the
-		// property and optimize accordingly. When a setter is defined or changed at a later point in time (e.g.
-		// by the AppCacheBuster), then the optimization seems not to be updated and the new setter is ignored
-		// BCP 1970035485
-		oScript["s" + "rc"] = oModule.url;
-		//oScript.src = oModule.url;
+		oScript.src = oModule.url;
 		oScript.setAttribute("data-sap-ui-module", oModule.name);
 
 		function onload(e) {
@@ -2445,12 +2419,13 @@
 	}
 
 	/**
-	 * Returns an info about all known resources keyed by their URN.
+	 * Returns a map of info objects for all known resources keyed by their URN.
 	 *
-	 * If the URN can be converted to a UI5 module name, then the value in the map
-	 * will be that name. Otherwise it will be null or undefined.
+	 * If the URN can be converted to a UI5 module name, then the `ui5` property in the
+	 * returned info will be that name. Otherwise it will be null or undefined.
 	 *
-	 * @return {Object.<string,string>} Map of all module names keyed by their resource name
+	 * @returns {Object.<string,{state: number, ui5: string, deprecated: boolean}>}
+	 *     Map of information objects for all modules, keyed by their resource name
 	 * @see isDeclared
 	 * @private
 	 */
@@ -2459,7 +2434,8 @@
 		forEach(mModules, function(sURN, oModule) {
 			mSnapshot[sURN] = {
 				state: oModule.state,
-				ui5: urnToUI5(sURN)
+				ui5: urnToUI5(sURN),
+				deprecated: oModule.deprecation != null
 			};
 		});
 		return mSnapshot;
@@ -2722,7 +2698,7 @@
 	/**
 	 * Root namespace for JavaScript functionality provided by SAP SE.
 	 *
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @namespace
 	 * @public
 	 * @name sap
@@ -3278,7 +3254,7 @@
 
 	/**
 	 * @private
-	 * @ui5-restricted bundles created with UI5 tooling
+	 * @ui5-restricted bundles created with UI5 CLI
 	 * @function
 	 * @ui5-global-only
 	 * @name sap.ui.predefine
@@ -3677,6 +3653,9 @@
 				var sLowerCaseAlias = vMatch ? vMatch[1] + vMatch[2][0] + vMatch[2].slice(1).toLowerCase() : undefined;
 				if (sLowerCaseAlias) {
 					vValue = oWriteableConfig[sLowerCaseAlias] || oConfig[sLowerCaseAlias];
+					if (vValue) {
+						ui5loader._.logger.warning(`[DEPRECATED] configuration option '${sLowerCaseAlias.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}' given in global configuration. Please use '${sKey.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()}' instead.`);
+					}
 				}
 			}
 			if (bFreeze) {
@@ -3752,6 +3731,10 @@
 				var sLowerCaseAlias = vMatch ? vMatch[1] + vMatch[2][0] + vMatch[2].slice(1).toLowerCase() : undefined;
 				if (sLowerCaseAlias) {
 					vValue = oConfig[sLowerCaseAlias];
+					if (vValue) {
+						ui5loader._.logger.warning(`Deprecated configuration option '${sLowerCaseAlias.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/([A-Z])([A-Z][a-z])/g, '$1-$2').toLowerCase()}' given in bootstrap configuration. Please use '${sKey.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/([A-Z])([A-Z][a-z])/g, '$1-$2').toLowerCase()}' instead.`);
+					}
+
 				}
 			}
 			return vValue;
@@ -3879,62 +3862,62 @@
 		 * @enum {string}
 		 * @alias module:sap/base/config.Type
 		 * @private
-		 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+		 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 		 */
 		var TypeEnum = {
 			/**
 			 * defaultValue: false
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"Boolean": "boolean",
 			/**
 			 * defaultValue: undefined
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
-			 * @deprecated As of Version 1.120
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
+			 * @deprecated As of Version 1.120, without replacement as code execution with eval() is not supported anymore due to CSP compliance
 			 */
 			"Code": "code",
 			/**
 			 * defaultValue: 0
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"Integer": "integer",
 			/**
 			 * defaultValue: ""
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"String": "string",
 			/**
 			 * defaultValue: []
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"StringArray": "string[]",
 			/**
 			 * defaultValue: []
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"FunctionArray": "function[]",
 			/**
 			 * defaultValue: undefined
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"Function": "function",
 			/**
 			 * defaultValue: {}
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"Object":  "object",
 			/**
 			 * defaultValue: {}
 			 * @private
-			 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+			 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 			 */
 			"MergedObject":  "mergedObject"
 		};
@@ -3975,17 +3958,47 @@
 			return oClone;
 		}
 
+		function getCachedValue(sCacheKey, mOptions) {
+			var vCachedValue = mCache[sCacheKey];
+			if (mOptions.type === TypeEnum.StringArray || mOptions.type === TypeEnum.Object || mOptions.type === TypeEnum.MergedObject) {
+				vCachedValue = deepClone(vCachedValue);
+			}
+			return vCachedValue;
+		}
+
 		/** Register a new Configuration provider
+		 *
+		 * Provider registration maintains priority groups:
+		 * - Non-external providers are inserted before the first external provider
+		 * - External providers (oProvider.external === true) are added to the end (highest priority)
+		 * This ensures external providers always have priority over non-external providers.
 		 *
 		 * @name module:sap/base/config.registerProvider
 		 * @function
 		 * @param {object} oProvider The provider instance
 		 * @private
-		 * @ui5-restricted sap.ui.core
+		 * @ui5-restricted sap.ui.core, sap.ushell
 		 */
 		function registerProvider(oProvider) {
 			if (aProvider.indexOf(oProvider) === -1) {
-				aProvider.push(oProvider);
+				if (oProvider.external) {
+					// External provider: add to end (highest priority within external group)
+					aProvider.push(oProvider);
+				} else {
+					// Non-external provider: insert before first external provider
+					var iFirstExternalIndex = aProvider.findIndex(function(provider) {
+						return provider.external === true;
+					});
+
+					if (iFirstExternalIndex !== -1) {
+						// Insert before first external provider
+						aProvider.splice(iFirstExternalIndex, 0, oProvider);
+					} else {
+						// No external provider yet, add to end
+						aProvider.push(oProvider);
+					}
+				}
+
 				Configuration._.invalidate();
 				bGlobalIgnoreExternal = get(mUrlParamOptions);
 			}
@@ -4122,59 +4135,58 @@
 		 * @returns {any} Value of the configuration parameter
 		 * @throws {TypeError} Throws an error if the given parameter name does not match the definition.
 		 * @private
-		 * @ui5-restricted sap.ui.core, sap.fl, sap.ui.intergration, sap.ui.export
+		 * @ui5-restricted sap.ui.core, sap.ui.fl, sap.ui.integration, sap.ui.export
 		 */
 		function get(mOptions) {
+			var sCacheKey = mOptions.name;
+			if (mOptions.provider) {
+				sCacheKey += "-" + mOptions.provider.getId();
+			}
+			if (sCacheKey in mCache) {
+				return getCachedValue(sCacheKey, mOptions);
+			}
+
 			if (typeof mOptions.name !== "string" || !rValidKey.test(mOptions.name)) {
 				throw new TypeError(
 					"Invalid configuration key '" + mOptions.name + "'!"
 				);
 			}
-			var sCacheKey = mOptions.name;
-			if (mOptions.provider) {
-				sCacheKey += "-" + mOptions.provider.getId();
-			}
-			if (!(sCacheKey in mCache)) {
-				mOptions = Object.assign({}, mOptions);
-				var vValue;
 
-				var bIgnoreExternal = bGlobalIgnoreExternal || !mOptions.external;
-				var sName = mOptions.name;
-				var vMatch = sName.match(rXXAlias);
-				var vDefaultValue = mOptions.hasOwnProperty("defaultValue") ? mOptions.defaultValue : mInternalDefaultValues[mOptions.type];
+			mOptions = Object.assign({}, mOptions);
+			var vValue;
 
-				const aAllProvider = [...aProvider, ...(mOptions.provider ? [mOptions.provider] : [])];
+			var bIgnoreExternal = bGlobalIgnoreExternal || !mOptions.external;
+			var sName = mOptions.name;
+			var vMatch = sName.match(rXXAlias);
+			var vDefaultValue = mOptions.hasOwnProperty("defaultValue") ? mOptions.defaultValue : mInternalDefaultValues[mOptions.type];
 
-				for (var i = aAllProvider.length - 1; i >= 0; i--) {
-					if (!aAllProvider[i].external || !bIgnoreExternal) {
-						const vProviderValue = convertToType(aAllProvider[i].get(sName, mOptions.freeze), mOptions.type, mOptions.name);
-						if (vProviderValue !== undefined) {
-							if (mOptions.type === TypeEnum.MergedObject) {
-								vValue = Object.assign({}, vProviderValue, vValue);
-							} else {
-								vValue = vProviderValue;
-								break;
-							}
+			const aAllProvider = [...aProvider, ...(mOptions.provider ? [mOptions.provider] : [])];
+
+			for (var i = aAllProvider.length - 1; i >= 0; i--) {
+				if (!aAllProvider[i].external || !bIgnoreExternal) {
+					const vProviderValue = convertToType(aAllProvider[i].get(sName, mOptions.freeze), mOptions.type, mOptions.name);
+					if (vProviderValue !== undefined) {
+						if (mOptions.type === TypeEnum.MergedObject) {
+							vValue = Object.assign({}, vProviderValue, vValue);
+						} else {
+							vValue = vProviderValue;
+							break;
 						}
 					}
 				}
-				if (vValue === undefined && (vMatch && vMatch[1] === "sapUi")) {
-					mOptions.name = vMatch[1] + "Xx" + vMatch[2];
-					vValue = get(mOptions);
-				}
-				if (vValue === undefined) {
-					if (typeof vDefaultValue === 'function') {
-						vDefaultValue = vDefaultValue();
-					}
-					vValue = vDefaultValue;
-				}
-				mCache[sCacheKey] = vValue;
 			}
-			var vCachedValue = mCache[sCacheKey];
-			if (typeof mOptions.type !== 'function' && (mOptions.type === TypeEnum.StringArray || mOptions.type === TypeEnum.Object || mOptions.type === TypeEnum.MergedObject)) {
-				vCachedValue = deepClone(vCachedValue);
+			if (vValue === undefined && (vMatch && vMatch[1] === "sapUi")) {
+				mOptions.name = vMatch[1] + "Xx" + vMatch[2];
+				vValue = get(mOptions);
 			}
-			return vCachedValue;
+			if (vValue === undefined) {
+				if (typeof vDefaultValue === 'function') {
+					vDefaultValue = vDefaultValue();
+				}
+				vValue = vDefaultValue;
+			}
+			mCache[sCacheKey] = vValue;
+			return getCachedValue(sCacheKey, mOptions);
 		}
 
 		function invalidate() {
@@ -4525,8 +4537,7 @@
 				'sinon': 'sap/ui/thirdparty/sinon',
 				'signals': 'sap/ui/thirdparty/signals',
 				'URI': 'sap/ui/thirdparty/URI',
-				'URITemplate': 'sap/ui/thirdparty/URITemplate',
-				'esprima': 'sap/ui/documentation/sdk/thirdparty/esprima'
+				'URITemplate': 'sap/ui/thirdparty/URITemplate'
 			}
 		},
 
@@ -4570,14 +4581,6 @@
 			'sap/ui/thirdparty/IPv6': {
 				amd: true,
 				exports: 'IPv6'
-			},
-			'sap/ui/thirdparty/iscroll-lite': {
-				amd: false,
-				exports: 'iScroll'
-			},
-			'sap/ui/thirdparty/iscroll': {
-				amd: false,
-				exports: 'iScroll'
 			},
 			'sap/ui/thirdparty/jquery': {
 				amd: true,
@@ -4689,14 +4692,6 @@
 			'sap/ui/thirdparty/zyngascroll': {
 				amd: false,
 				exports: 'Scroller' // 'requestAnimationFrame', 'cancelRequestAnimationFrame', 'core'
-			},
-			'sap/ui/demokit/js/esprima': {
-				amd: true,
-				exports: 'esprima'
-			},
-			'sap/ui/documentation/sdk/thirdparty/esprima': {
-				amd: true,
-				exports: 'esprima'
 			},
 			'sap/viz/libs/canvg': {
 				deps: ['sap/viz/libs/rgbcolor']

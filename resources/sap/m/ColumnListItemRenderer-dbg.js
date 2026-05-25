@@ -75,7 +75,7 @@ sap.ui.define([
 	ColumnListItemRenderer.renderHighlight = function(rm, oLI) {
 		rm.openStart("td");
 		rm.class("sapMListTblHighlightCell");
-		rm.attr("role", "presentation");
+		rm.attr("role", "none");
 		rm.openEnd();
 
 		// let the list item base render the highlight
@@ -87,7 +87,7 @@ sap.ui.define([
 	ColumnListItemRenderer.renderNavigated = function(rm, oLI) {
 		rm.openStart("td");
 		rm.class("sapMListTblNavigatedCell");
-		rm.attr("role", "presentation");
+		rm.attr("role", "none");
 		rm.openEnd();
 
 		// let the list item base render the navigated state
@@ -119,6 +119,27 @@ sap.ui.define([
 		ListItemBaseRenderer.renderModeContent.apply(this, arguments);
 
 		rm.close("td");
+	};
+
+	// wrap actions with a cell
+	ColumnListItemRenderer.renderActions = function(rm, oLI) {
+		this.openStartGridCell(rm, oLI, "td", oLI.getId() + "-Actions", "sapMListTblActionsCol").openEnd();
+
+		// let the list item base render the actions
+		ListItemBaseRenderer.renderActions.apply(this, arguments);
+
+		rm.close("td");
+	};
+
+	// render navigation action within the actions block
+	ColumnListItemRenderer.renderNavigationInActions = function(rm, oLI) {
+		var oTable = oLI.getTable();
+		if (!oTable || !oTable.doItemsNeedTypeColumn()) {
+			return;
+		}
+
+		// let the list item base render the navigation action
+		ListItemBaseRenderer.renderNavigationInActions.call(this, rm, oLI, true);
 	};
 
 	// ColumnListItem does not respect counter property of the LIB
@@ -241,7 +262,7 @@ sap.ui.define([
 	ColumnListItemRenderer.renderDummyCell = function(rm, oTable) {
 		rm.openStart("td");
 		rm.class("sapMListTblDummyCell");
-		rm.attr("role", "presentation");
+		rm.attr("role", "none");
 		rm.openEnd();
 		rm.close("td");
 	};
@@ -270,7 +291,6 @@ sap.ui.define([
 		rm.openStart("tr", oLI.getPopin());
 		rm.class("sapMListTblSubRow");
 		rm.attr("role", "none");
-		rm.attr("tabindex", "-1");
 		rm.attr("data-sap-ui-related", oLI.getId());
 		rm.openEnd();
 

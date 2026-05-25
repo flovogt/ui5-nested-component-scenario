@@ -106,7 +106,7 @@ sap.ui.define([
 		 * </ul>
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @constructor
 		 * @extends sap.m.ComboBoxBase
@@ -477,6 +477,7 @@ sap.ui.define([
 		ComboBox.prototype.onBeforeRendering = function() {
 			ComboBoxBase.prototype.onBeforeRendering.apply(this, arguments);
 			var aItems = this.getItems();
+			var oClearIcon = this.getShowClearIcon() ? this._getClearIcon() : this._oClearIcon;
 
 			if (this.getRecreateItems()) {
 				ListHelpers.fillList(aItems, this._getList(), this._mapItemToListItem.bind(this));
@@ -497,11 +498,16 @@ sap.ui.define([
 				this.setValue(sValue);
 			}
 
-			if (this.getShowClearIcon()) {
-				this._getClearIcon().setVisible(this.shouldShowClearIcon());
-			} else if (this._oClearIcon) {
-				this._getClearIcon().setVisible(false);
+			if (!oClearIcon) {
+				return;
 			}
+
+			if (this.shouldShowClearIcon()) {
+				oClearIcon.removeStyleClass("sapMComboBoxBaseHideClearIcon");
+				return;
+			}
+
+			oClearIcon.addStyleClass("sapMComboBoxBaseHideClearIcon");
 		};
 
 		/**
@@ -647,10 +653,6 @@ sap.ui.define([
 				this.setSelectable(oItem, oItem.getEnabled());
 			}
 
-			if (oItem.isA("sap.ui.core.SeparatorItem")) {
-				oListItem.addAriaLabelledBy(this._getGroupHeaderInvisibleText().getId());
-			}
-
 			oListItem.addStyleClass(this.getRenderer().CSS_CLASS_COMBOBOXBASE + "NonInteractiveItem");
 
 			return oListItem;
@@ -769,6 +771,15 @@ sap.ui.define([
 				});
 
 				oListItem = ListHelpers.getListItem(this.getSelectedItem());
+			}
+
+			const sSelectedItemText = this.getSelectedItem()?.getText();
+			const slastInputValue = this.getLastValue();
+
+			if (sValue.toLowerCase() === sSelectedItemText?.toLowerCase()) {
+				this.setValue(sSelectedItemText);
+				sValue = sSelectedItemText;
+				this.setLastValue(slastInputValue);
 			}
 
 			this._sInputValueBeforeOpen = sValue;
@@ -1210,7 +1221,6 @@ sap.ui.define([
 				this.updateDomValue(sTypedValue);
 				this.fireSelectionChange({ selectedItem: null });
 
-				this._getGroupHeaderInvisibleText().setText(this._oRb.getText("LIST_ITEM_GROUP_HEADER") + " " + oItem.getText());
 				return;
 			}
 
@@ -1964,7 +1974,7 @@ sap.ui.define([
 		 * @returns {boolean} If it is an interactive Control
 		 *
 		 * @private
-		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 		 */
 		ComboBox.prototype._getToolbarInteractive = function () {
 			return true;

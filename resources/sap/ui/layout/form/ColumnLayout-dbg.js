@@ -38,7 +38,7 @@ sap.ui.define([
 	 * one column. So the last row of the {@link sap.ui.layout.form.Form Form} control will not be fully used.
 	 *
 	 * The default size of the {@link sap.ui.layout.form.FormContainer FormContainer} element can be overwritten by using {@link sap.ui.layout.form.ColumnContainerData ColumnContainerData}
-	 * as <code>LayoutData</code>. If one {@link sap.ui.layout.form.FormContainer FormContainer} element has {@link sap.ui.layout.form.ColumnContainerData ColumnContainerData} set,
+	 * as {@link sap.ui.core.Element#setLayoutData LayoutData}. If one {@link sap.ui.layout.form.FormContainer FormContainer} element has {@link sap.ui.layout.form.ColumnContainerData ColumnContainerData} set,
 	 * the size calculation of the other {@link sap.ui.layout.form.FormContainer FormContainer} elements might not lead to the expected result.
 	 * In this case, use {@link sap.ui.layout.form.ColumnContainerData ColumnContainerData} also for the other {@link sap.ui.layout.form.FormContainer FormContainer} elements.
 	 *
@@ -47,7 +47,7 @@ sap.ui.define([
 	 * If there is enough space, the labels are beside the fields, otherwise above the fields.
 	 *
 	 * The default size of a content control of a {@link sap.ui.layout.form.FormElement FormElement} element can be overwritten
-	 * using {@link sap.ui.layout.form.ColumnElementData ColumnElementData} as <code>LayoutData</code>.
+	 * using {@link sap.ui.layout.form.ColumnElementData ColumnElementData} as {@link sap.ui.core.Element#setLayoutData LayoutData}.
 	 * If one control assigned to a {@link sap.ui.layout.form.FormElement FormElement} element has {@link sap.ui.layout.form.ColumnElementData ColumnElementData} set,
 	 * the size calculation of the other controls assigned to the {@link sap.ui.layout.form.FormElement FormElement} element
 	 * might not lead to the expected result.
@@ -58,9 +58,9 @@ sap.ui.define([
 	 *
 	 * <b>Note:</b>
 	 * This control cannot be used stand-alone, it just renders a {@link sap.ui.layout.form.Form Form} control,
-	 * so it must be assigned to a {@link sap.ui.layout.form.Form Form} control using the <code>layout</code> aggregation.
+	 * so it must be assigned to a {@link sap.ui.layout.form.Form Form} control using the {@link sap.ui.layout.form.Form#setLayout layout} aggregation.
 	 * @extends sap.ui.layout.form.FormLayout
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public

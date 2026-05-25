@@ -45,7 +45,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 * @since 1.48
 		 *
 		 * @constructor
@@ -72,8 +72,7 @@ sap.ui.define([
 						/**
 						 * Specifies the path to the PDF file to display. Can be set to a relative or
 						 * an absolute path.<br>
-						 * Optionally, this property can also be set to a data URI path or a blob URL
-						 * in all major web browsers except Internet Explorer and Microsoft Edge, provided
+						 * Optionally, this property can also be set to a data URI path or a blob URL, provided
 						 * that this data URI or blob URL is allowed in advance. For more information about
 						 * URL filtering, see {@link topic:91f3768f6f4d1014b6dd926db0e91070 URLList Validator Filtering}.
 						 *
@@ -192,7 +191,7 @@ sap.ui.define([
 						 * Modern browsers implement strict policies for validating external resources loaded within an iframe.
 						 * PDFViewer cannot determine whether the resource inside the iframe is a valid PDF by itself.
 						 * As the validation cannot be performed the sourceValidationFailed event cannot be triggered.
-						 * @deprecated As of version 1.136.9 with no replacement.
+						 * @deprecated As of version 1.141.0 with no replacement.
 						 */
 						sourceValidationFailed: {}
 					}

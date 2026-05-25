@@ -78,7 +78,7 @@ function(
 	 * @implements sap.ui.core.Label, sap.ui.core.IShrinkable, sap.ui.core.IAccessKeySupport, sap.ui.core.ILabelable
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -330,7 +330,7 @@ function(
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	Label.prototype._getToolbarInteractive = function () {
 		return false;

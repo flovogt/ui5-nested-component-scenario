@@ -110,15 +110,14 @@ sap.ui.define([
 
 	/**
 	 * The Core version, e.g. '1.127.0'
-	 * @name sap.ui.core.Core.version
+	 * @name sap.ui.core.Core.prototype.version
 	 * @final
 	 * @type {string}
-	 * @static
 	 * @since 1.127
 	 * @private
 	 * @ui5-restricted sap.ui.core, sap.ui.test
 	 */
-	const sVersion = "1.136.16";
+	const sVersion = "1.148.0";
 
 	/**
 	 * The buildinfo.
@@ -131,10 +130,9 @@ sap.ui.define([
 
 	/**
 	 * The buildinfo, containing a build timestamp.
-	 * @name sap.ui.core.Core.buildinfo
+	 * @name sap.ui.core.Core.prototype.buildinfo
 	 * @final
 	 * @type {sap.ui.core.Core.BuildInfo}
-	 * @static
 	 * @since 1.127
 	 * @private
 	 * @ui5-restricted sap.ui.core, sap.ui.test
@@ -274,7 +272,7 @@ sap.ui.define([
 					if (typeof fn === "function") {
 						fn();
 					} else {
-						Log.warning("[Deprecated] Do not use inline JavaScript code with the oninit attribute."
+						Log.warning("[DEPRECATED] Do not use inline JavaScript code with the oninit attribute."
 							+ " Use the module:... syntax or the name of a global function");
 						/*
 						 * In contrast to eval(), window.eval() executes the given string
@@ -443,7 +441,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 * @final
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @alias sap.ui.core.Core
 	 * @public
 	 * @hideconstructor
@@ -512,7 +510,7 @@ sap.ui.define([
 
 			Object.defineProperty(this, "mElements", {
 				get: function() {
-					Log.error("oCore.mElements was a private member and has been removed. Use one of the methods in sap.ui.core.ElementRegistry instead");
+					Log.error("oCore.mElements was a private member and has been removed. Use one of the methods in sap/ui/core/ElementRegistry instead");
 					return ElementRegistry.all(); // this is a very costly snapshot!
 				},
 				configurable: false
@@ -681,15 +679,6 @@ sap.ui.define([
 					this.aLibs.splice(i,1);
 				}
 				this.aLibs.unshift("sap.ui.core");
-			}
-
-			/**
-			 * enable LessSupport if specified in configuration
-			 * @deprecated As of Version 1.120
-			 */
-			if (BaseConfig.get({name: "sapUiXxLesssupport", type: BaseConfig.Type.Boolean}) && !this.aModules.includes("sap.ui.core.plugin.LessSupport")) {
-				Log.info("Including LessSupport into declared modules");
-				this.aModules.push("sap.ui.core.plugin.LessSupport");
 			}
 
 			var sPreloadMode = Library.getPreloadMode();
@@ -996,7 +985,6 @@ sap.ui.define([
 				"applyTheme","setThemeRoot","attachThemeChanged","detachThemeChanged",
 				"isThemeApplied",
 				"notifyContentDensityChanged",
-				"attachThemeScopingChanged","detachThemeScopingChanged","fireThemeScopingChanged",
 				"includeLibraryTheme"
 			]
 		}
@@ -1024,7 +1012,7 @@ sap.ui.define([
 	 * Map of event names and ids, that are provided by this class
 	 * @private
 	 */
-	Core.M_EVENTS = {ControlEvent: "ControlEvent", UIUpdated: "UIUpdated", ThemeChanged: "ThemeChanged", ThemeScopingChanged: "themeScopingChanged", LocalizationChanged: "localizationChanged",
+	Core.M_EVENTS = {ControlEvent: "ControlEvent", UIUpdated: "UIUpdated", ThemeChanged: "ThemeChanged", LocalizationChanged: "localizationChanged",
 			LibraryChanged : "libraryChanged",
 			ValidationError : "validationError", ParseError : "parseError", FormatError : "formatError", ValidationSuccess : "validationSuccess"};
 
@@ -1240,21 +1228,21 @@ sap.ui.define([
 	 * </pre>
 	 *
 	 * If parts of the theme are at different locations (e.g. because you provide a standard theme
-	 * like "sap_belize" for a custom control library and this self-made part of the standard theme is at a
+	 * like "sap_horizon" for a custom control library and this self-made part of the standard theme is at a
 	 * different location than the UI5 resources), you can also specify for which control libraries the setting
 	 * should be used, by giving an array with the names of the respective control libraries as second parameter:
 	 * <pre>
-	 *   sap.ui.getCore().setThemeRoot("sap_belize", ["my.own.library"], "https://mythemeserver.com/allThemes");
+	 *   sap.ui.getCore().setThemeRoot("sap_horizon", ["my.own.library"], "https://mythemeserver.com/allThemes");
 	 * </pre>
 	 *
-	 * This will cause the Belize theme to be loaded from the UI5 location for all standard libraries.
+	 * This will cause the Horizon theme to be loaded from the UI5 location for all standard libraries.
 	 * Resources for styling the <code>my.own.library</code> controls will be loaded from the configured
 	 * location:
 	 * <pre>
-	 *   https://sdk.openui5.org/resources/sap/ui/core/themes/sap_belize/library.css
-	 *   https://sdk.openui5.org/resources/sap/ui/layout/themes/sap_belize/library.css
-	 *   https://sdk.openui5.org/resources/sap/m/themes/sap_belize/library.css
-	 *   https://mythemeserver.com/allThemes/my/own/library/themes/sap_belize/library.css
+	 *   https://sdk.openui5.org/resources/sap/ui/core/themes/sap_horizon/library.css
+	 *   https://sdk.openui5.org/resources/sap/ui/layout/themes/sap_horizon/library.css
+	 *   https://sdk.openui5.org/resources/sap/m/themes/sap_horizon/library.css
+	 *   https://mythemeserver.com/allThemes/my/own/library/themes/sap_horizon/library.css
 	 * </pre>
 	 *
 	 * If the custom theme should be loaded initially (via bootstrap attribute), the <code>themeRoots</code>
@@ -1422,6 +1410,9 @@ sap.ui.define([
 		Log.info("Starting Plugins",null,METHOD);
 		this.startPlugins();
 		Log.info("Plugins started",null,METHOD);
+
+		// informs native JavaScript that UI5 is initialized
+		document.dispatchEvent(new CustomEvent("sap-ui-core-ready"));
 
 		/**
 		 * @deprecated As ofVersion 1.120
@@ -1937,7 +1928,7 @@ sap.ui.define([
 			METHOD =  "sap.ui.core.Core.initLibrary()";
 
 		if ( bLegacyMode ) {
-			Log.error("[Deprecated] library " + sLibName + " uses old fashioned initLibrary() call (rebuild with newest generator)");
+			Log.error("[DEPRECATED] library " + sLibName + " uses old fashioned initLibrary() call (rebuild with newest generator)");
 		}
 
 		if (!sLibName) {
@@ -2210,40 +2201,6 @@ sap.ui.define([
 		_oEventProvider.detachEvent(Core.M_EVENTS.ThemeChanged, fnFunction, oListener);
 	};
 
-	/**
-	 * Fired when a scope class has been added or removed on a control/element
-	 * by using the custom style class API <code>addStyleClass</code>,
-	 * <code>removeStyleClass</code> or <code>toggleStyleClass</code>.
-	 *
-	 * Scope classes are defined by the library theme parameters coming from the
-	 * current theme.
-	 *
-	 * <b>Note:</b> The event will only be fired after the
-	 * <code>sap.ui.core.theming.Parameters</code> module has been loaded.
-	 * By default this is not the case.
-	 *
-	 * @name sap.ui.core.Core#themeScopingChanged
-	 * @event
-	 * @param {sap.ui.base.Event} oEvent
-	 * @param {sap.ui.base.EventProvider} oEvent.getSource
-	 * @param {object} oEvent.getParameters
-	 * @param {string[]} oEvent.getParameters.scopes Array of the CSS scope classes
-	 * @param {boolean} oEvent.getParameters.added Whether the class has been added or removed
-	 * @param {sap.ui.core.Element} oEvent.getParameters.element Element instance on which the scope change happened
-	 * @deprecated since 1.119. Moved to {@link module:/sap/ui/core/Theming.event:themeScopingChanged themeScopingChanged}.
-	 */
-
-	Core.prototype.attachThemeScopingChanged = function(fnFunction, oListener) {
-		_oEventProvider.attachEvent(Core.M_EVENTS.ThemeScopingChanged, fnFunction, oListener);
-	};
-
-	Core.prototype.detachThemeScopingChanged = function(fnFunction, oListener) {
-		_oEventProvider.detachEvent(Core.M_EVENTS.ThemeScopingChanged, fnFunction, oListener);
-	};
-
-	Theming.attachThemeScopingChanged(function(oEvent) {
-		_oEventProvider.fireEvent(Core.M_EVENTS.ThemeScopingChanged, BaseEvent.getParameters(oEvent));
-	});
 
 	/**
 	 * Fired when any of the localization relevant configuration settings has changed
@@ -2439,7 +2396,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.core.ID|null|undefined} sId ID of the control to retrieve
 	 * @returns {sap.ui.core.Element|undefined} Element for the given ID or <code>undefined</code>
-	 * @deprecated As of version 1.1, use <code>sap.ui.core.Core.byId</code> instead!
+	 * @deprecated As of version 1.1, use <code>sap.ui.core.Core.prototype.byId</code> instead!
 	 * @function
 	 * @public
 	 */

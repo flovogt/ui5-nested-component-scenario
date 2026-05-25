@@ -4,15 +4,6 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// package documentation
-/**
- * Collection of utility functions to handle recurrence related operations.
- *
- * @namespace
- * @name sap.ui.unified.recurring
- * @public
- */
-
 // Provides class sap.ui.unified.calendar.RecurrenceUtils
 sap.ui.define([
 	'sap/ui/core/date/UI5Date'
@@ -25,7 +16,8 @@ sap.ui.define([
 		// Static class
 
 		/**
-		 * @alias sap.ui.unified.RecurrenceUtils
+		 * Collection of utility functions to handle recurrence related operations.
+		 * @alias sap.ui.unified.calendar.RecurrenceUtils
 		 * @namespace
 		 * @private
 		 */

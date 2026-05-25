@@ -68,7 +68,7 @@ sap.ui.define([
 	 * The MontsRow works with UI5Date or JavaScript Date objects, but only the month and the year are used to display and interact.
 	 * As representation for a month, the 1st of the month will always be returned in the API.
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -118,7 +118,7 @@ sap.ui.define([
 			 * If set, the calendar type is used for display.
 			 * If not set, the calendar type of the global configuration is used.
 			 * @private
-			 * @ui5-restricted sap.ui.unified.MonthsRow
+			 * @ui5-restricted sap.ui.unified.calendar.MonthsRow
 			 * @since 1.108.0
 			 */
 			primaryCalendarType : {type : "sap.base.i18n.date.CalendarType", group : "Appearance"},
@@ -127,10 +127,25 @@ sap.ui.define([
 			 * If set, the days are also displayed in this calendar type
 			 * If not set, the dates are only displayed in the primary calendar type
 			 * @private
-			 * @ui5-restricted sap.ui.unified.MonthsRow
+			 * @ui5-restricted sap.ui.unified.calendar.MonthsRow
 			 * @since 1.109.0
 			 */
-			 secondaryCalendarType : {type : "sap.base.i18n.date.CalendarType", group : "Appearance"}
+			 secondaryCalendarType : {type : "sap.base.i18n.date.CalendarType", group : "Appearance"},
+
+			/**
+			 * If not set, the grid cells aren't announced as selectable.
+			 *
+			 * @private
+			 * @since 1.139.0
+			 */
+			selectableAccessibilitySemantics : {type : "boolean", group : "Behavior", defaultValue : true, visibility: "hidden"},
+
+			/**
+			 * Determines if the week numbers are displayed.
+			 *
+			 * @since 1.145.0
+			 */
+			showWeekNumbers : {type : "boolean", group : "Appearance", defaultValue : false}
 		},
 		aggregations : {
 
@@ -980,7 +995,7 @@ sap.ui.define([
 	 * when focus is being restored back (e.g. after rerendering), we focus the needed DOM element (in this case month)
 	 *
 	 * @param {object} oInfo the focus info
-	 * @returns {sap.ui.unified.calendar.MonthRow} <code>this</code> for method chaining.
+	 * @returns {sap.ui.unified.calendar.MonthsRow} <code>this</code> for method chaining.
 	 */
 	MonthsRow.prototype.applyFocusInfo = function(oInfo){
 		this._oItemNavigation.focusItem(this._oItemNavigation.getFocusedIndex());

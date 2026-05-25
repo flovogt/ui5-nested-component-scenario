@@ -115,7 +115,7 @@
 		</interaction>
 		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Ja šūnu atlase ir iespējota</span>:</p>
-				<p>Ja šūnas ir atlasītas, <kbd>Shift</kbd> nospiešana un noklikšķināšana un citas šūnas palielina atlasi līdz šūnai, uz kuras noklikšķinājāt.</p>
+				<p>Ja šūnas ir atlasītas, <kbd>Shift + MouseClick</kbd> uz citas šūnas palielina atlasi līdz šūnai, uz kuras noklikšķināt.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>
@@ -130,11 +130,19 @@
 	<control-interactions>
 		<control name="sap.m.VariantManagement"/>
 		<interaction> <kbd>F4</kbd> <kbd>Spacebar</kbd> <kbd>Alt + ArrowUp</kbd> <kbd>Alt + ArrowDown</kbd> <description>
-				<p>Atver variantu pārvaldību.</p>
-			</description>
+				<p>Atver dialogu “Mani skati”.</p>
+			</description> 
 		</interaction>
 		<interaction> <kbd>PageUp</kbd> <description>
-				<p>Aizver variantu pārvaldības kļūdas uznirstošo logu</p>
+				<p>Aizver dialoga “Mani skati” kļūdas uznirstošo logu</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + Enter</kbd> <description>
+				<p>Saglabā jauno skatu dialogā “Saglabāt kā”.</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + S</kbd> <description>
+				<p>Saglabā skatiem veiktās izmaiņas.</p>
 			</description>
 		</interaction>
 	</control-interactions>

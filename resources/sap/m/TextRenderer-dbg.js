@@ -26,7 +26,7 @@ sap.ui.define([
 		// shortcut for sap.m.WrappingType
 		var WrappingType = mobileLibrary.WrappingType;
 
-		// shortcut for sap.m.EmptyIndicator
+		// shortcut for sap.m.EmptyIndicatorMode
 		var EmptyIndicatorMode = mobileLibrary.EmptyIndicatorMode;
 
 		// shortcut for library resource bundle
@@ -123,6 +123,7 @@ sap.ui.define([
 			oRm.openStart("span", oText.getId() + "-inner");
 			oRm.class("sapMTextMaxLine");
 			oRm.class("sapMTextLineClamp");
+			oRm.class("sapUiSelectable");
 			oRm.style("-webkit-line-clamp", oText.getMaxLines());
 			oRm.openEnd();
 			this.renderText(oRm, oText);

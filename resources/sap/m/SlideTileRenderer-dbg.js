@@ -112,6 +112,7 @@ sap.ui.define(['./library', "sap/base/security/encodeCSS"],
 			oRm.class("sapMSTIndicatorTapArea");
 			oRm.openEnd();
 			oRm.openStart("span", oControl.getId() + "-tileIndicator-" + i );
+			oRm.attr("title", oControl._oRb.getText("SLIDETILERADIOBUTTON"));
 			oRm.class("sapMSTIndicator");
 			oRm.openEnd();
 			oRm.close("span");

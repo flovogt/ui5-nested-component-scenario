@@ -4,8 +4,7 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides class sap.base.util.clamp
-sap.ui.define([],	function() {
+sap.ui.define([], function() {
 	'use strict';
 
 	/**
@@ -16,6 +15,7 @@ sap.ui.define([],	function() {
 	 * @returns {number} clamped value
 	 * @public
 	 * @since 1.130
+	 * @alias module:sap/base/util/clamp
 	 */
 	const clamp = (val, min, max) => {
 		// handles case when max < min

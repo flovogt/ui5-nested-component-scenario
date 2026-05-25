@@ -168,8 +168,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.136.16
-	 * @version 1.136.16
+	 * @version 1.148.0
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -319,7 +319,7 @@ sap.ui.define([
 	 * @private
 	 * @returns {string} The message bundle key
 	 */
-	DateRangeSelection.prototype._getAccessibleNameLabel = function() {
+	DateRangeSelection.prototype._getAccessibleNameBundleKey = function() {
 		var sConstructorName = this._getCalendarConstructor().getMetadata().getName();
 
 		switch (sConstructorName) {
@@ -757,7 +757,8 @@ sap.ui.define([
 				}
 			} else {
 				const aDateInterval = sValue.split(" " + sDelimiter + " ");// Delimiter appears more than once -> try with separators
-				if ( aDateInterval.length >= 1 && aDates.length > 2) {
+
+				if ( (aDateInterval.length  === 1 || aDateInterval.length  % 2 === 0) && aDates.length % 2 === 0) {
 					const sFirstDate = aDates.slice(0, aDates.length / 2).join(sDelimiter);
 					const sSecondDate = aDates.slice(aDates.length / 2).join(sDelimiter);
 					aDates = [sFirstDate, sSecondDate];
@@ -992,11 +993,22 @@ sap.ui.define([
 	 * @private
 	 */
 	DateRangeSelection.prototype.onsapescape = function(oEvent) {
-		var sLastValue = this.getLastValue(),
-			aDates = this._parseValue(this._getInputValue(), true),
-			sValueFormatInputDate = this._formatValue(aDates[0], aDates[1], true);
+		const sLastValue = this.getLastValue();
+		const sInputValue = this._getInputValue();
 
-		if (sValueFormatInputDate !== sLastValue) {
+		if (!sInputValue) {
+			return;
+		}
+
+		const aDates = this._parseValue(sInputValue, true);
+		const sValueFormatInputDate = this._formatValue(aDates[0], aDates[1], true) || "";
+
+		// If nothing changed in the input (raw or formatted), allow default action.
+		if (sInputValue === sLastValue || sValueFormatInputDate === sLastValue) {
+			return;
+		}
+
+		if (sLastValue.trim() !== "" && sValueFormatInputDate !== sLastValue) {
 			oEvent.setMarked();
 			oEvent.preventDefault();
 

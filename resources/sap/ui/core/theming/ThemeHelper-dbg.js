@@ -4,25 +4,13 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 sap.ui.define([
-	'sap/base/config',
 	'sap/base/future',
 	'sap/base/Log'
-], function (BaseConfig, future, Log) {
+], function (future, Log) {
 	"use strict";
 
 	var mLibThemeMetadata = {};
 
-	/**
-	 * [COMPATIBILITY] in case deprecated (and removed) themes are still needed, the fallback might be deactivated
-	 * [  RESTRICTED ] This is not a public offering and must not be used by applications!
-	 * @ui5-transform-hint replace-local false
-	 */
-	const bThemeFallbackDeactivated = BaseConfig.get({
-		name: "sapUiXxDeactivateThemeFallback",
-		type: "boolean",
-		value: false,
-		external: false // must not be usable via URL parameter!
-	});
 
 	// Theme defaulting
 	const DEFAULT_THEME = "sap_horizon";
@@ -124,83 +112,6 @@ sap.ui.define([
 		return oMetadata;
 	};
 
-	ThemeHelper.checkAndRemoveStyle = function(oParams) {
-		var sPrefix = oParams.prefix || "",
-			sLib = oParams.id;
-
-		var checkStyle = function(sId, bLog) {
-			var oStyle = document.getElementById(sId);
-
-			try {
-
-				var bNoLinkElement = false,
-					bLinkElementFinishedLoading = false,
-					bSheet = false,
-					bInnerHtml = false;
-
-				// Check if <link> element is missing (e.g. misconfigured library)
-				bNoLinkElement = !oStyle;
-
-				// Check if <link> element has finished loading (see sap/ui/dom/includeStyleSheet)
-				bLinkElementFinishedLoading = !!(oStyle && (oStyle.getAttribute("data-sap-ui-ready") === "true" || oStyle.getAttribute("data-sap-ui-ready") === "false"));
-
-				// Check for "sheet" object and if rules are available
-				bSheet = !!(oStyle && oStyle.sheet && oStyle.sheet.href === oStyle.href && ThemeHelper.hasSheetCssRules(oStyle.sheet));
-
-				// Check for "innerHTML" content
-				bInnerHtml = !!(oStyle && oStyle.innerHTML && oStyle.innerHTML.length > 0);
-
-				// One of the previous four checks need to be successful
-				var bResult = bNoLinkElement || bSheet || bInnerHtml || bLinkElementFinishedLoading;
-
-				if (bLog) {
-					Log.debug("sap.ui.core.theming.ThemeHelper: " + sId + ": " + bResult + " (noLinkElement: " + bNoLinkElement + ", sheet: " + bSheet + ", innerHtml: " + bInnerHtml + ", linkElementFinishedLoading: " + bLinkElementFinishedLoading + ")");
-				}
-
-				return bResult;
-
-			} catch (e) {
-				if (bLog) {
-					future.errorThrows(`sap.ui.core.theming.ThemeHelper: Error during check styles for Id: "${sId}"`, { cause: e });
-				}
-			}
-
-			return false;
-		};
-
-		var currentRes = checkStyle(sPrefix + sLib, true);
-		if (currentRes) {
-
-			// removes all old stylesheets (multiple could exist if theme change was triggered
-			// twice in a short timeframe) once the new stylesheet has been loaded
-			var aOldStyles = document.querySelectorAll("link[data-sap-ui-foucmarker='" + sPrefix + sLib + "']");
-			if (aOldStyles.length > 0) {
-				for (var i = 0, l = aOldStyles.length; i < l; i++) {
-					aOldStyles[i].remove();
-				}
-				Log.debug("ThemeManager: Old stylesheets removed for library: " + sLib);
-			}
-
-		}
-		return currentRes;
-	};
-
-	ThemeHelper.safeAccessSheetCssRules = function(sheet) {
-		try {
-			return sheet.cssRules;
-		} catch (e) {
-			// Firefox throws a SecurityError or InvalidAccessError if "sheet.cssRules"
-			// is accessed on a stylesheet with 404 response code.
-			// Most browsers also throw when accessing from a different origin (CORS).
-			return null;
-		}
-	};
-
-	ThemeHelper.hasSheetCssRules = function(sheet) {
-		var aCssRules = ThemeHelper.safeAccessSheetCssRules(sheet);
-		return !!aCssRules && aCssRules.length > 0;
-	};
-
 	/**
 	 * Validates the given theme and changes it to the predefined standard fallback theme if needed.
 	 *
@@ -218,11 +129,6 @@ sap.ui.define([
 	 * @returns {string} the validated and transformed theme name
 	 */
 	ThemeHelper.validateAndFallbackTheme = function(sTheme, sThemeRoot) {
-		// refer to comment at the top of this module
-		if (bThemeFallbackDeactivated) {
-			return sTheme;
-		}
-
 		// check cache for already determined fallback
 		// only do this for themes from the default location (potential SAP standard themes)
 		if (sThemeRoot == null && mThemeFallbacks[sTheme]) {
@@ -240,6 +146,7 @@ sap.ui.define([
 			if (sTheme) {
 				// extract the theme variant if given: "_hcb", "_hcw", "_dark"
 				sVariant = sTheme.match(rThemeVariantPattern)?.[0] || "";
+				Log.warning(`The configured theme '${sTheme}' is not yet or no longer supported in this version. The valid fallback theme is '${DEFAULT_THEME}${sVariant}'.`, "Theming");
 			} else {
 				sVariant = bDarkMode ? "_dark" : "";
 			}
@@ -248,7 +155,6 @@ sap.ui.define([
 
 			mThemeFallbacks[sTheme] = sNewTheme;
 
-			Log.warning(`The configured theme '${sTheme}' is not yet or no longer supported in this version. The valid fallback theme is '${sNewTheme}'.`, "Theming");
 		}
 
 		return sNewTheme;
@@ -267,7 +173,7 @@ sap.ui.define([
 	 * @param {string} sTheme Name of the theme to check
 	 * @returns {boolean} true if the theme is a standard theme, false otherwise
 	 * @private
-	 * @ui5-restricted sap.ui.core.Theming, sap.ui.core.theming.ThemeManager
+	 * @ui5-restricted sap/ui/core/Theming, sap.ui.core.theming.ThemeManager
 	 * @since 1.135
 	 */
 	ThemeHelper.isStandardTheme = function(sTheme) {

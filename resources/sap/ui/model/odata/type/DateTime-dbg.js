@@ -44,7 +44,7 @@ sap.ui.define([
 	 * Constructor for a primitive type <code>Edm.DateTime</code>.
 	 *
 	 * @class This class represents the OData V2 primitive type <a
-	 * href="http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
+	 * href="https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
 	 * <code>Edm.DateTime</code></a>.
 	 *
 	 * If you want to display a date and a time, prefer {@link
@@ -61,7 +61,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.DateTimeBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @alias sap.ui.model.odata.type.DateTime
 	 * @param {object} [oFormatOptions]
@@ -170,7 +170,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.DateTime"}
 	 *   the type's name
 	 * @public
 	 */

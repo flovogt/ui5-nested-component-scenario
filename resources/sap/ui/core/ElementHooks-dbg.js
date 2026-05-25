@@ -13,6 +13,7 @@ sap.ui.define([], function() {
 	 * @namespace
 	 * @private
 	 * @ui5-restricted sap.ui.core
+	 * @deprecated As of version 1.147.0, the concept has been discarded.
 	 */
 	const ElementHooks = {
 		/**
@@ -26,7 +27,6 @@ sap.ui.define([], function() {
 		 * @function
 		 * @private
 		 * @ui5-restricted sap.ui.core.support.usage.EventBroadcaster
-		 * @experimental Since 1.58
 		 */
 		interceptEvent: null
 	};

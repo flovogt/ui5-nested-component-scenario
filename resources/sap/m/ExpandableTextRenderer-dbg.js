@@ -26,7 +26,7 @@ sap.ui.define([
 	// shortcut for sap.ui.core.TextDirection
 	var WrappingType = mobileLibrary.WrappingType;
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = mobileLibrary.EmptyIndicatorMode;
 
 	// shortcut for library resource bundle
@@ -64,7 +64,6 @@ sap.ui.define([
 		// start writing HTML
 		oRm.openStart("div", oText);
 		oRm.class("sapMExText");
-		oRm.class("sapUiSelectable");
 
 		if (sWrappingType !== WrappingType.Hyphenated) {
 			// no space text must break
@@ -98,6 +97,7 @@ sap.ui.define([
 
 		oRm.openStart("span", oText.getId() + "-string");
 		oRm.class("sapMExTextString");
+		oRm.class("sapUiSelectable");
 		oRm.openEnd();
 
 		ExpandableTextRenderer.renderText(oRm, oText);

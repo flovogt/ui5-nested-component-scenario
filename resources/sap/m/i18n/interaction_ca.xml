@@ -115,7 +115,7 @@
 		</interaction>
 		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Si la selecció de cel·les està activada:</span></p>
-				<p>Si es seleccionen les cel·les, prémer <kbd>Shift</kbd> i fer clic a una cel·la diferent amplia la selecció fins a la cel·la en la que s'ha fet clic.</p>
+				<p>Si hi ha cel·les seleccionades, en prémer <kbd>Shift + MouseClick</kbd> en una altra cel·la, s'amplia la selecció fins a la cel·la en què s'ha fet clic.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>
@@ -130,11 +130,19 @@
 	<control-interactions>
 		<control name="sap.m.VariantManagement"/>
 		<interaction> <kbd>F4</kbd> <kbd>Spacebar</kbd> <kbd>Alt + ArrowUp</kbd> <kbd>Alt + ArrowDown</kbd> <description>
-				<p>Obre la gestió de variants.</p>
-			</description>
+				<p>Obre el diàleg Les meves vistes.</p>
+			</description> 
 		</interaction>
 		<interaction> <kbd>PageUp</kbd> <description>
-				<p>Tanca la finestra emergent d'errors de la gestió de variants</p>
+				<p>Tanca la finestra emergent d'error del diàleg Les meves vistes</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + Enter</kbd> <description>
+				<p>Desa la vista nova en el diàleg &quot;Desar com a&quot;.</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + S</kbd> <description>
+				<p>Desa les modificacions fetes a les vistes.</p>
 			</description>
 		</interaction>
 	</control-interactions>

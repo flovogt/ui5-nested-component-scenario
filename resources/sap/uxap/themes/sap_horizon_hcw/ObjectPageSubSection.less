@@ -7,9 +7,15 @@
 	text-transform: uppercase;
 }
 
-.sapUxAPObjectPageSubSectionFocusable:focus {
-	outline: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
-	outline-offset: -0.1875rem;
+/* Page Sub Section Focus */
+.sapUxAPObjectPageSubSectionFocusable:focus .sapUxAPObjectPageSubSectionFocusSpan {
+	content: '';
+	position: absolute;
+	display: block;
+	inset: 0;
+	border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+	z-index: 6;
+	pointer-events: none;
 }
 
 .sapUxAPObjectPageLayout-Std-Desktop .sapUxAPBlockContainer {
@@ -22,11 +28,13 @@
 
 /* responsive paddings */
 .sapUxAPObjectPageLayout.sapUiResponsiveContentPadding {
+
 	&.sapUxAPObjectPageLayout-Std-Tablet .sapUxAPBlockContainer,
 	&.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPBlockContainer {
 		padding-left: 2rem;
 		padding-right: 2rem;
 	}
+
 	&.sapUxAPObjectPageLayout-Std-Desktop-XL .sapUxAPBlockContainer {
 		padding-left: 3rem;
 		padding-right: 3rem;
@@ -35,11 +43,17 @@
 
 /* compact size */
 .sapUiSizeCompact {
+
 	.sapUxAPObjectPageLayout-Std-Desktop .sapUxAPBlockContainer {
 		padding: 1rem 1rem 2rem 1rem;
 	}
+
 	.sapUxAPObjectPageLayout-Std-Tablet .sapUxAPBlockContainer,
-	.sapUxAPObjectPageLayout-Std-Phone .sapUxAPBlockContainer{
+	.sapUxAPObjectPageLayout-Std-Phone .sapUxAPBlockContainer {
 		padding-bottom: 1rem;
 	}
+}
+
+.sapUxAPBlockContainer .sapUxAPObjectPageSubSectionAlignContent {
+	padding: 0 1rem;
 }

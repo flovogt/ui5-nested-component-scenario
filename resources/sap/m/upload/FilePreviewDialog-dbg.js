@@ -20,12 +20,15 @@ sap.ui.define([
 	"sap/m/VBox",
 	"sap/m/Bar",
 	"sap/m/Title",
-	"sap/ui/core/Control"
-], function(Core, Element, HTML, Button, Image, PDFViewer, Dialog, IllustratedMessage, IllustratedMessageType, Carousel, Log, Library, VBox, Bar, Title, Control) {
+	"sap/ui/core/Control",
+	"sap/ui/core/InvisibleMessage",
+	"sap/ui/core/library"
+], function(Core, Element, HTML, Button, Image, PDFViewer, Dialog, IllustratedMessage, IllustratedMessageType, Carousel, Log, Library, VBox, Bar, Title, Control, InvisibleMessage, coreLibrary) {
 	"use strict";
 
 	// get resource translation bundle;
 	const oLibraryResourceBundle = Library.getResourceBundleFor("sap.m");
+	const InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
 
 	/**
 	 * Media types that can be previewed.
@@ -53,7 +56,7 @@ sap.ui.define([
 	 * <h3>Overview</h3>
 	 *
 	 * Dialog with a carousel to preview files uploaded using the UploadSetwithTable control.
-	 * This Element should only be used within the {@link sap.m.upload.UploadSetwithTable UploadSetwithTable} control or {@link sap.m.plugins.UploadSetwithTable UploadSetwithTable} Plugin as an association.
+	 * This Element should only be used within the {@link sap.m.plugins.UploadSetwithTable UploadSetwithTable} Plugin as an association.
 	 *
 	 * <h3>Supported File Types for Preview</h3>
 	 *
@@ -71,7 +74,7 @@ sap.ui.define([
 	 * @constructor
 	 * @public
 	 * @since 1.120
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @extends sap.ui.core.Element
 	 * @name sap.m.upload.FilePreviewDialog
 	 */
@@ -249,7 +252,7 @@ sap.ui.define([
 
 		/**
 		 * Creates a viewer for .vds files
-		 * @param {sap.m.upload.UploadSetwithTableItem | sap.m.upload.UploadItem} oItem The UploadSetwithTableItem or UploadItem to be previewed
+		 * @param {sap.m.upload.UploadItem} oItem The UploadSetwithTableItem or UploadItem to be previewed
 		 * @return {sap.ui.vk.Viewer} A vds viewer instance or undefined if dependency unavailable
 		 * @private
 		 */
@@ -271,7 +274,8 @@ sap.ui.define([
 						source: oItem.getUrl(),
 						sourceType: "vds"
 					})
-				]
+				],
+				width: "100%"
 			});
 
 			return oVdsViewer;
@@ -279,7 +283,7 @@ sap.ui.define([
 
 		/**
 		 * Creates a rich text viewer
-		 * @param {sap.m.upload.UploadSetwithTableItem | sap.m.upload.UploadItem} oItem The UploadSetwithTableItem or UploadItem to be previewed
+		 * @param {sap.m.upload.UploadItem} oItem The UploadSetwithTableItem or UploadItem to be previewed
 		 * @return {sap.ui.richtexteditor.RichTextEditor} A rich text editor instance or undefined if dependency unavailable
 		 * @private
 		 */
@@ -373,6 +377,7 @@ sap.ui.define([
 					// oCarousel.setActivePage(oTargetPage);
 
 					const sNewDialogTitle = aItems[iIndex].getFileName();
+					InvisibleMessage.getInstance().announce(sNewDialogTitle, InvisibleMessageMode.Polite);
 
 					var oTitle = this._oDialog?.getCustomHeader()?.getContentLeft()[0];
 					oTitle?.setText(sNewDialogTitle);
@@ -528,7 +533,7 @@ sap.ui.define([
 
 		/**
 		 * Creates a {@link sap.m.Carousel} of uploaded files.
-		 * @return {sap.m.upload.UploadSetwithTableItem | sap.m.upload.UploadItem} The currently active UploadSetwithTableItem.
+		 * @return {sap.m.upload.UploadItem} The currently active UploadSetwithTableItem.
 		 * @private
 		 */
 		_getActiveUploadSetwithTableItem: function () {

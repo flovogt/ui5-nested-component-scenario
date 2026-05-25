@@ -39,6 +39,7 @@ function(
 
 	// lazy dependency to sap/m/Image
 	var Image;
+	var SegmentedButtonContentMode = library.SegmentedButtonContentMode;
 
 	/**
 	 * Constructor for a new <code>SegmentedButton</code>.
@@ -59,7 +60,7 @@ function(
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -81,6 +82,7 @@ function(
 
 				/**
 				 * Defines the width of the SegmentedButton control. If not set, it uses the minimum required width to make all buttons inside of the same size (based on the biggest button).
+				 * <b>Note:</b> This property functions only when the {@link sap.m.SegmentedButton#getContentMode contentMode} is set to EqualSized.
 				 *
 				 */
 				width : {type : "sap.ui.core.CSSSize", group : "Misc", defaultValue : null},
@@ -94,7 +96,19 @@ function(
 				 * Key of the selected item. If no item to this key is found in the items aggregation, no changes will apply. Only the items aggregation is affected. If duplicate keys exist, the first item matching the key is used.
 				 * @since 1.28.0
 				 */
-				selectedKey: { type: "string", group: "Data", defaultValue: "", bindable: "bindable" }
+				selectedKey: { type: "string", group: "Data", defaultValue: "", bindable: "bindable" },
+
+				/**
+				 * Defines how the content of the SegmentedButton is sized.
+				 * Possible values:
+				 * <ul>
+				 *	<li><strong>ContentFit</strong>: Each button is sized according to its content.</li>
+				 *	<li><strong>EqualSized</strong>: All buttons have equal width, regardless of their content.</li>
+				 * </ul>
+				 * @public
+				 * @since 1.142.0
+				 */
+				contentMode: {type: "sap.m.SegmentedButtonContentMode", group: "Appearance", defaultValue: SegmentedButtonContentMode.EqualSized}
 			},
 			defaultAggregation : "buttons",
 			aggregations : {
@@ -180,7 +194,22 @@ function(
 						/**
 						 * Reference to the item, that has been selected.
 						 */
-						item : {type : "sap.m.SegmentedButtonItem"}
+						item : {type : "sap.m.SegmentedButtonItem"},
+						/**
+						 * Reference to the previously selected item (if any).
+						 * @since 1.144
+						 */
+						previousItem: {type : "sap.m.SegmentedButtonItem"},
+						/**
+						 * Key of the selected item (if any).
+						 * @since 1.144
+						 */
+						selectedKey: { type: "string"},
+						/**
+						 * Key of the previously selected item (if any).
+						  * @since 1.144
+						 */
+						previousKey: { type: "string"}
 					}
 				}
 			},
@@ -197,6 +226,11 @@ function(
 		// Used to store individual button widths
 		this._aWidths = [];
 
+		// Used to store previous button width
+		this._previousWidth = undefined;
+
+		this._bUpdateSelectedKey = true;
+
 		// Delegate keyboard processing to ItemNavigation, see commons.SegmentedButton
 		this._oItemNavigation = new ItemNavigation();
 		this._oItemNavigation.setCycling(false);
@@ -212,6 +246,7 @@ function(
 		//Make sure when a button gets removed to reset the selected button
 		this.removeButton = function (sButton) {
 			var oRemovedButton = SegmentedButton.prototype.removeButton.call(this, sButton);
+			this._bUpdateSelectedKey = false;
 			this.setSelectedButton(this.getButtons()[0]);
 			this._fireChangeEvent();
 			return oRemovedButton;
@@ -239,8 +274,7 @@ function(
 	};
 
 	SegmentedButton.prototype.onAfterRendering = function () {
-		var aButtons = this._getVisibleButtons(),
-			oParentDom;
+		var oParentDom;
 
 		//register resize listener on parent
 		if (!this._sResizeListenerId) {
@@ -254,8 +288,23 @@ function(
 		// Keyboard
 		this._setItemNavigation();
 
-		// Calculate and apply widths
-		this._aWidths = this._getRenderedButtonWidths(aButtons);
+		// Use fonts.ready Promise to detect when fonts are loaded
+		// to avoid getting incorrect button widths
+		if (document.fonts && document.fonts.ready && document.fonts.status !== "loaded") {
+			document.fonts.ready.then(() => {
+				this._adjustButtonWidth();
+			});
+		} else {
+			this._adjustButtonWidth();
+		}
+	};
+
+	/**
+	 * Calculates and applies button width.
+	 * @private
+	 */
+	SegmentedButton.prototype._adjustButtonWidth = function () {
+		this._aWidths = this._getRenderedButtonWidths(this._getVisibleButtons());
 		this._updateWidth();
 	};
 
@@ -335,10 +384,18 @@ function(
 				if (sWidth) {
 					if (sWidth.indexOf("%") !== -1) {
 						// Width in Percent
-						iSumPercents += parseInt(sWidth.slice(0, -1));
-					} else {
+						iSumPercents += parseFloat(sWidth.slice(0, -1));
+					} else if (sWidth.indexOf("px") !== -1) {
 						// Width in Pixels
 						iSumPixels += parseInt(sWidth.slice(0, -2));
+					} else {
+						// Handle other units (em, rem, vw, vh, etc.)
+						var oButtonDomRef = aButtons[i].getDomRef();
+						if (oButtonDomRef) {
+							var oComputedStyle = window.getComputedStyle(oButtonDomRef);
+							var iComputedWidth = parseFloat(oComputedStyle.width);
+							iSumPixels += iComputedWidth;
+						}
 					}
 				} else {
 					iNoWidths++;
@@ -346,7 +403,7 @@ function(
 				i++;
 			}
 
-			// If there are no buttons without width setted return
+			// If there are no buttons without width set, return
 			if (iNoWidths === 0) {
 				return false;
 			}
@@ -354,7 +411,7 @@ function(
 			iPercent = (100 - iSumPercents) / iNoWidths;
 			iPixels = (iSumPixels / iNoWidths);
 
-			// Handle invalid negative numbers or other button occupying more than 100% of the width
+			// Handle invalid negative numbers or other buttons occupying more than 100% of the width
 			if (iPercent < 0) {
 				iPercent = 0;
 			}
@@ -379,19 +436,20 @@ function(
 	SegmentedButton.prototype._updateWidth = function () {
 		// If this method is called before the dom is rendered or sapUiSegmentedButtonNoAutoWidth style class is applied
 		// we skip width calculations
-		if (this.$().length === 0 || this.hasStyleClass("sapMSegmentedButtonNoAutoWidth")) {
+		const sContentMode = this.getContentMode();
+		if (this.$().length === 0 || this.hasStyleClass("sapMSegmentedButtonNoAutoWidth") || sContentMode === SegmentedButtonContentMode.ContentFit) {
 			return;
 		}
 
-		var sControlWidth = this.getWidth(),
+		const sControlWidth = this.getWidth(),
 			aButtons = this._getVisibleButtons(),
 			iButtonsCount = aButtons.length,
 			iMaxWidth = (this._aWidths.length > 0) ? Math.max.apply(Math, this._aWidths) : 0,
 			iButtonWidthPercent = (100 / iButtonsCount),
 			iParentWidth = this.$().parent().innerWidth(),
-			sWidth = this._getButtonWidth(aButtons),
-			iCurrentWidth,
-			oButton,
+			sWidth = this._getButtonWidth(aButtons);
+
+		let oButton,
 			i;
 
 		if (!sControlWidth) {
@@ -419,7 +477,7 @@ function(
 			}
 		}
 
-		iCurrentWidth = Math.floor(this.getDomRef().getBoundingClientRect().width);
+		const iCurrentWidth = Math.floor(this.getDomRef().getBoundingClientRect().width);
 
 		if (this._previousWidth !== undefined && iCurrentWidth !== this._previousWidth && !this._bInOverflow) {
 			this.fireEvent("_containerWidthChanged");
@@ -464,7 +522,7 @@ function(
 	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar
+	 * @ui5-restricted sap.m.OverflowToolbar
 	 */
 	SegmentedButton.prototype.getOverflowToolbarConfig = function() {
 		return {
@@ -752,7 +810,9 @@ function(
 	 */
 	SegmentedButton.prototype._buttonPressed = function (oEvent) {
 		var oButtonPressed = oEvent.getSource(),
-			oItemPressed;
+			oItemPressed,
+			previouslySelectedItem = this.getSelectedItem(),
+			previouslySelectedKey = this.getSelectedKey();
 
 		if (this.getSelectedButton() !== oButtonPressed.getId()) {
 			// CSN# 0001429454/2014: remove class for all other items
@@ -769,12 +829,16 @@ function(
 			oButtonPressed.$().addClass("sapMSegBBtnSel");
 			oButtonPressed.$().attr("aria-selected", true);
 
+			this._bUpdateSelectedKey = false;
 			this.setAssociation('selectedButton', oButtonPressed, true);
 			this.setProperty("selectedKey", this.getSelectedKey(), true);
 
 			this.setAssociation('selectedItem', oItemPressed, true);
 			this.fireSelectionChange({
-				item: oItemPressed
+				item: oItemPressed,
+				previousItem: previouslySelectedItem,
+				selectedKey: this.getSelectedKey(),
+				previousKey: previouslySelectedKey
 			});
 
 			/**
@@ -856,6 +920,10 @@ function(
 		// set the new value
 		this.setAssociation("selectedItem", vItem, true);
 		this.setSelectedButton(vButton);
+
+		if (this._bUpdateSelectedKey) {
+			this.setProperty("selectedKey", this.getSelectedKey(), true);
+		}
 
 		return this;
 	};
@@ -1068,19 +1136,20 @@ function(
 	};
 
 	SegmentedButton.prototype.clone = function () {
-		var sSelectedButtonId = this.getSelectedButton(),
+		const sSelectedItemId = this.getSelectedItem(),
+			aItems = this.getAggregation("items"),
 			aButtons = this.removeAllAggregation("buttons"),
-			oClone = Control.prototype.clone.apply(this, arguments),
-			iSelectedButtonIndex = aButtons.map(function(b) {
-				return b.getId();
-			}).indexOf(sSelectedButtonId),
-			i;
+			oClone = Control.prototype.clone.apply(this, arguments);
 
-		if (iSelectedButtonIndex > -1) {
-			oClone.setSelectedButton(oClone.getButtons()[iSelectedButtonIndex]);
+		const iSelectedItemIndex = aItems?.findIndex(function(item) {
+				return item.getId() === sSelectedItemId;
+			});
+
+		if (iSelectedItemIndex > -1) {
+			oClone.setSelectedItem(oClone.getItems()[iSelectedItemIndex]);
 		}
 
-		for (i = 0; i < aButtons.length; i++) {
+		for (let i = 0; i < aButtons.length; i++) {
 			this.addAggregation("buttons", aButtons[i]);
 		}
 

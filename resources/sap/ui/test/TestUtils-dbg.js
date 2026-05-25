@@ -19,6 +19,7 @@ sap.ui.define([
 
 	var rBatch = /\/\$batch($|\?)/,
 		rContentId = /(?:^|\r\n)Content-Id\s*:\s*(\S+)/i,
+		rContentIdReference = / \$([^ ?\/]+)/,
 		rEndsWithJSON = /\.json$/i,
 		rEndsWithXML = /\.xml$/i,
 		rHeaderLine = /^(.*)?:\s*(.*)$/,
@@ -27,9 +28,9 @@ sap.ui.define([
 		sMimeHeaders = "\r\nContent-Type: application/http\r\n"
 			+ "Content-Transfer-Encoding: binary\r\n",
 		rMultipartHeader = /^Content-Type:\s*multipart\/mixed;\s*boundary=/i,
-		oUriParameters = new URLSearchParams(window.location.search),
-		sAutoRespondAfter = oUriParameters.get("autoRespondAfter"),
-		sRealOData = oUriParameters.get("realOData"),
+		oURLSearchParams = new URLSearchParams(window.location.search),
+		sAutoRespondAfter = oURLSearchParams.get("autoRespondAfter"),
+		sRealOData = oURLSearchParams.get("realOData"),
 		rRequestKey = /^(\S+) (\S+)$/,
 		rRequestLine = /^(GET|DELETE|MERGE|PATCH|POST) (\S+) HTTP\/1\.1$/,
 		mData = {},
@@ -445,13 +446,15 @@ sap.ui.define([
 		 *       extension unless specified. This has precedence over <code>message</code>.
 		 *   </ul>
 		 * @param {object[]} [aRegExps]
-		 *    An array containing regular expressions in the regExp property and the corresponding
-		 *    response(s) objects in the response property. If no match for a request was found in
-		 *    the normal fixture, the regular expressions are checked. The response object looks
-		 *    exactly the same as in the fixture and may additionally contain a method
-		 *    <code>buildResponse(aMatch, oResponse, oRequest)</code> which gets passed the match
-		 *    object, the response, and the request in order to allow modification of the response
-		 *   before sending.
+		 *   An array containing regular expressions in the regExp property and the corresponding
+		 *   response(s) objects in the response property. If no match for a request was found in
+		 *   the normal fixture, the regular expressions are checked. The response object looks
+		 *   exactly the same as in the fixture and may additionally contain a method
+		 *   <code>buildResponse(aMatch, oResponse, oRequest, sReferencedMessage)</code> which gets
+		 *   passed the match object, the response, the request, and optionally the referenced
+		 *   response message in case of Content-ID referencing in order to allow modification of
+		 *   the response before sending. If there are two matching regular expressions for a
+		 *   $metadata requests, the first one is used.
 		 * @param {string} [sServiceUrl]
 		 *   The service URL which determines a prefix for all requests the fake server responds to;
 		 *   it responds with an error for requests not given in the fixture, except DELETE, MERGE,
@@ -552,6 +555,7 @@ sap.ui.define([
 			 * @param {number} iCode - The response code
 			 * @param {object} oRequest - The request object
 			 * @param {string|Error} vMessage - The error
+			 * @param {string} [vMessage.target] - The error target
 			 * @returns {object} The reponse object
 			 */
 			function error(iCode, oRequest, vMessage) {
@@ -564,7 +568,8 @@ sap.ui.define([
 					message : JSON.stringify({
 						error : {
 							code : "TestUtils",
-							message : vMessage instanceof Error ? vMessage.message : vMessage
+							message : vMessage instanceof Error ? vMessage.message : vMessage,
+							target : vMessage instanceof Error ? vMessage.target : undefined
 						}
 					})
 				};
@@ -650,6 +655,11 @@ sap.ui.define([
 					return aMatch;
 				});
 
+				if (aMatchingResponses.length === 2 && sUrl.includes("/$metadata")) {
+					// if there are two matches for a $metadata request, the first one wins
+					aMatches.pop();
+					aMatchingResponses.pop();
+				}
 				if (aMatchingResponses.length > 1) {
 					Log.warning("Multiple matches found for " + sRequestLine, undefined,
 						"sap.ui.test.TestUtils");
@@ -689,9 +699,11 @@ sap.ui.define([
 			 * @param {boolean} [bTry]
 			 *   Whether to do nothing and return <code>undefined</code> if no fixture matches; also
 			 *   prevents defaulting for non-GET requests
+			 * @param {object} [mContentId2Response]
+			 *   A map which refers a content ID to a response message while processing a batch
 			 * @returns {object|undefined} The response object or <code>undefined</code>
 			 */
-			function getResponseFromFixture(oRequest, sContentId, bTry) {
+			function getResponseFromFixture(oRequest, sContentId, bTry, mContentId2Response) {
 				var iAlternative,
 					oMatch = getMatchingResponse(oRequest.method, oRequest.url),
 					oResponse,
@@ -708,7 +720,13 @@ sap.ui.define([
 					if (typeof oResponse.buildResponse === "function") {
 						oResponse = merge({}, oResponse);
 						try {
-							oResponse.buildResponse(oMatch.match, oResponse, oRequest);
+							const aMatches = rContentIdReference.exec(oRequest.requestLine);
+							let sReferencedMessage;
+							if (aMatches) {
+								sReferencedMessage = mContentId2Response[aMatches[1]];
+							}
+							oResponse.buildResponse(oMatch.match, oResponse, oRequest,
+								sReferencedMessage);
 						} catch (oError) {
 							oResponse = error(500, oRequest, oError);
 						}
@@ -739,13 +757,17 @@ sap.ui.define([
 					}
 				}
 				if (oResponse) {
-					Log.info(oRequest.method + " " + TestUtils.makeUrlReadable(oRequest.url)
-						+ (iAlternative !== undefined
+					const sRequestLine = oRequest.method
+						+ " " + TestUtils.makeUrlReadable(oRequest.url);
+					Log.info(sRequestLine + (iAlternative !== undefined
 							? ", alternative (ifMatch) #" + iAlternative
 							: ""),
 						// Note: JSON.stringify(oRequest.requestHeaders) outputs too much for now
 						'{"If-Match":' + JSON.stringify(oRequest.requestHeaders["If-Match"]) + "}",
 						"sap.ui.test.TestUtils");
+					if (oResponse.message) {
+						Log.debug(sRequestLine, oResponse.message, "sap.ui.test.TestUtils");
+					}
 				} else if (bTry) {
 					return undefined;
 				} else {
@@ -754,6 +776,9 @@ sap.ui.define([
 				oResponse.headers = jQuery.extend({}, getODataHeaders(oRequest), oResponse.headers);
 				if (sContentId && oResponse.code < 300) {
 					oResponse.contentId = sContentId;
+					if (mContentId2Response) {
+						mContentId2Response[sContentId] = oResponse.message;
+					}
 				}
 				return oResponse;
 			}
@@ -763,14 +788,13 @@ sap.ui.define([
 			 *
 			 * @param {string} sServiceBase The service base URL
 			 * @param {string} sBody The body
+			 * @param {object} [oBatch] allows to keep state while processing a batch
 			 * @returns {object} An object with the properties boundary and parts
 			 */
-			function multipart(sServiceBase, sBody) {
-				var sBoundary;
-
+			function multipart(sServiceBase, sBody, oBatch = {}) {
 				// skip preamble consisting of whitespace (as sent by datajs)
 				sBody = sBody.replace(/^\s+/, "");
-				sBoundary = firstLine(sBody);
+				const sBoundary = firstLine(sBody);
 				return {
 					boundary : firstLine(sBody).slice(2),
 					parts : sBody.split(sBoundary).slice(1, -1).map(function (sRequestPart) {
@@ -780,7 +804,7 @@ sap.ui.define([
 						sFirstLine = firstLine(sRequestPart);
 						if (rMultipartHeader.test(sFirstLine)) {
 							oMultipart = multipart(sServiceBase,
-								sRequestPart.slice(sFirstLine.length + 4));
+								sRequestPart.slice(sFirstLine.length + 4), oBatch);
 							aFailures = oMultipart.parts.filter(function (oPart) {
 								return oPart.code >= 300;
 							});
@@ -789,7 +813,7 @@ sap.ui.define([
 						iRequestStart = sRequestPart.indexOf("\r\n\r\n") + 4;
 						oRequest = parseRequest(sServiceBase, sRequestPart.slice(iRequestStart));
 						aMatch = rContentId.exec(sRequestPart.slice(0, iRequestStart));
-						return getResponseFromFixture(oRequest, aMatch && aMatch[1]);
+						return getResponseFromFixture(oRequest, aMatch && aMatch[1], false, oBatch);
 					})
 				};
 			}

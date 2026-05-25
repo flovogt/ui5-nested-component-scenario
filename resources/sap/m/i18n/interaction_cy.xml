@@ -115,7 +115,7 @@
 		</interaction>
 		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Os yw dewis cell wedi'i alluogi:</span></p>
-				<p>Os caiff celloedd eu dewis, bydd pwyso <kbd>Shift</kbd> a chlicio ar gell wahanol yn ymestyn y dewis hyd at y gell y cliciwyd arni.</p>
+				<p>Os caiff celloedd eu dewis, bydd <kbd>Shift + MouseClick</kbd> ar gell wahanol yn ymestyn y dewis hyd at y gell y cliciwyd arni.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>
@@ -130,11 +130,19 @@
 	<control-interactions>
 		<control name="sap.m.VariantManagement"/>
 		<interaction> <kbd>F4</kbd> <kbd>Spacebar</kbd> <kbd>Alt + ArrowUp</kbd> <kbd>Alt + ArrowDown</kbd> <description>
-				<p>Yn agor y broses rheoli newidyn.</p>
-			</description>
+				<p>Yn agor y ddeialog Fy Ngweddau</p>
+			</description> 
 		</interaction>
 		<interaction> <kbd>PageUp</kbd> <description>
-				<p>Yn cau ffenestr naid gwall y broses rheoli newidyn</p>
+				<p>Yn cau'r ffenestr naid gwall yn y ddeialog Fy Ngweddau</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + Enter</kbd> <description>
+				<p>Yn cadw'r wedd newydd yn y deialog Cadw Fel.</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + S</kbd> <description>
+				<p>Yn cadw'r newidiadau a wnaed i'r gweddau.</p>
 			</description>
 		</interaction>
 	</control-interactions>

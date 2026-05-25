@@ -35,10 +35,12 @@ sap.ui.define([
 	 * OData models which filter case sensitive by default. See particular model documentation for
 	 * details.
 	 *
-	 * The filter operators {@link sap.ui.model.FilterOperator.Any "Any"} and
-	 * {@link sap.ui.model.FilterOperator.All "All"} are only supported in V4 OData models. When
-	 * creating a filter instance with these filter operators, the argument <code>variable</code>
-	 * only accepts a string identifier and <code>condition</code> needs to be another filter
+	 * The filter operators {@link sap.ui.model.FilterOperator.Any "Any"},
+	 * {@link sap.ui.model.FilterOperator.All "All"},
+	 * {@link sap.ui.model.FilterOperator.NotAny "NotAny"}, and
+	 * {@link sap.ui.model.FilterOperator.NotAll "NotAll"} are only supported in V4 OData models.
+	 * When creating a filter instance with these filter operators, the <code>variable</code> argument
+	 * only accepts a string identifier, and the <code>condition</code> argument must be another filter
 	 * instance.
 	 *
 	 * @example <caption>Using an object with a path, an operator and one or two values</caption>
@@ -99,7 +101,7 @@ sap.ui.define([
 	 *     })
 	 *   });
 	 *
-	 * @example <caption>For the filter operator <code>Any</code> either both a lambda
+	 * @example <caption>For the filter operators <code>Any</code> and <code>NotAny</code> either both a lambda
 	 *   <code>variable</code> and a <code>condition</code> have to be given or neither.</caption>
 	 *   new Filter({
 	 *     path: 'Items',
@@ -147,12 +149,16 @@ sap.ui.define([
 	 *   {@link sap.ui.model.FilterOperator.BT "BT" between} and
 	 *   {@link sap.ui.model.FilterOperator.NB "NB" not between} filter operators
 	 * @param {string} [vFilterInfo.variable]
-	 *   The variable name used in lambda operators ({@link sap.ui.model.FilterOperator.Any "Any"}
-	 *   and {@link sap.ui.model.FilterOperator.All "All"})
+	 *   The variable name used in the lambda operators ({@link sap.ui.model.FilterOperator.Any "Any"},
+	 *   {@link sap.ui.model.FilterOperator.All "All"},
+	 *   {@link sap.ui.model.FilterOperator.NotAny "NotAny"},
+	 *   and {@link sap.ui.model.FilterOperator.NotAll "NotAll"})
 	 * @param {sap.ui.model.Filter} [vFilterInfo.condition]
 	 *   A filter instance which will be used as the condition for lambda
-	 *   operators ({@link sap.ui.model.FilterOperator.Any "Any"} and
-	 *   {@link sap.ui.model.FilterOperator.All "All"})
+	 *   operators ({@link sap.ui.model.FilterOperator.Any "Any"},
+	 *   {@link sap.ui.model.FilterOperator.All "All"},
+	 *   {@link sap.ui.model.FilterOperator.NotAny "NotAny"},
+	 *   and {@link sap.ui.model.FilterOperator.NotAll "NotAll"})
 	 * @param {sap.ui.model.Filter[]} [vFilterInfo.filters]
 	 *   An array of filters on which the logical conjunction is applied
 	 * @param {boolean} [vFilterInfo.and=false]
@@ -170,20 +176,18 @@ sap.ui.define([
 	 *   Second value to use with the given filter operator, used only for the
 	 *   {@link sap.ui.model.FilterOperator.BT "BT" between} and
 	 *   {@link sap.ui.model.FilterOperator.NB "NB" not between} filter operators
-	 * @throws {Error}
-	 *   If <code>vFilterInfo</code> or <code>vFilterInfo.filters</code> are arrays containing the
-	 *   {@link sap.ui.model.Filter.NONE}, or
-	 *   if <code>vFilterInfo.condition</code> is {@link sap.ui.model.Filter.NONE}, or
-	 *   for the following incorrect combinations of filter operators and conditions:
+	 * @throws {Error} If
 	 *   <ul>
-	 *     <li>"Any", if only a lambda variable or only a condition is given
-	 *     <li>"Any" or "All": If
-	 *       <ul>
-	 *         <li>the <code>vFilterInfo</code> parameter is not in object notation,
-	 *         <li><code>vFilterInfo.variable</code> is not a string,
-	 *         <li><code>vFilterInfo.condition</code> is not an instance of
-	 *               {@link sap.ui.model.Filter}.
-	 *     </ul>
+	 *     <li><code>vFilterInfo</code> or <code>vFilterInfo.filters</code> are arrays containing
+	 *        {@link sap.ui.model.Filter.NONE}.
+	 *     <li><code>vFilterInfo.condition</code> is {@link sap.ui.model.Filter.NONE}.
+	 *     <li>for operators "Any" or "NotAny": Of the two required properties <code>variable</code> and
+	 *        <code>condition</code>, only one is set (either both must be set or both omitted).
+	 *     <li>for operators "All" or "NotAll": <code>variable</code> is not of type <code>string</code>.
+	 *     <li>for operators "All" or "NotAll": <code>condition</code> is not an instance of
+	 *        {@link sap.ui.model.Filter}.
+	 *     <li>for any lambda operator ("Any", "All", "NotAny", "NotAll"): the parameters are not passed in object
+	 *        notation.
 	 *   </ul>
 	 *
 	 * @public
@@ -224,8 +228,10 @@ sap.ui.define([
 				this.oValue1 = vValue1;
 				this.oValue2 = vValue2;
 
-				if (this.sOperator === FilterOperator.Any || this.sOperator === FilterOperator.All) {
-					throw new Error("The filter operators 'Any' and 'All' are only supported with the parameter object notation.");
+				if (this.sOperator === FilterOperator.Any || this.sOperator === FilterOperator.All
+					|| this.sOperator === FilterOperator.NotAny || this.sOperator === FilterOperator.NotAll) {
+					throw new Error("The filter operators 'Any', 'All', 'NotAny', and 'NotAll' are only supported with "
+						+ "the parameter object notation.");
 				}
 			}
 			if (this.aFilters?.includes(Filter.NONE)) {
@@ -233,35 +239,41 @@ sap.ui.define([
 			} else if (this.oCondition && this.oCondition === Filter.NONE) {
 				throw new Error("Filter.NONE not allowed as condition");
 			}
-			if (this.sOperator === FilterOperator.Any) {
-				// for the Any operator we only have to further check the arguments if both are given
+			if (this.sOperator === FilterOperator.Any || this.sOperator === FilterOperator.NotAny) {
+				// for Any/NotAny operators we only have to further check the arguments if both are given
 				if (this.sVariable && this.oCondition) {
 					this._checkLambdaArgumentTypes();
 				} else if (!this.sVariable && !this.oCondition) {
 					// 'Any' accepts no arguments
 				} else {
 					// one argument is missing
-					throw new Error("When using the filter operator 'Any', a lambda variable and a condition have to be given or neither.");
+					throw new Error("When using the filter operator 'Any' or 'NotAny', you need to provide "
+						+ "both a lambda variable and a condition, or neither.");
 				}
-			} else if (this.sOperator === FilterOperator.All) {
+			} else if (this.sOperator === FilterOperator.All  || this.sOperator === FilterOperator.NotAll) {
 				this._checkLambdaArgumentTypes();
 			} else if (Array.isArray(this.aFilters) && !this.sPath && !this.sOperator
 					&& !this.oValue1 && !this.oValue2) {
 				this._bMultiFilter = true;
-				if ( !this.aFilters.every(isFilter) ) {
+				if (!this.aFilters.every(isFilter)) {
 					Log.error("Filter in aggregation of multi filter has to be instance of"
 						+ " sap.ui.model.Filter");
 				}
 			} else if (!this.aFilters && this.sPath !== undefined
-					&& ((this.sOperator && this.oValue1 !== undefined) || this.fnTest)) {
+					&& ((this.sOperator && this.hasOwnProperty("oValue1")) || this.fnTest)) {
 				this._bMultiFilter = false;
 			} else {
 				Log.error("Wrong parameters defined for filter.");
 			}
 			this.sFractionalSeconds1 = undefined;
 			this.sFractionalSeconds2 = undefined;
+			this.bBound = undefined; // Whether this filter is used as a bound filter
+			// Whether a bound filter's binding expression is resolved (true/false) or undefined for constant filters
+			this.bResolved = undefined;
 		}
 	});
+
+	Filter.generated = Symbol("generated"); // used to mark test functions generated in FilterProcessor
 
 	/**
 	 * A filter instance that is never fulfilled. When used to filter a list, no back-end request is
@@ -297,10 +309,12 @@ sap.ui.define([
 	 */
 	Filter.prototype._checkLambdaArgumentTypes = function () {
 		if (!this.sVariable || typeof this.sVariable !== "string") {
-			throw new Error("When using the filter operators 'Any' or 'All', a string has to be given as argument 'variable'.");
+			throw new Error("When using the filter operators 'Any', 'All', 'NotAny', or 'NotAll', a string has to be "
+				+ "given as the 'variable' argument.");
 		}
 		if (!isFilter(this.oCondition)) {
-			throw new Error("When using the filter operator 'Any' or 'All', a valid instance of sap.ui.model.Filter has to be given as argument 'condition'.");
+			throw new Error("When using the filter operator 'Any', 'All', 'NotAny', or 'NotAll', a valid instance of "
+				+ "sap.ui.model.Filter has to be given as the 'condition' argument.");
 		}
 	};
 
@@ -334,6 +348,71 @@ sap.ui.define([
 	 */
 	Filter.prototype.appendFractionalSeconds2 = function (sFractionalSeconds) {
 		this.sFractionalSeconds2 = sFractionalSeconds;
+	};
+
+	/**
+	 * Clones this single filter and returns the clone; the condition of the original filter is not cloned.
+	 *
+	 * @param {any} vNewValue1 The new first value for the cloned filter; may be <code>undefined</code>
+	 * @param {any} vNewValue2 The new second value for the cloned filter; may be <code>undefined</code>
+	 * @returns {sap.ui.model.Filter} The cloned filter
+	 * @throws {Error} If this filter is a multi-filter
+	 *
+	 * @private
+	 */
+	Filter.prototype.cloneWithValues = function (vNewValue1, vNewValue2) {
+		if (this._bMultiFilter) {
+			throw new Error("Cannot clone multi-filter");
+		}
+
+		const oClone = new Filter({
+			path: this.sPath,
+			operator: this.sOperator,
+			value1: vNewValue1,
+			value2: vNewValue2,
+			variable: this.sVariable,
+			condition: this.oCondition,
+			and: this.bAnd,
+			test: this.fnTest?.[Filter.generated] ? undefined : this.fnTest,
+			comparator: this.fnCompare,
+			caseSensitive: this.bCaseSensitive
+		});
+		oClone.bResolved = this.bResolved;
+		oClone.bBound = this.bBound;
+		if (oClone.bResolved === false) {
+			oClone.bResolved = true; // clone sets values on bound filter => cloned filter is resolved
+		}
+
+		return oClone;
+	};
+
+	/**
+	 * Searches the given <code>oFilter</code> recursively in this filter.
+	 * If found, returns a clone of this filter where <code>oFilter</code> is replaced by <code>oFilterClone</code>;
+	 * cloning and replacement is done recursively for nested multi-filters.
+	 * Otherwise, returns this filter.
+	 *
+	 * @param {sap.ui.model.Filter} oFilter The filter to search for
+	 * @param {sap.ui.model.Filter} oFilterClone The filter to replace <code>oFilter</code> with
+	 * @returns {sap.ui.model.Filter} Either this filter or a clone with <code>oFilter</code> replaced
+	 *
+	 * @private
+	 */
+	Filter.prototype.cloneIfContained = function (oFilter, oFilterClone) {
+		if (!this._bMultiFilter) {
+			return this === oFilter ? oFilterClone : this;
+		}
+
+		let bReplaced = false;
+		const aFilters = this.aFilters.map((oFilterElement) => {
+			const oClonedFilterElement = oFilterElement.cloneIfContained(oFilter, oFilterClone);
+			bReplaced ||= oClonedFilterElement !== oFilterElement;
+			return oClonedFilterElement;
+		});
+
+		return bReplaced
+			? new Filter({filters: aFilters, and: this.bAnd})
+			: this;
 	};
 
 	var Type = {
@@ -377,7 +456,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Filter.prototype.getAST = function (bIncludeOrigin) {
-		var oResult, sOp, sOrigOp, oRef, oValue, oFromValue, oToValue, oVariable, oCondition;
+		var oResult, sOp, sOrigOp, oRef, oValue, oFromValue, oToValue;
 		function logical(sOp, oLeft, oRight) {
 			return {
 				type: Type.Logical,
@@ -502,10 +581,21 @@ sap.ui.define([
 					break;
 				case FilterOperator.Any:
 				case FilterOperator.All:
-					oVariable = variable(this.sVariable);
-					oCondition = this.oCondition.getAST(bIncludeOrigin);
-					oResult = lambda(sOp, oRef, oVariable, oCondition);
+				case FilterOperator.NotAny:
+				case FilterOperator.NotAll: {
+					let sOpLambda = sOp;
+					if (sOp === FilterOperator.NotAny) {
+						sOpLambda = FilterOperator.Any;
+					} else if (sOp === FilterOperator.NotAll) {
+						sOpLambda = FilterOperator.All;
+					}
+					const oLambda = lambda(sOpLambda, oRef, variable(this.sVariable),
+						this.oCondition.getAST(bIncludeOrigin));
+					oResult = sOp === FilterOperator.NotAny || sOp === FilterOperator.NotAll
+						? unary(Op.Not, oLambda)
+						: oLambda;
 					break;
+				}
 				default:
 					throw new Error("Unknown operator: " + sOp);
 			}
@@ -642,6 +732,17 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns whether this filter is used as a bound filter.
+	 *
+	 * @returns {boolean} Whether this filter is used as a bound filter
+	 *
+	 * @private
+	 */
+	Filter.prototype.isBound = function () {
+		return !!this.bBound;
+	};
+
+	/**
 	 * Indicates whether a string value should be compared case sensitive, see
 	 * {@link sap.ui.model.Filter#constructor}, parameter <code>vFilterInfo.caseSensitive</code>.
 	 *
@@ -651,6 +752,110 @@ sap.ui.define([
 	 */
 	Filter.prototype.isCaseSensitive = function () {
 		return this.bCaseSensitive;
+	};
+
+	/**
+	 * Indicates whether this filter is a multi filter.
+	 *
+	 * @returns {boolean|undefined} <code>true</code> if this filter is a multi filter
+	 *
+	 * @private
+	 */
+	Filter.prototype.isMultiFilter = function () {
+		return this._bMultiFilter;
+	};
+
+	/**
+	 * Returns whether this single filter is neutral; throws an error for a multi-filter.
+	 *
+	 * @returns {boolean} Whether this filter is neutral.
+	 * @throws {Error} If this filter is a multi-filter
+	 *
+	 * @private
+	 */
+	Filter.prototype.isNeutral = function () {
+		if (this._bMultiFilter) {
+			throw new Error("Multi-filter unsupported");
+		}
+
+		if (this.bResolved === undefined) { // constant filter is never neutral
+			return false;
+		}
+
+		if (this.bResolved === false) { // unresolved bound filter is always neutral
+			return true;
+		}
+
+		const nullish = (oValue) => oValue === undefined || oValue === null;
+
+		return this.sOperator === FilterOperator.BT || this.sOperator === FilterOperator.NB
+			? nullish(this.oValue1) || nullish(this.oValue2)
+			: nullish(this.oValue1);
+	};
+
+	/**
+	 * Returns whether this filter is resolved, that is its <code>value1</code> and <code>value2</code> have no binding
+	 * or the bindings are resolved. For multi-filters, all contained filters must be resolved for the multi-filter to
+	 * be resolved.
+	 *
+	 * @returns {boolean} Whether this filter is resolved
+	 *
+	 * @private
+	 */
+	Filter.prototype.isResolved = function () {
+		return this._bMultiFilter
+			? this.aFilters.every((oFilter) => oFilter.isResolved())
+			: this.bResolved !== false;
+	};
+
+	/**
+	 * Returns a filter constructed from this filter where all contained filters being neutral are removed.
+	 * If there are no neutral filters, the filter itself is returned; if there are only neutral filters,
+	 * returns <code>undefined</code>.
+	 *
+	 * @returns {sap.ui.model.Filter|undefined} This filter with neutral filters removed
+	 *
+	 * @private
+	 */
+	Filter.prototype.removeAllNeutrals = function () {
+		if (!this._bMultiFilter) {
+			return this.isNeutral() ? undefined : this;
+		}
+
+		const aFilters = [];
+		this.aFilters.forEach((oFilter) => {
+			const oNewFilter = oFilter.removeAllNeutrals();
+			if (oNewFilter) {
+				aFilters.push(oNewFilter);
+			}
+		});
+		if (aFilters.length === this.aFilters.length) {
+			return this;
+		} else if (!aFilters.length) {
+			return undefined;
+		}
+		return new Filter({filters: aFilters, and: this.bAnd});
+	};
+
+	/**
+	 * Marks this filter as bound filter.
+	 *
+	 * @private
+	 */
+	Filter.prototype.setBound = function () {
+		this.bBound = true;
+	};
+
+	/**
+	 * Sets whether a bound filter is resolved, that is whether the bindings of the filter's <code>value1</code> and
+	 * <code>value2</code> are resolved.
+	 *
+	 * @param {boolean} bResolved The resolved state to set
+	 *
+	 * @private
+	 */
+	Filter.prototype.setResolved = function (bResolved) {
+		this.bResolved = !!bResolved;
 	};
 
 	/**

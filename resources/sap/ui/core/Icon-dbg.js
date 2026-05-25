@@ -75,7 +75,7 @@ sap.ui.define([
 	 * @implements sap.ui.core.IFormContent
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @since 1.11.1
@@ -617,7 +617,7 @@ sap.ui.define([
 	 */
 	Icon.prototype.getAccessibilityInfo = function() {
 		if (this.getDecorative()) {
-			return null;
+			return {};
 		}
 
 		var bHasPressListeners = this.hasListeners("press");

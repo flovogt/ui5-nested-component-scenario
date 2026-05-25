@@ -42,7 +42,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -540,7 +540,7 @@ sap.ui.define([
 						}
 
 						if (this._bLayoutDataChanged || bRender) {
-							this._oDomRef.innerHTML = "";
+							this._oDomRef.replaceChildren();
 
 							// reset this to be clean for next check interval
 							this._bLayoutDataChanged = false;

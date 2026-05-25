@@ -20,7 +20,7 @@ sap.ui.define([
 		 * @param {object} mHeaders
 		 *   A map of headers
 		 * @param {string} sODataVersion
-		 *   The version of the OData service. Supported values are "2.0" and "4.0".
+		 *   The version of the OData service. Supported values are "2.0", "4.0", and "4.01".
 		 * @param {boolean} [bIgnoreAnnotationsFromMetadata]
 		 *   Whether to ignore all annotations from metadata documents. Only annotations from
 		 *   additional annotation files are loaded.
@@ -54,7 +54,7 @@ sap.ui.define([
 				 *   Whether to just read the metadata document, but not yet convert it from XML to
 				 *   JSON. For any given URL, this is useful in an optional early call that precedes
 				 *   a normal call without this flag.
-				 * @returns {Promise}
+				 * @returns {Promise<object>}
 				 *   A promise fulfilled with the metadata as a JSON object, enriched with a
 				 *   <code>$Date</code>, <code>$ETag</code> or <code>$LastModified</code> property
 				 *   that contains the value of the response header "Date", "ETag" or
@@ -69,15 +69,15 @@ sap.ui.define([
 					var oPromise;
 
 					function convertXMLMetadata(oJSON) {
-						var Converter = sODataVersion === "4.0" || bAnnotations
-								? _V4MetadataConverter
-								: _V2MetadataConverter,
+						var oConverter = !bAnnotations && sODataVersion === "2.0"
+								? new _V2MetadataConverter()
+								: new _V4MetadataConverter(sODataVersion),
 							oData = oJSON.$XML,
 							bIgnoreAnnotations = bIgnoreAnnotationsFromMetadata && !bAnnotations;
 
 						delete oJSON.$XML; // be nice to the garbage collector
 						return Object.assign(
-							new Converter().convertXMLMetadata(oData, sUrl, bIgnoreAnnotations),
+							oConverter.convertXMLMetadata(oData, sUrl, bIgnoreAnnotations),
 							oJSON);
 					}
 

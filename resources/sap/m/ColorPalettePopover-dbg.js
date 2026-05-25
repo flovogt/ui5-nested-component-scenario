@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides control sap.ui.unified.ColorPalettePopover
+// Provides control sap.m.ColorPalettePopover
 sap.ui.define([
 	'sap/ui/core/Control',
 	'sap/ui/Device',
@@ -39,7 +39,7 @@ sap.ui.define([
 		 * A thin wrapper over {@link sap.m.ColorPalette} allowing the latter to be used in a popover.
 		 *
 		 * @extends sap.ui.core.Control
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @public
 		 * @since 1.54
@@ -84,7 +84,6 @@ sap.ui.define([
 					/**
 					 * The last selected color in the ColorPalette.
 					 * @since 1.122
-					 * @experimental Since 1.122, this property is in a beta state.
 					 */
 					selectedColor: { type: "sap.ui.core.CSSColor", defaultValue: null },
 
@@ -377,6 +376,10 @@ sap.ui.define([
 			oColorPalette._setShowDefaultColorButton(this.getShowDefaultColorButton());
 			oColorPalette._setShowMoreColorsButton(this.getShowMoreColorsButton());
 			oColorPalette._setShowRecentColorsSection(this.getShowRecentColorsSection());
+
+			// Set the private property to indicate this ColorPalette is used in a popover
+			// This enables Home/End key navigation for better accessibility
+			oColorPalette.setProperty("_isInPopover", true);
 
 			return oColorPalette;
 		};

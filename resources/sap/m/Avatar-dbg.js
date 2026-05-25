@@ -91,7 +91,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -313,11 +313,22 @@ sap.ui.define([
 		"sap-icon://edit": Library.getResourceBundleFor("sap.m").getText("AVATAR_TOOLTIP_EDIT")
 	};
 
+	/**
+	 * The predefined ARIA role values for the Avatar control.
+	 *
+	 * @type {object}
+	 */
+	Avatar.ACCESSIBILITY_ROLE = {
+		BUTTON: "button",
+		PRESENTATION: "presentation",
+		IMAGE: "img"
+	};
+
 	Avatar.prototype.init = function () {
 		// Property holding the actual display type of the avatar
 		this._sActualType = null;
 		// Property that determines if the created icon is going to be the default one
-		this._bIsDefaultIcon = true;
+		this._bUseDefaultIcon = true;
 		this._sImageFallbackType = null;
 
 		// Property holding the currently picked random background color of the avatar, if any
@@ -327,13 +338,19 @@ sap.ui.define([
 		this._badgeRef = null;
 
 		this._bImageLoadError = false;
+
+		// does not have initials by default (null value)
+		this._bInitialsValid = false;
 	};
 
 	Avatar.prototype.onBeforeRendering = function () {
 		if (this._getImageCustomData() && !this._iCacheBustingValue) {
 			this._setNewCacheBustingValue();
-			this._validateSrc(this._getAvatarSrc());
+			this._loadImage(this._getAvatarSrc());
 		}
+		// determine the actual display type of the avatar before rendering
+		this._setActualDisplayType();
+		this._setUseDefaultIcon();
 	};
 
 	Avatar.prototype.onAfterRendering = function() {
@@ -351,14 +368,43 @@ sap.ui.define([
 		this._bImageLoadError = false;
 
 		this.setProperty("src", sSrc);
-		this._validateSrc(this._getAvatarSrc());
 		this._handleDetailBoxPress(bIsIconURI, oLightBox);
+		this._loadImage(this._getAvatarSrc());
+
+		return this;
+	};
+
+	Avatar.prototype.setInitials = function (sInitials) {
+		this.setProperty("initials", sInitials);
+		this._setInitialsValid(this._areInitialsValid(sInitials));
 
 		return this;
 	};
 
 	Avatar.prototype.onThemeChanged = function() {
 		this._checkInitialsHolderWidth();
+	};
+
+	/**
+	 * @returns {object} Current accessibility state of the Avatar
+	 * @see sap.ui.core.Control#getAccessibilityInfo
+	 * @protected
+	 */
+	Avatar.prototype.getAccessibilityInfo = function () {
+		var sRole = this._getRole();
+
+		// Decorative avatars should return empty object
+		if (this.getDecorative() && !this.hasListeners("press")) {
+			return {};
+		}
+
+		return {
+			role: sRole,
+			type: Library.getResourceBundleFor("sap.m").getText(sRole === Avatar.ACCESSIBILITY_ROLE.BUTTON ? "ACC_CTR_TYPE_BUTTON" : "ACC_CTR_TYPE_IMAGE"),
+			description: this._getAriaLabel(),
+			focusable: sRole === Avatar.ACCESSIBILITY_ROLE.BUTTON,
+			enabled: this.getEnabled()
+		};
 	};
 
 	Avatar.prototype.exit = function () {
@@ -453,15 +499,17 @@ sap.ui.define([
 	};
 
 	Avatar.prototype.setBadgeIconColor = function(sValue) {
-		Object.keys(AvatarBadgeColor).forEach(function(val) {
-			if (val.indexOf("Accent") !== -1) {
-				this.removeStyleClass('sapFAvatarBadgeColor' + val);
-			}
+		var aBadgeIconColors = Object.keys(AvatarBadgeColor);
+
+		if (aBadgeIconColors.indexOf(sValue) === -1) {
+			return this;
+		}
+
+		aBadgeIconColors.forEach(function(val) {
+			this.removeStyleClass('sapFAvatarBadgeColor' + val);
 		}.bind(this));
 
-		if (sValue && sValue.indexOf("Accent") !== -1) {
-			this.addStyleClass('sapFAvatarBadgeColor' + sValue);
-		}
+		this.addStyleClass('sapFAvatarBadgeColor' + sValue);
 
 		this.setProperty("badgeIconColor", sValue, true);
 		return this;
@@ -495,7 +543,7 @@ sap.ui.define([
 
 		if (this.hasListeners("press")) {
 			this.$().attr("tabindex", "0");
-			this.$().attr("role", "button");
+			this.$().attr("role", Avatar.ACCESSIBILITY_ROLE.BUTTON);
 		}
 
 		return this;
@@ -507,7 +555,7 @@ sap.ui.define([
 
 		if (!this.hasListeners("press")) {
 			this.$().removeAttr("tabindex");
-			this.$().attr("role", "img");
+			this.$().attr("role", Avatar.ACCESSIBILITY_ROLE.IMAGE);
 		}
 
 		return this;
@@ -568,10 +616,29 @@ sap.ui.define([
 	};
 
 	Avatar.prototype._handlePress = function () {
-		if (!this.getEnabled() || (this._bIsDefaultIcon && this.getDetailBox())) {
+		if (!this.getEnabled() || (this._getUseDefaultIcon() && this.getDetailBox())) {
 			return;
 		}
 		this.firePress({/* no parameters */});
+	};
+
+	/**
+	 * Loads the image from the given source.
+	 *
+	 * @param {string} sSrc - The source of the image to load
+	 * @private
+	 */
+	Avatar.prototype._loadImage = function (sSrc) {
+		if (!sSrc || IconPool.isIconURI(sSrc)) {
+			return;
+		}
+
+		// we perform this action in order to validate the image source and
+		// take further actions depending on that
+		this.preloadedImage = new window.Image();
+		this.preloadedImage.src = sSrc;
+		this.preloadedImage.onload = this._onImageLoad.bind(this);
+		this.preloadedImage.onerror = this._onImageError.bind(this, sSrc);
 	};
 
 	/**
@@ -585,12 +652,12 @@ sap.ui.define([
 	 Avatar.prototype._areInitialsValid = function (sInitials) {
 		var validInitials = /^[a-zA-Z\xc0-\xd6\xd8-\xdc\xe0-\xf6\xf8-\xfc]{1,3}$/;
 		if (!validInitials.test(sInitials)) {
-			Log.warning("Initials should consist of only 1,2 or 3 latin letters", this);
-			// if there is no actual type or the actual type is initials but they are not valid, set the actual type to icon
-			if (!this._sActualType || this._sActualType === AvatarType.Initials) {
-				this._sActualType = AvatarType.Icon;
+			// Only log a warning when initials are explicitly provided but invalid
+			// Don't warn when initials are empty/null (valid use case for fallback to icon)
+			if (sInitials) {
+				Log.warning("Initials should consist of only 1,2 or 3 latin letters", this);
 			}
-			this._bIsDefaultIcon = true;
+			// if there is no actual type or the actual type is initials but they are not valid, set the actual type to icon
 			return false;
 		}
 
@@ -598,32 +665,38 @@ sap.ui.define([
 	};
 
 	/**
-	 * Validates the <code>src</code> parameter, and sets the actual type appropriately.
+	 * Returns the validity state of the initials.
 	 *
-	 * @param {string} sSrc
-	 * @returns {this}
+	 * @returns {boolean}
 	 * @private
 	 */
-	Avatar.prototype._validateSrc = function (sSrc) {
-		if (!sSrc) {
-			return this;
-		}
+	Avatar.prototype._getInitialsValid = function() {
+		return this._bInitialsValid;
+	};
 
+	/**
+	 * Sets the validity state of the initials.
+	 *
+	 * @param {boolean} bValue - The validity state to set
+	 * @private
+	 */
+	Avatar.prototype._setInitialsValid = function (bValue) {
+		this._bInitialsValid = bValue;
+	};
+
+	/**
+	 * Returns the actual display type of avatar depending on the <code>src</code> parameter - either Icon or Image.
+	 *
+	 * @param {string} sSrc
+	 * @returns {sap.m.AvatarType} either Icon or Image
+	 * @private
+	 */
+	Avatar.prototype._getActualTypeBySrc = function (sSrc) {
 		if (IconPool.isIconURI(sSrc)) {
-			this._sActualType = AvatarType.Icon;
-			this._bIsDefaultIcon = IconPool.getIconInfo(sSrc) ? false : true;
+			return AvatarType.Icon;
 		} else {
-			this._sActualType = AvatarType.Image;
-
-			// we perform this action in order to validate the image source and
-			// take further actions depending on that
-			this.preloadedImage = new window.Image();
-			this.preloadedImage.src = sSrc;
-			this.preloadedImage.onload = this._onImageLoad.bind(this);
-			this.preloadedImage.onerror = this._onImageError.bind(this, sSrc);
+			return AvatarType.Image;
 		}
-
-		return this;
 	};
 
 	/**
@@ -642,26 +715,75 @@ sap.ui.define([
 	};
 
 	/**
-	 * Validates the entered parameters, and returns what the actual display type parameter would be.
+	 * Validates the entered parameters, and sets what the actual display type parameter would be.
+	 *
+	 * @returns {sap.m.AvatarType}
+	 * @private
+	 */
+	Avatar.prototype._setActualDisplayType = function () {
+		var sSrc = this._getAvatarSrc(),
+			sInitials = this.getInitials();
+
+		if (sSrc) {
+			this._sActualType = this._getActualTypeBySrc(sSrc);
+		} else if (sInitials && this._getInitialsValid()) {
+			this._sActualType = AvatarType.Initials;
+		} else {
+			// Fallback to Icon when no src and no valid initials
+			// Warning is logged in _areInitialsValid when initials are explicitly provided but invalid
+			this._sActualType = AvatarType.Icon;
+		}
+
+		return this._sActualType;
+	};
+
+	/**
+	 * Returns the actual display type of avatar
 	 *
 	 * @returns {sap.m.AvatarType}
 	 * @private
 	 */
 	Avatar.prototype._getActualDisplayType = function () {
-		var sSrc = this._getAvatarSrc(),
-			sInitials = this.getInitials();
-
-		if (sSrc) {
-			return this._sActualType;
-		} else if (sInitials && this._areInitialsValid(sInitials)) {
-			this._sActualType = AvatarType.Initials;
-		} else {
-			Log.warning("No src and initials were provided", this);
-			this._sActualType = AvatarType.Icon;
-			this._bIsDefaultIcon = true;
+		if (!this._sActualType) {
+			this._setActualDisplayType();
 		}
 
 		return this._sActualType;
+	};
+
+	/**
+	 * Sets whether default icon should be used
+	 *
+	 * @param {boolean} bValue
+	 * @private
+	 */
+	Avatar.prototype._setUseDefaultIcon = function () {
+		var sSrc = this.getSrc();
+
+		if (!sSrc) {
+			// No source: use default only if initials are invalid
+			this._bUseDefaultIcon = !this._getInitialsValid();
+			return;
+		}
+
+		if (IconPool.isIconURI(sSrc)) {
+			// Icon URI: use default if NOT found in IconPool
+			this._bUseDefaultIcon = !IconPool.getIconInfo(sSrc);
+			return;
+		}
+
+		// Regular image source: use default if image failed to load
+		this._bUseDefaultIcon = this._bImageLoadError;
+	};
+
+	/**
+	 * Returns whether the default icon should be used.
+	 *
+	 * @returns {boolean} whether the default icon should be used
+	 * @private
+	 */
+	Avatar.prototype._getUseDefaultIcon = function () {
+		return this._bUseDefaultIcon;
 	};
 
 	/**
@@ -673,7 +795,7 @@ sap.ui.define([
 	Avatar.prototype._getImageFallbackType = function () {
 		var sInitials = this.getInitials();
 
-		this._sImageFallbackType = sInitials && this._areInitialsValid(sInitials) ?
+		this._sImageFallbackType = sInitials && this._getInitialsValid() ?
 			AvatarType.Initials : AvatarType.Icon;
 
 		return this._sImageFallbackType;
@@ -715,7 +837,7 @@ sap.ui.define([
 			bIsIconURI = IconPool.isIconURI(sSrc),
 			sDefaultIconPath = this._getDefaultIconPath(sDisplayShape);
 
-		if (this._bIsDefaultIcon) {
+		if (this._getUseDefaultIcon()) {
 			sSrc = sDefaultIconPath;
 		}
 
@@ -734,6 +856,73 @@ sap.ui.define([
 
 	Avatar.prototype._getDefaultTooltip = function() {
 		return Library.getResourceBundleFor("sap.m").getText("AVATAR_TOOLTIP");
+	};
+
+	/**
+	 * Returns the aria-label value for the Avatar control.
+	 * This method contains the logic that determines what should be set on the aria-label attribute.
+	 *
+	 * @returns {string} The aria-label value
+	 * @private
+	 */
+	Avatar.prototype._getAriaLabel = function() {
+		var bHasListener = this.hasListeners("press"),
+			bDecorative = this.getDecorative(),
+			sTooltip = this.getTooltip_AsString(),
+			sInitials = this.getInitials(),
+			sDefaultTooltip = this._getDefaultTooltip(),
+			sCustomBadgeTooltip = this._getBadgeTooltip(),
+			sBadgeTooltip = (sCustomBadgeTooltip && sCustomBadgeTooltip !== sDefaultTooltip) ? sDefaultTooltip + " " + sCustomBadgeTooltip : sDefaultTooltip;
+
+		// If decorative and no press listener, return empty string
+		if (bDecorative && !bHasListener) {
+			return "";
+		}
+
+		// If tooltip property is set, use it
+		if (sTooltip) {
+			return sTooltip;
+		}
+
+		// If badge tooltip exists and differs from default
+		if (sBadgeTooltip) {
+			// If both initials and badgeTooltip are available, incorporate initials
+			if (sInitials) {
+				return sBadgeTooltip + " " + sInitials;
+			}
+			// If only badgeTooltip is available
+			return sBadgeTooltip;
+		}
+
+		// If only initials are available
+		if (sInitials) {
+			return sDefaultTooltip + " " + sInitials;
+		}
+
+		// No tooltip set nor initials - set only the default text
+		return sDefaultTooltip;
+	};
+
+	/**
+	 * Returns the ARIA role for the Avatar control.
+	 * This method contains the logic that determines what role should be set on the control.
+	 *
+	 * @returns {string} The ARIA role value
+	 * @private
+	 */
+	Avatar.prototype._getRole = function() {
+		var bHasListener = this.hasListeners("press"),
+			bDecorative = this.getDecorative(),
+			bHasSrc = (!this._getUseDefaultIcon() && this.getDetailBox()) || (!this.getDetailBox()),
+			bShouldBeClickable = bHasListener && bHasSrc;
+
+		if (bShouldBeClickable) {
+			return Avatar.ACCESSIBILITY_ROLE.BUTTON;
+		} else if (bDecorative) {
+			return Avatar.ACCESSIBILITY_ROLE.PRESENTATION;
+		} else {
+			return Avatar.ACCESSIBILITY_ROLE.IMAGE;
+		}
 	};
 
 	Avatar.prototype._getBadgeIconSource = function() {
@@ -815,12 +1004,13 @@ sap.ui.define([
 	 * @private
 	 */
 	Avatar.prototype._onImageLoad = function() {
+		this._bImageLoadError = false;
+
 		//we need to remove fallback content
-		if (this._bIsDefaultIcon) {
-			this._bIsDefaultIcon = false;
+		if (this._getUseDefaultIcon()) {
+			this._setUseDefaultIcon();
 			this.getDetailBox() && this.invalidate();
 		}
-		this._bImageLoadError = false;
 		delete this.preloadedImage;
 	};
 
@@ -834,14 +1024,15 @@ sap.ui.define([
 			return;
 		}
 
+		this._bImageLoadError = true;
+
 		this._cleanCSS();
 
-		if (!this._bIsDefaultIcon) {
-			this._bIsDefaultIcon = true;
+		if (!this._getUseDefaultIcon()) {
+			this._setUseDefaultIcon();
 			this.getDetailBox() && this.invalidate();
 		}
 		delete this.preloadedImage;
-		this._bImageLoadError = true;
 	};
 
 	Avatar.prototype._cleanCSS = function () {
@@ -903,7 +1094,7 @@ sap.ui.define([
 	};
 
 	// In case when there are 3 initials set to the avatar and they are overflowing,
-	// we want to show icon inatead of the initials.
+	// we want to show icon instead of the initials.
 
 	Avatar.prototype._wideInitialsIcon = function() {
 		var $this = this.$(),
@@ -1001,7 +1192,7 @@ sap.ui.define([
 	 */
 	Avatar.prototype.refreshAvatarCacheBusting = function () {
 		this._setNewCacheBustingValue();
-		this._validateSrc(this._getAvatarSrc());
+		this._loadImage(this._getAvatarSrc());
 		this.invalidate();
 	};
 

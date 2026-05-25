@@ -48,7 +48,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @constructor
 		 * @private
@@ -163,7 +163,16 @@ function(
 		};
 
 		SplitButton.prototype._handleAction = function(oEvent) {
+			const oOriginalEvent = oEvent.getParameter("originalEvent");
+			const sPressedButtonCode = oOriginalEvent?.keyCode;
+			const bArrowKeyPress = sPressedButtonCode === KeyCodes?.ARROW_DOWN || sPressedButtonCode === KeyCodes?.ARROW_UP;
+			const bOpenByArrowKeyPress = bArrowKeyPress && !oOriginalEvent?.ctrlKey && (oOriginalEvent?.altKey || oOriginalEvent?.metaKey);
+
 			if (oEvent.getSource().hasStyleClass("sapMSBArrow")) {
+				if (bArrowKeyPress && !bOpenByArrowKeyPress) {
+					return;
+				}
+
 				this.fireArrowPress({
 					keyboard: oEvent.getParameter("keyboard")
 				});
@@ -262,6 +271,10 @@ function(
 			return sText.charAt(0).toUpperCase() + sText.slice(1);
 		}
 
+		SplitButton.prototype._fireKeyboardArrowPress = function(oEvent) {
+			this._getArrowButton().firePress(oEvent);
+		};
+
 		SplitButton.prototype.onkeydown = function(oEvent) {
 			if (oEvent.which === KeyCodes.SPACE) {
 				oEvent.preventDefault();
@@ -275,24 +288,49 @@ function(
 		};
 
 		SplitButton.prototype.onsapup = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress({keyboard: true, originalEvent: oEvent.originalEvent});
 		};
 
 		SplitButton.prototype.onsapdown = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress({keyboard: true, originalEvent: oEvent.originalEvent});
 		};
 
 		SplitButton.prototype.onsapupmodifiers = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress({keyboard: true, originalEvent: oEvent.originalEvent});
 		};
 
 		SplitButton.prototype.onsapdownmodifiers = function(oEvent) {
-			this._getArrowButton().firePress({keyboard: true});
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			oEvent.preventDefault();
+			this._fireKeyboardArrowPress({keyboard: true, originalEvent: oEvent.originalEvent});
+			oEvent.stopImmediatePropagation();
 		};
 
 		//F4
 		SplitButton.prototype.onsapshow = function(oEvent) {
-			this._getArrowButton().firePress();
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			this._getArrowButton().firePress({keyboard: true, originalEvent: oEvent.originalEvent});
 			oEvent.preventDefault();
 		};
 

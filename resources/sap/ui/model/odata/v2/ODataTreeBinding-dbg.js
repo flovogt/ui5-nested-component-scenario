@@ -28,6 +28,8 @@ sap.ui.define([
 		CountMode, ODataUtils, OperationMode) {
 	"use strict";
 
+	const sClassName = "sap.ui.model.odata.v2.ODataTreeBinding";
+
 	/**
 	 * Do <strong>NOT</strong> call this private constructor, but rather use
 	 * {@link sap.ui.model.odata.v2.ODataModel#bindTree} instead!
@@ -75,10 +77,10 @@ sap.ui.define([
 	 *   the threshold that defines how many entries should be fetched at least by the binding if
 	 *   <code>operationMode</code> is set to <code>Auto</code>
 	 * @param {boolean} [mParameters.useServersideApplicationFilters]
-	 *   Deprecated since 1.102.0, as {@link sap.ui.model.odata.OperationMode.Auto} is deprecated;
-	 *   whether <code>$filter</code> statements should be used for the <code>$count</code> /
+	 *   Whether <code>$filter</code> statements should be used for the <code>$count</code> /
 	 *   <code>$inlinecount</code> requests and for the data request if the operation mode is
-	 *   {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto}
+	 *   {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto} or
+	 *   {@link sap.ui.model.odata.OperationMode.Client OperationMode.Client}
 	 * @param {any} [mParameters.treeState]
 	 *   A tree state handle
 	 *  @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
@@ -86,9 +88,9 @@ sap.ui.define([
 	 *  @param {boolean} [mParameters.usePreliminaryContext]
 	 *    Whether a preliminary context is used
 	 * @param {string} [mParameters.batchGroupId]
-	 *   <b>Deprecated</b>, use <code>groupId</code> instead
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead
 	 * @param {object} [mParameters.navigation]
-	 *   <b>Deprecated since 1.44:</b> A map describing the navigation properties between entity
+	 *   <b>Deprecated as of version 1.44</b>. A map describing the navigation properties between entity
 	 *   sets, which is used for constructing and paging the tree
 	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [vSorters=[]]
 	 *   The sorters used initially; call {@link #sort} to replace them
@@ -103,7 +105,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.TreeBinding
 	 * @hideconstructor
 	 * @public
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 */
 	var ODataTreeBinding = TreeBinding.extend("sap.ui.model.odata.v2.ODataTreeBinding", /** @lends sap.ui.model.odata.v2.ODataTreeBinding.prototype */ {
 
@@ -128,18 +130,7 @@ sap.ui.define([
 			this.aSorters = vSorters || [];
 			this.sFilterParams = "";
 
-			this.mNormalizeCache = {};
-
-			vFilters = vFilters || [];
-			// The ODataTreeBinding expects there to be only an array in this.aApplicationFilters later on.
-			// Wrap the given application filters inside an array if necessary
-			if (vFilters instanceof Filter) {
-				vFilters = [vFilters];
-			}
-			if (vFilters.length > 1) {
-				vFilters = [FilterProcessor.groupFilters(vFilters)];
-			}
-			this.aApplicationFilters = vFilters;
+			this.mNormalizeCache = FilterProcessor.createNormalizeCache();
 
 			// check filter integrity
 			this.oModel.checkFilter(this.aApplicationFilters);
@@ -511,7 +502,7 @@ sap.ui.define([
 	 * Returns the number of child nodes. This function is not available when the annotation "hierarchy-node-descendant-count-for"
 	 * is exposed on the service.
 	 *
-	 * @param {Object} oContext the context element of the node
+	 * @param {sap.ui.model.Context} oContext the context element of the node
 	 * @return {int} the number of children
 	 *
 	 * @public
@@ -1416,11 +1407,7 @@ sap.ui.define([
 			delete that.mRequestHandles[sRequestKey];
 			that.bNeedsUpdate = true;
 
-			// apply clientside filters, if any
-			if ((that.aApplicationFilters && that.aApplicationFilters.length > 0) ||
-				(that.aFilters && that.aFilters.length > 0)) {
-				that._applyFilter();
-			}
+			that._applyFilter();
 
 			// apply clientside sorters
 			if (that.aSorters && that.aSorters.length > 0) {
@@ -1683,14 +1670,6 @@ sap.ui.define([
 		// check filter integrity
 		this.oModel.checkFilter(aFilters);
 
-		// check if filtering is supported for the current binding configuration
-		if (sFilterType == FilterType.Control && (!this.bClientOperation || this.sOperationMode == OperationMode.Server)) {
-			Log.warning("Filtering with ControlFilters is ONLY possible if the ODataTreeBinding is running in OperationMode.Client or " +
-			"OperationMode.Auto, in case the given threshold is lower than the total number of tree nodes.");
-
-			return this;
-		}
-
 		// empty filters
 		if (!aFilters) {
 			aFilters = [];
@@ -1710,13 +1689,11 @@ sap.ui.define([
 			this.aApplicationFilters = aFilters;
 		}
 
+		this._checkFilterForTreeProperties();
+
 		if (!this.bInitial) {
-
-			// in client/auto mode: Always apply control filter.
-			// Clientside Application filters are only applied if "bUseServersideApplicationFilters" is set to false (default), otherwise
-			// the application filters will be applied on the backend.
-			if (this.bClientOperation && (sFilterType === FilterType.Control || (sFilterType === FilterType.Application && !this.bUseServersideApplicationFilters))) {
-
+			if (this.bClientOperation
+					&& (sFilterType === FilterType.Control || !this.bUseServersideApplicationFilters)) {
 				if (this.oAllKeys) {
 					this.oKeys = deepExtend({}, this.oAllKeys);
 					this.oLengths = deepExtend({}, this.oAllLengths);
@@ -1751,13 +1728,12 @@ sap.ui.define([
 	 */
 	ODataTreeBinding.prototype._applyFilter = function () {
 		var that = this;
-		var oCombinedFilter;
-
-		// if we do not use serverside application filters, we have to include them for the FilterProcessor
-		if (this.bUseServersideApplicationFilters) {
-			oCombinedFilter = FilterProcessor.groupFilters(this.aFilters);
-		} else {
-			oCombinedFilter = FilterProcessor.combineFilters(this.aFilters, this.aApplicationFilters);
+		const aClientApplicationFilters = this.bUseServersideApplicationFilters
+			? undefined
+			: this.aApplicationFilters;
+		const oCombinedFilter = FilterProcessor.combineFilters(this.aFilters, aClientApplicationFilters);
+		if (!oCombinedFilter) {
+			return;
 		}
 
 		// filter function for recursive filtering,
@@ -1783,6 +1759,46 @@ sap.ui.define([
 		} else {
 			this.oLengths["null"] = this.oKeys["null"].length;
 			this.oFinalLengths["null"] = true;
+		}
+	};
+
+	/**
+	 * Returns the combination of the binding's application and control filters as a single multi-filter object.
+	 *
+	 * @returns {sap.ui.model.Filter|undefined} The combined filters as multi-filter or <code>undefined</code> if
+	 *   the binding has neither application nor control filters.
+	 *
+	 * @private
+	 */
+	ODataTreeBinding.prototype.getCombinedFilter = function () {
+		return FilterProcessor.combineFilters(this.aFilters, this.aApplicationFilters);
+	};
+
+	/**
+	 * Checks if the binding's application and control filters refer to one of the tree annotation properties and log
+	 * an error in this case.
+	 *
+	 * @private
+	 */
+	ODataTreeBinding.prototype._checkFilterForTreeProperties = function () {
+		if (!this.oTreeProperties) {
+			return;
+		}
+
+		const aTreePropertyPaths = Object.values(this.oTreeProperties);
+		const checkSingleFilter = (oFilter) => {
+			if (oFilter.aFilters?.length) { // multi-filter
+				oFilter.aFilters.forEach((oMultiFilterPart) => {
+					checkSingleFilter(oMultiFilterPart);
+				});
+			} else if (aTreePropertyPaths.includes(oFilter.sPath)) {
+				Log.error("Filter for tree annotation property '" + oFilter.sPath + "' is not allowed", undefined,
+					sClassName);
+			}
+		};
+		const oCombinedFilter = this.getCombinedFilter();
+		if (oCombinedFilter) {
+			checkSingleFilter(oCombinedFilter);
 		}
 	};
 
@@ -2178,6 +2194,7 @@ sap.ui.define([
 	ODataTreeBinding.prototype._initialize = function (fnFireEvent) {
 		this.bInitial = false;
 		this.bHasTreeAnnotations = this._hasTreeAnnotations();
+		this._checkFilterForTreeProperties();
 		this.oEntityType = this._getEntityType();
 		this._processSelectParameters();
 		this._applyAdapter(fnFireEvent);
@@ -2281,7 +2298,6 @@ sap.ui.define([
 			sAdapterModuleName = "sap/ui/model/odata/ODataTreeBindingAdapter",
 			sMagnitudeAnnotation = "hierarchy-node-descendant-count-for",
 			sPreorderRankAnnotation = "hierarchy-preorder-rank-for",
-			sSiblingRankAnnotation = "hierarchy-sibling-rank-for",
 			that = this;
 
 		if (!this.bHasTreeAnnotations && !this.oNavigationPaths) {
@@ -2305,8 +2321,7 @@ sap.ui.define([
 				each(oProperty.extensions, function(iIndex, oExtension) {
 					sName = oExtension.name;
 					if (oExtension.namespace === that.oModel.oMetadata.mNamespaces["sap"] &&
-							(sName == sMagnitudeAnnotation || sName == sSiblingRankAnnotation
-								|| sName == sPreorderRankAnnotation)) {
+							(sName == sMagnitudeAnnotation || sName == sPreorderRankAnnotation)) {
 						that.oTreeProperties[sName] = oProperty.name;
 					}
 				});
@@ -2323,17 +2338,12 @@ sap.ui.define([
 			if (this.oTreeProperties[sMagnitudeAnnotation]
 					&& this.sOperationMode == OperationMode.Server) {
 				// Add Flat-specific tree properties
-				this.oTreeProperties[sSiblingRankAnnotation] =
-					this.oTreeProperties[sSiblingRankAnnotation]
-					|| (this.mParameters.treeAnnotationProperties
-						&& this.mParameters.treeAnnotationProperties.hierarchySiblingRankFor);
 				this.oTreeProperties[sPreorderRankAnnotation] =
 					this.oTreeProperties[sPreorderRankAnnotation]
 					|| (this.mParameters.treeAnnotationProperties
 						&& this.mParameters.treeAnnotationProperties.hierarchyPreorderRankFor);
 				if (this.mParameters.restoreTreeStateAfterChange) {
-					if (this.oTreeProperties[sSiblingRankAnnotation]
-							&& this.oTreeProperties[sPreorderRankAnnotation]) {
+					if (this.oTreeProperties[sPreorderRankAnnotation]) {
 						this._bRestoreTreeStateAfterChange = true;
 						// Collect entity type key properties
 						this._aTreeKeyProperties = [];
@@ -2342,7 +2352,6 @@ sap.ui.define([
 						}
 					} else {
 						Log.warning("Tree state restoration not possible: Missing annotation "
-							+ "\"hierarchy-sibling-rank-for\" and/or "
 							+ "\"hierarchy-preorder-rank-for\"");
 						this._bRestoreTreeStateAfterChange = false;
 					}
@@ -2575,24 +2584,27 @@ sap.ui.define([
 	};
 
 	/**
-	 * Creates valid odata filter strings for the application filters, given in "this.aApplicationFilters".
-	 * Also sets the created filter-string to "this.sFilterParams".
-	 * @returns {string} the concatenated OData filters
+	 * Creates the OData filter string for the binding's application and control filters considering client mode and
+	 * bUseServersideApplicationFilters.
+	 *
+	 * @returns {string} the created OData filter string
 	 *
 	 * @private
 	 */
 	ODataTreeBinding.prototype.getFilterParams = function() {
-		var oGroupedFilter;
-		if (this.aApplicationFilters) {
-			this.aApplicationFilters = Array.isArray(this.aApplicationFilters) ? this.aApplicationFilters : [this.aApplicationFilters];
-			if (this.aApplicationFilters.length > 0 && !this.sFilterParams) {
-				oGroupedFilter = FilterProcessor.groupFilters(this.aApplicationFilters);
-				this.sFilterParams = ODataUtils._createFilterParams(oGroupedFilter, this.oModel.oMetadata, this.oEntityType);
-				// Add a bracket around filter params, as they will be combined with tree specific filters
-				this.sFilterParams = this.sFilterParams ? "(" + this.sFilterParams + ")" : "";
-			}
-		} else {
-			this.sFilterParams = "";
+		const aServerApplicationFilters = this.bUseServersideApplicationFilters
+			? this.aApplicationFilters
+			: undefined;
+		const oCombinedFilter = this.bClientOperation
+			? FilterProcessor.combineFilters(undefined, aServerApplicationFilters)
+			: FilterProcessor.combineFilters(this.aFilters, this.aApplicationFilters);
+
+		this.sFilterParams = "";
+		if (oCombinedFilter) {
+			const sFilterParams = ODataUtils._createFilterParams(
+				oCombinedFilter, this.oModel.oMetadata, this.oEntityType);
+			// Add a bracket around filter params, as they will be combined with tree specific filters
+			this.sFilterParams = sFilterParams && `(${sFilterParams})`;
 		}
 
 		return this.sFilterParams;
@@ -2609,9 +2621,11 @@ sap.ui.define([
 	 * @ui5-restricted sap.ui.table, sap.ui.export
 	 */
 	ODataTreeBinding.prototype.getFilterInfo = function (bIncludeOrigin) {
-		return this.aApplicationFilters[0]
-			? this.aApplicationFilters[0].getAST(bIncludeOrigin)
-			: null;
+		const oCombinedFilter = this.getCombinedFilter();
+		if (oCombinedFilter) {
+			return oCombinedFilter.getAST(bIncludeOrigin);
+		}
+		return null;
 	};
 
 	/**
@@ -2642,7 +2656,7 @@ sap.ui.define([
 	 * @param {int} iIndex Absolute row index
 	 * @param {int} iLevel Level to which the data should be expanded
 	 * @param {boolean} bSuppressChange If set to true, no change event will be fired
-	 * @return {Promise} A promise resolving once the expansion process has been completed
+	 * @return {Promise<void>} A promise resolving once the expansion process has been completed
 	 *
 	 * @function
 	 * @name sap.ui.model.odata.v2.ODataTreeBinding.prototype.expandNodeToLevel
@@ -2703,7 +2717,7 @@ sap.ui.define([
 	 * @param {object} [mParameters]
 	 *   A map of the following parameters:
 	 * @param {string} [mParameters.changeSetId]
-	 *   The ID of the <code>ChangeSet</code> that this request should belong to
+	 *   The ID of the change set that this request should belong to
 	 * @param {function} [mParameters.created]
 	 *   The callback function that is called after the metadata of the service has been loaded and the
 	 *   {@link sap.ui.model.odata.v2.Context} instance for the newly created entry is available;

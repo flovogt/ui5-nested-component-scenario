@@ -21,6 +21,8 @@
 @_sap_m_Dialog_HeaderFocusBorderTopOffset: 2px;
 @_sap_m_Dialog_HeaderFocusBorderLeftOffset: 2px;
 @_sap_m_Dialog_HeaderFocusBorderRightOffset: 2px;
+@_sap_m_Dialog_FocusOutlineOffset: 0.0625rem;
+@_sap_m_Dialog_ResizableBottomRightRadius: 1.75rem;
 
 .sapMDialog,
 .sapMMessageDialog .sapMDialogScrollCont,
@@ -41,13 +43,18 @@
 	opacity: 0;
 	transition: opacity 0.15s;
 	border-radius: var(--sapElement_BorderCornerRadius);
-	box-shadow: var(--sapContent_Shadow3);
+	padding-inline: 0;
 
 	&:not(.sapMDialogHighPixelDensity) {
 		/* prevent blurring when the device pixel ration is 1 (not high density screens) */
 		/* this is done with style and not with media query for wider support */
 		filter: blur(0);
 	}
+}
+
+.sapMDialog,
+.sapMDialog.sapUiShd /* Web Components Integration */ {
+	box-shadow: var(--sapContent_Shadow3);
 }
 
 .sapMDialog > .sapMDialogSection {
@@ -123,6 +130,11 @@ html.sap-desktop .sapMDialog {
 .sapMDialog .sapMDialogSection {
 	overflow: hidden;
 	position: relative;
+
+	&:focus {
+		outline: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+		outline-offset: ~"calc(-1 * var(--sapContent_FocusWidth))";
+	}
 }
 
 .sapMDialogScroll {
@@ -365,19 +377,20 @@ html.sap-desktop .sapMDialog {
 		top: 0;
 	}
 
-	.sapMDialogTitleGroup:focus {
-		outline: none;
+	&:has(.sapMDialogDragAndResizeHandler:focus) {
 
-		&::after {
+		&::before {
 			content: '';
 			position: absolute;
-			left: @_sap_m_Dialog_HeaderFocusBorderLeftOffset;
-			bottom: @_sap_m_Dialog_HeaderFocusBorderBottomOffset;
-			right: @_sap_m_Dialog_HeaderFocusBorderRightOffset;
-			top: @_sap_m_Dialog_HeaderFocusBorderTopOffset;
+			inset: @_sap_m_Dialog_FocusOutlineOffset;
 			border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
-			border-radius: @_sap_m_Dialog_HeaderFocusBorderRadius @_sap_m_Dialog_HeaderFocusBorderRadius 0 0;
+			border-radius: var(--sapElement_BorderCornerRadius);
 			pointer-events: none;
+			z-index: 5; // CodeEditor is 4
+		}
+
+		&.sapMDialogResizable::before {
+			border-radius: var(--sapElement_BorderCornerRadius) var(--sapElement_BorderCornerRadius) @_sap_m_Dialog_ResizableBottomRightRadius var(--sapElement_BorderCornerRadius);
 		}
 	}
 
@@ -469,4 +482,9 @@ html[data-sap-ui-animation='off'] .sapMDialog {
 .sapMDialog .sapMDialogFirstFE,
 .sapMDialog .sapMDialogLastFE {
 	font-size: 0;
+}
+
+/* to show the busy indicator over the title group */
+.sapMDialog .sapUiLocalBusyIndicator {
+	z-index: 4;
 }

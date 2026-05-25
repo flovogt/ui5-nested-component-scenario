@@ -17,7 +17,7 @@ sap.ui.define(['./library', "sap/ui/core/Lib"],
 		apiVersion: 2
 	};
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
 	// shortcut for library resource bundle

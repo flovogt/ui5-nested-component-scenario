@@ -77,14 +77,14 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.m
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @since 1.4
 	 * @public
 	 */
 	var thisLib = Library.init({
 		apiVersion: 2,
 		name : "sap.m",
-		version: "1.136.16",
+		version: "1.148.0",
 		dependencies : ["sap.ui.core"],
 		designtime: "sap/m/designtime/library.designtime",
 		...{
@@ -181,6 +181,7 @@ sap.ui.define([
 			"sap.m.SelectListKeyboardNavigationMode",
 			"sap.m.SelectDialogInitialFocus",
 			"sap.m.SelectType",
+			"sap.m.SelectTwoColumnSeparator",
 			"sap.m.Size",
 			"sap.m.SplitAppMode",
 			"sap.m.StandardDynamicDateRangeKeys",
@@ -228,6 +229,7 @@ sap.ui.define([
 			"sap.m.IconTab",
 			"sap.m.IScale",
 			"sap.m.IMenuItem",
+			"sap.m.IMenuItemBehavior",
 			"sap.m.semantic.IGroup",
 			"sap.m.semantic.IFilter",
 			"sap.m.semantic.ISort",
@@ -252,7 +254,6 @@ sap.ui.define([
 			"sap.m.Breadcrumbs",
 			"sap.m.Carousel",
 			"sap.m.CheckBox",
-			"sap.m.ColumnHeaderPopover",
 			"sap.m.ColumnListItem",
 			"sap.m.ColorPalette",
 			"sap.m.ColorPalettePopover",
@@ -306,6 +307,8 @@ sap.ui.define([
 			"sap.m.ListItemBase",
 			"sap.m.MaskInput",
 			"sap.m.Menu",
+			"sap.m.MenuItem",
+			"sap.m.MenuWrapper",
 			"sap.m.MenuButton",
 			"sap.m.MessagePage",
 			"sap.m.MessagePopover",
@@ -335,6 +338,7 @@ sap.ui.define([
 			"sap.m.OverflowToolbarButton",
 			"sap.m.OverflowToolbarToggleButton",
 			"sap.m.OverflowToolbarMenuButton",
+			"sap.m.OverflowToolbarTokenizer",
 			"sap.m.P13nColumnsPanel",
 			"sap.m.P13nGroupPanel",
 			"sap.m.P13nSelectionPanel",
@@ -433,16 +437,13 @@ sap.ui.define([
 			"sap.m.p13n.SelectionPanel",
 			"sap.m.p13n.SortPanel",
 			"sap.m.p13n.Popup",
-			"sap.m.table.columnmenu.Menu"
+			"sap.m.table.columnmenu.Menu",
+			"sap.m.table.Title"
 		],
 		elements: [
 			"sap.m.BadgeCustomData",
 			"sap.m.CarouselLayout",
 			"sap.m.Column",
-			"sap.m.ColumnPopoverActionItem",
-			"sap.m.ColumnPopoverCustomItem",
-			"sap.m.ColumnPopoverItem",
-			"sap.m.ColumnPopoverSortItem",
 			"sap.m.ContentConfig",
 			"sap.m.DynamicDateOption",
 			"sap.m.DynamicDateValueHelpUIType",
@@ -453,9 +454,9 @@ sap.ui.define([
 			"sap.m.ImageCustomData",
 			"sap.m.LightBoxItem",
 			"sap.m.LinkTileContent",
+			"sap.m.ListItemAction",
 			"sap.m.OverflowToolbarLayoutData",
 			"sap.m.MaskInputRule",
-			"sap.m.MenuItem",
 			"sap.m.MessageItem",
 			"sap.m.MessagePopoverItem",
 			"sap.m.PageAccessibleLandmarkInfo",
@@ -502,6 +503,7 @@ sap.ui.define([
 			"sap.m.plugins.DataStateIndicator",
 			"sap.m.plugins.PasteProvider",
 			"sap.m.plugins.PluginBase",
+			"sap.m.plugins.TitleProvider",
 			"sap.m.p13n.AbstractContainerItem",
 			"sap.m.semantic.AddAction",
 			"sap.m.semantic.CancelAction",
@@ -640,6 +642,7 @@ sap.ui.define([
 					"hideControl": "default",
 					"unhideControl": "default"
 				},
+				"sap.m.SegmentedButton": "sap/m/flexibility/SegmentedButton",
 				"sap.m.Slider": {
 					"hideControl": "default",
 					"unhideControl": "default"
@@ -1283,13 +1286,13 @@ sap.ui.define([
 		 * Represents the ARIA role <code>dialog</code>.
 		 * @public
 		 */
-		Dialog : "dialog",
+		Dialog : "Dialog",
 
 		/**
 		 * Represents the ARIA role <code>alertdialog</code>.
 		 * @public
 		 */
-		AlertDialog : "alertdialog"
+		AlertDialog : "AlertDialog"
 	};
 
 	/**
@@ -1805,7 +1808,6 @@ sap.ui.define([
 		/**
 		 * The Stretch frame type adjusts the size of the control to the parent.
 		 * @since 1.96
-		 * @experimental
 		 */
 		 Stretch: "Stretch"
 
@@ -1983,8 +1985,8 @@ sap.ui.define([
 		 * Action Mode (Two lines for the header).
 		 *
 		 * Generic Tile renders buttons that are specified under 'actionButtons' aggregation
+		 * @since 1.96.0
 		 * @public
-		 * @experimental since 1.96
 		 */
 		ActionMode: "ActionMode",
 
@@ -1992,8 +1994,8 @@ sap.ui.define([
 		 * Article Mode (Two lines for the header and one line for the subtitle).
 		 *
 		 * Enables Article Mode.
+		 * @since 1.96.0
 		 * @public
-		 * @experimental since 1.96
 		 */
 		ArticleMode: "ArticleMode",
 
@@ -2016,7 +2018,6 @@ sap.ui.define([
 		 * It is applicable only for the OneByOne FrameType and TwoByHalf FrameType.
 		 * @public
 		 * @since 1.96
-		 * @experimental Since 1.96
 		 */
 		IconMode : "IconMode"
 	};
@@ -2236,7 +2237,6 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @since 1.122
-	 * @experimental since 1.122
 	 * @public
 	 */
 	thisLib.ContentConfigType = {
@@ -2334,7 +2334,7 @@ sap.ui.define([
 		L : "L",
 
 		/**
-		 * Small: Recommended for smaller controls, such as {@link sap.m.Switch} or {@link sap.m.Checkbox}. If there is limited space, only the label
+		 * Small: Recommended for smaller controls, such as {@link sap.m.Switch} or {@link sap.m.CheckBox}. If there is limited space, only the label
 		 * is wrapped. The input control is always right-aligned horizontally and middle-aligned vertically.
 		 * @public
 		 */
@@ -2375,13 +2375,55 @@ sap.ui.define([
 
 	/**
 	 *
-	 * Interface for controls which are suitable to be added as items of sap.m.Menu.
+	 * Interface definition for controls suitable to be used as items of <code>sap.m.Menu</code>.
 	 *
 	 *
 	 * @since 1.127.0
 	 * @name sap.m.IMenuItem
 	 * @interface
 	 * @public
+	 */
+
+	/**
+	 *
+	 * Interface definition for controls suitable to be used as items of <code>sap.m.Menu</code>.
+	 * This interface is used to define the behavior of the menu item.
+	 *
+	 *
+	 * @since 1.137.0
+	 * @name sap.m.IMenuItemBehavior
+	 * @interface
+	 * @public
+	 */
+
+	/**
+	 * Returns whether the firing of <code>press</code> event is allowed.
+	 * <b>Note:</b> This method can be overridden by subclasses to implement custom behavior.
+	 *
+	 * @public
+	 * @returns {boolean} Whether the item is enabled for click/press
+	 * @function
+	 * @name sap.m.IMenuItemBehavior.isInteractive
+	 */
+
+	/**
+	 * Returns whether the item can be focused.
+	 * <b>Note:</b> This method can be overridden by subclasses to implement custom behavior.
+	 *
+	 * @public
+	 * @returns {boolean} Whether the item is enabled for focus
+	 * @function
+	 * @name sap.m.IMenuItemBehavior.isFocusable
+	 */
+
+	/**
+	 * Returns whether the item can be counted in total items count.
+	 * <b>Note:</b> This method can be overridden by subclasses to implement custom behavior.
+	 *
+	 * @public
+	 * @returns {boolean} Whether the item is counted in total items count
+	 * @function
+	 * @name sap.m.IMenuItemBehavior.isCountable
 	 */
 
 	/**
@@ -2726,7 +2768,7 @@ sap.ui.define([
 	 *
 	 * @enum {string}
 	 * @public
-	 * @experimental Since 1.121. Behavior might change.
+	 * @ui5-experimental-since 1.121
 	 */
 	thisLib.IconTabFilterInteractionMode = {
 
@@ -2777,7 +2819,6 @@ sap.ui.define([
 		* <b>Note:</b> Please, be aware that this feature works under the Browser's Cross-Origin Resource Sharing (CORS) policy.
 		* This means that a web application using those APIs can only request resources from the same origin the application was loaded from unless the response from other origins includes the right CORS headers.
 		* @public
-		* @experimental since 1.106
 		*/
 		InlineSvg: "InlineSvg"
 
@@ -3107,6 +3148,7 @@ sap.ui.define([
 		/**
 		 * Right-positioned single selection mode (only one list item can be selected).
 		 * @public
+		 * @deprecated As of version 1.143, replaced by {@link sap.m.ListMode.SingleSelectLeft}.
 		 */
 		SingleSelect : "SingleSelect",
 
@@ -3240,14 +3282,14 @@ sap.ui.define([
 		Inactive : "Inactive",
 
 		/**
-		 * Enables detail button of the list item that fires <code>detailPress</code> event.
-		 * Also see {@link sap.m.ListItemBase#attachDetailPress}.
+		 * Enables the detail button of the list item that fires the {@link sap.m.ListItemBase#event:detailPress detailPress} event.
 		 * @public
 		 */
 		Detail : "Detail",
 
 		/**
-		 * Indicates the list item is navigable to show extra information about the item.
+		 * Enables the navigation button of the list item to navigate and display additional information about the item.
+		 * Fires the {@link sap.m.ListBase#event:itemPress} event when pressed.
 		 * @public
 		 */
 		Navigation : "Navigation",
@@ -3264,6 +3306,46 @@ sap.ui.define([
 		 */
 		DetailAndActive : "DetailAndActive"
 
+	};
+
+	/**
+	 * Defines the action types available for list items.
+	 *
+	 * @enum {string}
+	 * @since 1.137
+	 * @public
+	 */
+	thisLib.ListItemActionType = {
+		/**
+		 * Defines a custom action for a list item.
+		 * <b>Note:</b> The <code>icon</code> and <code>text</code> properties in the <code>sap.m.ListItemAction</code> are required for this action type.
+		 * @public
+		 */
+		Custom : "Custom",
+
+		/**
+		 * Indicates that the list item is editable.
+		 * <b>Note:</b> The <code>icon</code> and <code>text</code> properties must not be set in <code>sap.m.ListItemAction</code> for this action type.
+		 * @public
+		 */
+		Edit : "Edit",
+
+		/**
+		 * Indicates that the list item is deletable.
+		 * <b>Note:</b> The <code>icon</code> and <code>text</code> properties must not be set in <code>sap.m.ListItemAction</code> for this action type.
+		 * @public
+		 */
+		Delete : "Delete",
+
+		/**
+		 * Makes the corresponding list item behave as if its <code>type</code> property were set to <code>Navigation</code>.
+		 *
+		 * @see sap.m.ListItemAction#isEffective
+		 * @since 1.144
+		 * @private
+		 * @ui5-restricted sap.ui.mdc
+		 */
+		Navigation : "Navigation"
 	};
 
 	/**
@@ -3638,6 +3720,18 @@ sap.ui.define([
 	 */
 
 	/**
+	 * Optional hook that will be executed when the panel is used by a <code>sap.m.p13n.Popup</code> that is called before the popup is closed
+	 *
+	 * @param {string} sReason reason for closing the container
+	 * @returns {Promise} A Promise that is fullfilled if the panel is ready to be closed
+	 *
+	 * @function
+	 * @name sap.m.p13n.IContent.onBeforeClose?
+	 * @public
+	 * @since 1.145
+	 */
+
+	/**
 	 * Type of popup used in the <code>sap.m.p13n.Popup</code>.
 	 *
 	 * @enum {string}
@@ -3660,54 +3754,239 @@ sap.ui.define([
 	};
 
 	/**
+	 * Operations for conditions used in the personalization condition panel.
+	 *
 	 * @enum {string}
 	 * @public
 	 */
 	thisLib.P13nConditionOperation = {
+
 		// filter operations
+
+		/**
+		 * "between" operation: filters for values between two given operands.
+		 * @public
+		 */
 		BT: "BT",
+
+		/**
+		 * "equal to" operation: filters for values equal to the given operand.
+		 * @public
+		 */
 		EQ: "EQ",
+
+		/**
+		 * "contains" operation: filters for values that contain the given substring.
+		 * @public
+		 */
 		Contains: "Contains",
+
+		/**
+		 * "starts with" operation: filters for values that start with the given string.
+		 * @public
+		 */
 		StartsWith: "StartsWith",
+
+		/**
+		 * "ends with" operation: filters for values that end with the given string.
+		 * @public
+		 */
 		EndsWith: "EndsWith",
+
+		/**
+		 * "less than" operation: filters for values less than the given operand.
+		 * @public
+		 */
 		LT: "LT",
+
+		/**
+		 * "less than or equal to" operation: filters for values less than or equal to the given operand.
+		 * @public
+		 */
 		LE: "LE",
+
+		/**
+		 * "greater than" operation: filters for values greater than the given operand.
+		 * @public
+		 */
 		GT: "GT",
+
+		/**
+		 * "greater than or equal to" operation: filters for values greater than or equal to the given operand.
+		 * @public
+		 */
 		GE: "GE",
+
+		/**
+		 * "initial" operation: filters for entries whose value has not been changed from its initial state.
+		 * @public
+		 */
 		Initial: "Initial",
+
+		/**
+		 * "empty" operation: filters for entries whose value is empty.
+		 * @public
+		 */
 		Empty: "Empty",
 
 		// filter exclude operations
+
+		/**
+		 * "not between" operation: excludes values between two given operands.
+		 * @public
+		 */
 		NotBT: "NotBT",
+
+		/**
+		 * "not equal to" operation: excludes values equal to the given operand.
+		 * @public
+		 */
 		NotEQ: "NotEQ",
+
+		/**
+		 * "does not contain" operation: excludes values that contain the given substring.
+		 * @public
+		 */
 		NotContains: "NotContains",
+
+		/**
+		 * "does not start with" operation: excludes values that start with the given string.
+		 * @public
+		 */
 		NotStartsWith: "NotStartsWith",
+
+		/**
+		 * "does not end with" operation: excludes values that end with the given string.
+		 * @public
+		 */
 		NotEndsWith: "NotEndsWith",
+
+		/**
+		 * "not less than" operation: excludes values less than the given operand.
+		 * @public
+		 */
 		NotLT: "NotLT",
+
+		/**
+		 * "not less than or equal to" operation: excludes values less than or equal to the given operand.
+		 * @public
+		 */
 		NotLE: "NotLE",
+
+		/**
+		 * "not greater than" operation: excludes values greater than the given operand.
+		 * @public
+		 */
 		NotGT: "NotGT",
+
+		/**
+		 * "not greater than or equal to" operation: excludes values greater than or equal to the given operand.
+		 * @public
+		 */
 		NotGE: "NotGE",
+
+		/**
+		 * "not initial" operation: excludes entries whose value has not been changed from its initial state.
+		 * @public
+		 */
 		NotInitial: "NotInitial",
+
+		/**
+		 * "not empty" operation: excludes entries whose value is empty.
+		 * @public
+		 */
 		NotEmpty: "NotEmpty",
 
+		// default values
+
+		/**
+		 * "default values" operation: applies default values for the condition.
+		 * @public
+		 * @since 1.148
+		 */
+		DefaultValues: "DefaultValues",
+
 		// sort operations
+
+		/**
+		 * "ascending" operation: sorts values in ascending order.
+		 * @public
+		 */
 		Ascending: "Ascending",
+
+		/**
+		 * "descending" operation: sorts values in descending order.
+		 * @public
+		 */
 		Descending: "Descending",
 
 		// group operations
+
+		/**
+		 * "group ascending" operation: groups values in ascending order.
+		 * @public
+		 */
 		GroupAscending: "GroupAscending",
+
+		/**
+		 * "group descending" operation: groups values in descending order.
+		 * @public
+		 */
 		GroupDescending: "GroupDescending",
-		//
+
 		// calculation operations
+
+		/**
+		 * "total" operation: calculates the total of values.
+		 * @public
+		 */
 		Total: "Total",
+
+		/**
+		 * "average" operation: calculates the average of values.
+		 * @public
+		 */
 		Average: "Average",
+
+		/**
+		 * "minimum" operation: determines the minimum value.
+		 * @public
+		 */
 		Minimum: "Minimum",
+
+		/**
+		 * "maximum" operation: determines the maximum value.
+		 * @public
+		 */
 		Maximum: "Maximum"
 	};
 
+	/**
+	 * Type of a condition operation in the personalization condition panel.
+	 *
+	 * @enum {string}
+	 * @public
+	 */
 	thisLib.P13nConditionOperationType = {
+
+		/**
+		 * Values that should be included in the result.
+		 * @public
+		 */
 		Include: "Include",
-		Exclude: "Exclude"
+
+		/**
+		 * Values that should be excluded from the result.
+		 * @public
+		 */
+		Exclude: "Exclude",
+
+		/**
+		 * Default values for the condition.
+		 * @public
+		 * @since 1.148
+		 */
+		DefaultValues: "DefaultValues"
 	};
 
 	/**
@@ -3951,6 +4230,28 @@ sap.ui.define([
 		 */
 		Auto : "Auto"
 
+	};
+
+	/**
+ 	 * Different SegmentedButton items sizing modes.
+	 * @public
+	 * @enum {string}
+ 	*/
+	thisLib.SegmentedButtonContentMode = {
+
+		/**
+	 	 * Each item fits its content and extra space is placed after the last item.
+	 	 * @public
+		 * @since 1.142.0
+	 	*/
+		ContentFit: "ContentFit",
+
+		/**
+	 	 * All items are sized equally to fill the available space.
+	 	 * @public
+		 * @since 1.142.0
+	 	*/
+		EqualSized: "EqualSized"
 	};
 
 	/**
@@ -4496,7 +4797,6 @@ sap.ui.define([
 		 * The grid width for each table popin is small, hence this allows more content to be rendered in a single popin row.
 		 * This value defines small grid width for the table popins.
 		 *
-		 * <b>Note:</b> This feature is currently not supported with Internet Explorer and Edge (version lower than 16) browsers.
 		 * @public
 		 * @since 1.52
 		 */
@@ -4506,7 +4806,6 @@ sap.ui.define([
 		 * Sets grid layout for rendering the table popins.
 		 * The grid width for each table popin is comparatively larger than <code>GridSmall</code>, hence this allows less content to be rendered in a single popin row.
 		 *
-		 * <b>Note:</b> This feature is currently not supported with Internet Explorer and Edge (version lower than 16) browsers.
 		 * @public
 		 * @since 1.52
 		 */
@@ -4738,6 +5037,32 @@ sap.ui.define([
 
 	};
 
+	/**
+	 * Enumeration for different separators for two columns layout when Select is in read-only mode.
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.140
+	 */
+	thisLib.SelectTwoColumnSeparator = {
+		/**
+		 * Will show N-dash(–) as separator on two columns layout when Select is in read-only mode.
+		 * @public
+		 */
+		Dash : "Dash",
+
+		/**
+		 * Will show bullet(·) as separator on two columns layout when Select is in read-only mode.
+		 * @public
+		 */
+		Bullet : "Bullet",
+
+		/**
+		 * Will show vertical line(|) as separator on two columns layout when Select is in read-only mode.
+		 * @public
+		 */
+		VerticalLine : "VerticalLine"
+	};
 
 	/**
 	 * The mode of SplitContainer or SplitApp control to show/hide the master area.
@@ -4893,7 +5218,7 @@ sap.ui.define([
 		L : "L",
 
 		/**
-		 * Small: Recommended for smaller controls, such as {@link sap.m.Switch} or {@link sap.m.Checkbox}. If there is limited space, only the label
+		 * Small: Recommended for smaller controls, such as {@link sap.m.Switch} or {@link sap.m.CheckBox}. If there is limited space, only the label
 		 * is wrapped. The input control is always right-aligned horizontally and middle-aligned vertically.
 		 * @public
 		 */
@@ -5074,6 +5399,32 @@ sap.ui.define([
 		Narrow : "Narrow"
 	};
 
+	/**
+	 * Types of <code>sap.m.OverflowToolbarTokenizerRenderMode</code> responsive modes
+	 *
+	 * @enum {string}
+	 * @public
+	 * @since 1.139
+	 */
+	thisLib.OverflowToolbarTokenizerRenderMode = {
+		/**
+		 * In <code>Loose</code> mode, <code>sap.m.OverflowToolbarTokenizer</code> shows all its tokens, even if it requires scrolling.
+		 * @public
+		 */
+		Loose : "Loose",
+
+		/**
+		 * In <code>Narrow</code> mode, <code>sap.m.OverflowToolbarTokenizer</code> shows as many tokens as its width allows and an n-More indicator with the count of the hidden tokens. The rest of the tokens remain hidden.
+		 * @public
+		 */
+		Narrow : "Narrow",
+
+		/**
+		 * In <code>Overflow</code> mode, <code>sap.m.OverflowToolbarTokenizer</code> shows only a <code>sap.m.Button</code> as an n-More indicator without visible tokens. This mode is used when <code>sap.m.OverflowToolbarTokenizer</code> is within the <code>sap.m.OverflowToolbar</code> overflow area.
+		 * @public
+		 */
+		Overflow : "Overflow"
+	};
 
 	/**
 	 * Types of the Toolbar Design.
@@ -5162,6 +5513,7 @@ sap.ui.define([
 		 * The mask will always be enforced for any time patterns.
 		 * <b>Note:</b> The mask functions correctly only with fixed-length time formats.
 		 * Using the <code>Enforce</code> value with time formats that do not have a fixed length may lead to unpredictable behavior.
+		 * @public
 		 */
 		Enforce: "Enforce",
 
@@ -5342,7 +5694,7 @@ sap.ui.define([
 	};
 
 	/**
-	 * Type of the upload {@link sap.m.UploadSetItem}.
+	 * Type of the upload {@link sap.m.upload.UploadSetItem}.
 	 *
 	 * @enum {string}
 	 * @public
@@ -5502,27 +5854,63 @@ sap.ui.define([
 	thisLib.IllustratedMessageSize = IllustratedMessageSize;
 	thisLib.IllustratedMessageType = IllustratedMessageType;
 
+	/**
+	 * Available color set variants for the {@link sap.m.MessageStrip} control.
+	 *
+	 * <b>Notes:</b>
+	 * <ul>
+	 * <li>The Default color set uses standard semantic colors based on the message type (Information, Success, Warning, Error).</li>
+	 * <li>ColorSet1 and ColorSet2 provide custom color palettes with 10 predefined color schemes each.</li>
+	 * <li>When using ColorSet1 or ColorSet2, the <code>colorScheme</code> property determines which color variation is applied.</li>
+	 * </ul>
+	 *
+	 * @enum {string}
+	 * @public
+	 * @alias sap.m.MessageStripColorSet
+	 * @since 1.143.0
+	 */
+	thisLib.MessageStripColorSet = {
 		/**
-		 * Wizard rendering mode.
+		 * Uses standard semantic colors based on the type property (Information, Success, Warning, Error)
 		 *
-		 * @enum {string}
-		 * @since 1.83
 		 * @public
 		 */
-		thisLib.WizardRenderMode = {
+		Default: "Default",
+		/**
+		 * Uses a custom color palette with predefined color schemes
+		 *
+		 * @public
+		 */
+		ColorSet1: "ColorSet1",
+		/**
+		 * Uses an alternative custom color palette with predefined color schemes
+		 *
+		 * @public
+		 */
+		ColorSet2: "ColorSet2"
+	};
 
-			/**
-			 * Display all steps into a scroll section.
-			 * @public
-			 */
-			Scroll: "Scroll",
+	/**
+	 * Wizard rendering mode.
+	 *
+	 * @enum {string}
+	 * @since 1.83
+	 * @public
+	 */
+	thisLib.WizardRenderMode = {
 
-			/**
-			 * Display steps as separate, single pages.
-			 * @public
-			 */
-			Page: "Page"
-		};
+		/**
+		 * Display all steps into a scroll section.
+		 * @public
+		 */
+		Scroll: "Scroll",
+
+		/**
+		 * Display steps as separate, single pages.
+		 * @public
+		 */
+		Page: "Page"
+	};
 
 	/**
 	 * Enumeration of the <code>ResetAllMode</code> that can be used in a <code>TablePersoController</code>.
@@ -5561,13 +5949,13 @@ sap.ui.define([
 		 * Public mode of the <code>VariantItem</code>.
 		 * @public
 		 */
-		Public: "public",
+		Public: "Public",
 
 		/**
 		 * Private mode of the <code>VariantItem</code>.
 		 * @public
 		 */
-		Private: "private"
+		Private: "Private"
 	};
 
 	/**
@@ -6668,6 +7056,7 @@ sap.ui.define([
 	DataType.registerEnum("sap.m.ListMode", thisLib.ListMode);
 	DataType.registerEnum("sap.m.ListSeparators", thisLib.ListSeparators);
 	DataType.registerEnum("sap.m.ListType", thisLib.ListType);
+	DataType.registerEnum("sap.m.ListItemActionType", thisLib.ListItemActionType);
 	DataType.registerEnum("sap.m.LoadState", thisLib.LoadState);
 	DataType.registerEnum("sap.m.MenuButtonMode", thisLib.MenuButtonMode);
 	DataType.registerEnum("sap.m.MultiSelectMode", thisLib.MultiSelectMode);
@@ -6689,12 +7078,14 @@ sap.ui.define([
 	DataType.registerEnum("sap.m.QuickViewGroupElementType", thisLib.QuickViewGroupElementType);
 	DataType.registerEnum("sap.m.RatingIndicatorVisualMode", thisLib.RatingIndicatorVisualMode);
 	DataType.registerEnum("sap.m.ReactiveAreaMode", thisLib.ReactiveAreaMode);
+	DataType.registerEnum("sap.m.SegmentedButtonContentMode", thisLib.SegmentedButtonContentMode);
 	DataType.registerEnum("sap.m.ScreenSize", thisLib.ScreenSize);
 	DataType.registerEnum("sap.m.CarouselScrollMode", thisLib.CarouselScrollMode);
 	DataType.registerEnum("sap.m.SelectColumnRatio", thisLib.SelectColumnRatio);
 	DataType.registerEnum("sap.m.SelectionDetailsActionLevel", thisLib.SelectionDetailsActionLevel);
 	DataType.registerEnum("sap.m.SelectListKeyboardNavigationMode", thisLib.SelectListKeyboardNavigationMode);
 	DataType.registerEnum("sap.m.SelectType", thisLib.SelectType);
+	DataType.registerEnum("sap.m.SelectTwoColumnSeparator", thisLib.SelectTwoColumnSeparator);
 	DataType.registerEnum("sap.m.Size", thisLib.Size);
 	DataType.registerEnum("sap.m.SplitAppMode", thisLib.SplitAppMode);
 	DataType.registerEnum("sap.m.StandardDynamicDateRangeKeys", thisLib.StandardDynamicDateRangeKeys);
@@ -6717,6 +7108,7 @@ sap.ui.define([
 	DataType.registerEnum("sap.m.UploadState", thisLib.UploadState);
 	DataType.registerEnum("sap.m.UploadType", thisLib.UploadType);
 	DataType.registerEnum("sap.m.ValueColor", thisLib.ValueColor);
+	DataType.registerEnum("sap.m.MessageStripColorSet", thisLib.MessageStripColorSet);
 	/** @deprecated since 1.135 */
 	DataType.registerEnum("sap.m.ValueCSSColor", thisLib.ValueCSSColor);
 	DataType.registerEnum("sap.m.VerticalPlacementType", thisLib.VerticalPlacementType);

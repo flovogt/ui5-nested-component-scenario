@@ -9,6 +9,7 @@ sap.ui.define([
 	'sap/base/util/ObjectPath',
 	'sap/base/util/extend',
 	'sap/ui/base/EventProvider',
+	'sap/ui/base/OwnStatics',
 	'sap/ui/base/ManagedObject',
 	'sap/ui/core/mvc/ControllerMetadata',
 	'sap/ui/core/mvc/ControllerExtension',
@@ -21,6 +22,7 @@ sap.ui.define([
 	ObjectPath,
 	extend,
 	EventProvider,
+	OwnStatics,
 	ManagedObject,
 	ControllerMetadata,
 	ControllerExtension,
@@ -31,6 +33,8 @@ sap.ui.define([
 	Log
 ) {
 	"use strict";
+
+		const { getCurrentOwnerId } = OwnStatics.get(ManagedObject);
 
 		var mRegistry = {};
 
@@ -579,7 +583,7 @@ sap.ui.define([
 		function controllerFactory(sName, oControllerImpl, sViewId, bAsync) {
 			var oController,
 				ControllerClass,
-				sOwnerId = ManagedObject._sOwnerId;
+				sOwnerId = getCurrentOwnerId();
 
 			if (typeof oControllerImpl === "boolean") {
 				oControllerImpl = undefined;
@@ -674,7 +678,7 @@ sap.ui.define([
 		};
 
 		/**
-		 * Takes care of async destruction of fragments created with {@link sap.ui.core.Controller.loadFragment loadFragment}
+		 * Takes care of async destruction of fragments created with {@link sap.ui.core.mvc.Controller#loadFragment loadFragment}
 		 *
 		 * @private
 		 */

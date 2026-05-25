@@ -8,11 +8,12 @@
 sap.ui.define([
 	"./ChangeReason",
 	"./TreeBinding",
+	"sap/base/util/deepEqual",
 	"sap/base/util/each",
 	"sap/ui/model/FilterProcessor",
 	"sap/ui/model/FilterType",
 	"sap/ui/model/SorterProcessor"
-], function(ChangeReason, TreeBinding, each, FilterProcessor, FilterType, SorterProcessor) {
+], function(ChangeReason, TreeBinding, deepEqual, each, FilterProcessor, FilterType, SorterProcessor) {
 	"use strict";
 
 	/**
@@ -64,12 +65,13 @@ sap.ui.define([
 				oParentContext : {}
 			};
 			this.oCombinedFilter = null;
-			this.mNormalizeCache = {};
+			this.mNormalizeCache = FilterProcessor.createNormalizeCache();
+			this.oTreeData = this.cloneData(this.oModel._getObject(this.sPath, this.oContext));
 
 			if (aApplicationFilters) {
 				this.oModel.checkFilter(aApplicationFilters);
 
-				if (this.oModel._getObject(this.sPath, this.oContext)) {
+				if (this.oTreeData) {
 					this.filter(aApplicationFilters, FilterType.Application);
 				}
 			}
@@ -77,6 +79,28 @@ sap.ui.define([
 		}
 
 	});
+
+	ClientTreeBinding.CannotCloneData = Symbol("CannotCloneData");
+
+	/**
+	 * Returns a deep clone of the tree data or a symbol indicating that the given tree data cannot be cloned.
+	 *
+	 * Uses <code>structuredClone</code> to create a deep copy. If cloning fails (e.g., due to functions, DOM nodes,
+	 * or other uncloneable values), the symbol <code>ClientTreeBinding.CannotCloneData</code> is returned.
+	 *
+	 * @param {any} oTreeData
+	 *   The tree data to clone
+	 * @returns {any|sap.ui.model.ClientTreeBinding.CannotCloneData}
+	 *   A deep clone or the symbol <code>ClientTreeBinding.CannotCloneData</code> if cloning fails
+	 * @private
+	 */
+	ClientTreeBinding.prototype.cloneData = function(oTreeData) {
+		try {
+			return structuredClone(oTreeData);
+		} catch {
+			return ClientTreeBinding.CannotCloneData;
+		}
+	};
 
 	/**
 	 * Return root contexts for the tree.
@@ -283,7 +307,8 @@ sap.ui.define([
 	 * @param {sap.ui.model.FilterType} [sFilterType]
 	 *   The type of the filter to replace; if no type is given, all filters previously configured with type
 	 *   {@link sap.ui.model.FilterType.Application} are cleared, and the given filters are used as filters of type
-	 *   {@link sap.ui.model.FilterType.Control}
+	 *   {@link sap.ui.model.FilterType.Control}. Since 1.146.0, you may use
+	 *   {@link sap.ui.model.FilterType.ApplicationBound} to set bound application filters.
 	 * @returns {this} <code>this</code> to facilitate method chaining
 	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
 	 *   implementation or if the {@link sap.ui.model.Filter.NONE} filter instance is contained in
@@ -303,8 +328,9 @@ sap.ui.define([
 		// check filter integrity
 		this.oModel.checkFilter(aFilters);
 
-		if (sFilterType == FilterType.Application) {
-			this.aApplicationFilters = aFilters || [];
+		const bAppFilter = sFilterType === FilterType.Application || sFilterType === FilterType.ApplicationBound;
+		if (bAppFilter) {
+			this.aApplicationFilters = this.computeApplicationFilters(aFilters, sFilterType) || [];
 		} else if (sFilterType == FilterType.Control) {
 			this.aFilters = aFilters || [];
 		} else {
@@ -313,13 +339,12 @@ sap.ui.define([
 			this.aApplicationFilters = [];
 		}
 
-
 		this.oCombinedFilter = FilterProcessor.combineFilters(this.aFilters, this.aApplicationFilters);
 		if (this.oCombinedFilter) {
 			this.applyFilter();
 		}
 		this._mLengthsCache = {};
-		this._fireChange({reason: "filter"});
+		this._fireChange({reason: ChangeReason.Filter});
 		/** @deprecated As of version 1.11.0 */
 		this._fireFilter({filters: aFilters});
 
@@ -446,17 +471,42 @@ sap.ui.define([
 	};
 
 	/**
+	 * Sets the context for this instance. If the context changes and the binding is relative a change event is fired
+	 * with reason {@link sap.ui.model.ChangeReason.Context}.
+	 *
+	 * @param {sap.ui.model.Context} oContext
+	 *   The new context object
+	 */
+	ClientTreeBinding.prototype.setContext = function (oContext) {
+		if (this.oContext != oContext) {
+			this.oContext = oContext;
+			if (this.isRelative()) {
+				const oTreeData = this.oModel._getObject(this.sPath, this.oContext);
+				this.oTreeData = this.cloneData(oTreeData);
+				this._fireChange({reason: ChangeReason.Context});
+			}
+		}
+	};
+
+	/**
 	 * Check whether this Binding would provide new values and in case it changed,
 	 * inform interested parties about this.
 	 *
-	 * @param {boolean} [bForceupdate] Not used in this method
+	 * @param {boolean} [bForceUpdate]
+	 *   Whether the change event will be fired regardless of the bindings state
 	 *
 	 */
-	ClientTreeBinding.prototype.checkUpdate = function(bForceupdate){
+	ClientTreeBinding.prototype.checkUpdate = function(bForceUpdate) {
+		const oCurrentTreeData = this.oModel._getObject(this.sPath, this.oContext);
+
 		// apply filter again
 		this.applyFilter();
 		this._mLengthsCache = {};
-		this._fireChange();
+
+		if (bForceUpdate || !deepEqual(this.oTreeData, oCurrentTreeData)) {
+			this.oTreeData = this.cloneData(oCurrentTreeData);
+			this._fireChange({reason: ChangeReason.Change});
+		}
 	};
 
 	/**

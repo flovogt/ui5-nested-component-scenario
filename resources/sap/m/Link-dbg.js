@@ -9,7 +9,6 @@ sap.ui.define([
 	"./library",
 	"sap/ui/core/Control",
 	"sap/ui/core/Element",
-	"sap/ui/core/InvisibleText",
 	"sap/ui/core/EnabledPropagator",
 	"sap/ui/core/AccessKeysEnablement",
 	"sap/ui/core/LabelEnablement",
@@ -27,7 +26,6 @@ function(
 	library,
 	Control,
 	Element,
-	InvisibleText,
 	EnabledPropagator,
 	AccessKeysEnablement,
 	LabelEnablement,
@@ -55,7 +53,7 @@ function(
 	// shortcut for sap.m.LinkAccessibleRole
 	var LinkAccessibleRole = library.LinkAccessibleRole;
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
 	// shortcut for sap.m.ReactiveAreaMode
@@ -103,7 +101,7 @@ function(
 	 * @borrows sap.ui.core.ILabelable.hasLabelableHTMLElement as #hasLabelableHTMLElement
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -453,7 +451,7 @@ function(
 	 * @param {jQuery.Event} oEvent - the keyboard event.
 	 */
 	Link.prototype.onkeyup = function (oEvent) {
-		if (oEvent.which === KeyCodes.SPACE) {
+		if (oEvent.which === KeyCodes.SPACE && this._bPressedSpace) {
 			if (!this._bPressedEscapeOrShift) {
 				this._handlePress(oEvent);
 
@@ -485,13 +483,15 @@ function(
 	 */
 	Link.prototype._handlePress = function(oEvent) {
 		var oTarget = oEvent.target,
+			parentElement,
 			bEmptyHref;
 
 		if (this.getEnabled()) {
 			// mark the event for components that needs to know if the event was handled by the link
 			oEvent.setMarked();
 
-			bEmptyHref = (oTarget.classList.contains("sapMLnk") || oTarget.parentElement.classList.contains("sapMLnk")) && (oTarget.getAttribute("href") == "#" || oTarget.parentElement.getAttribute("href") == "#");
+			parentElement = oTarget.parentElement && oTarget.parentElement.classList.contains("sapMLnkText") ? oTarget.parentElement.parentElement : oTarget.parentElement;
+			bEmptyHref = (oTarget.classList.contains("sapMLnk") || parentElement.classList.contains("sapMLnk")) && (oTarget.getAttribute("href") == "#" || parentElement.getAttribute("href") == "#");
 			if (!this.firePress({ctrlKey: !!oEvent.ctrlKey, metaKey: !!oEvent.metaKey}) || bEmptyHref) { // fire event and check return value whether default action should be prevented
 				oEvent.preventDefault();
 			}
@@ -521,32 +521,9 @@ function(
 		}
 	};
 
-
-	/* override standard setters */
-
-	Link.prototype.setSubtle = function(bSubtle){
-		this.setProperty("subtle", bSubtle);
-
-		if (bSubtle && !Link.prototype._sAriaLinkSubtleId) {
-			Link.prototype._sAriaLinkSubtleId = InvisibleText.getStaticId("sap.m", "LINK_SUBTLE");
-		}
-
-		return this;
-	};
-
-	Link.prototype.setEmphasized = function(bEmphasized){
-		this.setProperty("emphasized", bEmphasized);
-
-		if (bEmphasized && !Link.prototype._sAriaLinkEmphasizedId) {
-			Link.prototype._sAriaLinkEmphasizedId = InvisibleText.getStaticId("sap.m", "LINK_EMPHASIZED");
-		}
-
-		return this;
-	};
-
 	Link.prototype.setIcon = function(sSrc) {
 		if (!IconPool.isIconURI(sSrc)) {
-			Log.error("setIcon: The provided URI ' + sSrc + ' is is not a valid Icon URI!");
+			Log.error("setIcon: The provided URI '" + sSrc + "' is not a valid Icon URI!");
 		} else {
 			var oIcon = this._getIcon();
 
@@ -558,8 +535,8 @@ function(
 	};
 
 	Link.prototype.setEndIcon = function(sSrc) {
-		if (!IconPool.isIconURI(sSrc)) {
-			Log.error("setEndIcon: The provided URI ' + sSrc + ' is is not a valid Icon URI!");
+		if (sSrc && !IconPool.isIconURI(sSrc)) {
+			Log.error("setEndIcon: The provided URI '" + sSrc + "' is not a valid Icon URI!");
 		} else {
 			var oIcon = this._getEndIcon();
 
@@ -657,7 +634,7 @@ function(
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	Link.prototype._getToolbarInteractive = function () {
 		return true;

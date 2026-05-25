@@ -115,7 +115,7 @@
 		</interaction>
 		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Dacă selecția celulei este activată:</span></p>
-				<p>Dacă sunt selectate celule, apăsând pe <kbd>Shift</kbd> și efectuând click pe o celulă diferită extinde selecția până la celula selectată.</p>
+				<p>Dacă sunt selectate celule, <kbd>Shift + MouseClick</kbd> pe o celulă diferită extinde selecția până la celula pe care s-a efectuat click.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>
@@ -130,11 +130,19 @@
 	<control-interactions>
 		<control name="sap.m.VariantManagement"/>
 		<interaction> <kbd>F4</kbd> <kbd>Spacebar</kbd> <kbd>Alt + ArrowUp</kbd> <kbd>Alt + ArrowDown</kbd> <description>
-				<p>Deschide gestiunea de variante.</p>
-			</description>
+				<p>Deschide dialogul Imaginile mele.</p>
+			</description> 
 		</interaction>
 		<interaction> <kbd>PageUp</kbd> <description>
-				<p>Închide fereastra popover de eroare a gestiunii de variante.</p>
+				<p>Închide fereastra popover de eroare a dialogului Imaginile mele</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + Enter</kbd> <description>
+				<p>Salvează imaginea nouă în dialogul Salvare ca.</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + S</kbd> <description>
+				<p>Salvează modificările efectuate la imagini.</p>
 			</description>
 		</interaction>
 	</control-interactions>

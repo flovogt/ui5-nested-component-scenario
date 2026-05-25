@@ -5,225 +5,251 @@
  */
 
 sap.ui.define(["sap/ui/Device", "sap/m/library", "sap/ui/core/Configuration", "sap/ui/core/ControlBehavior"], function(Device, library, Configuration, ControlBehavior) {
-		"use strict";
+	"use strict";
 
-		// shortcut for sap.m.SwitchType
-		var SwitchType = library.SwitchType;
+	// shortcut for sap.m.SwitchType
+	var SwitchType = library.SwitchType;
 
-		/**
-		 * Switch renderer.
-		 * @namespace
-		 */
-		var SwitchRenderer = {
-			apiVersion: 2
-		};
+	/**
+	 * Switch renderer.
+	 * @namespace
+	 */
+	var SwitchRenderer = {
+		apiVersion: 2
+	};
 
-		/**
-		 * CSS class to be applied to the HTML root element of the Switch control.
-		 *
-		 * @type {string}
-		 */
-		SwitchRenderer.CSS_CLASS = "sapMSwt";
+	/**
+	 * CSS class to be applied to the HTML root element of the Switch control.
+	 *
+	 * @type {string}
+	 */
+	SwitchRenderer.CSS_CLASS = "sapMSwt";
 
-		/**
-		 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
-		 *
-		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer.
-		 * @param {sap.m.Switch} oSwitch An object representation of the control that should be rendered.
-		 */
-		SwitchRenderer.render = function(oRm, oSwitch) {
-			var bState = oSwitch.getState(),
-				sState = bState ? oSwitch._sOn : oSwitch._sOff,
-				sTooltip = oSwitch.getTooltip_AsString(),
-				bEnabled = oSwitch.getEnabled(),
-				sName = oSwitch.getName(),
-				bAccessibilityEnabled = ControlBehavior.isAccessibilityEnabled(),
-				sAnimationMode = ControlBehavior.getAnimationMode(),
-				CSS_CLASS = SwitchRenderer.CSS_CLASS;
+	/**
+	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the Render-Output-Buffer.
+	 * @param {sap.m.Switch} oSwitch An object representation of the control that should be rendered.
+	 */
+	SwitchRenderer.render = function(oRm, oSwitch) {
+		var bState = oSwitch.getState(),
+			sState = bState ? oSwitch._sOn : oSwitch._sOff,
+			sTooltip = oSwitch.getTooltip_AsString(),
+			bEnabled = oSwitch.getEnabled(),
+			bEditable = oSwitch.getEditable(),
+			bReadOnly = bEnabled && !bEditable,
+			sName = oSwitch.getName(),
+			bAccessibilityEnabled = ControlBehavior.isAccessibilityEnabled(),
+			sAnimationMode = ControlBehavior.getAnimationMode(),
+			CSS_CLASS = SwitchRenderer.CSS_CLASS;
 
-			oRm.openStart("div", oSwitch);
-			oRm.class(CSS_CLASS + "Cont");
+		oRm.openStart("div", oSwitch);
+		oRm.class(CSS_CLASS + "Cont");
 
-			if (!bEnabled) {
-				oRm.class(CSS_CLASS + "ContDisabled");
-			}
+		if (!bEnabled) {
+			oRm.class(CSS_CLASS + "ContDisabled");
+		}
 
-			if (bEnabled) {
-				oRm.attr("tabindex", "0");
-			}
+		if (bReadOnly) {
+			oRm.class(CSS_CLASS + "ContReadOnly");
+		}
 
-			if (sTooltip) {
-				oRm.attr("title", sTooltip);
-			}
+		if (bEnabled) {
+			oRm.attr("tabindex", "0");
+		}
 
-			if (bAccessibilityEnabled) {
-				this.writeAccessibilityState(oRm, oSwitch);
-			}
+		if (sTooltip) {
+			oRm.attr("title", sTooltip);
+		}
 
-			oRm.openEnd();
-			oRm.openStart("div", oSwitch.getId() + "-switch");
-			oRm.attr("aria-hidden", "true");
-			oRm.class(CSS_CLASS);
-			if (sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal) {
-				oRm.class(CSS_CLASS + "Trans");
-			}
-			oRm.class(bState ? CSS_CLASS + "On" : CSS_CLASS + "Off");
-			oRm.class(CSS_CLASS + oSwitch.getType());
+		if (bAccessibilityEnabled) {
+			this.writeAccessibilityState(oRm, oSwitch);
+		}
 
-			if (Device.system.desktop && bEnabled) {
-				oRm.class(CSS_CLASS + "Hoverable");
-			}
+		oRm.openEnd();
+		oRm.openStart("div", oSwitch.getId() + "-switch");
+		oRm.attr("aria-hidden", "true");
+		oRm.class(CSS_CLASS);
+		if (sAnimationMode !== Configuration.AnimationMode.none && sAnimationMode !== Configuration.AnimationMode.minimal) {
+			oRm.class(CSS_CLASS + "Trans");
+		}
+		oRm.class(bState ? CSS_CLASS + "On" : CSS_CLASS + "Off");
+		oRm.class(CSS_CLASS + oSwitch.getType());
 
-			if (!bEnabled) {
-				oRm.class(CSS_CLASS + "Disabled");
-			}
+		if (Device.system.desktop && bEnabled && bEditable) {
+			oRm.class(CSS_CLASS + "Hoverable");
+		}
 
-			if (oSwitch._sOn === " " && oSwitch._sOff === " ") {
-				oRm.class(CSS_CLASS + "NoLabel");
-			}
+		if (!bEnabled) {
+			oRm.class(CSS_CLASS + "Disabled");
+		}
 
-			oRm.openEnd();
-			oRm.openStart("div", oSwitch.getId() + "-inner");
-			oRm.class(CSS_CLASS + "Inner");
-			oRm.openEnd();
+		if (bReadOnly) {
+			oRm.class(CSS_CLASS + "ReadOnly");
+		}
 
-			// text
-			this.renderText(oRm, oSwitch);
+		if (oSwitch._sOn === " " && oSwitch._sOff === " ") {
+			oRm.class(CSS_CLASS + "NoLabel");
+		}
 
-			// handle
-			this.renderHandle(oRm, oSwitch, sState);
+		oRm.openEnd();
+		oRm.openStart("div", oSwitch.getId() + "-inner");
+		oRm.class(CSS_CLASS + "Inner");
+		oRm.openEnd();
 
-			oRm.close("div");
-			oRm.close("div");
+		// text
+		this.renderText(oRm, oSwitch);
 
-			if (sName) {
+		// handle
+		this.renderHandle(oRm, oSwitch, sState);
 
-				// checkbox
-				this.renderCheckbox(oRm, oSwitch, sState);
-			}
+		oRm.close("div");
+		oRm.close("div");
 
-			if (bAccessibilityEnabled) {
-				this.renderInvisibleElement(oRm, oSwitch, {
-					id: oSwitch.getInvisibleElementId(),
-					text: oSwitch.getInvisibleElementText(bState)
-				});
-			}
+		if (sName) {
 
-			oRm.close("div");
-		};
+			// checkbox
+			this.renderCheckbox(oRm, oSwitch, sState);
+		}
 
-		SwitchRenderer.renderText = function(oRm, oSwitch) {
-			var CSS_CLASS = SwitchRenderer.CSS_CLASS,
-				bDefaultType = oSwitch.getType() === SwitchType.Default;
+		const oInvisibleText = oSwitch.getInvisibleElementText(bState);
+		if (bAccessibilityEnabled && oInvisibleText) {
+			const sInvisibleTextId = oSwitch.getInvisibleElementId();
 
-			// on
-			oRm.openStart("div", oSwitch.getId() + "-texton");
-			oRm.class(CSS_CLASS + "Text");
-			oRm.class(CSS_CLASS + "TextOn");
-			oRm.openEnd();
-			oRm.openStart("span");
-			oRm.class(CSS_CLASS + "Label");
-			oRm.class(CSS_CLASS + "LabelOn");
-			oRm.openEnd();
+			this.renderInvisibleElement(oRm, oSwitch, {
+				id: sInvisibleTextId,
+				text: oInvisibleText
+			});
+		}
 
-			if (bDefaultType) {
-				oRm.text(oSwitch._sOn);
-			}
+		oRm.close("div");
+	};
 
-			oRm.close("span");
-			oRm.close("div");
+	SwitchRenderer.renderText = function(oRm, oSwitch) {
+		var CSS_CLASS = SwitchRenderer.CSS_CLASS,
+			bDefaultType = oSwitch.getType() === SwitchType.Default;
 
-			// off
-			oRm.openStart("div", oSwitch.getId() + "-textoff");
-			oRm.class(CSS_CLASS + "Text");
-			oRm.class(CSS_CLASS + "TextOff");
-			oRm.openEnd();
-			oRm.openStart("span");
-			oRm.class(CSS_CLASS + "Label");
-			oRm.class(CSS_CLASS + "LabelOff");
-			oRm.openEnd();
+		// on
+		oRm.openStart("div", oSwitch.getId() + "-texton");
+		oRm.class(CSS_CLASS + "Text");
+		oRm.class(CSS_CLASS + "TextOn");
+		oRm.openEnd();
+		oRm.openStart("span");
+		oRm.class(CSS_CLASS + "Label");
+		oRm.class(CSS_CLASS + "LabelOn");
+		oRm.openEnd();
 
-			if (bDefaultType) {
-				oRm.text(oSwitch._sOff);
-			}
+		if (bDefaultType) {
+			oRm.text(oSwitch._sOn);
+		}
 
-			oRm.close("span");
-			oRm.close("div");
-		};
+		oRm.close("span");
+		oRm.close("div");
 
-		SwitchRenderer.renderHandle = function(oRm, oSwitch, sState) {
-			var CSS_CLASS = SwitchRenderer.CSS_CLASS;
+		// off
+		oRm.openStart("div", oSwitch.getId() + "-textoff");
+		oRm.class(CSS_CLASS + "Text");
+		oRm.class(CSS_CLASS + "TextOff");
+		oRm.openEnd();
+		oRm.openStart("span");
+		oRm.class(CSS_CLASS + "Label");
+		oRm.class(CSS_CLASS + "LabelOff");
+		oRm.openEnd();
 
-			oRm.openStart("div", oSwitch.getId() + "-handle");
-			oRm.attr("data-sap-ui-swt", sState);
-			oRm.class(CSS_CLASS + "Handle");
-			oRm.openEnd();
-			oRm.close("div");
-		};
+		if (bDefaultType) {
+			oRm.text(oSwitch._sOff);
+		}
 
-		SwitchRenderer.renderCheckbox = function(oRm, oSwitch, sState) {
-			oRm.voidStart("input", oSwitch.getId() + "-input");
-			oRm.attr("type", "checkbox");
-			oRm.attr("name", oSwitch.getName());
-			oRm.attr("value", sState);
+		oRm.close("span");
+		oRm.close("div");
+	};
 
-			if (oSwitch.getState()) {
-				oRm.attr("checked", "checked");
-			}
+	SwitchRenderer.renderHandle = function(oRm, oSwitch, sState) {
+		var CSS_CLASS = SwitchRenderer.CSS_CLASS;
 
-			if (!oSwitch.getEnabled()) {
-				oRm.attr("disabled", "disabled");
-			}
+		oRm.openStart("div", oSwitch.getId() + "-handle");
+		oRm.attr("data-sap-ui-swt", sState);
+		oRm.class(CSS_CLASS + "Handle");
+		oRm.openEnd();
+		oRm.close("div");
+	};
 
-			oRm.voidEnd();
-		};
+	SwitchRenderer.renderCheckbox = function(oRm, oSwitch, sState) {
+		oRm.voidStart("input", oSwitch.getId() + "-input");
+		oRm.attr("type", "checkbox");
+		oRm.attr("name", oSwitch.getName());
+		oRm.attr("value", sState);
 
-		/**
-		 * Writes the accessibility state.
-		 * To be overwritten by subclasses.
-		 *
-		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.m.Switch} oSwitch An object representation of the control that should be rendered.
-		 */
-		SwitchRenderer.writeAccessibilityState = function(oRm, oSwitch) {
-			var mAriaLabelledby = oSwitch.getAriaLabelledBy(),
-				mAccessibilityStates;
+		if (oSwitch.getState()) {
+			oRm.attr("checked", "checked");
+		}
 
-			if (mAriaLabelledby) {
-				mAriaLabelledby = {
-					value: oSwitch.getInvisibleElementId(),
-					append: true
-				};
-			}
+		if (!oSwitch.getEnabled()) {
+			oRm.attr("disabled", "disabled");
+		}
 
-			mAccessibilityStates = {
-				role: "switch",
-				checked: oSwitch.getState(),
-				labelledby: mAriaLabelledby
+		oRm.voidEnd();
+	};
+
+	/**
+	 * Writes the accessibility state.
+	 * To be overwritten by subclasses.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
+	 * @param {sap.m.Switch} oSwitch An object representation of the control that should be rendered.
+	 */
+	SwitchRenderer.writeAccessibilityState = function(oRm, oSwitch) {
+		var mAriaLabelledby = oSwitch.getAriaLabelledBy(),
+			bEnabled = oSwitch.getEnabled(),
+			bEditable = oSwitch.getEditable(),
+			bReadOnly = bEnabled && !bEditable,
+			mAccessibilityStates,
+			bState = oSwitch.getState(),
+			oInvisibleText = oSwitch.getInvisibleElementText(bState);
+
+		if (mAriaLabelledby && oInvisibleText) {
+			mAriaLabelledby = {
+				value: oSwitch.getInvisibleElementId(),
+				append: true
 			};
+		}
 
-			oRm.accessibilityState(oSwitch, mAccessibilityStates);
+		mAccessibilityStates = {
+			role: "switch",
+			checked: oSwitch.getState(),
+			labelledby: mAriaLabelledby,
+			readonly: bReadOnly ? true : undefined
 		};
 
-		/**
-		 * Writes an invisible span element with a text node that is referenced in the ariaLabelledBy
-		 * associations for screen reader announcement.
-		 *
-		 * To be overwritten by subclasses.
-		 *
-		 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
-		 * @param {sap.m.Switch} oSwitch An object representation of the control that should be rendered.
-		 * @param {object} mOptions
-		 */
-		SwitchRenderer.renderInvisibleElement = function(oRm, oSwitch, mOptions) {
-			oRm.openStart("span", mOptions.id);
-			oRm.attr("aria-hidden", "true");
-			oRm.class("sapUiInvisibleText");
-			oRm.openEnd();
-			oRm.text(mOptions.text);
-			oRm.close("span");
-		};
+		if (bReadOnly) {
+			mAccessibilityStates.describedby = {
+				value: oSwitch._getDescribedByElementId(),
+				append: true
+			};
+		}
 
-		return SwitchRenderer;
+		oRm.accessibilityState(oSwitch, mAccessibilityStates);
+	};
 
-	}, /* bExport= */ true);
+	/**
+	 * Writes an invisible span element with a text node that is referenced in the ariaLabelledBy
+	 * associations for screen reader announcement.
+	 *
+	 * To be overwritten by subclasses.
+	 *
+	 * @param {sap.ui.core.RenderManager} oRm The RenderManager that can be used for writing to the render output buffer.
+	 * @param {sap.m.Switch} oSwitch An object representation of the control that should be rendered.
+	 * @param {object} mOptions
+	 */
+	SwitchRenderer.renderInvisibleElement = function(oRm, oSwitch, mOptions) {
+		oRm.openStart("span", mOptions.id);
+		oRm.attr("aria-hidden", "true");
+		oRm.class("sapUiInvisibleText");
+		oRm.openEnd();
+		oRm.text(mOptions.text);
+		oRm.close("span");
+	};
+
+	return SwitchRenderer;
+
+}, /* bExport= */ true);

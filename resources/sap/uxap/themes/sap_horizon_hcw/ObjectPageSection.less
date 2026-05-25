@@ -2,6 +2,7 @@
 /* CSS for control sap.uxap/ObjectPageSection  */
 /* Horizon High Contrast White theme           */
 /* =========================================== */
+
 .sapUxAPObjectPageSection:not(.sapUxAPObjectPageSectionFirstVisible) {
 	padding-top: 1.5rem;
 }
@@ -15,12 +16,12 @@
 }
 
 .sapUxAPObjectPageLayout-Std-Desktop .sapUxAPObjectPageSubSectionHeader {
-	padding-left: 2rem;
-	padding-right: 2rem;
+	padding-left: 1rem;
+	padding-right: 1.25rem;
 }
 
 .sapUxAPObjectPageSection {
-	border-top: 0.0625rem solid @sapUiGroupTitleBorderColor;
+	border-top: 0.0625rem solid var(--sapGroup_TitleBorderColor);
 }
 
 .sapUiSizeCompact .sapUxAPObjectPageSectionHeader,
@@ -33,9 +34,18 @@
 	border-top: 0;
 }
 
-.sapUxAPObjectPageSection:focus {
-	outline: @sapUiContentFocusWidth @sapUiContentFocusStyle @sapUiContentFocusColor;
-	outline-offset: -0.1875rem;
+/* Page Section Focus */
+.sapUxAPObjectPageSection:focus::before {
+	content: '';
+	position: absolute;
+	display: block;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	border: var(--sapContent_FocusWidth) var(--sapContent_FocusStyle) var(--sapContent_FocusColor);
+	z-index: 6;
+	pointer-events: none;
 }
 
 .sapUxAPObjectPageSectionHeader,
@@ -45,6 +55,7 @@
 
 .sapUxAPObjectPageLayout-Std-Desktop,
 .sapUxAPObjectPageLayout-Std-Tablet {
+
 	.sapUxAPObjectPageSectionHeader,
 	html .sapUiContainer-Medium .sapUxAPObjectPageSectionHeader,
 	.sapUxAPObjectPageSubSectionWithSeeMore .sapUxAPSubSectionSeeMoreContainer {
@@ -54,6 +65,7 @@
 }
 
 .sapUxAPObjectPageLayout-Std-Phone {
+
 	.sapUxAPObjectPageSectionHeader,
 	html .sapUiContainer-Narrow .sapUxAPObjectPageSectionHeader,
 	.sapUxAPObjectPageSubSectionWithSeeMore .sapUxAPSubSectionSeeMoreContainer {
@@ -61,7 +73,7 @@
 	}
 }
 
-// Styles suporting Table inside ObjectPageSubSection scenario
+/* Styles suporting Table inside ObjectPageSubSection scenario */
 .sapUiTableOnObjectPageAdjustmentsForSection.sapUxAPObjectPageSection .sapUxAPObjectPageSectionContainer .sapUxAPObjectPageSubSection .sapUxAPBlockContainer {
 	background: transparent;
 }

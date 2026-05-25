@@ -59,7 +59,7 @@ sap.ui.define(['sap/ui/core/InvisibleText', "sap/ui/core/Lib", "sap/ui/unified/l
 
 			if (aStandardItems) {
 				// rendering standard days and colors
-				iIdLength = oLeg.getId().length + 1; //+1, because of the dash in "CalLeg1-Today"?
+				iIdLength = oLeg.getId().length + 1; //+1, because of the hyphen in "CalLeg1-Today"?
 				for (i = 0; i < aStandardItems.length; ++i) {
 					var sClass = "sapUiUnifiedLegend" + aStandardItems[i].getId().slice(iIdLength);
 					this.renderLegendItem(oRm, sClass, aStandardItems[i], ["sapUiUnifiedLegendSquareColor"], iIndex++, iCount);
@@ -92,7 +92,7 @@ sap.ui.define(['sap/ui/core/InvisibleText', "sap/ui/core/Lib", "sap/ui/unified/l
 	 *
 	 * @param {sap.ui.core.RenderManager} oRm the RenderManager that can be used for writing to the render output buffer
 	 * @param {string} sClass name of the CSS class used for this item
-	 * @param {sap.ui.unified.CalenderLegendItem} oItem item element
+	 * @param {sap.ui.unified.CalendarLegendItem} oItem item element
 	 * @param {string[]} aColorClasses Css classes to be added to the color bullet item in front of the legend item
 	 */
 	CalendarLegendRenderer.renderLegendItem = function(oRm, sClass, oItem, aColorClasses, iIndex, iCount) {

@@ -82,12 +82,17 @@ sap.ui.define(['./Filter', 'sap/base/Log'],
 	 *   <code>undefined</code> if no filters are given
 	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} is contained in <code>aFilters</code> or
 	 *   <code>aApplicationFilters</code> together with other filters
-	 * @private
-	 * @since 1.58
+	 *
+	 * @public
+	 * @since 1.146.0
 	 * @static
 	 */
 	FilterProcessor.combineFilters = function(aFilters, aApplicationFilters) {
 		var oGroupedFilter, oGroupedApplicationFilter, oFilter, aCombinedFilters = [];
+
+		aApplicationFilters = aApplicationFilters
+			?.map((oFilter) => oFilter.removeAllNeutrals())
+			.filter(Boolean);
 
 		oGroupedFilter = FilterProcessor.groupFilters(aFilters);
 		oGroupedApplicationFilter = FilterProcessor.groupFilters(aApplicationFilters);
@@ -118,7 +123,9 @@ sap.ui.define(['./Filter', 'sap/base/Log'],
 	 * @param {array} aData the data array to be filtered
 	 * @param {sap.ui.model.Filter|sap.ui.model.Filter[]} vFilter the filter or array of filters
 	 * @param {function} fnGetValue the method to get the actual value to filter on
-	 * @param {object} [mNormalizeCache] cache for normalized filter values
+	 * @param {object} [mNormalizeCache]
+	 *   cache for normalized filter values; must be created using
+	 *   {@link sap.ui.model.FilterProcessor.createNormalizeCache}
 	 * @return {array} a new array instance containing the filtered data set
 	 * @throws {Error} If the {@link sap.ui.model.Filter.NONE} is contained in <code>vFilters</code> together
 	 *   with other filters
@@ -130,18 +137,7 @@ sap.ui.define(['./Filter', 'sap/base/Log'],
 			aFiltered,
 			that = this;
 
-		if (mNormalizeCache) {
-			if (!mNormalizeCache[true]) {
-				mNormalizeCache[true] = {};
-				mNormalizeCache[false] = {};
-			}
-		} else {
-			mNormalizeCache = {
-				"true": {}, "false": {}
-			};
-		}
-		this._normalizeCache = mNormalizeCache;
-
+		this._normalizeCache = mNormalizeCache ?? FilterProcessor.createNormalizeCache();
 		if (!aData) {
 			return [];
 		} else if (!oFilter) {
@@ -153,6 +149,22 @@ sap.ui.define(['./Filter', 'sap/base/Log'],
 		});
 
 		return aFiltered;
+	};
+
+	/**
+	 * Returns a cache object for normalized filter values which is to be used in calls to
+	 * {@link sap.ui.model.FilterProcessor.apply}.
+	 *
+	 * @returns {{"true": object, "false": object}} A cache object for normalized filter values
+	 *
+	 * @private
+	 * @static
+	 */
+	FilterProcessor.createNormalizeCache = function () {
+		return {
+			"true": Object.create(null),
+			"false": Object.create(null)
+		};
 	};
 
 	/**
@@ -241,7 +253,7 @@ sap.ui.define(['./Filter', 'sap/base/Log'],
 			if (bCaseSensitive === undefined) {
 				bCaseSensitive = false;
 			}
-			if (this._normalizeCache[bCaseSensitive].hasOwnProperty(vValue)) {
+			if (this._normalizeCache[bCaseSensitive][vValue] !== undefined) {
 				return this._normalizeCache[bCaseSensitive][vValue];
 			}
 			sResult = vValue;
@@ -367,6 +379,7 @@ sap.ui.define(['./Filter', 'sap/base/Log'],
 				Log.error("The filter operator \"" + oFilter.sOperator + "\" is unknown, filter will be ignored.");
 				oFilter.fnTest = function(value) { return true; };
 		}
+		oFilter.fnTest[Filter.generated] = true;
 		return oFilter.fnTest;
 	};
 

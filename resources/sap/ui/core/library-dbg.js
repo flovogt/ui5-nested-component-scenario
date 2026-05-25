@@ -27,13 +27,13 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.ui.core
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @since 0.8
 	 * @public
 	 */
 	 var thisLib = Library.init({
 		 name: "sap.ui.core",
-		 version: "1.136.16",
+		 version: "1.148.0",
 		 designtime: "sap/ui/core/designtime/library.designtime",
 		 apiVersion: 2,
 		 ...{
@@ -106,6 +106,7 @@ sap.ui.define([
 			 "sap.ui.core.dnd.IDragInfo",
 			 "sap.ui.core.dnd.IDropInfo",
 			 "sap.ui.core.IDScope",
+			 "sap.ui.core.ITitle",
 			 "sap.ui.core.ITitleContent",
 			 "sap.ui.core.IAsyncContentCreation",
 			 "sap.ui.core.IPlaceholderSupport",
@@ -1646,7 +1647,7 @@ sap.ui.define([
 	/**
 	 * Sort order of a column.
 	 *
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @enum {string}
 	 * @public
 	 * @since 1.61.0
@@ -1943,8 +1944,7 @@ sap.ui.define([
 	 * @name sap.ui.core.IAccessKeySupport
 	 * @interface
 	 * @public
-	 * @experimental As of version 1.104
-	 * @since 1.104
+	 * @ui5-experimental-since 1.104
 	 */
 
 	/**
@@ -1953,8 +1953,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @function
-	 * @experimental As of version 1.104
-	 * @since 1.104
+	 * @ui5-experimental-since 1.104
 	 * @name sap.ui.core.IAccessKeySupport.getAccessKeysFocusTarget?
 	 */
 
@@ -1963,8 +1962,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @function
-	 * @experimental As of version 1.104
-	 * @since 1.104
+	 * @ui5-experimental-since 1.104
 	 * @name sap.ui.core.IAccessKeySupport.onAccKeysHighlightStart?
 	 */
 
@@ -1973,8 +1971,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 * @function
-	 * @experimental As of version 1.104
-	 * @since 1.104
+	 * @ui5-experimental-since 1.104
 	 * @name sap.ui.core.IAccessKeySupport.onAccKeysHighlightEnd?
 	 */
 
@@ -2038,11 +2035,11 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Marker interface for controls that can be used as content of <code>sap.ui.layout.form.Form</code>
-	 * or <code>sap.ui.layout.form.SimpleForm</code>.
+	 * Marker interface for controls that can be used as content of {@link sap.ui.layout.form.Form}
+	 * or {@link sap.ui.layout.form.SimpleForm}.
 	 *
-	 * If the control's width must not be adjusted by the <code>Form</code> control to meet the cell's width, the
-	 * control must implement the <code>getFormDoNotAdjustWidth</code> function and return <code>true</code>.
+	 * If the control's width must not be adjusted by the {@link sap.ui.layout.form.Form Form} control to meet the cell's width, the
+	 * control must implement the {@link sap.ui.core.IFormContent.getFormDoNotAdjustWidth getFormDoNotAdjustWidth} function and return <code>true</code>.
 	 *
 	 * @since 1.48.0
 	 * @name sap.ui.core.IFormContent
@@ -2060,18 +2057,28 @@ sap.ui.define([
 	 * @public
 	 */
 
-
+	/**
+	 * Interface for controls that represent a title.
+	 *
+	 * This marker interface can be implemented by controls that are semantically suitable
+	 * to act as a title or heading inside a toolbar.
+	 *
+	 * @since 1.144
+	 * @name sap.ui.core.ITitle
+	 * @interface
+	 * @public
+	 */
 
 	/**
-	 * Whether a control wants to keep its original width even when used in a <code>Form</code>.
+	 * Whether a control wants to keep its original width even when used in a {@link sap.ui.layout.form.Form Form}.
 	 *
-	 * In the <code>Form</code> control, all content controls are positioned on a grid cell base. By default,
+	 * In the {@link sap.ui.layout.form.Form Form} control, all content controls are positioned on a grid cell base. By default,
 	 * the controls use the full width of the used grid cell. But for some controls (like image controls),
 	 * this is not the desired behavior. In this case the control must keep its original width.
 	 *
 	 * This is an optional method. When not defined, the width of the control might be adjusted.
 	 *
-	 * @returns {boolean} true if the <code>Form</code> is not allowed to adjust the width of the control to use the cell's width
+	 * @returns {boolean} <code>true</code> if the {@link sap.ui.layout.form.Form Form} is not allowed to adjust the width of the control to use the cell's width
 	 * @since 1.48.0
 	 * @public
 	 * @function
@@ -2081,7 +2088,7 @@ sap.ui.define([
 	/**
 	 * Marker interface for controls that can be used as content of {@link sap.ui.layout.form.SemanticFormElement SemanticFormElement}.
 	 *
-	 * If the value-holding property of the control is not <code>value</code or <code>text</code>, the name of the
+	 * If the value-holding property of the control is not <code>value</code> or <code>text</code>, the name of the
 	 * value-holding property must be returned in the {@link sap.ui.core.ISemanticFormContent.getFormValueProperty getFormValueProperty} function.
 	 *
 	 * If the value of the control needs some special output formatting (to show a description instead of a key), this

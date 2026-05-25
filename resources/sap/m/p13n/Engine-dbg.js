@@ -71,7 +71,7 @@ sap.ui.define([
 	 * @alias sap.m.p13n.Engine
 	 * @extends sap.m.p13n.modules.AdaptationProvider
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @public
 	 * @since 1.104
 	 */
@@ -236,8 +236,71 @@ sap.ui.define([
 			...mSettings,
 			enableReset
 		});
-		return oDialog.getParent();
+
+		const oPopup = oDialog.getParent();
+		if (!(vPanelKeys instanceof Array)) {
+			const oController = this.getController(oControl, vPanelKeys);
+			oController?.enhancePopup?.(oPopup);
+		}
+
+		return oPopup;
 	};
+
+	/**
+	 * The state for changes of the <code>SelectionController</code>.
+	 *
+	 * @typedef {object} module:sap/m/p13n/Engine$StateChangeEventSelectionState
+	 * @property {string} key The key of the item affected
+	 * @public
+	 * @since 1.140.0
+	 */
+
+	/**
+	 * The state for changes of the <code>SortController</code>.
+	 *
+	 * @typedef {object} module:sap/m/p13n/Engine$StateChangeEventSortState
+	 * @property {string} key The key of the affected sort order
+	 * @property {number} index The position of the sort order
+	 * @property {boolean} descending Indicates whether the sort order is descending
+	 * @public
+	 * @since 1.140.0
+	 */
+
+	/**
+	 * The state for changes of the <code>GroupController</code>.
+	 *
+	 * @typedef {object} module:sap/m/p13n/Engine$StateChangeEventGroupState
+	 * @property {string} key The key of the affected group order
+	 * @property {number} index The position of the group order
+	 * @public
+	 * @since 1.140.0
+	 */
+
+	/**
+	 * The state for changes of the <code>FilterController</code>.
+	 * The keys of the object are the filter keys used in the <code>Engine</code> registration. The values are arrays of {@link sap.ui.mdc.condition.ConditionObject ConditionObject}.
+	 *
+	 * @typedef {Object<string, sap.m.p13n.FilterStateItem[]>} module:sap/m/p13n/Engine$StateChangeEventFilterState
+	 * @public
+	 * @since 1.140.0
+	 */
+
+	/**
+	 * The personalization state change event.
+	 *
+	 * @typedef {object} module:sap/m/p13n/Engine$StateChangeEvent
+	 * @property {sap.ui.core.Control} [control] Control for which the state change event was fired.
+	 * @property {Object<string, Array<module:sap/m/p13n/Engine$StateChangeEventSelectionState> | Array<module:sap/m/p13n/Engine$StateChangeEventSortState> | Array<module:sap/m/p13n/Engine$StateChangeEventGroupState> | Array<module:sap/m/p13n/Engine$StateChangeEventFilterState> | Array<any> >} [state] Changed (delta) state of the control. The keys of the object refer to the controller keys used in the <code>Engine</code> registration. The values can be an array of any of the following types:
+	 * <ul>
+	 * <li>{@link module:sap/m/p13n/Engine$StateChangeEventSelectionState StateChangeEventSelectionState}</li>
+	 * <li>{@link module:sap/m/p13n/Engine$StateChangeEventSortState StateChangeEventSortState}</li>
+	 * <li>{@link module:sap/m/p13n/Engine$StateChangeEventGroupState StateChangeEventGroupState}</li>
+	 * <li>{@link module:sap/m/p13n/Engine$StateChangeEventFilterState StateChangeEventFilterState}</li>
+	 * <li>Custom controller state definitions</li>
+	 * </ul>
+	 * @public
+	 * @since 1.140.0
+	 */
 
 	/**
 	 * Attaches an event handler to the <code>StateHandlerRegistry</code> class.
@@ -245,7 +308,7 @@ sap.ui.define([
 	 *
 	 * @public
 	 *
-	 * @param {function(sap.ui.base.Event):void} fnStateEventHandler The handler function to call when the event occurs
+	 * @param {function(module:sap/m/p13n/Engine$StateChangeEvent):void} fnStateEventHandler The handler function to call when the event occurs
 	 * @param {object} [oListener] The context object to call the event handler with (value of <code>this</code> in the event handler function).
 	 * @returns {this} Returns <code>this</code> to allow method chaining
 	 */
@@ -490,7 +553,10 @@ sap.ui.define([
 
 				const oRetrievedState = {};
 				Engine.getInstance().getRegisteredControllers(oControl).forEach((sKey) => {
-					oRetrievedState[sKey] = Engine.getInstance().getController(oControl, sKey).getCurrentState(true);
+					const oState = Engine.getInstance().getController(oControl, sKey).getCurrentState(true);
+					if (oState) {
+						oRetrievedState[sKey] = oState;
+					}
 				});
 
 				return merge({}, oRetrievedState);
@@ -580,7 +646,9 @@ sap.ui.define([
 
 					const oControllerHelper = oController.getMetadataHelper();
 					const oHelper = oControllerHelper ? oControllerHelper : oRegistryEntry.helper;
-					const oPropertyInfo = oHelper.getProperties().map((a) => {
+					// Include inactive properties so that sap.m.p13n.FilterController recognizes them and does not prevent change creation.
+					// Scenario: A property is made active and a filter is added via the StateUtil in the same state appliance.
+					const oPropertyInfo = oHelper.getProperties(true).map((a) => {
 						return {
 							key: a.key,
 							name: a.name
@@ -719,7 +787,10 @@ sap.ui.define([
 
 		this.uimanager.show(oControl, aKeys, {
 			showReset: false,
-			refreshPropertyHelper: true
+			refreshPropertyHelper: true,
+			close: () => {
+				fResolveRTA([]);
+			}
 		}).then((oContainer) => {
 			const oCustomHeader = oContainer.getCustomHeader();
 			if (oCustomHeader) {
@@ -1204,39 +1275,21 @@ sap.ui.define([
 	};
 
 	/**
-	 * Determines global persistence mode enablement based on the given modification payload
-	 *
-	 * @private
-	 * @param {object} oModificationPayload The modification registry entry payload
-	 * @returns {boolean|undefined} <code>undefined</code> if the given payload does not allow for persistence, or a boolean indicating enablement of global persistence
-	 */
-	Engine.prototype._determineGlobalPersistence = function(oModificationPayload) {
-		const {mode, hasVM} = oModificationPayload;
-
-		if (mode === PersistenceMode.Transient) {
-			return undefined;
-		}
-
-		if (mode === PersistenceMode.Auto) {
-			return hasVM ? false : true;
-		}
-
-		return mode === PersistenceMode.Global;
-	};
-
-	/**
-	 * Executes a given callback only if the control's configuration allows for change persistence
+	 * Checks if the control's configuration allows for change persistence
 	 *
 	 * @private
 	 * @param {string|sap.ui.core.Control} vControl The control id or instance
-	 * @param {function(bGlobalPersistenceEnabled:boolean)} fCallback The callback to be executed, if change persistence is available
-	 * @returns {any} The return value of the callback
+	 * @returns {boolean} Returns whether global persistence is enabled
 	 */
-	Engine.prototype._runWithPersistence = function(vControl, fCallback) {
-		const {payload} = oEngine._determineModification(vControl);
-		const vGlobalPersistence = oEngine._determineGlobalPersistence(payload);
-		const bPersistenceEnabled = typeof vGlobalPersistence === "boolean";
-		return bPersistenceEnabled && fCallback(vGlobalPersistence);
+	Engine.prototype._getKeyUserPersistence = function(vControl) {
+		const {mode, hasVM} = oEngine._determineModification(vControl);
+
+		let bGlobalPersistence = mode === PersistenceMode.Global;
+		if (mode === PersistenceMode.Auto || mode === PersistenceMode.Transient) {
+			bGlobalPersistence = hasVM ? false : true;
+		}
+
+		return bGlobalPersistence;
 	};
 
 	Engine.prototype.hasForReference = (vControl, sControlType) => {
@@ -1436,7 +1489,7 @@ sap.ui.define([
 			});
 
 			if (aApplyChanges.length > 0) {
-				Engine.getInstance()._processChanges(oControl, mChangeMap);
+				return Engine.getInstance()._processChanges(oControl, mChangeMap);
 			}
 		});
 

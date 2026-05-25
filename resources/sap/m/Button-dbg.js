@@ -101,7 +101,7 @@ sap.ui.define([
 	 * @mixes sap.ui.core.ContextMenuSupport
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -968,7 +968,8 @@ sap.ui.define([
 	 */
 	Button.prototype.getAccessibilityInfo = function() {
 		var sDesc = this._getText() || this.getTooltip_AsString(),
-			sAccessibleRole = this.getAccessibleRole();
+			sAccessibleRole = this.getAccessibleRole(),
+			sKeyShortcutsText = this.getDomRef()?.getAttribute("aria-keyshortcuts");
 
 		if (!sDesc && this._getAppliedIcon()) {
 			var oIconInfo = IconPool.getIconInfo(this._getAppliedIcon());
@@ -980,7 +981,7 @@ sap.ui.define([
 		return {
 			role: sAccessibleRole === ButtonAccessibleRole.Default ? "button" : sAccessibleRole.toLowerCase(),
 			type: Library.getResourceBundleFor("sap.m").getText("ACC_CTR_TYPE_BUTTON"),
-			description: sDesc,
+			description: `${sDesc} ${sKeyShortcutsText ? sKeyShortcutsText : ""}`.trim(),
 			focusable: this.getEnabled(),
 			enabled: this.getEnabled()
 		};
@@ -1057,7 +1058,7 @@ sap.ui.define([
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	 Button.prototype._getToolbarInteractive = function () {
 		return true;

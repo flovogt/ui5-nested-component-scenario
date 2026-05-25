@@ -115,7 +115,7 @@
 		</interaction>
 		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Jika pemilihan sel diaktifkan</span>:</p>
-				<p>Jika sel-sel dipilih, menekan <kbd>Shift</kbd> dan mengklik sel yang berbeda akan memperluas pemilihan hingga ke sel yang diklik.</p>
+				<p>Jika sel-sel dipilih, <kbd>Shift + MouseClick</kbd> pada sel yang berbeda akan memperluas pemilihan hingga ke sel yang diklik.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>
@@ -130,11 +130,19 @@
 	<control-interactions>
 		<control name="sap.m.VariantManagement"/>
 		<interaction> <kbd>F4</kbd> <kbd>Spacebar</kbd> <kbd>Alt + ArrowUp</kbd> <kbd>Alt + ArrowDown</kbd> <description>
-				<p>Membuka manajemen varian.</p>
-			</description>
+				<p>Membuka dialog Tampilan Saya.</p>
+			</description> 
 		</interaction>
 		<interaction> <kbd>PageUp</kbd> <description>
-				<p>Menutup popover kesalahan pada manajemen varian</p>
+				<p>Menutup popover kesalahan dialog Tampilan Saya</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + Enter</kbd> <description>
+				<p>Menyimpan tampilan baru pada dialog Simpan Sebagai.</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + S</kbd> <description>
+				<p>Menyimpan perubahan yang dibuat pada tampilan.</p>
 			</description>
 		</interaction>
 	</control-interactions>
@@ -146,9 +154,9 @@
 				<p><kbd>ArrowDown</kbd></p>
 				<p>Memindahkan item satu posisi ke bawah jika memungkinkan.</p>
 				<p><kbd>Home</kbd></p>
-				<p>Memindahkan item satu posisi teratas jika memungkinkan.</p>
+				<p>Memindahkan item ke posisi teratas jika memungkinkan.</p>
 				<p><kbd>End</kbd></p>
-				<p>Memindahkan item satu posisi terakhir jika memungkinkan.</p>
+				<p>Memindahkan item ke posisi terakhir jika memungkinkan.</p>
 			</description>
 		</interaction>
 	</control-interactions>
@@ -158,7 +166,7 @@
 				<p><kbd>ArrowUp</kbd></p>
 				<p>Memindahkan item satu posisi ke atas jika memungkinkan.</p>
 				<p><kbd>ArrowDown</kbd></p>
-				<p>Memindahkan item satu posisi ke bawah, jika memungkinkan.</p>
+				<p>Memindahkan item satu posisi ke bawah jika memungkinkan.</p>
 			</description>
 		</interaction>
 	</control-interactions>

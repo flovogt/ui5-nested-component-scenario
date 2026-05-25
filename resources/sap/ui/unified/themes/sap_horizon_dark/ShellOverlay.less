@@ -1,22 +1,26 @@
+/**
+ * @file
+ * @deprecated As of version 1.44.0, together with the sap.ui.unified.ShellOverlay
+ */
 /* ============================================ */
 /* CSS for control sap.ui.unified/ShellOverlay  */
 /* Evening Horizon theme                        */
 /* ============================================ */
 
 .sapUiUfdShellOvrlyHeadCntnt {
-	background-color: @sapUiShellBackground;
-	box-shadow: inset 0 -1px @sapUiShellBorderColor;
+	background-color: var(--sapShell_Background);
+	box-shadow: inset 0 -1px var(--sapShell_BorderColor);
 }
 
 .sapUiUfdShellOvrlyHeadClose,
 .sapUiUfdShellOvrlyHeadClose:hover,
 .sapUiUfdShellOvrlyHeadClose:focus,
 .sapUiUfdShellOvrlyHeadClose:visited {
-	color: @sapUiButtonIconColor;
+	color: var(--sapButton_IconColor);
 	text-shadow: @sapUiShadowText;
 }
 
 .sapUiUfdShellOvrlyHeadClose:active {
-	background-color: @sapUiButtonActiveBackground;
-	color: @sapUiButtonActiveTextColor;
+	background-color: var(--sapButton_Active_Background);
+	color: var(--sapButton_Active_TextColor);
 }

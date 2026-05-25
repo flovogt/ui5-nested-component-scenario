@@ -4,7 +4,13 @@
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine("sap/ui/core/designtime/ComponentContainer.designtime", [],function(){"use strict";return{associations:{component:{aggregationLike:true}}}});
+sap.ui.predefine("sap/ui/core/designtime/Component.designtime", [],function(){"use strict";return{actions:{extendController:null,addXML:null}}});
+/*!
+ * OpenUI5
+ * (c) Copyright 2026 SAP SE or an SAP affiliate company.
+ * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
+ */
+sap.ui.predefine("sap/ui/core/designtime/ComponentContainer.designtime", [],function(){"use strict";return{associations:{component:{aggregationLike:true}},actions:{extendController:null,addXML:null}}});
 /*!
  * OpenUI5
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
@@ -46,5 +52,5 @@ sap.ui.predefine("sap/ui/core/designtime/mvc/View.designtime", [],function(){"us
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.predefine("sap/ui/core/designtime/mvc/XMLView.designtime", [],function(){"use strict";return{aggregations:{content:{domRef:":sap-domref"}}}});
+sap.ui.predefine("sap/ui/core/designtime/mvc/XMLView.designtime", [],function(){"use strict";return{aggregations:{content:{domRef:":sap-domref"}},actions:{extendController:null,addXML:null}}});
 //# sourceMappingURL=library-preload.designtime.js.map

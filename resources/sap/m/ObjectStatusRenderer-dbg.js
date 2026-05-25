@@ -12,7 +12,7 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Lib", 'sap/ui/core/lib
 	// shortcut for sap.ui.core.TextDirection
 	var TextDirection = coreLibrary.TextDirection;
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
 	// shortcut for sap.m.ReactiveAreaMode
@@ -41,7 +41,7 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Lib", 'sap/ui/core/lib
 		oRm.openStart("div", oObjStatus);
 
 		if (oObjStatus._isEmpty() && oObjStatus.getEmptyIndicatorMode() === EmptyIndicatorMode.Off) {
-			oRm.style("display", "none");
+			oRm.class("sapMObjStatus");
 			oRm.openEnd();
 		} else {
 
@@ -166,14 +166,6 @@ sap.ui.define(["sap/base/i18n/Localization", "sap/ui/core/Lib", 'sap/ui/core/lib
 				oRm.class("sapUiPseudoInvisibleText");
 				oRm.openEnd();
 				oRm.text(Library.getResourceBundleFor("sap.m").getText("OBJECT_STATUS"));
-				oRm.close("span");
-			}
-
-			if (!oObjStatus._isActive() && oObjStatus.getIcon() && !oObjStatus.getText()) {
-				oRm.openStart("span", oObjStatus.getId() + "-icon-title");
-				oRm.class("sapUiPseudoInvisibleText");
-				oRm.openEnd();
-				oRm.text(oObjStatus._getAriaIconTitle());
 				oRm.close("span");
 			}
 

@@ -99,7 +99,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @constructor
 		 * @private
@@ -412,12 +412,8 @@ sap.ui.define([
 				delete this._oItemNavigation;
 			}
 
-			for (var i = 0; i < this._aLinks.length; i++) {
-				if (this._aLinks[i]) {
-					this._aLinks[i].removeDelegate(this.oAfterLinkRenderDelegate);
-					this._aLinks[i].destroy();
-				}
-			}
+			this._aLinks.forEach((oLink) => oLink.destroy());
+
 			delete this._aLinks;
 		};
 
@@ -655,46 +651,6 @@ sap.ui.define([
 
 				// Prevent scrolling
 				oEvent.preventDefault();
-			}
-
-			if (oEvent.which !== KeyCodes.TAB) {
-				return;
-			}
-
-			if (oEvent.target.classList.contains("sapMSPCMonthDay")) {
-				const oAppointmentsList = oEvent.target.parentElement;
-				const aAppointments = oAppointmentsList.querySelectorAll(".sapUiCalendarRowApps");
-				if (aAppointments.length) {
-					oEvent.preventDefault();
-					aAppointments[0].focus();
-				}
-			} else if (oEvent.shiftKey && oEvent.target.classList.contains("sapMLnk")) {
-				const oAppointmentsList = oEvent.target.parentElement.parentElement.parentElement;
-				const aLinks = oAppointmentsList.querySelectorAll(".sapMSPCMonthLnkMore");
-				const oFirstLink = aLinks[0].querySelector(".sapMLnk");
-
-				if (oFirstLink.id === oEvent.target.id) {
-					const aAppointments = oAppointmentsList.querySelectorAll(".sapUiCalendarRowApps");
-					if (aAppointments.length) {
-						const oLastApp = aAppointments[aAppointments.length - 1];
-						oEvent.preventDefault();
-						oLastApp.focus();
-					}
-				}
-			} else if (!oEvent.shiftKey && oEvent.target.classList.contains("sapUiCalendarRowApps")) {
-				const oAppointmentsList = oEvent.target.parentElement;
-				const aAppointments = oAppointmentsList.children;
-				if (aAppointments.length) {
-					const oLastApp = aAppointments[aAppointments.length - 1];
-					if (oLastApp.id === oEvent.target.id) {
-						const oRow = oAppointmentsList.parentElement.parentElement;
-						const oMoreLink = oRow.querySelector(".sapMSPCMonthLnkMore > .sapMLnk");
-						if (oMoreLink) {
-							oEvent.preventDefault();
-							oMoreLink.focus();
-						}
-					}
-				}
 			}
 		};
 
@@ -954,7 +910,7 @@ sap.ui.define([
 		 * deselected and vice versa. If modifier keys are pressed - the previously selected appointments will be
 		 * preserved.
 		 *
-		 * @param {sap.m.CalendarAppointment} oAppointment The appointment to be selected/deselected.
+		 * @param {sap.ui.unified.CalendarAppointment} oAppointment The appointment to be selected/deselected.
 		 * @param {boolean} [bRemoveOldSelection=false] If true, previously selected appointments will be deselected.
 		 * @returns {array} Array of the appointments with changed selected state
 		 * @private
@@ -999,14 +955,11 @@ sap.ui.define([
 					value: oCalendarDate.valueOf().toString(),
 					writeToDom: true
 				}));
-			this.oAfterLinkRenderDelegate = this._getMoreLinkOnAfterRenderingDelegate(oLink);
 
 			if (this._aLinks[iCellIndex]) {
-				this._aLinks[iCellIndex].removeDelegate(this.oAfterLinkRenderDelegate);
 				this._aLinks[iCellIndex].destroy();
 			}
 
-			oLink.addDelegate(this.oAfterLinkRenderDelegate);
 			this._aLinks[iCellIndex] = oLink;
 
 			return oLink;
@@ -1627,7 +1580,16 @@ sap.ui.define([
 
 		SinglePlanningCalendarMonthGrid.prototype._isNonWorkingDay = function(oCalendarDate) {
 			const aSpecialDates = this._getSpecialDates().filter((oDateRange) => {
-				return oDateRange.getStartDate() && CalendarDate.fromLocalJSDate(oDateRange.getStartDate()).isSame(oCalendarDate);
+				const oRangeStartDate = oDateRange.getStartDate(),
+					oRangeEndDate = oDateRange.getEndDate();
+
+				if (oRangeStartDate && oRangeEndDate) {
+					return CalendarUtils._isBetween(oCalendarDate, CalendarDate.fromLocalJSDate(oRangeStartDate), CalendarDate.fromLocalJSDate(oRangeEndDate), true);
+				} else if (oRangeStartDate) {
+					return CalendarDate.fromLocalJSDate(oRangeStartDate).isSame(oCalendarDate);
+				}
+
+				return false;
 			});
 			const sType = aSpecialDates.length > 0 && aSpecialDates[0].getType();
 			const sSecondaryType =  aSpecialDates.length > 0 && aSpecialDates[0].getSecondaryType();

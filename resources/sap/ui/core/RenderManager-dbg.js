@@ -46,12 +46,14 @@ sap.ui.define([
 	"use strict";
 	/*global SVGElement*/
 
+	const mOwnerInfo = new Map();
+
 	var Element;
 
 	var aCommonMethods = ["renderControl", "cleanupControlWithoutRendering", "accessibilityState", "icon"];
 
 	/**
-	 * @deprecated As of version 1.92, the string rendering methods are deprecated
+	 * @deprecated As of version 1.92, string-based rendering is deprecated
 	 */
 	var aStrInterfaceMethods = ["write", "writeEscaped", "writeAcceleratorKey", "writeControlData", "writeElementData",
 		"writeAttribute", "writeAttributeEscaped", "addClass", "writeClasses", "addStyle", "writeStyles",
@@ -59,7 +61,7 @@ sap.ui.define([
 
 	var aDomInterfaceMethods = ["openStart", "voidStart", "attr", "class", "style", "openEnd", "voidEnd", "text", "unsafeHtml", "close"];
 
-	var aNonRendererMethods = ["render", "flush", "destroy"];
+	var aNonRendererMethods = ["render", "flush", "renderAndFlush", "destroy"];
 
 	var oTemplate = document.createElement("template");
 
@@ -88,6 +90,48 @@ sap.ui.define([
 	var ATTR_DO_NOT_SKIP_RENDERING_MARKER = "data-sap-ui-render";
 
 	/**
+	 * Converts an element to a specified namespace URI.
+	 *
+	 * This function recursively converts a DOM element and all its child elements to a target namespace.
+	 * If an element already belongs to the target namespace, it is returned unchanged for performance reasons.
+	 * All attributes and child nodes are preserved during the conversion.
+	 *
+	 * Non-element nodes (text nodes, comment nodes, etc.) are returned as-is without modification.
+	 *
+	 * @param {Element} oElement - The DOM element to be converted
+	 * @param {string} sNamespaceURI - The target namespace URI (e.g., "http://www.w3.org/2000/svg")
+	 *
+	 * @returns {Element|Node} A new element with the target namespace URI, or the original element
+	 *                         if it already belongs to the target namespace or is a non-element node
+	 * @private
+	 */
+	function convertElementToNamespace(oElement, sNamespaceURI) {
+		if (oElement.nodeType !== Node.ELEMENT_NODE) {
+			return oElement;
+		}
+
+		const sCurrentNamespace = oElement.namespaceURI;
+
+		if (sCurrentNamespace === sNamespaceURI) {
+			return oElement;
+		}
+
+		const oNewElement = document.createElementNS(sNamespaceURI, oElement.tagName.toLowerCase());
+
+		for (const oAttr of oElement.attributes) {
+			oNewElement.setAttribute(oAttr.name, oAttr.value);
+		}
+
+		const aChildren = Array.from(oElement.childNodes);
+
+		for (const oChild of aChildren) {
+			oNewElement.appendChild(convertElementToNamespace(oChild, sNamespaceURI));
+		}
+
+		return oNewElement;
+	}
+
+	/**
 	 * Creates an instance of the RenderManager.
 	 *
 	 * Applications or controls must not call the <code>RenderManager</code> constructor on their own
@@ -96,7 +140,9 @@ sap.ui.define([
 	 *
 	 * @class A class that handles the rendering of controls.
 	 *
-	 * For the default rendering task of UI5, a shared RenderManager is created and owned by <code>sap.ui.core.Core</code>.
+	 * For the default rendering task of UI5, a shared RenderManager is created and owned by
+	 * the framework.
+	 *
 	 * Controls or other code that want to render controls outside the default rendering task
 	 * can create a private instance of RenderManager by calling the
 	 * {@link sap.ui.core.Core#createRenderManager sap.ui.getCore().createRenderManager()} method.
@@ -237,11 +283,10 @@ sap.ui.define([
 	 * setting the <code>canSkipRendering</code> property to <code>true</code> lets the <code>RenderManager</code> know that the parent control's accessibility enhancement is static and does not interfere with the child control's rendering optimization.
 	 *
 	 * @see sap.ui.core.Core
-	 * @see sap.ui.getCore
 	 *
 	 * @extends Object
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @alias sap.ui.core.RenderManager
 	 * @hideconstructor
 	 * @public
@@ -255,7 +300,12 @@ sap.ui.define([
 			bLocked,
 			sOpenTag = "",                 // stores the last open tag that is used for the validation
 			bVoidOpen = false,             // specifies whether the last open tag is a void tag or not
-			bDomInterface,                 // specifies the rendering interface that is used by the control renderers
+			bInitialized = false,          // specifies whether the rendering process has been initialized by calling the render method or not
+			/**
+			 * Specifies the rendering interface that is used by the control renderers
+			 * @ui5-transform-hint replace-local true
+			 */
+			bDomInterface,
 			sLegacyRendererControlId = "", // stores the id of the control that has a legacy renderer while its parent has the new semantic renderer
 			oStringInterface = {},         // holds old string based rendering API and the string implementation of the new semantic rendering API
 			oDomInterface = {},            // semantic rendering API for the controls whose renderer provides apiVersion=2 marker
@@ -270,11 +320,15 @@ sap.ui.define([
 		 */
 		function reset() {
 			assert(!(sLastStyleMethod = sLastClassMethod = ""));
+			/**
+			 * @deprecated As of version 1.92, string-based rendering is deprecated
+			 */
 			aBuffer = that.aBuffer = [];
 			aRenderedControls = that.aRenderedControls = [];
 			aStyleStack = that.aStyleStack = [{}];
 			bDomInterface = undefined;
 			bVoidOpen = false;
+			bInitialized = false;
 			iOpenTagCount = 0;
 			sOpenTag = "";
 		}
@@ -331,36 +385,36 @@ sap.ui.define([
 		//#################################################################################################
 
 		function assertValidName(sName, sField) {
-			assert(sName && typeof sName == "string" && /^[a-z_][a-zA-Z0-9_\-]*$/.test(sName), "The " + sField + " name provided '" + sName + "' is not valid; it must contain alphanumeric characters, hyphens or underscores");
+			future.assertThrows(sName && typeof sName == "string" && /^[a-z_][a-zA-Z0-9_\-]*$/.test(sName), "The " + sField + " name provided '" + sName + "' is not valid; it must contain alphanumeric characters, hyphens or underscores");
 		}
 
 		function assertOpenTagHasStarted(sMethod) {
-			assert(sOpenTag, "There is no open tag; '" + sMethod + "' must not be called without an open tag");
+			future.assertThrows(sOpenTag, "There is no open tag; '" + sMethod + "' must not be called without an open tag");
 		}
 
 		function assertOpenTagHasEnded(bCustomAssertion) {
 			var bAssertion = (bCustomAssertion === undefined) ? !sOpenTag : bCustomAssertion;
-			assert(bAssertion, "There is an open tag; '" + sOpenTag + "' tag has not yet ended with '" + (bVoidOpen ? "voidEnd" : "openEnd") + "'");
+			future.assertThrows(bAssertion, "There is an open tag; '" + sOpenTag + "' tag has not yet ended with '" + (bVoidOpen ? "voidEnd" : "openEnd") + "'");
 		}
 
 		function assertValidAttr(sAttr) {
 			assertValidName(sAttr, "attr");
-			assert((sAttr != "class" || sLastClassMethod != "class" && (sLastClassMethod = "attr"))
+			future.assertThrows((sAttr != "class" || sLastClassMethod != "class" && (sLastClassMethod = "attr"))
 				&& (sAttr != "style" || sLastStyleMethod != "style" && (sLastStyleMethod = "attr")),
 				"Attributes 'class' and 'style' must not be written when the methods with the same name"
 				+ " have been called for the same element already");
 		}
 
 		function assertValidClass(sClass) {
-			assert(sLastClassMethod != "attr" && (sLastClassMethod = "class"),
+			future.assertThrows(sLastClassMethod != "attr" && (sLastClassMethod = "class"),
 				"Method class() must not be called after the 'class' attribute has been written for the same element");
-			assert(typeof sClass == "string" && !/\s/.test(sClass) && arguments.length === 1, "Method 'class' must be called with exactly one class name");
+			future.assertThrows(typeof sClass == "string" && !/\s/.test(sClass) && arguments.length === 1, "Method 'class' must be called with exactly one class name");
 		}
 
 		function assertValidStyle(sStyle) {
-			assert(sLastStyleMethod != "attr" && (sLastStyleMethod = "style"),
+			future.assertThrows(sLastStyleMethod != "attr" && (sLastStyleMethod = "style"),
 				"Method style() must not be called after the 'style' attribute has been written for the same element");
-			assert(sStyle && typeof sStyle == "string" && !/\s/.test(sStyle), "Method 'style' must be called with a non-empty string name");
+			future.assertThrows(sStyle && typeof sStyle == "string" && !/\s/.test(sStyle), "Method 'style' must be called with a non-empty string name");
 		}
 
 		//#################################################################################################
@@ -533,10 +587,6 @@ sap.ui.define([
 			return this;
 		};
 
-		//#################################################################################################
-		// Semantic Rendering Interface for String Based Rendering
-		//#################################################################################################
-
 		/**
 		 * Opens the start tag of an HTML element.
 		 *
@@ -549,30 +599,11 @@ sap.ui.define([
 	 	 * @param {sap.ui.core.Element|sap.ui.core.ID} [vControlOrId] Control instance or ID to identify the element
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 		 *
+		 * @name sap.ui.core.RenderManager#openStart
+		 * @function
 		 * @public
 		 * @since 1.67
 		 */
-		this.openStart = function(sTagName, vControlOrId) {
-			assertValidName(sTagName, "tag");
-			assertOpenTagHasEnded();
-			assert(!(sLastStyleMethod = sLastClassMethod = ""));
-			sOpenTag = sTagName;
-			iOpenTagCount++;
-
-			aBuffer.push("<" + sTagName);
-			if (vControlOrId) {
-				if (typeof vControlOrId == "string") {
-					this.attr("id", vControlOrId);
-				} else {
-					assert(vControlOrId && BaseObject.isObjectA(vControlOrId, 'sap.ui.core.Element'), "vControlOrId must be an sap.ui.core.Element");
-
-					this.attr("id", vControlOrId.getId());
-					renderElementData(this, vControlOrId);
-				}
-			}
-
-			return this;
-		};
 
 		/**
 		 * Ends an open tag started with <code>openStart</code>.
@@ -580,20 +611,12 @@ sap.ui.define([
 		 * This indicates that there are no more attributes to set to the open tag.
 		 *
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 *
+		 * @name sap.ui.core.RenderManager#openEnd
+		 * @function
 		 * @public
 		 * @since 1.67
 		 */
-		this.openEnd = function(bExludeStyleClasses /* private */) {
-			assertOpenTagHasStarted("openEnd");
-			assertOpenTagHasEnded(!bVoidOpen);
-			assert(bExludeStyleClasses === undefined || bExludeStyleClasses === true, "The private parameter bExludeStyleClasses must be true or omitted!");
-			sOpenTag = "";
-
-			writeClasses(bExludeStyleClasses === true ? false : undefined);
-			writeStyles();
-			aBuffer.push(">");
-			return this;
-		};
 
 		/**
 		 * Closes an open tag started with <code>openStart</code> and ended with <code>openEnd</code>.
@@ -602,17 +625,12 @@ sap.ui.define([
 		 *
 		 * @param {string} sTagName Tag name of the HTML element
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 *
+		 * @name sap.ui.core.RenderManager#close
+		 * @function
 		 * @public
 		 * @since 1.67
 		 */
-		this.close = function(sTagName) {
-			assertValidName(sTagName, "tag");
-			assertOpenTagHasEnded();
-			iOpenTagCount--;
-
-			aBuffer.push("</" + sTagName + ">");
-			return this;
-		};
 
 		/**
 		 * Starts a self-closing tag, such as <code>img</code> or <code>input</code>.
@@ -625,15 +643,12 @@ sap.ui.define([
 		 * @param {string} sTagName Tag name of the HTML element
 		 * @param {sap.ui.core.Element|sap.ui.core.ID} [vControlOrId] Control instance or ID to identify the element
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 *
+		 * @name sap.ui.core.RenderManager#voidStart
+		 * @function
 		 * @public
 		 * @since 1.67
 		 */
-		this.voidStart = function (sTagName, vControlOrId) {
-			this.openStart(sTagName, vControlOrId);
-
-			bVoidOpen = true;
-			return this;
-		};
 
 		/**
 		 * Ends an open self-closing tag started with <code>voidStart</code>.
@@ -642,21 +657,12 @@ sap.ui.define([
 		 * For self-closing tags <code>close</code> must not be called.
 		 *
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 *
+		 * @name sap.ui.core.RenderManager#voidEnd
+		 * @function
 		 * @public
 		 * @since 1.67
 		 */
-		this.voidEnd = function (bExludeStyleClasses /* private */) {
-			assertOpenTagHasStarted("voidEnd");
-			assertOpenTagHasEnded(bVoidOpen || !sOpenTag);
-			bVoidOpen = false;
-			iOpenTagCount--;
-			sOpenTag = "";
-
-			writeClasses(bExludeStyleClasses ? false : undefined);
-			writeStyles();
-			aBuffer.push(">");
-			return this;
-		};
 
 		/**
 		 * Sets the given HTML markup without any encoding or sanitizing.
@@ -665,16 +671,13 @@ sap.ui.define([
 		 *
 		 * @param {string} sHtml Well-formed, valid HTML markup
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 *
+		 * @name sap.ui.core.RenderManager#unsafeHtml
+		 * @function
 		 * @public
 		 * @since 1.67
 		 * @SecSink {*|XSS}
 		 */
-		this.unsafeHtml = function(sHtml) {
-			assertOpenTagHasEnded();
-
-			aBuffer.push(sHtml);
-			return this;
-		};
 
 		/**
 		 * Sets the text content with the given text.
@@ -690,17 +693,12 @@ sap.ui.define([
 		 *
 		 * @param {string} sText The text to be written
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 *
+		 * @name sap.ui.core.RenderManager#text
+		 * @function
 		 * @public
 		 * @since 1.67
 		 */
-		this.text = function(sText) {
-			assertOpenTagHasEnded();
-			if ( sText != null ) {
-				sText = encodeXML( String(sText) );
-				aBuffer.push(sText);
-			}
-			return this;
-		};
 
 		/**
 		 * Adds an attribute name-value pair to the last open HTML element.
@@ -720,19 +718,12 @@ sap.ui.define([
 		 * @param {string} sName Name of the attribute
 		 * @param {*} vValue Value of the attribute
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 *
+		 * @name sap.ui.core.RenderManager#attr
+		 * @function
 		 * @public
 		 * @since 1.67
 		 */
-		this.attr = function(sName, vValue) {
-			assertValidAttr(sName);
-
-			if (sName == "style") {
-				aStyleStack[aStyleStack.length - 1].aStyle = [vValue];
-			} else {
-				aBuffer.push(" ", sName, "=\"", encodeXML(String(vValue)), "\"");
-			}
-			return this;
-		};
 
 		/**
 		 * Adds a class name to the class collection of the last open HTML element.
@@ -742,20 +733,12 @@ sap.ui.define([
 		 *
 		 * @param {string} sClass Class name to be written
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 *
+		 * @name sap.ui.core.RenderManager#class
+		 * @function
 		 * @public
 		 * @since 1.67
 		 */
-		this.class = function(sClass) {
-			if (sClass) {
-				assertValidClass.apply(this, arguments);
-				var oStyle = aStyleStack[aStyleStack.length - 1];
-				if (!oStyle.aClasses) {
-					oStyle.aClasses = [];
-				}
-				oStyle.aClasses.push(encodeXML(sClass));
-			}
-			return this;
-		};
 
 		/**
 		 * Adds a style name-value pair to the style collection of the last open HTML element.
@@ -768,14 +751,164 @@ sap.ui.define([
 		 * @param {string} sName Name of the style property
 		 * @param {string|float|int} vValue Value of the style property
 		 * @returns {this} Reference to <code>this</code> in order to allow method chaining
+		 *
+		 * @name sap.ui.core.RenderManager#style
+		 * @function
 		 * @public
 		 * @since 1.67
 		 */
-		this.style = function(sName, vValue) {
+
+		//#################################################################################################
+		// Semantic Rendering Interface for String Based Rendering
+		//#################################################################################################
+
+		/**
+		 * @see sap.ui.core.RenderManager#openStart
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.openStart = function(sTagName, vControlOrId) {
+			assertValidName(sTagName, "tag");
+			assertOpenTagHasEnded();
+			assert(!(sLastStyleMethod = sLastClassMethod = ""));
+			sOpenTag = sTagName;
+			iOpenTagCount++;
+
+			aBuffer.push("<" + sTagName);
+			if (vControlOrId) {
+				if (typeof vControlOrId == "string") {
+					this.attr("id", vControlOrId);
+				} else {
+					future.assertThrows(vControlOrId && BaseObject.isObjectA(vControlOrId, 'sap.ui.core.Element'), "vControlOrId must be an sap.ui.core.Element");
+
+					this.attr("id", vControlOrId.getId());
+					renderElementData(this, vControlOrId);
+				}
+			}
+
+			return this;
+		};
+
+		/**
+		 * @see sap.ui.core.RenderManager#openEnd
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.openEnd = function(bExludeStyleClasses /* private */) {
+			assertOpenTagHasStarted("openEnd");
+			assertOpenTagHasEnded(!bVoidOpen);
+			future.assertThrows(bExludeStyleClasses === undefined || bExludeStyleClasses === true, "The private parameter bExludeStyleClasses must be true or omitted!");
+			sOpenTag = "";
+
+			writeClasses(bExludeStyleClasses === true ? false : undefined);
+			writeStyles();
+			aBuffer.push(">");
+			return this;
+		};
+
+		/**
+		 * @see sap.ui.core.RenderManager#close
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.close = function(sTagName) {
+			assertValidName(sTagName, "tag");
+			assertOpenTagHasEnded();
+			iOpenTagCount--;
+
+			aBuffer.push("</" + sTagName + ">");
+			return this;
+		};
+
+		/**
+		 * @see sap.ui.core.RenderManager#voidStart
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.voidStart = function (sTagName, vControlOrId) {
+			this.openStart(sTagName, vControlOrId);
+
+			bVoidOpen = true;
+			return this;
+		};
+
+		/**
+		 * @see sap.ui.core.RenderManager#voidEnd
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.voidEnd = function (bExludeStyleClasses /* private */) {
+			assertOpenTagHasStarted("voidEnd");
+			assertOpenTagHasEnded(bVoidOpen || !sOpenTag);
+			bVoidOpen = false;
+			iOpenTagCount--;
+			sOpenTag = "";
+
+			writeClasses(bExludeStyleClasses ? false : undefined);
+			writeStyles();
+			aBuffer.push(">");
+			return this;
+		};
+
+		/**
+		 * @see sap.ui.core.RenderManager#unsafeHtml
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.unsafeHtml = function(sHtml) {
+			assertOpenTagHasEnded();
+
+			aBuffer.push(sHtml);
+			return this;
+		};
+
+		/**
+		 * @see sap.ui.core.RenderManager#text
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.text = function(sText) {
+			assertOpenTagHasEnded();
+			if ( sText != null ) {
+				sText = encodeXML( String(sText) );
+				aBuffer.push(sText);
+			}
+			return this;
+		};
+
+		/**
+		 * @see sap.ui.core.RenderManager#attr
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.attr = function(sName, vValue) {
+			assertValidAttr(sName);
+
+			if (sName == "style") {
+				aStyleStack[aStyleStack.length - 1].aStyle = [vValue];
+			} else {
+				aBuffer.push(" ", sName, "=\"", encodeXML(String(vValue)), "\"");
+			}
+			return this;
+		};
+
+		/**
+		 * @see sap.ui.core.RenderManager#class
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.class = function(sClass) {
+			if (sClass) {
+				assertValidClass.apply(this, arguments);
+				var oStyle = aStyleStack[aStyleStack.length - 1];
+				if (!oStyle.aClasses) {
+					oStyle.aClasses = [];
+				}
+				oStyle.aClasses.push(encodeXML(sClass));
+			}
+			return this;
+		};
+
+		/**
+		 * @see sap.ui.core.RenderManager#style
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
+		 */
+		oStringInterface.style = function(sName, vValue) {
 			assertValidStyle(sName);
 
 			if (vValue != null && vValue != "") {
-				assert((typeof vValue === "string" || typeof vValue === "number"), "value must be a string or number");
+				future.assertThrows((typeof vValue === "string" || typeof vValue === "number"), "value must be a string or number");
 				var oStyle = aStyleStack[aStyleStack.length - 1];
 				if (!oStyle.aStyle) {
 					oStyle.aStyle = [];
@@ -794,6 +927,13 @@ sap.ui.define([
 			assertValidName(sTagName, "tag");
 			assertOpenTagHasEnded();
 			assert(!(sLastStyleMethod = sLastClassMethod = ""));
+
+			// initialize patcher's root node if not yet done
+			if (!bInitialized) {
+				oPatcher.setRootNode();
+				bInitialized = true;
+			}
+
 			sOpenTag = sTagName;
 			iOpenTagCount++;
 
@@ -860,7 +1000,7 @@ sap.ui.define([
 
 			assertOpenTagHasStarted("openEnd");
 			assertOpenTagHasEnded(!bVoidOpen);
-			assert(bExludeStyleClasses === undefined || bExludeStyleClasses === true, "The private parameter bExludeStyleClasses must be true or omitted!");
+			future.assertThrows(bExludeStyleClasses === undefined || bExludeStyleClasses === true, "The private parameter bExludeStyleClasses must be true or omitted!");
 			sOpenTag = "";
 
 			oPatcher.openEnd();
@@ -994,13 +1134,17 @@ sap.ui.define([
 		 * @since 1.22.9
 		 */
 		this.cleanupControlWithoutRendering = function(oControl) {
-			assert(!oControl || BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be an sap.ui.core.Control or empty");
+			future.assertThrows(!oControl || BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be an sap.ui.core.Control or empty");
 			if (!oControl) {
 				return;
 			}
 
 			var oDomRef = oControl.getDomRef();
 			if (oDomRef) {
+				if (!bInitialized) {
+					oPatcher.setRootNode();
+					bInitialized = true;
+				}
 
 				// Call beforeRendering to allow cleanup
 				triggerBeforeRendering(oControl);
@@ -1051,6 +1195,9 @@ sap.ui.define([
 				oControl.bOutput = "invisible";
 
 			} else if (oRenderer && typeof oRenderer.render === "function") {
+				if (RenderManager.getApiVersion(oRenderer) == 1) {
+					future.warningThrows("The renderer for class " + oControl.getMetadata().getName() + " does not support the required API version 2!");
+				}
 
 				// before the control rendering get custom style classes of the control
 				var oControlStyles = {};
@@ -1134,21 +1281,34 @@ sap.ui.define([
 		 * @public
 		 */
 		this.renderControl = function(oControl) {
-			assert(!oControl || BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be an sap.ui.core.Control or empty");
+			future.assertThrows(!oControl || BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be an sap.ui.core.Control or empty");
 			if (!oControl) {
 				return this;
 			}
 
-			var oDomRef, oRenderer;
+			if (oControl._sOwnerId && !mOwnerInfo.get(oControl._sOwnerId)) {
+				mOwnerInfo.set(oControl._sOwnerId, Interaction.createOwnerComponentInfo(oControl)?.id);
+			}
+			const sAppComponentId = mOwnerInfo.get(oControl._sOwnerId);
+
+			const fnDone = Interaction.notifyControlRendering?.(sAppComponentId);
+
+			var oDomRef, oRenderer, bPreserveContent;
 			var bTriggerBeforeRendering = true;
 
+
+			/** @ui5-transform-hint replace-local false */
+			const bStringRenderingStarted = aBuffer.length > 0;
+			/** @ui5-transform-hint replace-local false */
+			const bCheckLegacyRenderer = !sLegacyRendererControlId && bDomInterface;
+
 			// determine the rendering interface
-			if (aBuffer.length) {
+			if (bStringRenderingStarted) {
 
 				// string rendering has been already started therefore we cannot use DOM rendering interface anymore
 				bDomInterface = false;
 
-			} else if (bDomInterface === undefined) {
+			} else if (!bInitialized) {
 
 				// trigger onBeforeRendering before checking the visibility, since the visible property might change in the event handler
 				triggerBeforeRendering(oControl);
@@ -1159,24 +1319,26 @@ sap.ui.define([
 				// if the control uses the default visible property then use the InvisibleRenderer, otherwise the renderer of the control
 				oRenderer = getCurrentRenderer(oControl);
 
+				/** @ui5-transform-hint replace-local true */
+				const bDomBasedRenderer = RenderManager.getApiVersion(oRenderer) != 1;
+
 				// rendering interface must be determined for the root control once per rendering
-				if (RenderManager.getApiVersion(oRenderer) != 1) {
+				if (bDomBasedRenderer) {
 
 					// get the visible or invisible DOM element of the control
 					oDomRef = oControl.getDomRef() || InvisibleRenderer.getDomRef(oControl);
 
-					// If the control is in the preserved area then we should not use the DOM-based rendering to avoid patching of preserved nodes
-					if (RenderManager.isPreservedContent(oDomRef)) {
-						bDomInterface = false;
-					} else {
-						// patching will happen during the control renderer calls therefore we need to get the focus info before the patching
-						oDomRef && FocusHandler.storePatchingControlFocusInfo(oDomRef);
+					bPreserveContent = RenderManager.isPreservedContent(oDomRef);
+					bDomInterface = !bPreserveContent;
+
+					if (bDomInterface) {
+						if (oDomRef && !bPreserveContent) {
+							// patching will happen during the control renderer calls therefore we need to get the focus info before the patching
+							FocusHandler.storePatchingControlFocusInfo(oDomRef);
+						}
 
 						// set the starting point of the Patcher
-						oPatcher.setRootNode(oDomRef);
-
-						// remember that we are using DOM based rendering interface
-						bDomInterface = true;
+						oPatcher.setRootNode(bPreserveContent ? null : oDomRef);
 					}
 
 				} else {
@@ -1185,7 +1347,9 @@ sap.ui.define([
 					bDomInterface = false;
 				}
 
-			} else if (!sLegacyRendererControlId && bDomInterface) {
+				bInitialized = true;
+
+			} else if (bCheckLegacyRenderer) {
 
 				// if the control uses the default visible property then use the InvisibleRenderer, otherwise the renderer of the control
 				oRenderer = getCurrentRenderer(oControl);
@@ -1230,6 +1394,8 @@ sap.ui.define([
 				}
 			}
 
+			fnDone?.();
+
 			return this;
 		};
 
@@ -1257,7 +1423,7 @@ sap.ui.define([
 		//Does everything needed after the rendering (restore focus, calling "onAfterRendering", initialize event binding)
 		function finalizeRendering(oStoredFocusInfo){
 
-			assert(!iOpenTagCount, "RenderManager: Mismatched opening and closing tags. Verify renderers!");
+			future.assertThrows(!iOpenTagCount, "RenderManager: Mismatched opening and closing tags. Verify renderers!");
 
 			var i, size = aRenderedControls.length;
 
@@ -1343,15 +1509,16 @@ sap.ui.define([
 				// get the root node of the Patcher to determine whether we are in the initial rendering or the re-rendering phase
 				var oRootNode = oPatcher.getRootNode();
 
+				// !oRootNode: no rendering API called before this function, so empty the target DOM node
 				// in case of DOM-based initial rendering, the Patcher creates a DocumentFragment to assemble all created control DOM nodes within it
-				if (oRootNode.nodeType == 11 /* Node.DOCUMENT_FRAGMENT_NODE */) {
+				if (!oRootNode || oRootNode.nodeType == 11 /* Node.DOCUMENT_FRAGMENT_NODE */) {
 					// even though we are in the initial rendering phase a control within the control tree might has been already rendered before
 					// therefore we need to store the currectly focused control info before we inject the DocumentFragment into the real DOM tree
 					oStoredFocusInfo = FocusHandler.getControlFocusInfo();
 
 					// controls are not necessarily need to produce output during their rendering
 					// in case of output is produced, let the callback injects the DocumentFragment
-					fnPutIntoDom(oRootNode.lastChild ? oRootNode : "");
+					fnPutIntoDom(oRootNode?.lastChild ? oRootNode : "");
 				} else {
 					// in case of DOM-based re-rendering, the root node of the Patcher must be an existing HTMLElement
 					// since the re-rendering happens during the control renderer APIs are executed here we get the stored focus info before the patching
@@ -1434,7 +1601,7 @@ sap.ui.define([
 		 * @public
 		 */
 		this.flush = function(oTargetDomNode, bDoNotPreserve, vInsert) {
-			assert((typeof oTargetDomNode === "object") && (oTargetDomNode.ownerDocument == document), "oTargetDomNode must be a DOM element");
+			future.assertThrows((typeof oTargetDomNode === "object") && (oTargetDomNode.ownerDocument == document), "oTargetDomNode must be a DOM element");
 
 			var fnDone = Interaction.notifyAsyncStep();
 
@@ -1444,6 +1611,22 @@ sap.ui.define([
 			}
 
 			flushInternal(function(vHTML) {
+
+				// If vHTML is a DocumentFragment and the target node is in a non-XHTML namespace,
+				// convert child nodes to the target namespace before insertion
+				if (vHTML?.nodeType === Node.DOCUMENT_FRAGMENT_NODE && oTargetDomNode.namespaceURI !== "http://www.w3.org/1999/xhtml") {
+					const aChildNodes = Array.from(vHTML.childNodes);
+					const sTargetNamespaceURI = oTargetDomNode.namespaceURI;
+
+					for (const oChild of aChildNodes) {
+						// Only check element nodes for namespace
+						// If namespace differs, convert and replace
+						if (oChild.nodeType === Node.ELEMENT_NODE && oChild.namespaceURI !== sTargetNamespaceURI) {
+							const oConvertedNode = convertElementToNamespace(oChild, sTargetNamespaceURI);
+							vHTML.replaceChild(oConvertedNode, oChild);
+						}
+					}
+				}
 
 				for (var i = 0; i < aRenderedControls.length; i++) {
 					//TODO It would be enough to loop over the controls for which renderControl was initially called but for this
@@ -1494,8 +1677,8 @@ sap.ui.define([
 		 * @public
 		 */
 		this.render = function(oControl, oTargetDomNode) {
-			assert(oControl && BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be a control");
-			assert(typeof oTargetDomNode === "object" && oTargetDomNode.ownerDocument == document, "oTargetDomNode must be a DOM element");
+			future.assertThrows(oControl && BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be a control");
+			future.assertThrows(typeof oTargetDomNode === "object" && oTargetDomNode.ownerDocument == document, "oTargetDomNode must be a DOM element");
 			if ( bLocked ) {
 				Log.error("Render must not be called within Before or After Rendering Phase. Call ignored.", null, this);
 				return;
@@ -1568,7 +1751,62 @@ sap.ui.define([
 					}
 
 				}
-			}, fnDone, oTargetDomNode);
+			}, () => {fnDone(); mOwnerInfo.clear();}, oTargetDomNode);
+		};
+
+		/**
+		 * Executes a rendering callback and flushes the result into the provided DOM node.
+		 *
+		 * The rendering callback receives a RenderManager instance with the semantic rendering API
+		 * implementation (DOM interface methods like <code>openStart</code>, <code>attr</code>,
+		 * <code>openEnd</code>, <code>text</code>, <code>close</code>, etc.).
+		 *
+		 * This method combines rendering and flushing in a single call, automatically handling
+		 * non-HTML namespaces (e.g., SVG, MathML) by detecting the namespace of the target DOM node.
+		 *
+		 * <b>Difference from calling render() then flush() separately:</b>
+		 * When rendering into a non-HTML namespace context (e.g., SVG or MathML elements), this method
+		 * automatically detects the target node's namespace and applies it as a fallback namespace for
+		 * the rendering operation. This ensures that elements created without an explicit parent element
+		 * (such as when rendering into a DocumentFragment initially) inherit the correct namespace.
+		 *
+		 * This function must not be called within control renderers.
+		 *
+		 * Usage:
+		 * <pre>
+		 *   const oRM = new RenderManager().getInterface();
+		 *
+		 *   // assume that oSvgContainer is already part of the DOM and we want to render a circle into it
+		 *   oRM.renderAndFlush(function(oRM) {
+		 *     oRM.openStart("circle").attr("cx", "50").attr("cy", "50").attr("r", "40");
+		 *     oRM.openEnd();
+		 *     oRM.close("circle");
+		 *   }, oSvgContainer);
+		 *
+		 *   oRM.destroy();
+		 * </pre>
+		 *
+		 * @param {function(sap.ui.core.RenderManager)} fnRender Rendering callback that receives a RenderManager instance
+		 *                  with the semantic rendering API implementation (DOM interface methods like <code>openStart</code>,
+		 *                  <code>attr</code>, <code>openEnd</code>, <code>text</code>, <code>close</code>, etc.)
+		 * @param {Element} oTargetDomNode Node in the DOM where the result should be flushed into
+		 * @param {boolean|int} [vInsert] Determines whether the buffer of the target DOM node is expanded (<code>true</code>) or
+		 *                  replaced (<code>false</code>), or the new entry is inserted at a specific position
+		 *                  (value of type <code>int</code>)
+		 * @returns {this} Reference to <code>this</code> to allow method chaining
+		 * @public
+		 * @since 1.147
+		 */
+		this.renderAndFlush = function(fnRender, oTargetDomNode, vInsert) {
+			oPatcher.setFallbackNamespace(oTargetDomNode.namespaceURI);
+
+			bDomInterface = true;
+
+			fnRender(oDomInterface);
+
+			this.flush(oTargetDomNode, /* no preserve content */ true, vInsert);
+
+			return this;
 		};
 
 		/**
@@ -1589,13 +1827,21 @@ sap.ui.define([
 
 		var oInterface = {};
 		aCommonMethods.forEach(function (sMethod) {
-			oStringInterface[sMethod] = oDomInterface[sMethod] = oInterface[sMethod] = this[sMethod];
+			/**
+			 * @deprecated As of version 1.92, string-based rendering is deprecated
+			 */
+			oStringInterface[sMethod] = this[sMethod];
+			oDomInterface[sMethod] = oInterface[sMethod] = this[sMethod];
 		}, this);
+
+
+		/** @ui5-transform-hint replace-local oDomInterface */
+		const oInterfaceForDomMethods = oStringInterface;
 		aDomInterfaceMethods.forEach(function (sMethod) {
-			oStringInterface[sMethod] = oInterface[sMethod] = this[sMethod];
+			this[sMethod] = oInterface[sMethod] = oInterfaceForDomMethods[sMethod];
 		}, this);
 		/**
-		 * @deprecated As of version 1.92, the string rendering methods are deprecated
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
 		 */
 		aStrInterfaceMethods.forEach(function (sMethod) {
 			oStringInterface[sMethod] = oInterface[sMethod] = this[sMethod];
@@ -1611,7 +1857,9 @@ sap.ui.define([
 		 * @private
 		 */
 		this.getRendererInterface = function() {
-			return oStringInterface;
+			/** @ui5-transform-hint replace-local oDomInterface */
+			const oRendererInterface = oStringInterface;
+			return oRendererInterface;
 		};
 
 		this.getInterface = function() {
@@ -2142,7 +2390,7 @@ sap.ui.define([
 	 * @public
 	 */
 	RenderManager.prototype.getRenderer = function(oControl) {
-		assert(oControl && BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be an sap.ui.core.Control");
+		future.assertThrows(oControl && BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be an sap.ui.core.Control");
 		return RenderManager.getRenderer(oControl);
 	};
 
@@ -2180,6 +2428,8 @@ sap.ui.define([
 		 * A temporary element for a control that participates in DOM preservation.
 		 * The temporary element is rendered during string rendering, flushed into DOM
 		 * and then replaced with the preserved DOM during onAfterRendering.
+		 *
+		 * @deprecated As of version 1.92, string-based rendering is deprecated
 		 * @private
 		 * @ui5-restricted sap.ui.core
 		 */
@@ -2198,7 +2448,7 @@ sap.ui.define([
 	 * @public
 	 */
 	RenderManager.getRenderer = function(oControl) {
-		assert(oControl && BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be an sap.ui.core.Control");
+		future.assertThrows(oControl && BaseObject.isObjectA(oControl, 'sap.ui.core.Control'), "oControl must be an sap.ui.core.Control");
 
 		return oControl.getMetadata().getRenderer();
 	};
@@ -2328,7 +2578,7 @@ sap.ui.define([
 	 * @static
 	 */
 	RenderManager.preserveContent = function(oRootNode, bPreserveRoot, bPreserveNodesWithId, oControlBeforeRerender /* private */) {
-		assert(typeof oRootNode === "object" && oRootNode.ownerDocument == document, "oRootNode must be a DOM element");
+		future.assertThrows(typeof oRootNode === "object" && oRootNode.ownerDocument == document, "oRootNode must be a DOM element");
 
 		Element = Element ? Element : sap.ui.require("sap/ui/core/Element");
 
@@ -2458,7 +2708,7 @@ sap.ui.define([
 	 * @static
 	 */
 	RenderManager.findPreservedContent = function(sId) {
-		assert(typeof sId === "string", "sId must be a string");
+		future.assertThrows(typeof sId === "string", "sId must be a string");
 		var $preserve = getPreserveArea(),
 			$content = $preserve.children("[" + ATTR_PRESERVE_MARKER + "='" + sId.replace(/(:|\.)/g,'\\$1') + "']");
 		return $content;

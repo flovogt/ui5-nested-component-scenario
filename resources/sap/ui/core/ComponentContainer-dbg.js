@@ -60,7 +60,7 @@ sap.ui.define([
 	 * See also {@link module:sap/ui/core/ComponentSupport}.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.ComponentContainer
@@ -134,7 +134,7 @@ sap.ui.define([
 				/**
 				 * Flag, whether to auto-prefix the ID of the nested Component or not. If
 				 * this property is set to true the ID of the Component will be prefixed
-				 * with the ID of the ComponentContainer followed by a single dash.
+				 * with the ID of the ComponentContainer followed by a single hyphen.
 				 * This property can only be applied initially.
 				 */
 				autoPrefixId : {type : "boolean", defaultValue: false},
@@ -421,7 +421,27 @@ sap.ui.define([
 		}
 
 		// Finally, create the component instance
-		return Component._createComponent(mConfig, oOwnerComponent);
+		function createComponent() {
+			/**
+			 * @ui5-transform-hint replace-local true
+			 */
+			const bAsync = mConfig.async;
+			if (bAsync === true) {
+				return Component.create(mConfig);
+			} else {
+				return sap.ui.component(mConfig); // legacy-relevant: use deprecated factory for sync use case only
+			}
+		}
+
+		if (oOwnerComponent) {
+			if (!oOwnerComponent.isActive()) {
+				throw new Error("Creation of component '" + mConfig.name + "' is not possible due to inactive owner component '" + oOwnerComponent.getId() + "'");
+			}
+			// create the nested component in the context of this component
+			return oOwnerComponent.runAsOwner(createComponent);
+		} else {
+			return createComponent();
+		}
 	};
 
 	/*

@@ -79,7 +79,7 @@ function(
 	 *
 	 *
 	 * @author Frank Weigel
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @since 0.8.6
 	 * @alias sap.ui.base.ManagedObjectMetadata
 	 * @extends sap.ui.base.Metadata
@@ -110,7 +110,7 @@ function(
 
 	function deprecation(fn, name) {
 		return function() {
-			Log.warning("Usage of deprecated feature: " + name);
+			Log.warning("[DEPRECATED] Usage of deprecated feature: " + name);
 			return fn.apply(this, arguments);
 		};
 	}
@@ -737,7 +737,7 @@ function(
 			add(that._sRemoveAllMutator, function() { return this.removeAllAssociation(n); });
 			if ( n !== that.singularName ) {
 				add('removeAll' + capitalize(that.singularName), function() {
-					Log.warning("Usage of deprecated method " +
+					Log.warning("[DEPRECATED] Usage of deprecated method " +
 						that._oParent.getName() + ".prototype." + 'removeAll' + capitalize(that.singularName) + "," +
 						" use method " + that._sRemoveAllMutator  + " (plural) instead.");
 					return this[that._sRemoveAllMutator]();
@@ -972,7 +972,7 @@ function(
 	 * @param {string} sName name of the property to add
 	 * @param {sap.ui.base.ManagedObject.MetadataOptions.Property} oInfo metadata for the property
 	 * @private
-	 * @restricted sap.ui.core
+	 * @ui5-restricted sap.ui.core
 	 * @see sap.ui.core.EnabledPropagator
 	 */
 	ManagedObjectMetadata.prototype.addProperty = function(sName, oInfo) {
@@ -1634,7 +1634,7 @@ function(
 	 * @param {string} sName name of the setting
 	 * @param {object} oInfo metadata for the setting
 	 * @private
-	 * @restricted sap.ui.core
+	 * @ui5-restricted sap.ui.core
 	 */
 	ManagedObjectMetadata.prototype.addSpecialSetting = function (sName, oInfo) {
 		var oSS = new SpecialSetting(this, sName, oInfo);
@@ -1966,7 +1966,7 @@ function(
 	 * you need to take care of identification yourself.
 	 *
 	 * @param {sap.ui.base.ManagedObject} [oManagedObject] instance that could have instance specific design time metadata
-	 * @param {string} [sScopeKey] scope name for which metadata will be resolved, see sap.ui.base.ManagedObjectMetadataScope
+	 * @param {string} [sScopeKey] scope name for which metadata will be resolved, see sap.ui.dt.DesignTime
 	 * @return {Promise} A promise which will return the loaded design time metadata
 	 * @private
 	 * @ui5-restricted sap.ui.dt, com.sap.webide

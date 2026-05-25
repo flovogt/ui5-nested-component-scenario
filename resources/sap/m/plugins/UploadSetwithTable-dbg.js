@@ -48,7 +48,8 @@ sap.ui.define([
 	 * <ul>
 	 * <li>{@link sap.ui.mdc.Table MDC Table}</li>
 	 * <li>{@link sap.m.Table Responsive Table}</li>
-	 * <li>{@link sap.m.GridTable Grid Table}</li>
+	 * <li>{@link sap.ui.table.Table Grid Table}</li>
+	 * <li>{@link sap.ui.table.TreeTable Tree Table}</li>
 	 * </ul>
 	 *
 	 * <caption>Consider the following before using the plugin: </caption>
@@ -56,6 +57,7 @@ sap.ui.define([
 	 * <li>It gets activated when it is added as a dependent to the table control. It gets deactivated when it is removed from the table control or when the table control is destroyed.</li>
 	 * <li>It fires onActivated and onDeactivated events when it is activated and deactivated, respectively.</li>
 	 * <li>Configuring the rowConfiguration aggregation (type {@link sap.m.upload.UploadItemConfiguration UploadItemConfiguration}) of this plugin is mandatory to use the features such as file preview, download etc.</li>
+	 * <li>For the plugin to work with the tree table control, the isDirectoryPath property of the rowConfiguration aggregation must be set. This indicates if the context of the row is a directory or a file. It helps the plugin with the file preview feature.</li>
 	 * <li>It works only with the table control when the table is bound to the model to perform the operations such as rename, download etc.</li>
 	 * </ul>
 	 *
@@ -75,7 +77,7 @@ sap.ui.define([
 	 * </pre>
 	 *
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @author SAP SE
 	 * @public
 	 * @since 1.124
@@ -187,7 +189,7 @@ sap.ui.define([
 				 * @property {string} characters The file name validation configuration characters.
 				 * <br> <br> The default restricted filename character set is: \:/*?"<>|[]{}@#$
 				 * @public
-				 * @since since 1.136
+				 * @since 1.136
 				**/
 
 				/**
@@ -203,7 +205,7 @@ sap.ui.define([
 				 */
 				fileNameValidationConfig: { type: 'object', defaultValue: null }
 			},
-				aggregations: {
+			aggregations: {
 				/**
 				 * Defines the uploader to be used. If not specified, the default implementation is used.
 				 */
@@ -243,6 +245,18 @@ sap.ui.define([
 				 * The event is triggered when the file name is changed.
 				 */
 				itemRenamed: {
+					parameters: {
+						/**
+						 * The renamed UI element is of UploadItem type.
+						 */
+						item: {type: "sap.m.upload.UploadItem"}
+					}
+				},
+				/**
+				 * The event is triggered when the file renaming process is canceled.
+                                 * @since 1.142
+				 */
+				itemRenameCanceled: {
 					parameters: {
 						/**
 						 * The renamed UI element is of UploadItem type.
@@ -469,15 +483,6 @@ sap.ui.define([
 	UploadSetwithTable.prototype.onDeactivate = function (oControl) {
 		this.getConfig("cleanupPluginInstanceSettings", oControl, this);
 		this.fireOnDeactivated({control: oControl});
-	};
-
-	UploadSetwithTable.prototype.exit = function() {
-		this.getConfig("cleanupPluginInstanceSettings", this.getControl(), this);
-		PluginBase.prototype.exit.call(this);
-	};
-
-	UploadSetwithTable.prototype.setParent = function() {
-		PluginBase.prototype.setParent.apply(this, arguments);
 	};
 
 	// Overriden Setter methods
@@ -857,6 +862,8 @@ sap.ui.define([
 		oTextField.addStyleClass("sapUiTinyMarginBegin");
 		oTextField.addStyleClass("sapUiTinyMarginTop");
 
+		oInput.addAriaDescribedBy(oTextField.getId());
+
 		// Label for Input
 		const oLabel = new Label({
 			text: this._oRb.getText("UPLOADSET_WITH_TABLE_DOCUMENT_RENAME_INPUT_LABEL"),
@@ -894,7 +901,11 @@ sap.ui.define([
 			afterClose: function () {
 				oDialog.destroy();
 			},
-			escapeHandler: (oPromise) => { oPromise?.reject();}
+			escapeHandler: (oPromise) => {
+				oDialog.close();
+				this.fireItemRenameCanceled({item: oItem});
+				oPromise?.reject();
+			}
 		});
 
 		return oDialog;
@@ -918,6 +929,7 @@ sap.ui.define([
 				onClose: (sAction) => {
 					if (sAction !== this._oRb.getText("UPLOADSET_WITH_TABLE_DOCUMENT_RENAME_SAVE_BUTTON_TEXT")) {
 						oDialog.close();
+						this.fireItemRenameCanceled({item: oItem});
 					} else {
 						// fire beginbutton event to save the filename
 						var oBeginButton = oDialog.getBeginButton();
@@ -928,6 +940,7 @@ sap.ui.define([
 			});
 		} else {
 			oDialog.close();
+			this.fireItemRenameCanceled({item: oItem});
 		}
 	};
 
@@ -958,6 +971,7 @@ sap.ui.define([
 			this.fireItemRenamed({item: oItem});
 		} else {
 			oDialog.close();
+			this.fireItemRenameCanceled({item: oItem});
 		}
 	};
 
@@ -1336,7 +1350,8 @@ sap.ui.define([
 		return new Promise((resolve, reject) => {
 			const aEntriesPromises = [];
 			for (let i = 0; i < dataTransferItems.length; i++) {
-				aEntriesPromises.push(traverseFileTreePromise(dataTransferItems[i]?.webkitGetAsEntry()));
+				const oTransferItem = dataTransferItems[i];
+				aEntriesPromises.push(traverseFileTreePromise(oTransferItem?.webkitGetAsEntry(), oTransferItem));
 			}
 			Promise.all(aEntriesPromises)
 				.then( (entries) => {
@@ -1346,9 +1361,15 @@ sap.ui.define([
 				});
 		});
 
-		function traverseFileTreePromise(item) {
+		function traverseFileTreePromise(item, oDataTransferItem) {
 			return new Promise((resolve, reject) => {
 				if (item.isFile) {
+					if (oDataTransferItem && oDataTransferItem.getAsFile) {
+						const oFile = oDataTransferItem.getAsFile();
+						aFiles.push(oFile);
+						resolve(oFile);
+						return;
+					}
 					item.file((oFile) => {
 						aFiles.push(oFile);
 						resolve(oFile);
@@ -1554,8 +1575,8 @@ sap.ui.define([
 	/**
 	 * Internal API to initiate file preview dialog.
 	 * Invoked from the plugin configuration with the items created on the fly from the contexts of the table.
-	 * @param {sap.m.upload.UploadSetwitTableItem} oItem target item to be previewed.
-	 * @param {sap.m.upload.UploadSetwitTableItem[]} aItems all items in the table.
+	 * @param {sap.m.upload.UploadItem} oItem target item to be previewed.
+	 * @param {sap.m.upload.UploadItem[]} aItems all items in the table.
 	 * @private
 	 */
 	UploadSetwithTable.prototype._initiateFilePreview = function (oItem, aItems) {
@@ -1723,6 +1744,14 @@ sap.ui.define([
 					value: oBindingContext?.getProperty(oRowConfiguration?.getIsTrustedSourcePath())
 				}, createStaticBinding);
 			}
+			if (oRowConfiguration?._isDirectoryPathValidator(oBindingContext)) {
+				await this.bindItemProperty(oUploadSetItem, {
+					property: "isDirectory",
+					propertyPath: oRowConfiguration.getIsDirectoryPath(),
+					modelName: sModelName,
+					value: oBindingContext?.getProperty(oRowConfiguration.getIsDirectoryPath())
+				}, createStaticBinding);
+			}
 			return oUploadSetItem;
 	};
 
@@ -1855,7 +1884,7 @@ sap.ui.define([
 					oPlugin._oDragDropConfig = null;
 				}
 			},
-			// Handles the preview of the passed context. Requires access to all the contexts of inner table to setup the preview along with carousel.
+			// Handles the preview of the passed context. Requires an access to all the contexts of inner table to setup the preview along with the carousel.
 			openFilePreview: async function(oBindingContext, oControl, oPlugin) {
 				const oRowConfiguration = oPlugin.getRowConfiguration();
 				const oContexts = this.getTableContexts(oControl?._oTable);
@@ -2088,6 +2117,113 @@ sap.ui.define([
 			},
 			getTableContexts: function(oTable) {
 				return oTable?.getBinding("rows")?.getCurrentContexts() || null;
+			}
+		 },
+		 "sap.ui.table.TreeTable": {
+			_sModelName: undefined,
+			_bIsTableBound: false,
+			setPluginDefaultSettings: function(oControl, oPlugin) {
+				if (oPlugin.getUploadEnabled()) {
+					this.setDragDropConfig(oControl, oPlugin);
+				}
+				this.setDefaultIllustrations(oControl, oPlugin);
+			},
+			setIsTableBound: function(oControl) {
+				if (oControl?.getBinding("items")) {
+					this._bIsTableBound = true;
+				} else {
+					this._bIsTableBound = false;
+				}
+			},
+			getIsTableBound: function() {
+				return this._bIsTableBound;
+			},
+			setModelName: function(oControl) {
+				if (oControl?.isA("sap.ui.table.Table")) {
+					this._sModelName = oControl?.getBindingInfo("rows")?.model;
+				}
+			},
+			getModelName: function() {
+				return this._sModelName;
+			},
+			// Set the drag and drop configuration for the table when upload plugin is actived.
+			setDragDropConfig: function (oControl, oPlugin) {
+				var oDragDropConfig = oPlugin._oDragDropConfig = new DragDropInfo({
+					sourceAggregation: "rows",
+					targetAggregation: "rows"
+				});
+				var oDropConfig = oPlugin._oDropConfig = new DropInfo({
+					dropEffect:"Move",
+					dropPosition:"OnOrBetween",
+					dragEnter: [oPlugin?._onDragEnterFile, oPlugin],
+					drop: [oPlugin?._onDropFile, oPlugin]
+				});
+				oControl?.addDragDropConfig(oDragDropConfig);
+				oControl?.addDragDropConfig(oDropConfig);
+			},
+			resetDragDropConfig: function(oControl, oPlugin) {
+				if (oPlugin && oControl) {
+					oControl.removeDragDropConfig(oPlugin._oDragDropConfig);
+					oControl.removeDragDropConfig(oPlugin._oDropConfig);
+					oPlugin._oDragDropConfig = null;
+					oPlugin._oDropConfig = null;
+				}
+			},
+			// Set the default illustrations for the table when no data is available. Set only when the upload plugin is activated.
+			setDefaultIllustrations: function(oControl, oPlugin) {
+				const oNoDataIllustration = oPlugin?.getNoDataIllustration();
+				if (oControl && oPlugin) {
+					if (!oNoDataIllustration) {
+						oPlugin._illustratedMessage = oPlugin._getDefaultNoDataIllustration();
+					} else {
+						oPlugin._illustratedMessage = oNoDataIllustration;
+					}
+					oControl.setNoData(oPlugin._illustratedMessage);
+                                }
+			},
+			cleanupPluginInstanceSettings: function(oControl, oPlugin) {
+				// remove nodata aggregations added from plugin activation.
+				if (oControl) {
+					oControl.setNoData(null);
+				}
+				if (oPlugin) {
+					oPlugin.setPreviewDialog(null);
+					oPlugin._illustratedMessage = null;
+				}
+				if (oPlugin._oDragDropConfig && oControl) {
+					oControl.removeDragDropConfig(oPlugin._oDragDropConfig);
+					oPlugin._oDragDropConfig = null;
+				}
+			},
+			// Handles preview of the passed context. Requires access to all the contexts of inner table to setup the preview along with carousel.
+			openFilePreview: async function(oBindingContext, oControl, oPlugin) {
+				const oRowConfiguration = oPlugin.getRowConfiguration();
+				let oContexts = this.getTableContexts(oControl);
+				// Filter out the directory items from the contexts.
+				oContexts = oContexts.filter((oContext) => {
+					const sPath = oPlugin.getRowConfiguration().getIsDirectoryPath();
+					return oContext?.getProperty(sPath) != true;
+				});
+				let aUploadSetItems = [];
+				if (oContexts?.length) {
+					aUploadSetItems = await oPlugin.getItemsMap(oContexts, oRowConfiguration);
+					const oPreviewUploaditem = aUploadSetItems.find((oItem) => oItem?.data("path") === oBindingContext.getPath());
+					if (oPreviewUploaditem) {
+						oPlugin._initiateFilePreview(oPreviewUploaditem, aUploadSetItems);
+					}
+				}
+			},
+			// Handles download of the file through the context passed.
+			download: async function(mDownloadInfo, oPlugin) {
+				const {oBindingContext, bAskForLocation} = mDownloadInfo;
+				const oItem = await oPlugin.getItemForContext(oBindingContext);
+				if (oItem && oItem.getUrl()) {
+					return oPlugin._initiateFileDownload(oItem, bAskForLocation);
+				}
+				return false;
+			},
+			getTableContexts: function(oTable) {
+				return oTable?.getBinding("rows")?.getContexts(0, oTable?.getVisibleRowCount()) || null;
 			}
 		 }
 		}, UploadSetwithTable);

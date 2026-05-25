@@ -89,7 +89,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @since 1.34.0
 	 *
 	 * @public
@@ -1283,6 +1283,9 @@ sap.ui.define([
 
 	/* --- Event Handling --- */
 	GenericTile.prototype.ontouchstart = function (event) {
+		if (_isInteractiveElement(event)) {
+			return;
+		}
 		if (event && event.target.id.indexOf("-action-more") === -1 && this.getDomRef()) {
 			this.getDomRef().classList.remove("sapMGTActionButtonPress"); // Sets focus on the tile when clicked other than the action-More Button in Icon mode
 		}
@@ -1317,6 +1320,9 @@ sap.ui.define([
 	};
 
 	GenericTile.prototype.ontap = function (event) {
+		if (_isInteractiveElement(event, true)) {
+			return;
+		}
 		if (!_isInnerTileButtonPressed(event, this) && !this._isLinkPressed(event)) {
 			var oParams;
 			// The ActionMore button in IconMode tile would be fired irrespective of the pressEnabled property
@@ -1328,11 +1334,17 @@ sap.ui.define([
 				}
 				event.preventDefault();
 			}
+		} else {
+			// Inner button or link was pressed — prevent <a> tag navigation
+			event.preventDefault();
 		}
 	};
 
 	var preventPress = false;
 	GenericTile.prototype.onkeydown = function (event) {
+		if (_isInteractiveElement(event)) {
+			return;
+		}
 		if (!_isInnerTileButtonPressed(event, this) && !this._isLinkPressed(event)) {
 			var bIsShiftKeyPressed = event.shiftKey;
 			var bIsTabKeyPressed = event.key === "Tab";
@@ -1381,6 +1393,9 @@ sap.ui.define([
 	};
 
 	GenericTile.prototype.onkeyup = function (event) {
+		if (_isInteractiveElement(event)) {
+			return;
+		}
 		if (!_isInnerTileButtonPressed(event, this) && !this._isLinkPressed(event)) {
 			var currentKey = keyPressed[event.keyCode];    //disable navigation to other tiles when one tile is selected
 			if (currentKey) {
@@ -1702,23 +1717,40 @@ sap.ui.define([
 	 */
 	 GenericTile.prototype._getSizeDescription = function () {
 		var sText = "",
-			frameType = this.getFrameType();
+		    frameType = this.getFrameType(),
+                    bHasPress = this.hasListeners("press"),
+                    sUrl = this.getUrl();
 		if (this.getMode() === GenericTileMode.LineMode) {
 			var bIsLink = this.getUrl() && !this._isInActionScope() && this.getState() !== LoadState.Disabled;
-			var bHasPress = this.hasListeners("press");
 			if (bIsLink || bHasPress) {
 				sText = "GENERIC_TILE_LINK";
 			} else {
 				sText = "GENERIC_TILE_LINE_SIZE";
 			}
 		} else if (frameType === FrameType.OneByHalf) {
-			sText = "GENERIC_TILE_FLAT_SIZE";
-		} else if (frameType === FrameType.TwoByHalf) {
-			sText = "GENERIC_TILE_FLAT_WIDE_SIZE";
-		} else if (frameType === FrameType.TwoByOne) {
-			sText = "GENERIC_TILE_WIDE_SIZE";
-		} else if (frameType === FrameType.OneByOne) {
-			sText = "GENERIC_TILE_ROLE_DESCRIPTION";
+            if (bHasPress || sUrl) {
+                sText = "GENERIC_TILE_NAVIGATIONAL_FLAT_SIZE";
+            } else {
+                sText = "GENERIC_TILE_ACTION_FLAT_SIZE";
+            }
+       } else if (frameType === FrameType.TwoByHalf) {
+            if (bHasPress || sUrl) {
+                sText = "GENERIC_TILE_NAVIGATIONAL_FLAT_WIDE_SIZE";
+            } else {
+                sText = "GENERIC_TILE_ACTION_FLAT_WIDE_SIZE";
+            }
+       } else if (frameType === FrameType.TwoByOne) {
+            if (bHasPress || sUrl) {
+                sText = "GENERIC_TILE_NAVIGATIONAL_WIDE_SIZE";
+            } else {
+                sText = "GENERIC_TILE_ACTION_WIDE_SIZE";
+            }
+       } else if (frameType === FrameType.OneByOne) {
+            if (bHasPress || sUrl) {
+                sText = "GENERIC_TILE_NAVIGATIONAL_ROLE_DESCRIPTION";
+            } else {
+                sText = "GENERIC_TILE_ACTION_ROLE_DESCRIPTION";
+            }
 		}
 		return this._oRb.getText(sText);
 	};
@@ -1787,14 +1819,13 @@ sap.ui.define([
 		});
 
 		//The below piece of code is written for the scenario if the link inside the TileAttribute has been clicked
-		var bIsLinkClicked = false;
-		this.getTileContent().forEach(function(oActionTileContent){
-			if (oActionTileContent._isLinkPressed) {
-				bIsLinkClicked = true;
-				oActionTileContent._isLinkPressed = false;
+		var oSrcControl = oEvent.srcControl;
+		var oActionTileContent = this.getTileContent().find(function(oActionTileContent){
+			if (oActionTileContent.isA("sap.m.ActionTileContent")){
+				return oActionTileContent._isLinkClicked(oSrcControl);
 			}
 		});
-		return !!oLinkTileContent || bIsLinkClicked;
+		return !!oLinkTileContent || !!oActionTileContent;
 	};
 
 	/**
@@ -2186,6 +2217,32 @@ GenericTile.prototype._isNavigateActionEnabled = function() {
 	GenericTile.prototype.getGridItemRole = function () {
 		return this._sGridItemRole;
 	};
+
+	GenericTile.prototype._shouldRenderLink = function() {
+		return this.getUrl() && (!this._isInActionScope() || this.getMode() === GenericTileMode.IconMode) && this.getState() !== LoadState.Disabled && !this._isNavigateActionEnabled();
+	};
+
+	/**
+	 * Checks if the event target is an interactive form element (input, textarea, select)
+	 * inside the tile. These elements should receive native focus and interaction
+	 * without triggering the tile's press event. When bPreventDefault is true, it also
+	 * calls preventDefault on the event to block anchor tag navigation.
+	 * @param {object} event - jQuery event object
+	 * @param {boolean} [bPreventDefault=false] - whether to call preventDefault on the event
+	 * @returns {boolean} - returns true if the event target is an interactive form element
+	 * @private
+	 */
+	function _isInteractiveElement(event, bPreventDefault) {
+		if (!event || !event.target) {
+			return false;
+		}
+		var oTarget = event.target;
+		var bIsInteractive = oTarget.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/i.test(oTarget.tagName);
+		if (bIsInteractive && bPreventDefault) {
+			event.preventDefault();
+		}
+		return bIsInteractive;
+	}
 
 	/**
 	 * Checks if any of the inner buttons in the Tile are focused or clicked

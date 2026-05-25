@@ -39,7 +39,7 @@ sap.ui.define([
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -65,6 +65,7 @@ sap.ui.define([
 
 				/**
 				 * Defines the list item icon.
+				 * <b>Note:</b> The icon is decorative. For more advanced use cases and configuration options, use the <code>avatar</code> aggregation.
 				 */
 				icon : {type : "sap.ui.core.URI", group : "Misc", defaultValue : null},
 
@@ -435,6 +436,7 @@ sap.ui.define([
 			oThreeDots.textContent = " ";
 			oButton.textContent = oRb.getText("EXPANDABLE_TEXT_SHOW_LESS");
 			bTextExpanded = true;
+			oButton.scrollIntoView({ behavior: "smooth", block: "nearest" });
 		} else {
 			oText.textContent = this._getCollapsedText(sText);
 			oThreeDots.textContent = " ... ";

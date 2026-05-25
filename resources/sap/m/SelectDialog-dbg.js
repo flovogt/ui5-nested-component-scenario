@@ -15,6 +15,7 @@ sap.ui.define([
 	'./library',
 	'sap/ui/core/library',
 	'./SelectDialogBase',
+	'sap/ui/dom/detectTextSelection',
 	'sap/ui/core/Element',
 	'sap/ui/core/InvisibleText',
 	'sap/ui/core/InvisibleMessage',
@@ -37,6 +38,7 @@ function(
 	library,
 	CoreLibrary,
 	SelectDialogBase,
+	detectTextSelection,
 	Element,
 	InvisibleText,
 	InvisibleMessage,
@@ -130,7 +132,7 @@ function(
 	 * @extends sap.m.SelectDialogBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -439,6 +441,8 @@ function(
 				oPromiseWrapper.resolve();
 			}
 		}).addStyleClass("sapMSelectDialog");
+
+		this._oDialog._setInitialFocus = function () {};
 
 		// for downward compatibility reasons
 		this._dialog = this._oDialog;
@@ -1349,6 +1353,9 @@ function(
 	 */
 	SelectDialog.prototype._getListItemsEventDelegates = function () {
 		var fnEventDelegate = function (oEvent) {
+			if (detectTextSelection(this.getDomRef())) {
+				return;
+			}
 
 			var oListItem = Element.closestTo(oEvent.target.closest(".sapMLIB"));
 

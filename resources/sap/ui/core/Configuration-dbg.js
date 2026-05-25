@@ -41,7 +41,7 @@ sap.ui.define([
 ) {
 	"use strict";
 
-	var oVersion = new Version("1.136.16");
+	var oVersion = new Version("1.148.0");
 	var oFormatSettings;
 
 	// Lazy dependency to core
@@ -175,7 +175,7 @@ sap.ui.define([
 		 * configured by the user or application or that has been determined from the user agent settings.
 		 * It has not been normalized, but has been validated against a relaxed version of
 		 * {@link http://www.ietf.org/rfc/bcp/bcp47.txt BCP47}, allowing underscores ('_') instead of the
-		 * suggested dashes ('-') and not taking the case of letters into account.
+		 * suggested hyphens ('-') and not taking the case of letters into account.
 		 *
 		 * The exceptions mentioned above affect languages that have been specified via the URL parameter
 		 * <code>sap-language</code>. That parameter by definition represents an SAP logon language code
@@ -255,7 +255,7 @@ sap.ui.define([
 		 * <b>Note</b>: When using config method please take note of and respect the above mentioned restrictions.
 		 *
 		 * @param {string} sLanguage the new language as a BCP47 compliant language tag; case doesn't matter
-		 *   and underscores can be used instead of dashes to separate components (compatibility with Java Locale IDs)
+		 *   and underscores can be used instead of hyphens to separate components (compatibility with Java Locale IDs)
 		 * @param {string} [sSAPLogonLanguage] SAP language code that corresponds to the <code>sLanguage</code>;
 		 *   if a value is specified, future calls to <code>getSAPLogonLanguage</code> will return that value;
 		 *   if no value is specified, the framework will use the ISO639 language part of <code>sLanguage</code>
@@ -488,7 +488,7 @@ sap.ui.define([
 		 * <b>Note</b>: See documentation of {@link #.setLanguage} for restrictions.
 		 *
 		 * @param {string|null} sFormatLocale the new format locale as a BCP47 compliant language tag;
-		 *   case doesn't matter and underscores can be used instead of dashes to separate
+		 *   case doesn't matter and underscores can be used instead of hyphens to separate
 		 *   components (compatibility with Java Locale IDs)
 		 * @return {this} <code>this</code> to allow method chaining
 		 * @public
@@ -666,7 +666,7 @@ sap.ui.define([
 		 * @since 1.13.2
 		 * @private
 		 * @ui5-restricted sap.ui.core.Core, sap.watt, com.sap.webide, sap.ui.fl, sap.ui.rta, sap.ui.comp, SAP Business Application Studio
-		 * @deprecated As of Version 1.120
+		 * @deprecated As of Version 1.120, use {@link module:sap/ui/base/DesignTime.isDesignModeEnabled} instead
 		 */
 		getDesignMode : DesignTime.isDesignModeEnabled,
 
@@ -677,7 +677,7 @@ sap.ui.define([
 		 * @since 1.13.2
 		 * @private
 		 * @ui5-restricted sap.watt, com.sap.webide
-		 * @deprecated As of Version 1.120
+		 * @deprecated As of Version 1.120, use {@link module:sap/ui/base/DesignTime.isControllerCodeDeactivationSuppressed} instead
 		 */
 		getSuppressDeactivationOfControllerCode : DesignTime.isControllerCodeDeactivationSuppressed,
 
@@ -688,7 +688,7 @@ sap.ui.define([
 		 * @since 1.26.4
 		 * @private
 		 * @ui5-restricted sap.watt, com.sap.webide
-		 * @deprecated As of Version 1.120
+		 * @deprecated As of Version 1.120, use {@link module:sap/ui/base/DesignTime.isControllerCodeDeactivated} instead
 		 */
 		getControllerCodeDeactivated : DesignTime.isControllerCodeDeactivated,
 
@@ -743,7 +743,7 @@ sap.ui.define([
 		 *
 		 * @returns {boolean} true if customizing is disabled
 		 * @private
-		 * @ui5-restricted
+		 * @ui5-restricted sap.ca.scfld
 		 * @deprecated As of version 1.120, without a replacement.
 		 */
 		getDisableCustomizing : function() {

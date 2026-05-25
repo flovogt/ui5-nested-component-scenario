@@ -115,7 +115,7 @@
 		</interaction>
 		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Si la selección de celda está activada</span>:</p>
-				<p>Si las celdas están seleccionadas, presione <kbd>Shift</kbd> y haga clic en una celda diferente actualiza la selección hasta la celda en la que se hizo clic.</p>
+				<p>Si las celdas están seleccionadas, <kbd>Shift + MouseClick</kbd> en una celda diferente mejora la selección hasta la celda en la que se hizo clic.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>
@@ -130,11 +130,19 @@
 	<control-interactions>
 		<control name="sap.m.VariantManagement"/>
 		<interaction> <kbd>F4</kbd> <kbd>Spacebar</kbd> <kbd>Alt + ArrowUp</kbd> <kbd>Alt + ArrowDown</kbd> <description>
-				<p>Abre la administración de variantes.</p>
-			</description>
+				<p>Abre el diálogo Mis vistas.</p>
+			</description> 
 		</interaction>
 		<interaction> <kbd>PageUp</kbd> <description>
-				<p>Cierra el error emergente de la administración de variantes</p>
+				<p>Cierra el emergente de error en el diálogo Mis vistas</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + Enter</kbd> <description>
+				<p>Guarda la nueva vista en el diálogo Guardar como.</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + S</kbd> <description>
+				<p>Guarda los cambios hechos a las vistas.</p>
 			</description>
 		</interaction>
 	</control-interactions>

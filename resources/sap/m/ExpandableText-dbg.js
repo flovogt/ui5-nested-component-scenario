@@ -57,10 +57,10 @@ function(library,
 	// shortcut for sap.m.PlacementType
 	var PlacementType = library.PlacementType;
 
-	// shortcut for sap.m.ExpandableOverflowTextMode
+	// shortcut for sap.m.ExpandableTextOverflowMode
 	var ExpandableTextOverflowMode = library.ExpandableTextOverflowMode;
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
 	// shortcut for sap.m.LinkAccessibleRole
@@ -105,7 +105,7 @@ function(library,
 	 * @implements sap.ui.core.IFormContent, sap.m.IHyphenation, sap.ui.core.ILabelable
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public

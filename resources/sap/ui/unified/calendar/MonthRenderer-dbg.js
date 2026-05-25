@@ -385,7 +385,8 @@ sap.ui.define([
 				oFormatLong: oMonth._getFormatLong(),
 				sPrimaryCalendarType: oMonth.getPrimaryCalendarType(),
 				sSecondaryCalendarType: oMonth._getSecondaryCalendarType(),
-				oLegend: undefined
+				oLegend: undefined,
+				aSelectedDates: oMonth.getSelectedDates()
 			};
 
 		sLegendId = oMonth.getLegend();
@@ -420,11 +421,14 @@ sap.ui.define([
 	MonthRenderer.renderDay = function(oRm, oMonth, oDay, oHelper, bOtherMonth, bWeekNum, iNumber, sWidth, bDayName){
 		CalendarUtils._checkCalendarDate(oDay);
 		var oSecondaryDay = new CalendarDate(oDay, oHelper.sSecondaryCalendarType),
+			bSelectable = oMonth._getAriaRole() === "gridcell" && oMonth._getSelectableAccessibilitySemantics(),
+			sDayDescription = bSelectable ? oMonth._getDayDescription() : "",
+			sDayNameId = (!bDayName && iNumber >= 0) ? oHelper.sId + "-WH" + iNumber : "",
 			mAccProps = {
 				role: oMonth._getAriaRole(),
-				selected: false,
+				selected: bSelectable ? false : null,
 				label: "",
-				describedby: oMonth._getDayDescription()
+				describedby: `${sDayDescription} ${sDayNameId}`.trim() || ""
 			},
 			bBeforeFirstYear = oDay._bBeforeFirstYear,
 			sAriaType = "",
@@ -438,6 +442,7 @@ sap.ui.define([
 		var sSpecialDateColorFilter = oHelper?.oLegend ? oHelper.oLegend._getSpecialDateColorFilter().toLowerCase() : '';
 		var bEnabled = oMonth._checkDateEnabled(oDay);
 		var bShouldBeMarkedAsSpecialDate = oMonth._isSpecialDateMarkerEnabled(oDay);
+
 		const sFirstSpecialDateType = aDayTypes.length > 0 && aDayTypes[0].type;
 		const sSecondaryDateType = aDayTypes.length > 0 && aDayTypes[0].secondaryType;
 		const bIsWeekend = oHelper.aNonWorkingDays && oHelper.aNonWorkingDays instanceof Array
@@ -479,10 +484,13 @@ sap.ui.define([
 
 		if (iSelected > 0) {
 			oRm.class("sapUiCalItemSel"); // day selected
-			mAccProps["selected"] = true;
-		} else {
+			if (bSelectable) {
+				mAccProps["selected"] = true;
+			}
+		} else if (bSelectable) {
 			mAccProps["selected"] = false;
 		}
+
 		if (iSelected === 2) {
 			oRm.class("sapUiCalItemSelStart"); // interval start
 			mAccProps["describedby"] = `${mAccProps["describedby"]} ${sStartDateText}`.trim();
@@ -498,13 +506,31 @@ sap.ui.define([
 			mAccProps["describedby"] = `${mAccProps["describedby"]} ${sEndDateText}`.trim();
 		}
 
-		if (this.renderWeekNumbers && oMonth.getShowWeekNumbers() && oMonth._oDate) {
-			// TODO: We could replace the following lines with a sap.ui.unified.calendar.CalendarUtils.calculateWeekNumber usage
-			// once the same method starts to respect the sap/base/i18n/date/CalendarWeekNumbering types.
-			const oWeekConfig = CalendarDateUtils.getWeekConfigurationValues(oMonth.getCalendarWeekNumbering(), new Locale(oMonth._getLocale()));
-			oWeekConfig.firstDayOfWeek = oMonth._getFirstDayOfWeek();
-			const oFirstDateOfWeek = CalendarDate.fromUTCDate(CalendarUtils.getFirstDateOfWeek(oDay.toLocalJSDate(), oWeekConfig), oMonth.getPrimaryCalendarType());
-			mAccProps["describedby"] = mAccProps["describedby"] + " " + oMonth.getId() + "-week-" + oMonth._calculateWeekNumber(oFirstDateOfWeek) + "-text";
+		const oParent = oMonth.getParent();
+		const bShowWeekNumbers = oMonth.getShowWeekNumbers();
+		const bHasDate = !!oMonth._oDate;
+		const bSeparateWeekNumbers = bShowWeekNumbers && bHasDate && oParent &&
+			(oParent.isA("sap.m.PlanningCalendar") ||
+			 oParent.isA("sap.ui.unified.CalendarDateInterval") ||
+			 oParent.isA("sap.ui.unified.CalendarTimeInterval") ||
+			 oParent.isA("sap.m.Toolbar"));
+
+		if (bSeparateWeekNumbers) {
+			// This path is for controls that render week numbers separately (e.g., CalendarDateInterval with WeeksRow)
+			let sParentId = oParent.getId();
+
+			// For Toolbar, we need to find the PlanningCalendar (Toolbar -> Table -> PlanningCalendar hierarchy)
+			const bIsToolbar = oParent.isA("sap.m.Toolbar");
+			const oGrandParent = bIsToolbar ? oParent.getParent() : null;
+			const oGreatGrandParent = oGrandParent ? oGrandParent.getParent() : null;
+			const bHasPlanningCalendar = oGreatGrandParent && oGreatGrandParent.isA("sap.m.PlanningCalendar");
+
+			if (bIsToolbar) {
+				sParentId = bHasPlanningCalendar ? oGreatGrandParent.getId() : oMonth.getId();
+			}
+
+			const iWeekNumber = oMonth._calculateWeekNumber(oDay);
+			mAccProps["describedby"] = mAccProps["describedby"] + " " + sParentId + "-WeekNumbersRow-week-" + iWeekNumber + "-text";
 		}
 
 		if (bNonWorking) {
@@ -548,17 +574,20 @@ sap.ui.define([
 
 		oRm.attr("tabindex", "-1");
 		oRm.attr("data-sap-day", sYyyymmdd);
-		if (bDayName) {
-			mAccProps["label"] = mAccProps["label"] + oHelper.aWeekDaysWide[iWeekDay] + " ";
-		}
-		mAccProps["label"] = mAccProps["label"] + oHelper.oFormatLong.format(oDay.toUTCJSDate(), true);
+
+		mAccProps["label"] = this._getDayAriaLabel(oDay, oHelper, oMonth, bDayName, oSecondaryDay);
 
 		if (sAriaType !== "") {
 			CalendarLegendRenderer.addCalendarTypeAccInfo(mAccProps, sAriaType, oLegend);
 		}
 
-		if (oHelper.sSecondaryCalendarType) {
-			mAccProps["label"] = mAccProps["label"] + " " + oMonth._oFormatSecondaryLong.format(oSecondaryDay.toUTCJSDate(), true);
+		if (aDayTypes[0] && aDayTypes[0].customData?.length && bShouldBeMarkedAsSpecialDate) {
+			//render customData
+			aDayTypes[0].customData.forEach((customData) => {
+				if (customData.getWriteToDom()) {
+					oRm.attr(`data-${customData.getKey()}`, customData.getValue());
+				}
+			});
 		}
 
 		oRm.accessibilityState(null, mAccProps);
@@ -608,6 +637,39 @@ sap.ui.define([
 
 		oRm.close("div");
 
+	};
+
+	MonthRenderer._getDayAriaLabel = function(oDay, oHelper, oMonth, bDayName, oSecondaryDay){
+		let sAriaLabel = "";
+		const aSelectedDateRange = oHelper.aSelectedDates.filter((d) => d.getStartDate() && d.getEndDate());
+		if (bDayName) {
+			sAriaLabel = `${oHelper.aWeekDaysWide[oDay.getDay()]} `;
+		}
+
+		if (aSelectedDateRange.length > 0) {
+			const oStartJSDate = CalendarDate.fromLocalJSDate(aSelectedDateRange[0].getStartDate(), oHelper.sPrimaryCalendarType);
+			const oEndJSDate = CalendarDate.fromLocalJSDate(aSelectedDateRange[0].getEndDate(), oHelper.sPrimaryCalendarType);
+			const oStartDate = aSelectedDateRange[0].getStartDate();
+			const oEndDate = aSelectedDateRange[0].getEndDate();
+			if (oDay.isSame(oStartJSDate)) {
+				sAriaLabel = `${sAriaLabel}${oMonth._oUnifiedRB.getText("CALENDAR_RANGE_SELECTION_START_DATE", [oHelper.oFormatLong.format(oStartDate)])}`;
+			} else if (oDay.isSame(oEndJSDate)) {
+				sAriaLabel = `${sAriaLabel}${oMonth._oUnifiedRB.getText("CALENDAR_RANGE_SELECTION_END_DATE", [oHelper.oFormatLong.format(oEndDate)])}`;
+			} else if (oDay.isAfter(oStartJSDate) && oDay.isBefore(oEndJSDate)) {
+				sAriaLabel = `${sAriaLabel}${oMonth._oUnifiedRB.getText("CALENDAR_RANGE_SELECTION_PART_OF_RANGE", [oHelper.oFormatLong.format(oDay.toLocalJSDate())])}`;
+			} else {
+				sAriaLabel = `${sAriaLabel}${oHelper.oFormatLong.format(oDay.toUTCJSDate(), true)}`;
+			}
+
+		} else {
+			sAriaLabel = `${sAriaLabel}${oHelper.oFormatLong.format(oDay.toUTCJSDate(), true)}`;
+		}
+
+		if (oHelper.sSecondaryCalendarType) {
+			sAriaLabel = `${sAriaLabel} ${oMonth._oFormatSecondaryLong.format(oSecondaryDay.toUTCJSDate(), true)}`;
+		}
+
+		return sAriaLabel;
 	};
 
 	MonthRenderer._renderWeekNumber = function(oRm, oDay, oHelper, oMonth) {

@@ -58,7 +58,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @alias sap.m.p13n.SelectionController
@@ -160,6 +160,13 @@ sap.ui.define([
 	SelectionController.prototype.formatToInternalState = (oExternalState) => {
 		return oExternalState;
 	};
+
+	/**
+	 * Enhances the p13n popup. Can be used to add additional content to the popup.
+	 *
+	 * @param {sap.m.Dialog} oPopup The popup that is used to host the personalization UI
+	 */
+	SelectionController.prototype.enhancePopup = (oPopup) => {};
 
 	/**
 	 * The actual UI used for personalization.
@@ -667,7 +674,8 @@ sap.ui.define([
 			//check if the provided state item holds the value to check for
 			if (oItem.hasOwnProperty(sSetAttribute)) {
 				const oExistingItem = aExistingState.find((oExisting) => {
-					return oExisting.name == oItem.name;
+					const sIdentifier = oExisting.hasOwnProperty("key") ? "key" : "name";
+					return oExisting[sIdentifier] == oItem[sIdentifier];
 				});
 
 				//compare to identify delta (only create a change if really necessary)

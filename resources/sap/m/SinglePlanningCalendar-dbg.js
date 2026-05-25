@@ -111,7 +111,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -160,13 +160,6 @@ function(
 				/**
 				 * Determines which part of the control will remain fixed at the top of the page during vertical scrolling
 				 * as long as the control is in the viewport.
-				 *
-				 * <b>Note:</b> Limited browser support. Browsers which do not support this feature:
-				 * <ul>
-				 * 	<li>Microsoft Internet Explorer</li>
-				 * 	<li>Microsoft Edge lower than version 41 (EdgeHTML 16)</li>
-				 * 	<li>Mozilla Firefox lower than version 59</li>
-				 * </ul>
 				 *
 				 * @since 1.62
 				 */
@@ -650,7 +643,6 @@ function(
 		if (this.getFirstDayOfWeek() !== -1 && this.getCalendarWeekNumbering()) {
 			Log.warning("Both properties firstDayOfWeek and calendarWeekNumbering should not be used at the same time!");
 		}
-
 	};
 
 	/**
@@ -736,9 +728,15 @@ function(
 	 */
 
 	SinglePlanningCalendar.prototype.setTitle = function (sTitle) {
-		this._getHeader().setTitle(sTitle);
-
+		this.setHeaderTitle(sTitle);
 		return this.setProperty("title", sTitle);
+	};
+
+	SinglePlanningCalendar.prototype.setHeaderTitle = function (sTitle) {
+		const oTitle = this._getHeader().getTitle();
+		oTitle && oTitle.setText(sTitle);
+		oTitle && oTitle.setVisible(true);
+		return this;
 	};
 
 	SinglePlanningCalendar.prototype.setScaleFactor = function(iScaleFactor) {
@@ -1324,8 +1322,14 @@ function(
 		oHeader.attachEvent("pressToday", this._handlePressToday, this);
 		oHeader.attachEvent("pressNext", this._handlePressArrow, this);
 		oHeader.attachEvent("dateSelect", this._handleCalendarPickerDateSelect, this);
+		oHeader.attachEvent("_titleChange", this._handleTitleChange, this);
 
 		return this;
+	};
+
+	SinglePlanningCalendar.prototype._handleTitleChange = function (oEvent) {
+		const oTitle = oEvent.getParameter("title");
+		this.getDomRef()?.setAttribute("aria-labelledby", oTitle.getId());
 	};
 
 	/**
@@ -1666,10 +1670,21 @@ function(
 	};
 
 	/**
-	 * Finds the start and end dates in the visible range.
+	 * @typedef {object} sap.m.SinglePlanningCalendar.VisibleDates
+	 * @description Object which contains the start and end dates in the currently visible range.
+	 *
+	 * @property {Date|module:sap/ui/core/date/UI5Date} [oStartDate]
+	 *   The start date in the currently visible range.
+	 * @property {Date|module:sap/ui/core/date/UI5Date} [oEndDate]
+	 *   The end date in the currently visible range.
+	 * @public
+	 */
+
+	/**
+	 * Returns an object containing the start and end dates in the currently visible range.
 	 * @public
 	 * @since 1.133
-	 * @returns {Object} returns an object that stores both the start and end date within the currently visible range.
+	 * @returns {sap.m.SinglePlanningCalendar.VisibleDates} An object containing the start and end date in the currently visible range.
 	 */
 	SinglePlanningCalendar.prototype.getFirstAndLastVisibleDates = function () {
 		return this._getCurrentGrid()._getFirstAndLastVisibleDates();

@@ -30,8 +30,9 @@ sap.ui.define([
 	 * @alias sap.ui.base.BindingParser
 	 */
 	var BindingParser = {
-			_keepBindingStrings : false
-		};
+		_keepBindingStrings : false,
+		UI5ObjectMarker : Symbol("ui5object") // Marker to not 'forget' ui5Objects
+	};
 
 	/**
 	 * Regular expression to check for a (new) object literal.
@@ -49,6 +50,23 @@ sap.ui.define([
 	 * Regular expression to escape potential binding chars
 	 */
 	var rBindingChars = /([\\\{\}])/g;
+
+	const aSupportedNamespaces = ["Math", "JSON"];
+
+	/**
+	 * An object containing variables that can be used as global variables in a binding string.
+	 *
+	 * This object includes a subset of the global variables of the ExpressionParser.
+	 * A property is selected if it meets one of the following criteria:
+	 *  * It is a function.
+	 *  * It is included in aSupportedNamespaces.
+	 */
+	const mDefaultGlobals = Object.fromEntries(
+		Object.entries(ExpressionParser._globals).filter(([sKey, vValue]) => {
+			return aSupportedNamespaces.includes(sKey) || typeof vValue === "function";
+		})
+	);
+
 
 	/**
 	 * Creates a composite formatter which calls <code>fnRootFormatter</code> on the results of the
@@ -180,7 +198,7 @@ sap.ui.define([
 	const rFormatterBind = /(^(?:\.)?(?:[$_\p{ID_Start}][$_\p{ID_Continue}]*\.)*[\p{ID_Start}][$_\p{ID_Continue}]*)\.bind\(([$_\p{ID_Start}][$_\p{ID_Continue}]*)\)$/u;
 
 	function resolveBindingInfo(oEnv, oBindingInfo) {
-		var mVariables = Object.assign({".": oEnv.oContext}, oEnv.mLocals);
+		var mVariables = Object.assign({".": oEnv.oContext}, mDefaultGlobals, oEnv.mLocals);
 
 		/*
 		 * Resolves a function name to a function.
@@ -208,7 +226,7 @@ sap.ui.define([
 					if (!aMatch) {
 						throw new Error(`Error in formatter '${sName}': Either syntax error in the usage of '.bind(...)' or wrong number of arguments given. Only one argument is allowed when using '.bind()'.`);
 					}
-					if (aMatch[2].startsWith("$") && !Object.hasOwn(oEnv.mAdditionalBindableValues, aMatch[2])) {
+					if (aMatch[2].startsWith("$") && (!oEnv.mAdditionalBindableValues || !Object.hasOwn(oEnv.mAdditionalBindableValues, aMatch[2]))) {
 						throw new Error(`Error in formatter '${sName}': The argument '${aMatch[2]}' used in the '.bind()' call starts with '$', which is only allowed for framework-reserved variables. Please rename the variable so that it doesn't start with '$'.`);
 					}
 
@@ -394,6 +412,7 @@ sap.ui.define([
 			}
 			resolveType(oBindingInfo);
 			resolveFilters(oBindingInfo,'filters');
+			resolveFilters(oBindingInfo,'boundFilters');
 			resolveSorters(oBindingInfo,'sorter');
 			resolveEvents(oBindingInfo.events);
 			resolveRef(oBindingInfo,'formatter');
@@ -516,7 +535,8 @@ sap.ui.define([
 			bUnescaped,
 			p = 0,
 			m,
-			oEmbeddedBinding;
+			oEmbeddedBinding,
+			vExpressionConst; // the constant value resulting from an expression binding
 
 		/**
 		 * Parses an expression. Sets the flags accordingly.
@@ -567,7 +587,8 @@ sap.ui.define([
 			if (oBinding.result) {
 				setMode(oBinding.result);
 			} else {
-				aFragments[aFragments.length - 1] = String(oBinding.constant);
+				vExpressionConst = oBinding.constant;
+				aFragments[aFragments.length - 1] = String(vExpressionConst);
 				bUnescaped = true;
 			}
 			return oBinding;
@@ -645,14 +666,18 @@ sap.ui.define([
 
 			return oBindingInfo;
 		} else if ( bUnescape && bUnescaped ) {
-			var sResult = aFragments.join('');
+			// non-string constant -> static binding
+			const vResult = vExpressionConst !== undefined && typeof vExpressionConst !== "string"
+					&& aFragments.length === 1
+				? {value : vExpressionConst, [BindingParser.UI5ObjectMarker] : false}
+				: aFragments.join('');
 			if (bResolveTypesAsync) {
 				return {
-					bindingInfo: sResult,
+					bindingInfo: vResult,
 					resolved: Promise.resolve()
 				};
 			}
-			return sResult;
+			return vResult;
 		}
 
 	};

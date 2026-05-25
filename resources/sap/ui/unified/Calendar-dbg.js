@@ -11,6 +11,7 @@ sap.ui.define([
 	'sap/ui/core/Control',
 	"sap/ui/core/Element",
 	'sap/ui/core/LocaleData',
+	'sap/ui/core/Lib',
 	'sap/ui/unified/calendar/CalendarUtils',
 	'sap/ui/unified/DateTypeRange',
 	'./calendar/Header',
@@ -39,6 +40,7 @@ sap.ui.define([
 	Control,
 	Element,
 	LocaleData,
+	Library,
 	CalendarUtils,
 	DateTypeRange,
 	Header,
@@ -78,7 +80,7 @@ sap.ui.define([
 	 * Basic Calendar.
 	 * This calendar is used for DatePickers
 	 * @extends sap.ui.core.Control
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -389,6 +391,9 @@ sap.ui.define([
 
 		this._iColumns = 1; // default columns for the calendar
 
+		// Cache the resource bundle for reuse throughout the control's lifecycle
+		this._oResourceBundle = Library.getResourceBundleFor("sap.ui.unified");
+
 		// Render the monthPicker first to get the length of the current month name. The _currentPicker property will
 		// be aligned to month in the first onAfterRendering.
 		this.setProperty("_currentPicker", CURRENT_PICKERS.MONTH_PICKER);
@@ -458,6 +463,11 @@ sap.ui.define([
 		oHeader.attachEvent("pressButton2", this._handleButton2, this);
 		oHeader.attachEvent("pressButton3", this._handleButton1, this);
 		oHeader.attachEvent("pressButton4", this._handleButton2, this);
+
+		// Set keyboard shortcuts for Calendar-specific usage
+		oHeader.setProperty("_keyShortcutButton1", this._oResourceBundle.getText("CALENDAR_HEADER_MONTH_BUTTON_SHORTCUT"));
+		oHeader.setProperty("_keyShortcutButton2", this._oResourceBundle.getText("CALENDAR_HEADER_YEAR_BUTTON_SHORTCUT"));
+		oHeader.setProperty("_currentPicker", CURRENT_PICKERS.MONTH);
 
 		this._afterHeaderRenderAdjustCSS = this._createOnAfterRenderingDelegate(oHeader);
 
@@ -1601,6 +1611,7 @@ sap.ui.define([
 			oMonthPicker._setDate(oFocusedDate);
 			oMonthPicker.invalidate();
 			this.setProperty("_currentPicker", CURRENT_PICKERS.MONTH_PICKER);
+			this._setHeaderCurrentPicker(CURRENT_PICKERS.MONTH_PICKER);
 			break;
 
 		case 2: // year picker
@@ -1617,7 +1628,6 @@ sap.ui.define([
 			break;
 			// no default
 		}
-
 	};
 
 	/**
@@ -1646,7 +1656,7 @@ sap.ui.define([
 			this._addMonthFocusDelegate();
 			break;
 
-			case 1: // month picker
+		case 1: // month picker
 			oFocusedDate.setYear(oFocusedDate.getYear() + 1);
 			this._updateHeadersYearPrimaryText(this._oYearFormat.format(oFocusedDate.toUTCJSDate(), true));
 			this._updateHeadersYearAdditionalTextHelper();
@@ -1657,6 +1667,7 @@ sap.ui.define([
 			oMonthPicker._setDate(oFocusedDate);
 			oMonthPicker.invalidate();
 			this.setProperty("_currentPicker", CURRENT_PICKERS.MONTH_PICKER);
+			this._setHeaderCurrentPicker(CURRENT_PICKERS.MONTH_PICKER);
 			break;
 
 		case 2: // year picker
@@ -1677,6 +1688,33 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns secondary calendar year(s) text if there is secondaryCalendarType set.
+	 * @private
+	 */
+	Calendar.prototype._getSecondaryYearText = function() {
+		if (!this._getSecondaryCalendarType()){
+			return "";
+		}
+
+		const oSecondaryYears = this._getDisplayedSecondaryYears();
+		let sSecondaryYearText = "";
+
+		// Add null checks to prevent errors when secondary years are undefined
+		if (!oSecondaryYears || !oSecondaryYears.start || !oSecondaryYears.end) {
+			return "";
+		}
+
+		if (oSecondaryYears.start.getYear() === oSecondaryYears.end.getYear()) {
+			sSecondaryYearText = this._oYearFormatSecondary.format(oSecondaryYears.start.toUTCJSDate(), true);
+		} else {
+			const  sPattern = this._getLocaleData().getIntervalPattern();
+			sSecondaryYearText = sPattern.replace(/\{0\}/, this._oYearFormatSecondary.format(oSecondaryYears.start.toUTCJSDate(), true))
+				.replace(/\{1\}/, this._oYearFormatSecondary.format(oSecondaryYears.end.toUTCJSDate(), true));
+		}
+		return sSecondaryYearText;
+	};
+
+	/**
 	 * Calculates the year picker button text in secondary calendar type.
 	 * @private
 	 */
@@ -1684,16 +1722,8 @@ sap.ui.define([
 		if (!this._getSecondaryCalendarType()){
 			return;
 		}
-		var oSecondaryYears = this._getDisplayedSecondaryYears();
-		if (oSecondaryYears.start.getYear() === oSecondaryYears.end.getYear()) {
-			this._updateHeadersYearAdditionalText(this._oYearFormatSecondary.format(oSecondaryYears.start.toUTCJSDate(), true));
-		} else {
-			var oLocaleData = this._getLocaleData();
-			var sPattern = oLocaleData.getIntervalPattern();
-			var sSecondaryMonthInfo = sPattern.replace(/\{0\}/, this._oYearFormatSecondary.format(oSecondaryYears.start.toUTCJSDate(), true))
-				.replace(/\{1\}/, this._oYearFormatSecondary.format(oSecondaryYears.end.toUTCJSDate(), true));
-			this._updateHeadersYearAdditionalText(sSecondaryMonthInfo);
-		}
+
+		this._updateHeadersYearAdditionalText(this._getSecondaryYearText());
 	};
 
 	/**
@@ -1702,11 +1732,12 @@ sap.ui.define([
 	 * @private
 	 */
 	Calendar.prototype._handleCurrentDate = function() {
-		var oNow = UI5Date.getInstance(),
+		const oNow = UI5Date.getInstance(),
 			oMaxDate = this.getMaxDate(),
 			oMinDate = this.getMinDate();
 
 		this.setProperty("_currentPicker", CURRENT_PICKERS.MONTH);
+		this._setHeaderCurrentPicker(CURRENT_PICKERS.MONTH);
 
 		if (oMaxDate && oMaxDate.getTime() < oNow.getTime()) {
 			this.focusDate(oMaxDate);
@@ -1714,6 +1745,21 @@ sap.ui.define([
 			this.focusDate(oMinDate);
 		} else {
 			this.focusDate(oNow);
+		}
+	};
+
+	/**
+	 * Sets the _currentPicker property on the header aggregation, if available.
+	 *
+	 * @param {string} sPicker The picker type to set (e.g. from CURRENT_PICKERS).
+	 * @private
+	 */
+	Calendar.prototype._setHeaderCurrentPicker = function(sPicker) {
+		const oHeader = this.getAggregation("header");
+		try {
+			oHeader.setProperty("_currentPicker", sPicker);
+		} catch (e) {
+			Log.warning("Property '_currentPicker' could not be set on the header aggregation.");
 		}
 	};
 
@@ -1833,6 +1879,7 @@ sap.ui.define([
 
 	Calendar.prototype._closePickers = function () {
 		this.setProperty("_currentPicker", CURRENT_PICKERS.MONTH);
+		this._setHeaderCurrentPicker(CURRENT_PICKERS.MONTH);
 		// show again hidden month button
 		this._togglePrevNext(this._getFocusedDate(), true);
 
@@ -1976,6 +2023,7 @@ sap.ui.define([
 		this._updateMonthButtonVisibility();
 
 		this.setProperty("_currentPicker", CURRENT_PICKERS.MONTH_PICKER);
+		this._setHeaderCurrentPicker(CURRENT_PICKERS.MONTH_PICKER);
 
 		if (this._bActionTriggeredFromSecondHeader) {
 			oSecondDate.setDate(1);
@@ -2013,10 +2061,11 @@ sap.ui.define([
 	 * @private
 	 */
 	Calendar.prototype._showYearPicker = function () {
-		var oDate = this._getFocusedDate(),
+		const oDate = this._getFocusedDate(),
 			oYearPicker = this._getYearPicker();
 
 		this.setProperty("_currentPicker", CURRENT_PICKERS.YEAR_PICKER);
+		this._setHeaderCurrentPicker(CURRENT_PICKERS.YEAR_PICKER);
 
 		oYearPicker.setDate(oDate.toLocalJSDate());
 
@@ -2181,12 +2230,36 @@ sap.ui.define([
 			sAriaLabel += ", " + sSecondaryMonthInfo;
 		}
 
+		// Use sAriaLabel instead of sText for sMonthLabel to include secondary calendar info when present
+		var sMonthLabel = this._oResourceBundle.getText("CALENDAR_HEADER_MONTH_BUTTON", [sAriaLabel]);
+		var sMonthShortcut = this._oResourceBundle.getText("CALENDAR_HEADER_MONTH_BUTTON_SHORTCUT");
+		var sMonthTooltip = `${this._oResourceBundle.getText("CALENDAR_HEADER_MONTH_BUTTON", [sAriaLabel])} (${sMonthShortcut})`;
+
 		oHeader.setTextButton1(sText);
-		oHeader.setAriaLabelButton1(sAriaLabel);
+		oHeader.setAriaLabelButton1(sMonthLabel);
+		oHeader.setProperty("_tooltipButton1", sMonthTooltip);
+		oHeader.setProperty("_descriptionButton1", sMonthLabel);
 		oHeader._setTextButton3(sLastMonthName);
-		oHeader._setAriaLabelButton3(sLastMonthName);
+		// Set properties for second month button (button3) when multiple months are displayed
+		if (aMonths.length > 1) {
+			var sLastMonthLabel = this._oResourceBundle.getText("CALENDAR_HEADER_MONTH_BUTTON", [sLastMonthName]);
+			var sLastMonthTooltip = `${this._oResourceBundle.getText("CALENDAR_HEADER_MONTH_BUTTON", [sLastMonthName])} (${sMonthShortcut})`;
+			oHeader._setAriaLabelButton3(sLastMonthLabel);
+			oHeader.setProperty("_tooltipButton3", sLastMonthTooltip);
+			oHeader.setProperty("_keyShortcutButton3", sMonthShortcut);
+			oHeader.setProperty("_descriptionButton3", sLastMonthLabel);
+		}
 		oSecondMonthHeader.setTextButton1(sLastMonthName);
-		oSecondMonthHeader.setAriaLabelButton1(sLastMonthName);
+
+		// Set accessibility properties for second month header's month button (button1) when multiple months are displayed
+		if (aMonths.length > 1) {
+			var sSecondMonthLabel = this._oResourceBundle.getText("CALENDAR_HEADER_MONTH_BUTTON", [sLastMonthName]);
+			var sSecondMonthTooltip = `${this._oResourceBundle.getText("CALENDAR_HEADER_MONTH_BUTTON", [sLastMonthName])} (${sMonthShortcut})`;
+			oSecondMonthHeader.setAriaLabelButton1(sSecondMonthLabel);
+			oSecondMonthHeader.setProperty("_tooltipButton1", sSecondMonthTooltip);
+			oSecondMonthHeader.setProperty("_keyShortcutButton1", sMonthShortcut);
+			oSecondMonthHeader.setProperty("_descriptionButton1", sSecondMonthLabel);
+		}
 		var oFirstDate = new CalendarDate(oDate, sPrimaryCalendarType);
 		oFirstDate.setDate(1); // always use the first of the month to have stable year in Japanese calendar
 		sYear = this._oYearFormat.format(oFirstDate.toUTCJSDate(), true);
@@ -2217,6 +2290,7 @@ sap.ui.define([
 			this._showMonthPicker();
 		} else {
 			this.setProperty("_currentPicker", CURRENT_PICKERS.MONTH);
+			this._setHeaderCurrentPicker(CURRENT_PICKERS.MONTH);
 			this._addMonthFocusDelegate();
 		}
 	};
@@ -2389,6 +2463,7 @@ sap.ui.define([
 			oRangeMidDate = CalendarDate.fromLocalJSDate(oYearPicker.getFirstRenderedDate(), this._getPrimaryCalendarType());
 
 		this.setProperty("_currentPicker", CURRENT_PICKERS.YEAR_RANGE_PICKER);
+		this._setHeaderCurrentPicker(CURRENT_PICKERS.YEAR_RANGE_PICKER);
 
 		oYearRangePicker.getColumns() % 2 !== 0 ?
 			oRangeMidDate.setYear(oRangeMidDate.getYear() + Math.floor(oYearRangePicker.getRangeSize() / 2)) :
@@ -2576,11 +2651,28 @@ sap.ui.define([
 
 	Calendar.prototype._updateHeadersYearPrimaryText = function (sFirstHeaderYear, sSecondHeaderYear) {
 		var oYearPicker = this._getYearPicker(),
+			oMonthPicker = this._getMonthPicker(),
 			oHeader = this.getAggregation("header"),
 			oSecondMonthHeader = this.getAggregation("secondMonthHeader"),
 			sFirstHeaderText = sFirstHeaderYear,
 			sSecondHeaderText = sSecondHeaderYear || sFirstHeaderYear,
-			sPrimaryCalendarType = this._getPrimaryCalendarType();
+			sFirstYearLabelText = [sFirstHeaderText, this._getSecondaryYearText()].filter(Boolean).join(", "),
+			sSecondYearLabelText = [sSecondHeaderText, this._getSecondaryYearText()].filter(Boolean).join(", "),
+			sPrimaryCalendarType = this._getPrimaryCalendarType(),
+			sFirstYear, sSecondYear;
+
+		// Extract all required labels and tooltips at the top for better readability and reusability
+		var sYearShortcut = this._oResourceBundle.getText("CALENDAR_HEADER_YEAR_BUTTON_SHORTCUT");
+		var sYearRangeShortcut = this._oResourceBundle.getText("CALENDAR_HEADER_YEAR_RANGE_BUTTON_SHORTCUT");
+
+		// Regular year button labels and tooltips
+		var sFirstYearLabel = this._oResourceBundle.getText("CALENDAR_HEADER_YEAR_BUTTON", [sFirstYearLabelText]);
+		var sFirstYearTooltip = `${sFirstYearLabel} (${sYearShortcut})`;
+		var sSecondYearLabel = this._oResourceBundle.getText("CALENDAR_HEADER_YEAR_BUTTON", [sSecondYearLabelText]);
+		var sSecondYearTooltip = `${sSecondYearLabel} (${sYearShortcut})`;
+
+		// Year range labels and tooltips (will be updated if in year picker mode)
+		var sYearRangeLabel, sYearRangeTooltip;
 
 		if (this._iMode === 2 && oYearPicker) {
 
@@ -2588,9 +2680,7 @@ sap.ui.define([
 				oFirstDate = new CalendarDate(oDate, sPrimaryCalendarType),
 				oMinYear = CalendarUtils._minDate(this._getPrimaryCalendarType()).getYear(),
 				oMaxYear = CalendarUtils._maxDate(this._getPrimaryCalendarType()).getYear(),
-				oSecondDate,
-				sFirstYear,
-				sSecondYear;
+				oSecondDate;
 
 				oFirstDate.setDate(1); // always use the first of the month to have stable year in Japanese calendar
 				oFirstDate.setYear(oFirstDate.getYear() - Math.floor(oYearPicker.getYears() / 2));
@@ -2612,21 +2702,141 @@ sap.ui.define([
 				} else {
 					sFirstHeaderText = sFirstYear + " - " + sSecondYear;
 				}
+
+				// Update year range labels for year picker mode with secondary calendar support
+				var sSecondaryYearRangeText = "";
+				if (this._getSecondaryCalendarType()) {
+					var oSecondaryFirstYear = new CalendarDate(oFirstDate, this._getSecondaryCalendarType());
+					var oSecondarySecondYear = new CalendarDate(oSecondDate, this._getSecondaryCalendarType());
+					// Add null checks for secondary year dates
+					if (oSecondaryFirstYear && oSecondarySecondYear) {
+						var sFirstSecondaryYear = this._oYearFormatSecondary.format(oSecondaryFirstYear.toUTCJSDate(), true);
+						var sSecondSecondaryYear = this._oYearFormatSecondary.format(oSecondarySecondYear.toUTCJSDate(), true);
+						sSecondaryYearRangeText = sFirstSecondaryYear + " - " + sSecondSecondaryYear;
+					}
+				}
+
+				var sYearRangeLabelText = [sFirstYear + " - " + sSecondYear, sSecondaryYearRangeText].filter(Boolean).join(", ");
+				sYearRangeLabel = this._oResourceBundle.getText("CALENDAR_HEADER_YEAR_RANGE_BUTTON", [sFirstYear, sSecondYear]);
+				sYearRangeTooltip = `${sYearRangeLabel} (${sYearRangeShortcut})`;
+
+				// Set properties for button4 when in year picker mode (always set accessibility properties when button4 is used)
+				oHeader.setProperty("_tooltipButton4", sYearRangeTooltip);
+				oHeader.setProperty("_keyShortcutButton4", sYearRangeShortcut);
+				oHeader.setProperty("_descriptionButton4", sYearRangeLabelText);
+				this._setHeaderCurrentPicker(CURRENT_PICKERS.YEAR_PICKER);
+		} else if (this._iMode === 1 && oMonthPicker) {
+			this._setHeaderCurrentPicker(CURRENT_PICKERS.MONTH_PICKER);
+		} else {
+			// Set properties for button4 when not in year picker mode (always set accessibility properties when button4 is used)
+			oHeader.setProperty("_tooltipButton4", sSecondYearTooltip);
+			oHeader.setProperty("_keyShortcutButton4", sYearShortcut);
+			oHeader.setProperty("_descriptionButton4", sSecondYearLabel);
 		}
 
 		oHeader._setTextButton4(sSecondHeaderText);
-		oHeader._setAriaLabelButton4(sSecondHeaderText);
 		oSecondMonthHeader.setTextButton2(sSecondHeaderText);
+
+		// Set accessibility properties for second month header's year button (button2)
+		// Always set these properties when second month header exists
+		var sSecondHeaderYearLabel, sSecondHeaderYearTooltip;
+
+		if (this._iMode === 2 && oYearPicker) {
+			sSecondHeaderYearLabel = sYearRangeLabelText;
+			sSecondHeaderYearTooltip = sYearRangeTooltip;
+		} else {
+			sSecondHeaderYearLabel = sSecondYearLabel;
+			sSecondHeaderYearTooltip = sSecondYearTooltip;
+		}
+
+		// Set aria-label for button4 with proper formatting
+		oHeader._setAriaLabelButton4(sSecondHeaderYearLabel);
+		oSecondMonthHeader.setAriaLabelButton2(sSecondHeaderYearLabel);
+		oSecondMonthHeader.setProperty("_tooltipButton2", sSecondHeaderYearTooltip);
+		oSecondMonthHeader.setProperty("_keyShortcutButton2", this._iMode === 2 && oYearPicker ? sYearRangeShortcut : sYearShortcut);
+		oSecondMonthHeader.setProperty("_descriptionButton2", sSecondHeaderYearLabel);
+
 		oHeader.setTextButton2(sFirstHeaderText);
+		oHeader.setAriaLabelButton2(this._iMode === 2 && oYearPicker ? sYearRangeLabelText : sFirstYearLabel);
+		oHeader.setProperty("_tooltipButton2", this._iMode === 2 && oYearPicker ? sYearRangeTooltip : sFirstYearTooltip);
+		oHeader.setProperty("_descriptionButton2", this._iMode === 2 && oYearPicker ? sYearRangeLabelText : sFirstYearLabel);
+
+		// In single header with two months scenario, button2 should represent the second month's year
+		if (this._isTwoMonthsInTwoColumns() && sSecondHeaderText !== sFirstHeaderText) {
+			// Button2 shows second month year, so update its accessibility properties
+			var sButton2Label = this._iMode === 2 && oYearPicker ? sYearRangeLabelText : sSecondYearLabel;
+			var sButton2Tooltip = this._iMode === 2 && oYearPicker ? sYearRangeTooltip : sSecondYearTooltip;
+			var sButton2Shortcut = this._iMode === 2 && oYearPicker ? sYearRangeShortcut : sYearShortcut;
+
+			oHeader.setAriaLabelButton2(sButton2Label);
+			oHeader.setProperty("_tooltipButton2", sButton2Tooltip);
+			oHeader.setProperty("_keyShortcutButton2", sButton2Shortcut);
+			oHeader.setProperty("_descriptionButton2", sButton2Label);
+		}
+
+		// Set properties for button4 when multiple headers are displayed
+		if (sSecondHeaderText !== sFirstHeaderText) {
+			var sButton4Label, sButton4Tooltip, sButton4Shortcut;
+			if (this._iMode === 2 && oYearPicker) {
+				// In year picker mode, extract years from the range string for button4
+				var aYears = sSecondHeaderText.split(" - ");
+				if (aYears.length === 2) {
+					// Create secondary year range text for button4
+					var sButton4SecondaryYearText = "";
+					if (this._getSecondaryCalendarType()) {
+						var oButton4FirstDate = new CalendarDate(oFirstDate, this._getSecondaryCalendarType());
+						var oButton4SecondDate = new CalendarDate(oSecondDate, this._getSecondaryCalendarType());
+						// Add null checks for button4 secondary year dates
+						if (oButton4FirstDate && oButton4SecondDate) {
+							var sButton4FirstSecondaryYear = this._oYearFormatSecondary.format(oButton4FirstDate.toUTCJSDate(), true);
+							var sButton4SecondSecondaryYear = this._oYearFormatSecondary.format(oButton4SecondDate.toUTCJSDate(), true);
+							sButton4SecondaryYearText = sButton4FirstSecondaryYear + " - " + sButton4SecondSecondaryYear;
+						}
+					}
+					var sButton4LabelText = [aYears[0] + " - " + aYears[1], sButton4SecondaryYearText].filter(Boolean).join(", ");
+					sButton4Label = this._oResourceBundle.getText("CALENDAR_HEADER_YEAR_RANGE_BUTTON", aYears);
+					sButton4Tooltip = `${sButton4Label} (${sYearRangeShortcut})`;
+					sButton4Shortcut = sYearRangeShortcut;
+					// Use the full label text with secondary years for accessibility
+					sButton4Label = sButton4LabelText;
+				} else {
+					// Fallback if string format is unexpected
+					sButton4Label = sSecondYearLabel;
+					sButton4Tooltip = sSecondYearTooltip;
+					sButton4Shortcut = sYearShortcut;
+				}
+			} else {
+				// In other modes, use regular year button properties
+				sButton4Label = sSecondYearLabel;
+				sButton4Tooltip = sSecondYearTooltip;
+				sButton4Shortcut = sYearShortcut;
+			}
+			oHeader.setProperty("_tooltipButton4", sButton4Tooltip);
+			oHeader.setProperty("_keyShortcutButton4", sButton4Shortcut);
+			oHeader.setProperty("_descriptionButton4", sButton4Label);
+		}
 	};
 
 	Calendar.prototype._updateHeadersYearAdditionalText = function (sYear) {
 		var oHeader = this.getAggregation("header"),
-			oSecondMonthHeader = this.getAggregation("secondMonthHeader");
+			oSecondMonthHeader = this.getAggregation("secondMonthHeader"),
+			sYearShortcut, sYearLabel, sYearTooltip;
 
+		// Set additional text for buttons
 		oHeader.setAdditionalTextButton2(sYear);
 		oHeader._setAdditionalTextButton4(sYear);
 		oSecondMonthHeader.setAdditionalTextButton2(sYear);
+
+		// Set accessibility properties for button4 (same as in _updateHeadersYearPrimaryText)
+		if (sYear) {
+			sYearShortcut = this._oResourceBundle.getText("CALENDAR_HEADER_YEAR_BUTTON_SHORTCUT");
+			sYearLabel = this._oResourceBundle.getText("CALENDAR_HEADER_YEAR_BUTTON", [sYear]);
+			sYearTooltip = `${sYearLabel} (${sYearShortcut})`;
+
+			oHeader.setProperty("_tooltipButton4", sYearTooltip);
+			oHeader.setProperty("_keyShortcutButton4", sYearShortcut);
+			oHeader.setProperty("_descriptionButton4", sYearLabel);
+		}
 	};
 
 	Calendar.prototype._adjustYearRangeDisplay = function() {
@@ -2648,34 +2858,6 @@ sap.ui.define([
 				oYearRangePicker.setColumns(2);
 				oYearRangePicker.setYears(8);
 			}
-		}
-	};
-
-	Calendar.prototype._getSpecialDates = function(){
-		var oParent = this.getParent();
-
-		if (this._oSpecialDatesControlOrigin) {
-			return this._oSpecialDatesControlOrigin._getSpecialDates();
-		}
-
-		if (oParent && oParent._getSpecialDates) {
-			return oParent._getSpecialDates();
-		} else {
-			var specialDates = this.getSpecialDates();
-			for (var i = 0; i < specialDates.length; i++) {
-				var bNeedsSecondTypeAdding = specialDates[i].getSecondaryType() === library.CalendarDayType.NonWorking
-					&& specialDates[i].getType() !== library.CalendarDayType.NonWorking;
-				if (bNeedsSecondTypeAdding) {
-					var newSpecialDate = new DateTypeRange();
-					newSpecialDate.setType(specialDates[i].getSecondaryType());
-					newSpecialDate.setStartDate(specialDates[i].getStartDate());
-					if (specialDates[i].getEndDate()) {
-						newSpecialDate.setEndDate(specialDates[i].getEndDate());
-					}
-					specialDates.push(newSpecialDate);
-				}
-			}
-			return specialDates;
 		}
 	};
 
@@ -2832,7 +3014,7 @@ sap.ui.define([
 			this._bNamesLengthChecked = true;
 
 			this.setProperty("_currentPicker", CURRENT_PICKERS.MONTH);
-
+			this._setHeaderCurrentPicker(CURRENT_PICKERS.MONTH);
 			if (!this._bLongMonth) {
 				// update short month name (long name used by default)
 				aMonths = this.getAggregation("month");

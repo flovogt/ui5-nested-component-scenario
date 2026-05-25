@@ -61,7 +61,7 @@ sap.ui.define([
 		 *
 		 * @protected
 		 * @alias sap.ui.core.delegate.ScrollEnablement
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 * @author SAP SE
 		 */
 		var ScrollEnablement = BaseObject.extend("sap.ui.core.delegate.ScrollEnablement", /** @lends sap.ui.core.delegate.ScrollEnablement.prototype */ {
@@ -302,6 +302,7 @@ sap.ui.define([
 				// do nothing if _$Container is not a (grand)parent of oElement
 				if (!this._$Container[0].contains(oElement) ||
 					oElement.style.display === "none" ||
+					!oElement.offsetParent ||
 					oElement.offsetParent.nodeName.toUpperCase() === "HTML") {
 						return this;
 				}

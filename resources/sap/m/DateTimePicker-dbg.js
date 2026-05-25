@@ -110,9 +110,12 @@ sap.ui.define([
 	 * <ul><li>Use the <code>value</code> property if you want to bind the
 	 * <code>DateTimePicker</code> to a model using the
 	 * <code>sap.ui.model.type.DateTime</code></li>
-     * <caption> binding the <code>value</code> property by using types </caption>
+	 * <caption> binding the <code>value</code> property by using types </caption>
 	 * <pre>
-	 * new sap.ui.model.json.JSONModel({date: sap.ui.core.date.UI5Date.getInstance(2022,10,10,12,10,10)});
+	 * // UI5Date imported from sap/ui/core/date/UI5Date
+	 * new sap.ui.model.json.JSONModel({
+	 *     date: UI5Date.getInstance(2022,10,10,12,10,10)
+	 * });
 	 *
 	 * new sap.m.DateTimePicker({
 	 *     value: {
@@ -123,7 +126,7 @@ sap.ui.define([
 	 * </pre>
 	 * <li>Use the <code>value</code> property if the date is provided as a string from
 	 * the backend or inside the app (for example, as ABAP type DATS field)</li>
-     * <caption> binding the <code>value</code> property by using types </caption>
+	 * <caption> binding the <code>value</code> property by using types </caption>
 	 * <pre>
 	 * new sap.ui.model.json.JSONModel({date:"2022-11-10-12-10-10"});
 	 *
@@ -183,7 +186,7 @@ sap.ui.define([
 	 * mobile devices, it opens in full screen.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -894,16 +897,57 @@ sap.ui.define([
 	};
 
 	DateTimePicker.prototype._parseValue = function(sValue, bDisplayFormat, sTimezone) {
+		var oDate;
 
 		if (this._isTimezoneBinding()) {
-			var aParsedDate = this._getFormatterWithTimezoneInstance().parse(sValue, sTimezone || this._getTimezone(true));
-			if (aParsedDate) {
-				return aParsedDate[0];
-			}
-			return null;
+			var aParsedResult = this._getFormatterWithTimezoneInstance().parse(
+				sValue,
+				sTimezone || this._getTimezone(true)
+			);
+			oDate = aParsedResult ? aParsedResult[0] : null;
+		} else {
+			oDate = DatePicker.prototype._parseValue.apply(this, arguments);
 		}
 
-		return DatePicker.prototype._parseValue.apply(this, arguments);
+		// Validate format consistency (only for display format parsing)
+		if (oDate && bDisplayFormat && !this._validateDayOfWeekConsistency(sValue, oDate)) {
+			return null; // Invalid format, return null to trigger error state
+		}
+
+		return oDate;
+	};
+
+	/**
+	 * Validates that the input string is consistent with the display format by comparing
+	 * it with what the formatter would produce for the same parsed date.
+	 * Only validates when the display format contains day-of-week patterns to prevent
+	 * auto-correction of incorrect day names.
+	 * @param {string} sValue The input string entered by the user
+	 * @param {Date} oDate The parsed date object
+	 * @returns {boolean} true if format is consistent, false if there are inconsistencies
+	 * @private
+	 */
+	DateTimePicker.prototype._validateDayOfWeekConsistency = function(sValue, oDate) {
+		if (!sValue || !oDate) {
+			return true;
+		}
+
+		// Get the formatter - it resolves styles to actual patterns
+		var oFormatter = this._getFormatter(true);
+		var aFormatArray = oFormatter.aFormatArray;
+
+		// Check if format contains day-of-week using the parsed pattern
+		var bHasDayOfWeek = aFormatArray.some(function(oPart) {
+			return oPart.type === "dayNameInWeek";
+		});
+
+		if (!bHasDayOfWeek) {
+			return true;
+		}
+
+		// Compare formatted output with input
+		var sExpectedValue = oFormatter.format(oDate);
+		return sExpectedValue === sValue;
 	};
 
 	DateTimePicker.prototype._formatValue = function(oDate, bValueFormat, sTimezone) {
@@ -947,13 +991,12 @@ sap.ui.define([
 	};
 
 	DateTimePicker.prototype._createPopup = function(){
-
-		var sLabelId, sLabel, oResourceBundle, sOKButtonText, sCancelButtonText, oPopover;
+		const bPhone = Device.system.phone;
 
 		if (!this._oPopup) {
-			oResourceBundle = Library.getResourceBundleFor("sap.m");
-			sOKButtonText = oResourceBundle.getText("TIMEPICKER_SET");
-			sCancelButtonText = oResourceBundle.getText("TIMEPICKER_CANCEL");
+			const oResourceBundle = Library.getResourceBundleFor("sap.m");
+			const sOKButtonText = oResourceBundle.getText("TIMEPICKER_SET");
+			const sCancelButtonText = oResourceBundle.getText("TIMEPICKER_CANCEL");
 
 			this._oPopupContent = new PopupContent(this.getId() + "-PC");
 			this._oPopupContent._oDateTimePicker = this;
@@ -963,42 +1006,40 @@ sap.ui.define([
 				type: ButtonType.Emphasized,
 				press: _handleOkPress.bind(this)
 			});
+			this._oCancelButton = new Button(this.getId() + "-Cancel", {
+				text: sCancelButtonText,
+				press: _handleCancelPress.bind(this)
+			});
 			var oHeader = this._getValueStateHeader();
 			this._oPopup = new ResponsivePopover(this.getId() + "-RP", {
 				showCloseButton: false,
-				showHeader: false,
+				showHeader: bPhone,
 				placement: PlacementType.VerticalPreferedBottom,
 				beginButton: this._oOKButton,
+				endButton: this._oCancelButton,
 				content: [
 					oHeader,
 					this._oPopupContent
 				],
-				ariaLabelledBy: InvisibleText.getStaticId("sap.m", this._getAccessibleNameLabel()),
+				ariaLabelledBy: this._getInvisibleLabelText().getId(),
+				beforeOpen: _handleBeforeOpen.bind(this),
 				afterOpen: _handleAfterOpen.bind(this),
 				afterClose: _handleAfterClose.bind(this)
 			});
 			oHeader.setPopup(this._oPopup._oControl);
 
 
-			if (Device.system.phone) {
-				sLabelId = this.$("inner").attr("aria-labelledby");
-				sLabel = sLabelId ? document.getElementById(sLabelId)?.textContent : "";
-				this._oPopup.setTitle(sLabel);
-				this._oPopup.setShowHeader(true);
-				this._oPopup.setShowCloseButton(true);
+			if (bPhone) {
+				this._oPopup.setTitle(this._getLabelledText());
 			} else {
 				// We add time in miliseconds for opening and closing animations of the popup,
 				// so the opening and closing event handlers are properly ordered in the event queue
 				this._oPopup._getPopup().setDurations(0, 0);
-				this._oPopup.setEndButton(new Button(this.getId() + "-Cancel", {
-					text: sCancelButtonText,
-					press: _handleCancelPress.bind(this)
-				}));
 			}
 
 			this._oPopup.addStyleClass("sapMDateTimePopup");
 
-			oPopover = this._oPopup.getAggregation("_popup");
+			const oPopover = this._oPopup.getAggregation("_popup");
 			// hide arrow in case of popover as dialog does not have an arrow
 			if (oPopover.setShowArrow) {
 				oPopover.setShowArrow(false);
@@ -1016,7 +1057,7 @@ sap.ui.define([
 	 * @private
 	 * @returns {string} The message bundle key
 	 */
-	DateTimePicker.prototype._getAccessibleNameLabel = function() {
+	DateTimePicker.prototype._getAccessibleNameBundleKey = function() {
 		return "DATETIMEPICKER_POPOVER_ACCESSIBLE_NAME";
 	};
 
@@ -1208,9 +1249,25 @@ sap.ui.define([
 		}
 	};
 
+	function _handleBeforeOpen(){
+		if (Device.system.phone) {
+			this._oPopup.setTitle(this._getLabelledText());
+		}
+	}
+
 	function _handleAfterOpen(oEvent){
 		this._oClocks._showFirstClock();
 		this._oCalendar.focus();
+		this._bTimeSelected = false;
+
+		this._oClocks.getAggregation("_clocks").forEach(function(oClock) {
+			oClock.attachChange(_handleClocksChange, this);
+		}, this);
+
+		const oAmPmButton = this._oClocks.getAggregation("_buttonAmPm");
+		if (oAmPmButton) {
+			oAmPmButton.attachSelectionChange(_handleClocksChange, this);
+		}
 
 		Device.media.attachHandler(this._handleWindowResize, this);
 		this.fireAfterValueHelpOpen();
@@ -1260,9 +1317,16 @@ sap.ui.define([
 	}
 
 	function _handleCalendarSelect(oEvent) {
-		this._oPopupContent.switchToTime();
-		this._oPopupContent.getClocks()._focusActiveButton();
+		if (!this._bTimeSelected) {
+			this._oPopupContent.switchToTime();
+			this._oPopupContent.getClocks()._focusActiveButton();
+		}
+
 		this._oOKButton.setEnabled(true);
+	}
+
+	function _handleClocksChange(oEvent) {
+		this._bTimeSelected = true;
 	}
 
 	return DateTimePicker;

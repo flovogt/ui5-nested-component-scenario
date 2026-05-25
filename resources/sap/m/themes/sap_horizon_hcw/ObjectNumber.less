@@ -65,8 +65,16 @@ html.sap-desktop .sapMObjectNumberActive:focus {
 	}
 }
 
-.sapMListTblCell > .sapMObjectNumber {
+.sapMListTblCell .sapMObjectNumber {
 
+	.sapMObjectNumberText,
+	.sapMObjectNumberUnit {
+		text-shadow: none;
+	}
+}
+
+.sapMListTblRow:hover + .sapMListTblSubRow,
+.sapMListTblSubRow:hover {
 	.sapMObjectNumberText,
 	.sapMObjectNumberUnit {
 		text-shadow: none;

@@ -34,7 +34,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -180,9 +180,32 @@ function(
 		switch (this.getInitialFocus()) {
 			case SelectDialogInitialFocus.SearchField:
 				return this._oSearchField;
-			default:
-				return this._oDialog.getContent()[1];
+			default: {
+				const oList = this._oDialog.getContent()[1];
+				return oList?.getSelectedItem?.() || oList?.getItems?.()[0] || oList;
+			}
 		}
+	};
+
+	/**
+	 * @override
+	 */
+	SelectDialogBase.prototype.addCustomData = function (aCustomData) {
+		Control.prototype.addCustomData.apply(this, arguments);
+
+		const mSettings = this.data("sap-ui-custom-settings");
+		const oDt = mSettings && mSettings["sap.ui.dt"];
+		const sDesigntime = oDt && oDt.designtime;
+
+		if (sDesigntime && this._oDialog) {
+			this._oDialog.data("sap-ui-custom-settings", {
+				"sap.ui.dt": {
+					designtime: sDesigntime
+				}
+			});
+		}
+
+		return this;
 	};
 
 	return SelectDialogBase;

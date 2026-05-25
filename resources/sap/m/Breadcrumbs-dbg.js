@@ -15,6 +15,7 @@ sap.ui.define([
 	"sap/m/Text",
 	"sap/m/Link",
 	"sap/m/Select",
+	"sap/m/Button",
 	"sap/ui/core/Item",
 	"sap/ui/core/delegate/ItemNavigation",
 	"sap/ui/core/ResizeHandler",
@@ -34,6 +35,7 @@ sap.ui.define([
 	Text,
 	Link,
 	Select,
+	Button,
 	Item,
 	ItemNavigation,
 	ResizeHandler,
@@ -74,7 +76,7 @@ sap.ui.define([
 	 * @implements sap.m.IBreadcrumbs, sap.m.IOverflowToolbarContent, sap.ui.core.IShrinkable
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -295,6 +297,7 @@ sap.ui.define([
 				change: this._selectChangeHandler.bind(this),
 				forceSelection: false,
 				autoAdjustWidth: true,
+				wrapItemsText: true,
 				icon: IconPool.getIconURI("slim-arrow-down"),
 				type: SelectType.IconOnly,
 				tooltip: Breadcrumbs._getResourceBundleText("BREADCRUMB_SELECT_TOOLTIP")
@@ -346,7 +349,6 @@ sap.ui.define([
 
 		oCurrentLocation.$().attr("aria-current", "page");
 		oCurrentLocation.$().attr("tabindex", 0);
-		oCurrentLocation.$().attr("role", "link");
 		oCurrentLocation.$().attr("aria-label", this.getCurrentLocation().getText() + " " + positionText);
 	};
 
@@ -412,12 +414,26 @@ sap.ui.define([
 	/*************************************** Select Handling ******************************************/
 
 	Breadcrumbs.prototype._decorateSelect = function (oSelect) {
-		oSelect.getPicker()
+		var oPicker = oSelect.getPicker();
+
+		oPicker
+			.addStyleClass("sapMBreadcrumbsPicker")
 			.attachAfterOpen(this._removeItemNavigation, this)
 			.attachBeforeClose(this._restoreItemNavigation, this);
 
-		if (!Device.system.phone) {
-			oSelect.getPicker().setOffsetY(PICKER_OFFSET_Y);
+		if (Device.system.phone) {
+			// Align mobile overflow dialog with desktop: remove header entirely,
+			// footer Cancel button instead.
+			oPicker.destroyCustomHeader();
+			oPicker.setShowHeader(false);
+			oPicker.setEndButton(new Button({
+				text: oResource.getText("SELECT_CANCEL_BUTTON"),
+				press: function () {
+					oSelect.close();
+				}
+			}));
+		} else {
+			oPicker.setOffsetY(PICKER_OFFSET_Y);
 		}
 
 		oSelect._onBeforeOpenDialog = this._onSelectBeforeOpenDialog.bind(this);
@@ -873,7 +889,7 @@ sap.ui.define([
 	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar
+	 * @ui5-restricted sap.m.OverflowToolbar
 	 */
 	Breadcrumbs.prototype.getOverflowToolbarConfig = function() {
 		var oConfig = {
@@ -905,7 +921,7 @@ sap.ui.define([
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	 Breadcrumbs.prototype._getToolbarInteractive = function () {
 		return true;

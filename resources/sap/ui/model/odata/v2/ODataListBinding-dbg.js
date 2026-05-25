@@ -86,8 +86,8 @@ sap.ui.define([
 	 *   {@link topic:6c47b2b39db9404582994070ec3d57a2#loio62149734b5c24507868e722fe87a75db
 	 *   Optimizing Dependent Bindings}.
 	 * @param {string} [mParameters.batchGroupId]
-	 *   <b>Deprecated</b>, use <code>groupId</code> instead. Sets the batch group id to be used for
-	 *   requests originating from the binding.
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead. Sets the batch group id to be used
+	 *   for requests originating from the binding.
 	 * @param {int} [mParameters.threshold]
 	 *   Deprecated since 1.102.0, as {@link sap.ui.model.odata.OperationMode.Auto} is deprecated;
 	 *   the threshold that defines how many entries should be fetched at least by the binding if
@@ -141,7 +141,7 @@ sap.ui.define([
 			this.oCombinedFilter = null;
 			this.sDeepPath = oModel.resolveDeep(sPath, oContext);
 			this.bCanonicalRequest = mParameters && mParameters.bCanonicalRequest;
-			this.mNormalizeCache = {};
+			this.mNormalizeCache = FilterProcessor.createNormalizeCache();
 			this.bTransitionMessagesOnly = !!(mParameters
 				&& mParameters.transitionMessagesOnly);
 			this.sCreatedEntitiesKey = mParameters && mParameters.createdEntitiesKey || "";
@@ -199,7 +199,7 @@ sap.ui.define([
 	 * Attach event handler <code>fnFunction</code> to the 'createActivate' event of this binding.
 	 *
 	 * @param {function} fnFunction The function to call when the event occurs
-	 * @param {object} [oListener] Object on which to call the given function
+	 * @param {object} [oListener=this] Object on which to call the given function
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 *
 	 * @public
@@ -213,7 +213,7 @@ sap.ui.define([
 	 * Detach event handler <code>fnFunction</code> from the 'createActivate' event of this binding.
 	 *
 	 * @param {function} fnFunction The function to call when the event occurs
-	 * @param {object} [oListener] Object on which to call the given function
+	 * @param {object} [oListener=this] Object on which to call the given function
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 *
 	 * @public
@@ -1782,8 +1782,8 @@ sap.ui.define([
 		// check filter integrity
 		this.oModel.checkFilter(aFilters);
 
-		if (sFilterType === FilterType.Application) {
-			this.aApplicationFilters = aFilters;
+		if (sFilterType === FilterType.Application || sFilterType === FilterType.ApplicationBound) {
+			this.aApplicationFilters = this.computeApplicationFilters(aFilters, sFilterType);
 		} else {
 			this.aFilters = aFilters;
 		}
@@ -1998,7 +1998,7 @@ sap.ui.define([
 	 *   where only the subset given below is supported. In case of deep create, <b>none</b> of the
 	 *   parameters in <code>mParameters</code> must be set.
 	 * @param {string} [mParameters.changeSetId]
-	 *   The ID of the <code>ChangeSet</code> that this request should belong to
+	 *   The ID of the change set that this request should belong to
 	 * @param {function} [mParameters.error]
 	 *   The error callback function
 	 * @param {string} [mParameters.expand]

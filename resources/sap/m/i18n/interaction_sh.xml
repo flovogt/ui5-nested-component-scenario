@@ -115,7 +115,7 @@
 		</interaction>
 		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Ako je odabir ćelije aktiviran</span>:</p>
-				<p>Ako su ćelije odabrane, pritiskom na <kbd>Shift</kbd> i klikom na neku drugu ćeliju proširuje se odabir do ćelije na koju se klikne.</p>
+				<p>Ako su ćelije odabrane, <kbd>Shift + MouseClick</kbd> na drugoj ćeliji proširuje odabir do ćelije na koju je kliknuto.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>
@@ -130,11 +130,19 @@
 	<control-interactions>
 		<control name="sap.m.VariantManagement"/>
 		<interaction> <kbd>F4</kbd> <kbd>Spacebar</kbd> <kbd>Alt + ArrowUp</kbd> <kbd>Alt + ArrowDown</kbd> <description>
-				<p>Otvara upravljanje varijantom.</p>
-			</description>
+				<p>Otvara dijalog Moji pogledi.</p>
+			</description> 
 		</interaction>
 		<interaction> <kbd>PageUp</kbd> <description>
-				<p>Zatvara iskačući prozor greške upravljanja varijantom</p>
+				<p>Zatvara iskačući prozor greške dijaloga Moji pogledi</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + Enter</kbd> <description>
+				<p>Snima novi pogled u dijalogu Sačuvaj kao.</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + S</kbd> <description>
+				<p>Snima promene pogleda.</p>
 			</description>
 		</interaction>
 	</control-interactions>

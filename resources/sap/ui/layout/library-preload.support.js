@@ -5,7 +5,7 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
- * Adds support rules of the sap.layout library to the support infrastructure.
+ * Adds support rules of the sap.ui.layout library to the support infrastructure.
  */
 sap.ui.predefine("sap/ui/layout/library.support", ["./rules/Form.support"],
 	function(FormSupport) {

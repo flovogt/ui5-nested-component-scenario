@@ -25,7 +25,7 @@ sap.ui.define([
 		 *   Extension for Data Aggregation Version 4.0"; must already be normalized by
 		 *   {@link _AggregationHelper.buildApply}
 		 * @param {object} mQueryOptions
-		 *   A map of key-value pairs representing the query string
+		 *   A map of key-value pairs representing the query string (requires "copy on write"!)
 		 * @returns {sap.ui.model.odata.v4.lib._Cache}
 		 *   The cache
 		 */
@@ -64,7 +64,7 @@ sap.ui.define([
 			 * Gets the <code>Promise</code> which resolves with a map of minimum and maximum
 			 * values.
 			 *
-			 * @returns {Promise}
+			 * @returns {Promise<Object<{max:any,min:any}>|undefined>}
 			 *   A <code>Promise</code> which resolves with a map of minimum and maximum values for
 			 *   requested measures, or <code>undefined</code> if no minimum or maximum is
 			 *   requested. The key of the map is the measure property name and the value is an

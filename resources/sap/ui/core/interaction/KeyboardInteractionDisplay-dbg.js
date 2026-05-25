@@ -7,12 +7,12 @@ sap.ui.define([
 	"sap/base/Log",
 	"sap/base/i18n/LanguageFallback",
 	"sap/base/i18n/Localization",
-	"sap/ui/Device",
 	"sap/ui/core/Element",
 	"sap/ui/core/LabelEnablement",
 	"sap/ui/core/Lib",
+	"sap/ui/core/util/ShortcutHelper",
 	"sap/ui/util/XMLHelper"
-], function(Log, LanguageFallback, Localization, Device, Element, LabelEnablement, Library, XMLHelper) {
+], function(Log, LanguageFallback, Localization, Element, LabelEnablement, Library, ShortcutHelper, XMLHelper) {
 	"use strict";
 
 	// Endpoints for sending messages
@@ -30,89 +30,43 @@ sap.ui.define([
 	// Cache to store loaded XML documents
 	const oInteractionXMLCache = new Map();
 
-	const getNormalizedShortcutString = (input) => {
-		const allParts = input.split('+').map((p) => p.trim());
-
-		const modifiers = {
-			ctrl: false,
-			alt: false,
-			shift: false
-		};
-
-		let key = null;
-
-		for (const part of allParts) {
-			const lower = part.toLowerCase();
-			if (lower === 'ctrl') {
-				modifiers.ctrl = true;
-			} else if (lower === 'alt') {
-				modifiers.alt = true;
-			} else if (lower === 'shift') {
-				modifiers.shift = true;
-			} else if (!key) {
-				if (part.length === 1) {
-					key = part.toUpperCase(); // Single character keys are transformed to uppercase
-				} else {
-					key = part;
-				}
-			}
-		}
-
-		const result = [];
-		if (modifiers.ctrl) {
-			result.push(Device.os.macintosh ? 'Cmd' : 'Ctrl');
-		}
-		if (modifiers.alt) {
-			result.push('Alt');
-		}
-		if (modifiers.shift) {
-			result.push('Shift');
-		}
-		if (key) {
-			result.push(key);
-		}
-
-		return result.join('+');
-	};
-
 	/**
-	* Translates a keyboard shortcut string by localizing each key segment.
-	* The shortcut string is expected to use '+' as a delimiter (e.g., "Ctrl+Shift+S").
-	* If a translation is not found, the original key is used.
-	*
-	* @param {string} shortcut The shortcut string
-	* @return {string} The translated shortcut string
-	*/
-	const translateShortcut = (shortcut) => {
-		const oResourceBundle = Library.getResourceBundleFor("sap.ui.core");
-		return shortcut
-			.split("+")
-			.map((key) => {
-				const sPropertiesKey = `Keyboard.Shortcut.${key.trim()}`;
-				const sText = oResourceBundle.getText(sPropertiesKey);
-				return sText === sPropertiesKey ? key.trim() : sText;
-			}).join("+");
-	};
-
-	/**
-	* Translates and annotates all <kbd> elements within given <description> node.
-	* Sets the `data-sap-ui-kbd-raw` attribute on the <kbd> element.
-	*
-	* @param {Element} descriptionNode The DOM node containing the <kbd> elements
-	* @return {Element} The same `descriptionNode`, modified with translated and annotated <kbd> elements.
-	*/
-	const annotateAndTranslateKbdTags = (descriptionNode) => {
-		const kbds = descriptionNode.querySelectorAll("kbd");
-
+	 * Translates and annotates all <kbd> elements.
+ 	 *
+ 	 * For each <kbd> element:
+ 	 * - If it doesn't already have a `data-sap-ui-kbd-raw` attribute, it computes a normalized
+ 	 *   version of its text content using `ShortcutHelper.normalizeShortcutText()` and sets this attribute.
+	 * - Replaces the <kbd> element's text content with the translated shortcut via `translateShortcut()`.
+	 *
+	 * @param {Array<Element>} kbds An array of <kbd> elements to be translated and annotated.
+	 * @return {Array<Element>} The modified array of <kbd> elements with translated text and attributes.
+	 */
+	const annotateAndTranslateKbdTags = (kbds) => {
 		kbds.forEach((kbd) => {
-			const sNormalized = getNormalizedShortcutString(kbd.textContent.trim());
-			const sTranslated = translateShortcut(sNormalized);
-
-			kbd.setAttribute("data-sap-ui-kbd-raw", sNormalized);
-			kbd.textContent = sTranslated;
+			if (!kbd.hasAttribute("data-sap-ui-kbd-raw")) {
+				const sNormalized = ShortcutHelper.normalizeShortcutText(kbd.textContent);
+				kbd.setAttribute("data-sap-ui-kbd-raw", sNormalized);
+				kbd.textContent = ShortcutHelper.localizeKeys(sNormalized);
+			}
 		});
 
-		return descriptionNode;
+		return kbds;
+	};
+
+	/**
+	 * Translates the interaction XML document by annotating and translating all <kbd> tags
+	 * within the interaction nodes and their descriptions.
+	 * This function modifies the XML document in place.
+	 *
+	 * @param {XMLDocument} oInteractionXML The interaction XML document to translate.
+	 * @return {XMLDocument} The translated interaction XML document.
+	 */
+	const translateInteractionXML = (oInteractionXML) => {
+		const oInteractionDoc = oInteractionXML.documentElement;
+		const kbdElements = Array.from(oInteractionDoc.querySelectorAll("kbd"));
+		annotateAndTranslateKbdTags(kbdElements);
+
+		return oInteractionXML;
 	};
 
 	/**
@@ -127,13 +81,13 @@ sap.ui.define([
 		for (const oDependent of aDependents) {
 			if (oDependent.isA("sap.ui.core.CommandExecution") && oDependent.getVisible()) {
 				const oCommandInfo = oDependent._getCommandInfo();
-				const sKbd = getNormalizedShortcutString(oCommandInfo.shortcut);
+				const sKbd = ShortcutHelper.normalizeShortcutText(oCommandInfo.shortcut);
 
 				aCommandInfos.push({
 					name: oDependent.getCommand(),
 					kbd: [{
 						raw: sKbd,
-						translated: translateShortcut(sKbd)
+						translated: ShortcutHelper.localizeKeys(sKbd)
 					}],
 					description: oCommandInfo.description
 				});
@@ -247,10 +201,6 @@ sap.ui.define([
 			return null;
 		}
 
-		if (oInteractionXMLCache.has(sLibrary)) {
-			return oInteractionXMLCache.get(sLibrary);
-		}
-
 		const sLanguage = Localization.getLanguage();
 		const aFallbackChain = LanguageFallback.getFallbackLocales(sLanguage);
 		let oInteractionXML = null;
@@ -280,8 +230,11 @@ sap.ui.define([
 				oInteractionXML = XMLHelper.parse(text);
 
 				if (oInteractionXML) {
+					// Translate kbds and descriptions in the interaction XML
+					oInteractionXML = translateInteractionXML(oInteractionXML);
+
 					// cache the loaded interaction document
-					oInteractionXMLCache.set(sLibrary, oInteractionXML);
+					oInteractionXMLCache.set(sCacheKey, oInteractionXML);
 					break;
 				}
 			} catch (error) {
@@ -323,16 +276,15 @@ sap.ui.define([
 		return [...oMatchingControl.querySelectorAll("interaction")].map((oInteractionNode) => {
 			const kbdElements = Array.from(oInteractionNode.children).filter((child) => child.tagName === "kbd");
 			const kbd = kbdElements.map((kbd) => {
-				const raw = getNormalizedShortcutString(kbd.textContent);
 				return {
-					raw,
-					translated: translateShortcut(raw)
+					raw: kbd.getAttribute("data-sap-ui-kbd-raw"),
+					translated: kbd.textContent
 				};
 			});
 
 			return {
 				kbd,
-				description: annotateAndTranslateKbdTags(oInteractionNode.querySelector("description"))?.innerHTML || ""
+				description: oInteractionNode.querySelector("description")?.innerHTML || ""
 			};
 		});
 	};
@@ -481,6 +433,8 @@ sap.ui.define([
 			//  * first focusout then focusin when moved from a focused element to another focusable element
 			document.addEventListener("focusin", init);
 			document.addEventListener("focusout", init);
+
+			Localization.attachChange(init);
 		},
 
 		/**
@@ -497,6 +451,8 @@ sap.ui.define([
 			this._isActive = false;
 			document.removeEventListener("focusin", init);
 			document.removeEventListener("focusout", init);
+
+			Localization.detachChange(init);
 		},
 
 		/**
@@ -504,8 +460,7 @@ sap.ui.define([
 		 * @private
 		 */
 		_: {
-			getNormalizedShortcutString,
-			translateShortcut,
+			translateInteractionXML,
 			annotateAndTranslateKbdTags,
 			getInteractions,
 			getCommandInfosFor,

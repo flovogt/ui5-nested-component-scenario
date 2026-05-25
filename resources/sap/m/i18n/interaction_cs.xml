@@ -115,7 +115,7 @@
 		</interaction>
 		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Když je aktivován výběr buňky:</span></p>
-				<p>Jsou-li buňky vybrány, stisknutí <kbd>Shift</kbd> a kliknutí na jinou buňku rozšíří výběr až po buňku, na niž se klikne.</p>
+				<p>Jsou-li buňky vybrány, <kbd>Shift + MouseClick</kbd> na jinou buňku rozšíří výběr až po buňku, na niž se klikne.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>
@@ -130,11 +130,19 @@
 	<control-interactions>
 		<control name="sap.m.VariantManagement"/>
 		<interaction> <kbd>F4</kbd> <kbd>Spacebar</kbd> <kbd>Alt + ArrowUp</kbd> <kbd>Alt + ArrowDown</kbd> <description>
-				<p>Otevře správu variant.</p>
-			</description>
+				<p>Otevře dialog Moje pohledy.</p>
+			</description> 
 		</interaction>
 		<interaction> <kbd>PageUp</kbd> <description>
-				<p>Zavře překryvné okno chyb správy variant</p>
+				<p>Zavře překryvné okno chyby dialogu Moje pohledy</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + Enter</kbd> <description>
+				<p>Uloží nový pohled v dialogu Uložit jako.</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + S</kbd> <description>
+				<p>Uloží provedené změny pohledů.</p>
 			</description>
 		</interaction>
 	</control-interactions>

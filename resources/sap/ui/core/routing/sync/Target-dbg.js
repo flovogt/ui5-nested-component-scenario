@@ -9,9 +9,8 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/Element"], function(Log, Element) {
 	/**
 	 * Provide methods for sap.ui.core.routing.Target in sync mode
 	 * @private
-	 * @experimental
-	 * @since 1.33
-	 * @deprecated Since 1.90. Use a {@link sap.ui.core.routing.async.Target async.Target} instead
+	 * @ui5-experimental-since 1.33
+	 * @deprecated as of 1.90
 	 */
 	return {
 
@@ -141,7 +140,7 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/Element"], function(Log, Element) {
 
 			// adapt the container before placing the view into it to make the rendering occur together with the next
 			// aggregation modification.
-			this._beforePlacingViewIntoContainer({
+			this.beforePlacingViewIntoContainer({
 				container: oControl,
 				view: oView,
 				data: vData
@@ -205,6 +204,16 @@ sap.ui.define(["sap/base/Log", "sap/ui/core/Element"], function(Log, Element) {
 			}
 
 			return bIsValid;
+		},
+
+		_getEffectiveObjectName : function (sName) {
+			var sPath = this._oOptions.viewPath;
+
+			if (sPath && sName && !sName.startsWith("module:")) {
+				sName = sPath + "." + sName;
+			}
+
+			return sName;
 		}
 	};
 });

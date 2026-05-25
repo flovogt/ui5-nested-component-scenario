@@ -74,6 +74,9 @@ function(
 		// shortcut for sap.m.PlacementType
 		var PlacementType = library.PlacementType;
 
+		// shortcut for sap.m.SelectTwoColumnSeparator
+		var TwoColumnSeparator = library.SelectTwoColumnSeparator;
+
 		// shortcut for sap.ui.core.ValueState
 		var ValueState = coreLibrary.ValueState;
 
@@ -94,6 +97,13 @@ function(
 
 		// shortcut for sap.ui.core.TitleLevel
 		var TitleLevel = coreLibrary.TitleLevel;
+
+		// constant for two column separator
+		var TWO_COLUMN_SEPARATOR_MAP = {
+			"Dash": "\u2013", // En Dash –
+			"Bullet": "\u2022", // Bullet •
+			"VerticalLine": "\u007C" // Vertical Line |
+		};
 
 		/**
 		 * Constructor for a new <code>sap.m.Select</code>.
@@ -116,7 +126,7 @@ function(
 		 * @borrows sap.ui.core.ILabelable.hasLabelableHTMLElement as #hasLabelableHTMLElement
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @constructor
 		 * @public
@@ -372,7 +382,13 @@ function(
 					 * (e.g. one label should label multiple fields).
 					 * @since 1.74
 					 */
-					required : {type : "boolean", group : "Misc", defaultValue : false}
+					required : {type : "boolean", group : "Misc", defaultValue : false},
+					/**
+					 * Defines the separator type for the two columns layout when Select is in read-only mode.
+					 * @since 1.140
+					 */
+					twoColumnSeparator: { type: "sap.m.SelectTwoColumnSeparator", group: "Appearance", defaultValue: TwoColumnSeparator.Dash }
+
 				},
 				defaultAggregation : "items",
 				aggregations: {
@@ -667,6 +683,20 @@ function(
 			}
 		};
 
+		/**
+		 * Handles immediate selection of the initially highlighted item for accessibility.
+		 * This eliminates the confusing "highlighted but not selectable" state for keyboard users.
+		 *
+		 * @private
+		 */
+		Select.prototype._selectInitialHighlightedItem = function() {
+			if (this._oInitialHighlightedItem && !this.getSelectedItem() && !this.getForceSelection()) {
+				this.setSelection(this._oInitialHighlightedItem);
+				this.setValue(this._getSelectedItemText(this._oInitialHighlightedItem));
+				this._oInitialHighlightedItem = null;
+			}
+		};
+
 		Select.prototype._getSelectedItemText = function(vItem) {
 			vItem = vItem || this.getSelectedItem();
 
@@ -675,7 +705,27 @@ function(
 			}
 
 			if (vItem) {
-				return vItem.getText();
+				var oParent = vItem.getParent(),
+					sMainText = oParent ? vItem.getText() : null,
+					sAdditionalText,
+					sSeparatorKey,
+					sSeparator,
+					sText;
+
+				if (this.getEditable()) {
+					return sMainText;
+				} else {
+					sSeparatorKey = this.getTwoColumnSeparator();
+					sSeparator = TWO_COLUMN_SEPARATOR_MAP[sSeparatorKey];
+					sAdditionalText = oParent ? vItem.getAdditionalText?.() : null;
+					if (sAdditionalText && this.getShowSecondaryValues()) {
+						sText = `${sMainText} ${sSeparator} ${sAdditionalText}`;
+					} else {
+						sText = sMainText;
+					}
+
+					return sText;
+				}
 			}
 
 			return "";
@@ -1010,6 +1060,16 @@ function(
 				// when the currently active descendant is visible and in view
 				oDomRef.setAttribute("aria-activedescendant", oItem.getId());
 				this.scrollToItem(oItem);
+			} else if (!this.getForceSelection()) {
+				// For forceSelection=false, highlight first item to make it immediately selectable
+				// This ensures keyboard/screen reader users can select the highlighted item with Enter/Space
+				// without requiring arrow key navigation first
+				var oFirstItem = this.getSelectableItems()[0];
+				if (oFirstItem) {
+					oDomRef.setAttribute("aria-activedescendant", oFirstItem.getId());
+					this.scrollToItem(oFirstItem);
+					this._oInitialHighlightedItem = oFirstItem;
+				}
 			}
 		};
 
@@ -1035,6 +1095,9 @@ function(
 					this.openValueStateMessage();
 				}
 			}
+
+			// Clean up accessibility state
+			this._oInitialHighlightedItem = null;
 
 			// remove the expanded states of the field
 			this.removeStyleClass(CSS_CLASS + "Expanded");
@@ -1521,6 +1584,7 @@ function(
 			this._attachHiddenSelectHandlers();
 			this._clearReferencingLabelsHandlers();
 			this._handleReferencingLabels();
+			this._updateToolTip();
 		};
 
 		Select.prototype.exit = function() {
@@ -1776,6 +1840,7 @@ function(
 			// mark the event for components that needs to know if the event was handled
 			if (this.isOpen()) {
 				oEvent.setMarked();
+				this._selectInitialHighlightedItem();
 			}
 
 			this.close();
@@ -1823,6 +1888,11 @@ function(
 					oEvent.setMarked();
 
 					if (this.isOpen()) {
+						// Allow immediate Space selection of initially highlighted item
+						if (oEvent.which === KeyCodes.SPACE) {
+							this._selectInitialHighlightedItem();
+						}
+
 						this._checkSelectionChange();
 					}
 
@@ -1852,6 +1922,9 @@ function(
 			// note: prevent document scrolling when arrow keys are pressed
 			oEvent.preventDefault();
 
+			// Clear initial highlight state when user navigates
+			this._oInitialHighlightedItem = null;
+
 			this.selectNextSelectableItem();
 		};
 
@@ -1873,6 +1946,9 @@ function(
 
 			// note: prevent document scrolling when arrow keys are pressed
 			oEvent.preventDefault();
+
+			// Clear initial highlight state when user navigates
+			this._oInitialHighlightedItem = null;
 
 			var oPrevSelectableItem,
 				aSelectableItems = this.getSelectableItems();
@@ -3311,6 +3387,54 @@ function(
 			return oInfo;
 		};
 
+		Select.prototype._updateToolTip = function() {
+			var sTooltip = this.getTooltip_AsString(),
+				oFocusableDomRef = this.getFocusDomRef(),
+				bIconOnly = this.getType() === SelectType.IconOnly,
+				oIconInfo;
+
+			if (!this.getEnabled()) {
+				return;
+			}
+
+			if (!sTooltip && bIconOnly) {
+				oIconInfo = IconPool.getIconInfo(this.getIcon());
+				if (oIconInfo) {
+					sTooltip = oIconInfo.text;
+				}
+			}
+
+			if (sTooltip) {
+				this._setTooltip(sTooltip);
+				bIconOnly && oFocusableDomRef.setAttribute("aria-label", sTooltip);
+			} else if (!this.getEditable() && this._isTextTruncated() && !bIconOnly) {
+				// if the control is not editable and the text is truncated, set the tooltip to the selected item text
+				this._setTooltip(this._getSelectedItemText());
+			}
+		};
+
+		Select.prototype._setTooltip = function (sTooltip) {
+			var oFocusableDomRef = this.getFocusDomRef();
+
+			oFocusableDomRef.setAttribute("title", sTooltip);
+			this.$().find(".sapMSltLabel").attr("title", sTooltip);
+			this.$().find(".sapMSltArrow").attr("title", sTooltip); //IconOnly does not have arrow
+		};
+
+		Select.prototype._isTextTruncated = function () {
+			var oLabel = this.getDomRef().querySelector(".sapMSltLabel");
+
+			if (!oLabel) {
+				return false;
+			}
+
+			if (oLabel.scrollWidth > oLabel.clientWidth) {
+				return true;
+			}
+
+			return false;
+		};
+
 		/**
 		 * Required by the {@link sap.m.IToolbarInteractiveControl} interface.
 		 * Determines if the Control is interactive.
@@ -3318,7 +3442,7 @@ function(
 		 * @returns {boolean} If it is an interactive Control
 		 *
 		 * @private
-		 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+		 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 		 */
 		Select.prototype._getToolbarInteractive = function () {
 			return true;

@@ -7,11 +7,11 @@
 // Provides control sap.m.ListItemBase.
 sap.ui.define([
 	"sap/ui/base/DataType",
+	"sap/ui/dom/detectTextSelection",
 	"sap/ui/model/BindingMode",
 	"sap/ui/Device",
 	"sap/ui/core/Control",
 	"sap/ui/core/IconPool",
-	"sap/ui/core/Icon",
 	"sap/ui/core/InvisibleText",
 	"sap/ui/core/message/MessageType",
 	"sap/ui/core/theming/Parameters",
@@ -29,11 +29,11 @@ sap.ui.define([
 ],
 function(
 	DataType,
+	detectTextSelection,
 	BindingMode,
 	Device,
 	Control,
 	IconPool,
-	Icon,
 	InvisibleText,
 	MessageType,
 	ThemeParameters,
@@ -49,16 +49,10 @@ function(
 ) {
 	"use strict";
 
-
-	// shortcut for sap.m.ListMode
-	var ListMode = library.ListMode;
-
-	// shortcut for sap.m.ListType
-	var ListItemType = library.ListType;
-
-	// shortcut for sap.m.ButtonType
-	var ButtonType = library.ButtonType;
-
+	const ListMode = library.ListMode;
+	const ListItemType = library.ListType;
+	const ButtonType = library.ButtonType;
+	const ListItemActionType = library.ListItemActionType;
 
 	/**
 	 * Constructor for a new ListItemBase.
@@ -72,7 +66,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -145,6 +139,16 @@ function(
 				 */
 				navigated : {type : "boolean", group : "Appearance", defaultValue : false}
 			},
+			defaultAggregation: "actions",
+			aggregations : {
+
+				/**
+				 * Defines the actions contained within this control.
+				 *
+				 * @since 1.137
+				 */
+				actions : { type: "sap.m.ListItemActionBase", multiple: true, singularName: "action" }
+			},
 			associations: {
 
 				/**
@@ -187,14 +191,14 @@ function(
 		renderer: ListItemBaseRenderer
 	});
 
-	ListItemBase.getAccessibilityText = function(oControl, bDetectEmpty, bHeaderAnnouncement) {
-		var oBundle = Library.getResourceBundleFor("sap.m");
+	ListItemBase.getAccessibilityText = function(oControl, bDetectEmpty, bLessDetails) {
+		const oBundle = Library.getResourceBundleFor("sap.m");
 
 		if (!oControl || !oControl.getVisible || !oControl.getVisible()) {
 			return bDetectEmpty ? oBundle.getText("CONTROL_EMPTY") : "";
 		}
 
-		var oAccInfo;
+		let oAccInfo;
 		if (oControl.getAccessibilityInfo) {
 			oAccInfo = oControl.getAccessibilityInfo();
 		}
@@ -202,30 +206,42 @@ function(
 			oAccInfo = this.getDefaultAccessibilityInfo(oControl.getDomRef());
 		}
 
-		oAccInfo = jQuery.extend({
+		oAccInfo = {
 			type: "",
 			description: "",
-			children: []
-		}, oAccInfo);
+			children: [],
+			...oAccInfo
+		};
 
-		var sText = oAccInfo.type + " " + oAccInfo.description + " ",
-			sTooltip = oControl.getTooltip_AsString();
+		let sText = "";
+		if (oAccInfo.type) {
+			sText += oAccInfo.type + " ";
+		}
+		if (oAccInfo.description) {
+			sText += oAccInfo.description + " ";
+		}
 
-		if (oAccInfo.required === true) {
-			sText += oBundle.getText(bHeaderAnnouncement ? "CONTROL_IN_COLUMN_REQUIRED" : "ELEMENT_REQUIRED") + " ";
-		}
-		if (oAccInfo.enabled === false) {
-			sText += oBundle.getText("CONTROL_DISABLED") + " ";
-		}
-		if (oAccInfo.editable === false) {
-			sText += oBundle.getText("CONTROL_READONLY") + " ";
-		}
-		if (!oAccInfo.type && sTooltip && sText.indexOf(sTooltip) == -1) {
-			sText = sTooltip + " " + sText;
+		if (!bLessDetails) {
+			if (oAccInfo.type) {
+				if (oAccInfo.required === true) {
+					sText += oBundle.getText("ELEMENT_REQUIRED") + " ";
+				}
+				if (oAccInfo.enabled === false) {
+					sText += oBundle.getText("CONTROL_DISABLED") + " ";
+				}
+				if (oAccInfo.editable === false) {
+					sText += oBundle.getText("CONTROL_READONLY") + " ";
+				}
+			} else {
+				const sTooltip = oControl.getTooltip_AsString();
+				if (sTooltip && !sText.includes(sTooltip)) {
+					sText += sTooltip + " ";
+				}
+			}
 		}
 
 		oAccInfo.children.forEach(function(oChild) {
-			sText += ListItemBase.getAccessibilityText(oChild) + " ";
+			sText += ListItemBase.getAccessibilityText(oChild, false, bLessDetails) + " ";
 		});
 
 		sText = sText.trim();
@@ -396,7 +412,7 @@ function(
 
 	ListItemBase.prototype.getAccessibilityDescription = function(oBundle) {
 		var aOutput = [],
-			sType = this.getType(),
+			sType = this.getEffectiveType(),
 			sHighlight = this.getHighlight(),
 			bIsTree = this.getListProperty("ariaRole") === "tree";
 
@@ -437,6 +453,11 @@ function(
 		if (this.getContentAnnouncement) {
 			var sContentAnnouncement = (this.getContentAnnouncement(oBundle) || "").trim();
 			sContentAnnouncement && aOutput.push(sContentAnnouncement);
+		}
+
+		const sCustomActionsAnnouncement = this._getCustomActionsAnnouncement();
+		if (sCustomActionsAnnouncement) {
+			aOutput.push(sCustomActionsAnnouncement);
 		}
 
 		if (this.getListProperty("ariaRole") == "list" && !bIsTree && this.isSelectable() && !this.getSelected()) {
@@ -519,19 +540,17 @@ function(
 			id: this.getId() + "-imgDel",
 			icon: this.DeleteIconURI,
 			type: ButtonType.Transparent,
-			tooltip: Library.getResourceBundleFor("sap.m").getText("LIST_ITEM_DELETE")
-		}).addStyleClass("sapMLIBIconDel sapMLIBSelectD").setParent(this, null, true).attachPress(function(oEvent) {
-			this.informList("Delete");
-		}, this);
+			tooltip: Library.getResourceBundleFor("sap.m").getText("LIST_ITEM_DELETE"),
+			press: () => {
+				this.informList("Delete");
+			}
+		}).addStyleClass("sapMLIBIconDel sapMLIBSelectD").setParent(this, null, true);
 
-		ShortcutHintsMixin.addConfig(
-			this._oDeleteControl, {
-				messageBundleKey: "LIST_ITEM_DELETE_SHORTCUT"
-			},
-		this._oDeleteControl);
+		ShortcutHintsMixin.addConfig(this._oDeleteControl, {
+			shortcut: "Delete" // Keyboard.Shortcut.Delete, see sap.ui.core/messagebundle.properties
+		}, this._oDeleteControl);
 
 		this._oDeleteControl.useEnabledPropagator(false);
-
 		return this._oDeleteControl;
 	};
 
@@ -559,20 +578,18 @@ function(
 			id: this.getId() + "-imgDet",
 			icon: this.DetailIconURI,
 			type: ButtonType.Transparent,
-			tooltip: Library.getResourceBundleFor("sap.m").getText("LIST_ITEM_EDIT")
-		}).addStyleClass("sapMLIBType sapMLIBIconDet").setParent(this, null, true).attachPress(function() {
-			this.fireDetailTap();
-			this.fireDetailPress();
-		}, this);
+			tooltip: Library.getResourceBundleFor("sap.m").getText("LIST_ITEM_EDIT"),
+			press: () => {
+				this.fireDetailTap();
+				this.fireDetailPress();
+			}
+		}).addStyleClass("sapMLIBType sapMLIBIconDet").setParent(this, null, true);
 
-		ShortcutHintsMixin.addConfig(
-			this._oDetailControl, {
-				messageBundleKey: Device.os.macintosh ? "LIST_ITEM_EDIT_SHORTCUT_MAC" : "LIST_ITEM_EDIT_SHORTCUT"
-			},
-		this._oDetailControl);
+		ShortcutHintsMixin.addConfig(this._oDetailControl, {
+			shortcut: "Ctrl+E" // ShortcutHintsMixin takes care of normalizing and localizing
+		}, this._oDetailControl);
 
 		this._oDetailControl.useEnabledPropagator(false);
-
 		return this._oDetailControl;
 	};
 
@@ -587,15 +604,23 @@ function(
 			return this._oNavigationControl;
 		}
 
-		this._oNavigationControl = new Icon({
+		this._oNavigationControl = new Button({
 			id: this.getId() + "-imgNav",
-			src: this.NavigationIconURI,
+			icon: this.NavigationIconURI,
+			type: ButtonType.Transparent,
 			tooltip: Library.getResourceBundleFor("sap.m").getText("LIST_ITEM_NAVIGATION_ICON"),
-			useIconTooltip: false,
-			decorative: false,
-			noTabStop: true
+			press: () => {
+				this.fireTap();
+				this.firePress();
+				this.informList("Press", this._oNavigationControl);
+			}
 		}).setParent(this, null, true).addStyleClass("sapMLIBType sapMLIBImgNav");
 
+		ShortcutHintsMixin.addConfig(this._oNavigationControl, {
+			shortcut: "Enter" // Keyboard.Shortcut.Enter, see sap.ui.core/messagebundle.properties
+		}, this._oNavigationControl);
+
+		this._oNavigationControl.useEnabledPropagator(false);
 		return this._oNavigationControl;
 	};
 
@@ -616,16 +641,16 @@ function(
 			groupName: this.getListProperty("id") + "_selectGroup",
 			activeHandling: false,
 			selected: this.getSelected(),
-			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "LIST_ITEM_SELECTION")
-		}).addStyleClass("sapMLIBSelectS").setParent(this, null, true).attachSelect(function(oEvent) {
-			var bSelected = oEvent.getParameter("selected");
-			this.setSelected(bSelected);
-			this.informList("Select", bSelected);
-		}, this);
+			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "LIST_ITEM_SELECTION"),
+			select: (oEvent) => {
+				const bSelected = oEvent.getParameter("selected");
+				this.setSelected(bSelected);
+				this.informList("Select", bSelected);
+			}
+		}).addStyleClass("sapMLIBSelectS").setParent(this, null, true);
 
 		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
 		this._oSingleSelectControl.useEnabledPropagator(false);
-
 		return this._oSingleSelectControl;
 	};
 
@@ -645,23 +670,23 @@ function(
 			id: this.getId() + "-selectMulti",
 			activeHandling: false,
 			selected: this.getSelected(),
-			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "LIST_ITEM_SELECTION")
-		}).addStyleClass("sapMLIBSelectM").setParent(this, null, true).addEventDelegate({
+			ariaLabelledBy: InvisibleText.getStaticId("sap.m", "LIST_ITEM_SELECTION"),
+			select: (oEvent) => {
+				const bSelected = oEvent.getParameter("selected");
+				this.setSelected(bSelected);
+				this.informList("Select", bSelected);
+			}
+		}).addEventDelegate({
 			onkeydown: function (oEvent) {
 				this.informList("KeyDown", oEvent);
 			},
 			onkeyup: function (oEvent) {
 				this.informList("KeyUp", oEvent);
 			}
-		}, this).attachSelect(function(oEvent) {
-			var bSelected = oEvent.getParameter("selected");
-			this.setSelected(bSelected);
-			this.informList("Select", bSelected);
-		}, this);
+		}, this).addStyleClass("sapMLIBSelectM").setParent(this, null, true);
 
 		// prevent disabling of internal controls by the sap.ui.core.EnabledPropagator
 		this._oMultiSelectControl.useEnabledPropagator(false);
-
 		return this._oMultiSelectControl;
 	};
 
@@ -696,7 +721,7 @@ function(
 	 * @private
 	 */
 	ListItemBase.prototype.getTypeControl = function(bCreateIfNotExist) {
-		var sType = this.getType();
+		var sType = this.getEffectiveType();
 
 		if (sType == ListItemType.Detail || sType == ListItemType.DetailAndActive) {
 			return this.getDetailControl(bCreateIfNotExist);
@@ -732,10 +757,12 @@ function(
 			return false;
 		}
 
-		return this.isIncludedIntoSelection() || (
-			this.getType() != ListItemType.Inactive &&
-			this.getType() != ListItemType.Detail
-		);
+		if (this.isIncludedIntoSelection()) {
+			return true;
+		}
+
+		const sType = this.getEffectiveType();
+		return (sType != ListItemType.Inactive && sType != ListItemType.Detail);
 	};
 
 	ListItemBase.prototype.exit = function() {
@@ -922,7 +949,7 @@ function(
 	 * @return {boolean}
 	 */
 	ListItemBase.prototype.hasActiveType = function() {
-		var sType = this.getType();
+		const sType = this.getEffectiveType();
 		return (sType == ListItemType.Active ||
 				sType == ListItemType.Navigation ||
 				sType == ListItemType.DetailAndActive);
@@ -941,7 +968,7 @@ function(
 		this._active = bActive;
 		this._activeHandling($This);
 
-		if (this.getType() == ListItemType.Navigation) {
+		if (this.getEffectiveType() == ListItemType.Navigation) {
 			this._activeHandlingNav($This);
 		}
 
@@ -954,20 +981,6 @@ function(
 		this.informList("ActiveChange", bActive);
 	};
 
-	/**
-	 * Detect text selection.
-	 *
-	 * @param {HTMLElement} oDomRef DOM element of the control
-	 * @returns {boolean} true if text selection is done within the control else false
-	 * @private
-	 */
-	ListItemBase.detectTextSelection = function(oDomRef) {
-		var oSelection = window.getSelection(),
-			sTextSelection = oSelection.toString().replace("\n", "");
-
-		return sTextSelection && (oDomRef !== oSelection.focusNode && oDomRef.contains(oSelection.focusNode));
-	};
-
 	ListItemBase.prototype.ontap = function(oEvent) {
 
 		// do not handle already handled events
@@ -976,7 +989,7 @@ function(
 		}
 
 		// do not handle in case of text selection within the list item
-		if (ListItemBase.detectTextSelection(this.getDomRef())) {
+		if (detectTextSelection(this.getDomRef())) {
 			return;
 		}
 
@@ -1121,7 +1134,7 @@ function(
 	};
 
 	ListItemBase.prototype.onsapenter = function(oEvent) {
-		var oList = this.getList();
+		const oList = this.getList();
 		if (oEvent.isMarked() || !oList) {
 			return;
 		}
@@ -1144,15 +1157,15 @@ function(
 			oEvent.setMarked();
 			this.setActive(true);
 
-			setTimeout(function() {
+			setTimeout(() => {
 				this.setActive(false);
-			}.bind(this), 180);
+			}, 180);
 
 			// fire own press event
-			setTimeout(function() {
+			setTimeout(() => {
 				this.fireTap();
 				this.firePress();
-			}.bind(this), 0);
+			}, 0);
 		}
 
 		// let the parent know item is pressed
@@ -1162,12 +1175,16 @@ function(
 	ListItemBase.prototype.onsapdelete = function(oEvent) {
 		if (oEvent.isMarked() ||
 			oEvent.srcControl !== this ||
-			this.getMode() != ListMode.Delete ||
 			oEvent.target !== this.getDomRef()) {
 			return;
 		}
 
-		this.informList("Delete");
+		if (this.getMode() === ListMode.Delete && this._getMaxActionsCount() === -1) {
+			this.informList("Delete");
+		} else {
+			const oDeleteAction = this._getActionByType(ListItemActionType.Delete);
+			oDeleteAction?._onActionPress();
+		}
 		oEvent.preventDefault();
 		oEvent.setMarked();
 	};
@@ -1179,13 +1196,16 @@ function(
 		}
 
 		// Ctrl+E fires detail event or handle editing
-		if (this.getType().startsWith("Detail") && oEvent.code == "KeyE" && (oEvent.metaKey || oEvent.ctrlKey)) {
-			if (oEvent.target === this.getDomRef() && (this.hasListeners("detailPress") || this.hasListeners("detailTap"))) {
+		if (oEvent.code == "KeyE" && (oEvent.metaKey || oEvent.ctrlKey) && oEvent.target === this.getDomRef()) {
+			if (this.getEffectiveType().startsWith("Detail") && (this.hasListeners("detailPress") || this.hasListeners("detailTap")) && this._getMaxActionsCount() === -1) {
 				this.fireDetailTap();
 				this.fireDetailPress();
-				oEvent.preventDefault();
-				oEvent.setMarked();
+			} else {
+				const oEditAction = this._getActionByType(ListItemActionType.Edit);
+				oEditAction?._onActionPress();
 			}
+			oEvent.preventDefault();
+			oEvent.setMarked();
 		}
 
 		if (oEvent.srcControl !== this || oEvent.target !== this.getDomRef()) {
@@ -1275,6 +1295,96 @@ function(
 			document.activeElement.matches(".sapMLIB,.sapMListTblCell,.sapMListTblSubRow,.sapMListTblSubCnt")) {
 			this.informList("ContextMenu", oEvent);
 		}
+	};
+
+	ListItemBase.prototype.getEffectiveType = function() {
+		let sType = this.getType();
+		if (sType !== ListItemType.Navigation && this._hasNavigationAction()) {
+			sType = ListItemType.Navigation;
+		}
+		return sType;
+	};
+
+	ListItemBase.prototype._hasNavigationAction = function() {
+		return this.getActions().some((oAction) => {
+			return oAction.isA("sap.m.ListItemAction") && oAction.getType() === ListItemActionType.Navigation && oAction.getVisible();
+		});
+	};
+
+	ListItemBase.prototype._getEffectiveActions = function() {
+		return this.getActions().filter((oAction) => oAction.isA("sap.m.ListItemAction") && oAction.isEffective());
+	};
+
+	ListItemBase.prototype._getMaxActionsCount = function() {
+		const oList = this.getList();
+		return oList ? oList._getItemActionCount() : -1;
+	};
+
+	ListItemBase.prototype._getVisibleActions = function() {
+		return this._getEffectiveActions().filter((oAction) => oAction.getVisible());
+	};
+
+	ListItemBase.prototype._getActionByType = function(sListItemActionType) {
+		return this._getVisibleActions().find((oAction) => oAction.getType() === sListItemActionType);
+	};
+
+	ListItemBase.prototype._hasOverflowActions = function() {
+		return this._getVisibleActions().length > this._getMaxActionsCount();
+	};
+
+	ListItemBase.prototype._getActionsToRender = function() {
+		const aActions = this._getEffectiveActions();
+		let iMaxActionsCount = this._getMaxActionsCount();
+		if (aActions.length <= iMaxActionsCount) {
+			return aActions; // all actions fit the available space
+		}
+
+		const aVisibleActions = aActions.filter((oAction) => oAction.getVisible());
+		if (aVisibleActions.length > iMaxActionsCount) {
+			iMaxActionsCount--;	// preserve space for the overflow button
+		}
+		return aVisibleActions.slice(0, iMaxActionsCount);
+	};
+
+	ListItemBase.prototype._getOverflowActions = function() {
+		const aActionsToRender = this._getActionsToRender();
+		return this._getEffectiveActions().flatMap((oAction) => {
+			return oAction.getVisible() && !aActionsToRender.includes(oAction) ? [oAction] : [];
+		});
+	};
+
+	ListItemBase.prototype._onOverflowButtonPress = function(oEvent) {
+		const ListItemAction = this._getEffectiveActions()[0].constructor;
+		ListItemAction._showMenu(this._getOverflowActions(), oEvent.getSource());
+	};
+
+	ListItemBase.prototype._getOverflowButton = function() {
+		if (this._oOverflowButton) {
+			return this._oOverflowButton;
+		}
+
+		this._oOverflowButton = new Button({
+			id: this.getId() + "-overflow",
+			icon: IconPool.getIconURI("overflow"),
+			press: [this._onOverflowButtonPress, this],
+			type: ButtonType.Transparent
+		});
+
+		this._oOverflowButton.useEnabledPropagator(false);
+		this.addDependent(this._oOverflowButton);
+		return this._oOverflowButton;
+	};
+
+	ListItemBase.prototype._getCustomActionsAnnouncement = function(bAnnounceEmpty) {
+		const $CustomActionsContainer = this.$("actions");
+		const iCustomActionsLength = $CustomActionsContainer.length ? $CustomActionsContainer.find(":sapTabbable").length : 0;
+		if (!iCustomActionsLength && !bAnnounceEmpty) {
+			return "";
+		}
+
+		const aBundleKeys = ["CONTROL_EMPTY", "LIST_ITEM_SINGLE_ACTION", "LIST_ITEM_MULTIPLE_ACTIONS"];
+		const sBundleKey = aBundleKeys[Math.min(iCustomActionsLength, 2)];
+		return Library.getResourceBundleFor("sap.m").getText(sBundleKey, [iCustomActionsLength]);
 	};
 
 	return ListItemBase;

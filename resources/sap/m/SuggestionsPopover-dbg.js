@@ -52,7 +52,7 @@ sap.ui.define([
 	 * @alias sap.m.SuggestionsPopover
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 */
 	var SuggestionsPopover = EventProvider.extend("sap.m.SuggestionsPopover", /** @lends sap.m.SuggestionsPopover.prototype */ {
 
@@ -499,7 +499,13 @@ sap.ui.define([
 		}
 
 		if (oItem) {
-			oInputDomRef.setAttribute("aria-activedescendant", oItem.getId());
+			// First remove aria-activedescendant to interrupt JAWS reading previous item
+			oInputDomRef.removeAttribute("aria-activedescendant");
+
+			// Use setTimeout to force JAWS to stop reading and then announce the new item
+			setTimeout(function() {
+				oInputDomRef.setAttribute("aria-activedescendant", oItem.getId());
+			}, 0);
 			return;
 		}
 	};

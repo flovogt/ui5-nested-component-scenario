@@ -17,6 +17,7 @@ sap.ui.define([
 	"sap/base/util/LoaderExtensions",
 	"sap/base/util/merge",
 	"sap/ui/base/ManagedObject",
+	"sap/ui/base/OwnStatics",
 	"sap/ui/core/Core",
 	"sap/ui/core/Control",
 	"sap/ui/core/RenderManager",
@@ -40,6 +41,7 @@ sap.ui.define([
 		LoaderExtensions,
 		merge,
 		ManagedObject,
+		OwnStatics,
 		Core,
 		Control,
 		RenderManager,
@@ -52,6 +54,8 @@ sap.ui.define([
 		jQuery
 	) {
 	"use strict";
+
+	const { runWithPreprocessors } = OwnStatics.get(ManagedObject);
 
 	// actual constants
 	var RenderPrefixes = RenderManager.RenderPrefixes,
@@ -113,7 +117,7 @@ sap.ui.define([
 	 * bound content aggregation. An error will be thrown when the above combination is detected.
 	 *
 	 * @extends sap.ui.core.mvc.View
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @alias sap.ui.core.mvc.XMLView
@@ -557,6 +561,7 @@ sap.ui.define([
 	*
 	* @param {object} mSettings with view settings
 	* @returns {Promise|null} will be returned if running in async mode
+	* @ui5-transform-hint replace-param mSettings.async true
 	*/
 	XMLView.prototype.initViewSettings = function(mSettings) {
 		var that = this, _xContent;
@@ -564,6 +569,7 @@ sap.ui.define([
 		function processView(xContent) {
 			that._xContent = xContent;
 
+			/** @deprecated since 1.120.0 */
 			if (View._supportInfo) {
 				View._supportInfo({context: that._xContent, env: {caller:"view", viewinfo: merge({}, that), settings: merge({}, mSettings || {}), type: "xmlview"}});
 			}
@@ -736,15 +742,19 @@ sap.ui.define([
 		// XMLView special logic for asynchronous template parsing, when component loading is async but
 		// instance creation is sync.
 		function fnRunWithPreprocessor(fn) {
-			return ManagedObject.runWithPreprocessors(fn, {
+			return runWithPreprocessors(fn, {
 				settings: that._fnSettingsPreprocessor
 			});
 		}
 
-		// parse the XML tree
-		if (!this.oAsyncState) {
+		/**
+		 * @ui5-transform-hint replace-local false
+		 */
+		const bSync = !this.oAsyncState;
+		if (bSync) {
 			this._aParsedContent = fnRunWithPreprocessor(XMLTemplateProcessor.parseTemplate.bind(null, this._xContent, this, mSettings));
 		} else {
+			// parse the XML tree
 			var fnDone = Interaction.notifyAsyncStep("VIEW PROCESSING");
 			return XMLTemplateProcessor.parseTemplatePromise(this._xContent, this, true, {
 				fnRunWithPreprocessor: fnRunWithPreprocessor
@@ -855,7 +865,8 @@ sap.ui.define([
 	 *      Since 1.89, added for signature compatibility with {@link sap.ui.core.mvc.View#registerPreprocessor
 	 *      View#registerPreprocessor}. Only supported value is "XML".
 	 * @param {boolean} bSyncSupport
-	 *      declares if the vPreprocessor ensures safe sync processing. This means the preprocessor will be executed
+	 *		Deprecated as of version 1.145, because this parameter is only applicable to sync views and is no longer used.
+	 * 		Declares if the vPreprocessor ensures safe sync processing. This means the preprocessor will be executed
 	 *      also for sync views. Please be aware that any kind of async processing (like Promises, XHR, etc) may
 	 *      break the view initialization and lead to unexpected results.
 	 * @param {boolean} [bOnDemand]

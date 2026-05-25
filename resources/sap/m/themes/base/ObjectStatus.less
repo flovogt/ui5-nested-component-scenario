@@ -231,7 +231,7 @@
 	border-radius: 0.25rem;
 }
 
-.sapMListTbl .sapMObjStatusInverted .sapMObjStatusIcon > .sapUiIcon:not(.sapMLIBImgNav):not(.sapMBtnIcon) {
+.sapMListTbl .sapMObjStatusInverted .sapMObjStatusIcon > .sapUiIcon:not(.sapMBtnIcon) {
 	font-size: var(--sapFontSmallSize);
 	vertical-align: top;
 }
@@ -426,6 +426,10 @@
 	display: block;
 }
 
+.sapUiTableCell .sapMObjStatus:has(.sapMObjStatusIconOnly) {
+	display: inline-block;
+}
+
 .sapUiTableCell .sapMObjStatus:not(.sapMObjStatusInverted) .sapMObjStatusIcon {
 	margin-left: 0.03rem;
 }
@@ -530,6 +534,7 @@ html.sap-desktop .sapMObjStatusActive:focus {
 }
 
 .sapMObjStatusActive:hover > .sapMObjStatusText,
+.sapMObjStatusActive:hover > .sapMObjStatusIcon,
 .sapMObjStatusActive:hover > .sapMObjStatusIcon > .sapUiIcon {
 	text-decoration: underline;
 	cursor: pointer;
@@ -539,6 +544,7 @@ html.sap-desktop .sapMObjStatusActive:focus {
 	text-decoration: none;
 }
 
+.sapMObjStatusLink:hover .sapMObjStatusIcon,
 .sapMObjStatusLink:hover .sapMObjStatusIcon > .sapUiIcon {
 	cursor: pointer;
 }

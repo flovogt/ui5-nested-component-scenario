@@ -11,7 +11,6 @@ sap.ui.define([
 	"sap/ui/core/IconPool",
 	"./QuickViewBase",
 	"./ResponsivePopover",
-	"./NavContainer",
 	"./Page",
 	"./Bar",
 	"./Button"
@@ -21,7 +20,6 @@ sap.ui.define([
 	IconPool,
 	QuickViewBase,
 	ResponsivePopover,
-	NavContainer,
 	Page,
 	Bar,
 	Button
@@ -59,7 +57,7 @@ sap.ui.define([
 	 * @extends sap.m.QuickViewBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -161,13 +159,8 @@ sap.ui.define([
 	 * @private
 	 */
 	QuickView.prototype.init = function() {
-		var oNavConfig = {
-			pages: [new Page()],
-			navigate: this._navigate.bind(this),
-			afterNavigate: this._afterNavigate.bind(this)
-		};
-
-		this._oNavContainer = new NavContainer(oNavConfig);
+		// Call parent init to create the _navContainer aggregation
+		QuickViewBase.prototype.init.apply(this);
 
 		var that = this;
 

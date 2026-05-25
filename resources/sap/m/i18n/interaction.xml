@@ -179,7 +179,7 @@
 			<kbd>Shift + MouseClick</kbd>
 			<description>
 				<p><span class="emphasis">If cell selection is enabled</span>:</p>
-				<p>If cells are selected, <kbd>Shift</kbd> + click on a different cell enhances
+				<p>If cells are selected, <kbd>Shift + MouseClick</kbd> on a different cell enhances
 					the selection up to the clicked cell.</p>
 			</description>
 		</interaction>
@@ -204,13 +204,25 @@
 			<kbd>Alt + ArrowUp</kbd>
 			<kbd>Alt + ArrowDown</kbd>
 			<description>
-				<p>Opens the variant management.</p>
-			</description>
+				<p>Opens the My Views dialog.</p>
+			</description> 
 		</interaction>
 		<interaction>
 			<kbd>PageUp</kbd>
 			<description>
-				<p>Closes the error popover of the variant management</p>
+				<p>Closes the error popover of the My Views dialog</p>
+			</description>
+		</interaction>
+		<interaction>
+			<kbd>Ctrl + Enter</kbd>
+			<description>
+				<p>Saves the new view in the Save As dialog.</p>
+			</description>
+		</interaction>
+		<interaction>
+			<kbd>Ctrl + S</kbd>
+			<description>
+				<p>Saves the changes made to the views.</p>
 			</description>
 		</interaction>
 	</control-interactions>

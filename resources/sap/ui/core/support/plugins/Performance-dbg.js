@@ -56,7 +56,7 @@ sap.ui.define([
 		 * With this plugIn the performance measurements are displayed
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 * @private
 		 * @alias sap.ui.core.support.plugins.Performance
 		 */
@@ -192,7 +192,7 @@ sap.ui.define([
 				//show "nodata overlay" if there is data
 				sapUiSupportNoDataOverlay.style.display = 'block';
 				domSlider.classList.add('sapUiSupportHidden');
-				domTimelineOverview.innerHTML = '';
+				domTimelineOverview.replaceChildren();
 				return;
 			} else {
 				domSlider.classList.remove('sapUiSupportHidden');
@@ -549,6 +549,9 @@ sap.ui.define([
 			var filterOptions = _getFilterOptions();
 			//filtered and modified data
 			var data = _applyFilters(_rawdata, filterOptions);
+
+			barRm.openStart("ol").openEnd();
+			barInfoRm.openStart("ol").openEnd();
 
 			//no data bar
 			if (data.length === 0) {

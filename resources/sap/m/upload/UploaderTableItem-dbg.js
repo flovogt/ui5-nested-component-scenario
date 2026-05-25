@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @constructor
 	 * @public
 	 * @since 1.120
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @alias sap.m.upload.UploaderTableItem
 	 */
 	var Uploader = Element.extend("sap.m.upload.UploaderTableItem", {
@@ -142,7 +142,7 @@ sap.ui.define([
 	 */
 	Uploader.uploadFile = function (oFile, sUrl, aHeaderFields) {
 		var oXhr = new window.XMLHttpRequest();
-		var sHttpRequestMethod = this.getHttpRequestMethod();
+		var sHttpRequestMethod = this.getHttpRequestMethod()?.toUpperCase();
 
 		return new Promise(function(resolve, reject) {
 			oXhr.open(sHttpRequestMethod, sUrl, true);
@@ -186,7 +186,7 @@ sap.ui.define([
 				xhr: oXhr,
 				item: oItem
 			},
-			sHttpRequestMethod = this.getHttpRequestMethod(),
+			sHttpRequestMethod = this.getHttpRequestMethod()?.toUpperCase(),
 			sUploadUrl = oItem.getUploadUrl() || this.getUploadUrl();
 
 		const _isBrowserOffline = () => {

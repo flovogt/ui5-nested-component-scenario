@@ -10,14 +10,15 @@ sap.ui.define([
 	"sap/ui/core/Element",
 	"sap/ui/core/InvisibleText",
 	"sap/ui/Device",
-	"sap/m/ColumnPopoverActionItem",
+	"sap/ui/dom/detectTextSelection",
 	"sap/m/table/columnmenu/QuickAction",
+	"sap/m/table/columnmenu/QuickResize",
 	"sap/m/Button",
 	"sap/ui/core/Lib",
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "aria"
 	"sap/ui/dom/jquery/Aria"
-], function(PluginBase, Localization, Element, InvisibleText, Device, ColumnPopoverActionItem, QuickAction, Button, Library, jQuery) {
+], function(PluginBase, Localization, Element, InvisibleText, Device, detectTextSelection, QuickAction, QuickResize, Button, Library, jQuery) {
 	"use strict";
 
 	/**
@@ -33,7 +34,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @since 1.91
@@ -319,7 +320,7 @@ sap.ui.define([
 			// the resize handle does not disappear in the initial mousedown and mouseup event
 			// this will also prevent column press event to trigger
 			setTimeout(() => {
-				this._oHandle.remove();
+				this._oHandle?.remove();
 			}, 300);
 		}
 
@@ -439,7 +440,7 @@ sap.ui.define([
 	 */
 	ColumnResizer.prototype._onLeftRightModifiersKeyDown = function(oEvent, iDistanceX) {
 		// prevent column resize when there is text selection in the column header
-		if (!oEvent.shiftKey || oEvent.ctrlKey || oEvent.metaKey || oEvent.altKey || ColumnResizer.detectTextSelection(oEvent.target)) {
+		if (!oEvent.shiftKey || oEvent.ctrlKey || oEvent.metaKey || oEvent.altKey || detectTextSelection(oEvent.target)) {
 			return;
 		}
 
@@ -455,13 +456,6 @@ sap.ui.define([
 		this._setColumnWidth();
 		this._endResizeSession();
 		oEvent.stopImmediatePropagation(true);
-	};
-
-	ColumnResizer.detectTextSelection = function(oDomRef) {
-		var oSelection = window.getSelection(),
-			sTextSelection = oSelection.toString().replace("/n", "");
-
-		return sTextSelection && (oDomRef !== oSelection.focusNode && oDomRef.contains(oSelection.focusNode));
 	};
 
 	/**
@@ -509,7 +503,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ColumnResizer.prototype.getColumnResizeQuickAction = function(oColumn, oColumnMenu) {
-		if (!oColumn || !ColumnResizer._isInTouchMode()) {
+		if (!ColumnResizer._isInTouchMode()) {
 			return;
 		}
 
@@ -525,21 +519,25 @@ sap.ui.define([
 	};
 
 	/**
-	 * Returns resizer button instance which on press calls the <code>startResizing</code> method.
+	 * Returns an instance of <code>sap.m.table.columnmenu.QuickResize</code> that can be used for column resizing.
 	 * @param {sap.m.Column} oColumn Column instance
-	 * @returns {sap.m.ColumnPopoverActionItem | undefined} column resize action item
-	 * @ui5-restricted
+	 * @returns {sap.m.table.columnmenu.QuickAction | undefined} Instance of <code>sap.m.table.columnmenu.QuickResize</code>
+	 * @ui5-restricted sap.ui.mdc
 	 * @private
 	 */
-	ColumnResizer.prototype.getColumnResizeButton = function(oColumn) {
-		if (!oColumn || !ColumnResizer._isInTouchMode()) {
-			return;
-		}
+	ColumnResizer.prototype.getColumnResizeInputQuickAction = function(oColumn) {
+		return new QuickResize({
+			width: parseInt(getComputedStyle(oColumn.getDomRef()).width),
+			change: [function(oEvent) {
+				const bExecuteDefault = this.fireColumnResize({
+					column: oColumn,
+					width: oEvent.getParameter("width") + "px"
+				});
 
-		return new ColumnPopoverActionItem({
-			text: Library.getResourceBundleFor("sap.m").getText("COLUMNRESIZER_RESIZE_BUTTON"),
-			icon: "sap-icon://resize-horizontal",
-			press: this.startResizing.bind(this, oColumn.getDomRef())
+				if (bExecuteDefault) {
+					oColumn.setWidth(oEvent.getParameter("width") + "px");
+				}
+			}, this]
 		});
 	};
 

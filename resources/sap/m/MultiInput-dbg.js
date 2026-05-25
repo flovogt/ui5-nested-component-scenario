@@ -74,6 +74,8 @@ function(
 	* <li> When a single value is copied and pasted in the field, it is shown as a text value, as further editing might be required before it is converted into a token.</li>
 	* <li> Provide meaningful labels for all input fields. Do not use the placeholder as a replacement for the label.</li>
 	* <li> The <code>showValueHelp</code> property is overwritten and after initialization of the control, its value becomes <code>truthy</code>.</li>
+	* <li> A mix of read-only and deletable tokens isn't supported. </li>
+	* <li> The read-only state of tokens should be controlled using the <code>editable</code> property of the MultiInput control.</li>
 	* </ul>
 	* <h3>Usage</h3>
 	* <h4>When to use:</h4>
@@ -110,7 +112,7 @@ function(
 	* @extends sap.m.Input
 	*
 	* @author SAP SE
-	* @version 1.136.16
+	* @version 1.148.0
 	*
 	* @constructor
 	* @public
@@ -272,7 +274,6 @@ function(
 
 			this.destroyTokens();
 			this.updateAggregation("tokens");
-
 		};
 
 		// Override "focusfail" handler, see sap.ui.core.Element#onfocusfail
@@ -357,6 +358,7 @@ function(
 
 			this.updateFormValueProperty();
 			this.invalidate();
+			this._updateFilterSelectedButtonState();
 		}.bind(this));
 
 		this._oTokenizerObserver.observe(oTokenizer, {
@@ -365,6 +367,20 @@ function(
 
 		this._bShowListWithTokens = false;
 		this._bIsValidating = false;
+
+		// This prevents Tokenizer from opening the N-more popup when a Token is focused
+		oTokenizer.addDelegate({
+			onsapshow: function(oEvent) {
+				if (this.getShowValueHelp() && oEvent.srcControl && oEvent.srcControl.isA("sap.m.Token")) {
+					oEvent.setMarked();
+				}
+			},
+			onsaphide: function(oEvent) {
+				if (this.getShowValueHelp() && oEvent.srcControl && oEvent.srcControl.isA("sap.m.Token")) {
+					oEvent.setMarked();
+				}
+			}
+		}, true, this);
 
 		oTokenizer.addEventDelegate({
 			onThemeChanged: this._handleInnerVisibility.bind(this),
@@ -449,9 +465,15 @@ function(
 	 */
 	MultiInput.prototype.onAfterRendering = function () {
 		var oTokenizer = this.getAggregation("tokenizer");
+		var oTokenizerOpener = Element.getElementById(oTokenizer.getProperty("opener"))?.getDomRef();
+
 		this._bTokenIsValidated = false;
 
 		oTokenizer.setMaxWidth(this._calculateSpaceForTokenizer());
+
+		if (oTokenizerOpener !== this.getDomRef()) {
+			oTokenizer.setProperty("opener", this.getId(), true);
+		}
 
 		this._registerResizeHandler();
 
@@ -479,10 +501,14 @@ function(
 	 * @ui5-restricted sap.ui.comp.smartfilterbar
 	 */
 	MultiInput.prototype._initTokenizer = function () {
-		return new Tokenizer({
+		var oTokenizer = new Tokenizer({
 			renderMode: TokenizerRenderMode.Narrow,
 			tokenDelete: this._tokenDelete.bind(this)
 		});
+
+		oTokenizer.setProperty("_usePopoverArrow", false);
+
+		return oTokenizer;
 	};
 
 	/**
@@ -911,33 +937,14 @@ function(
 		if (!this.getEnabled()) {
 			return;
 		}
+
 		if (oEvent.which === KeyCodes.TAB) {
 			oTokenizer.selectAllTokens(false);
 		}
 
-		if ((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.A && oTokenizer.getTokens().length > 0) {
-			oTokenizer.focus();
-			oTokenizer.selectAllTokens(true);
-			oEvent.preventDefault();
-		}
-
-		// ctrl/meta + c OR ctrl/meta + Insert - Copy all selected Tokens
-		if ((oEvent.ctrlKey || oEvent.metaKey) && (oEvent.which === KeyCodes.C || oEvent.which === KeyCodes.INSERT)) {
-			oTokenizer._copy();
-		}
-
-		// ctr/meta + x OR Shift + Delete - Cut all selected Tokens if editable
-		if (((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.X) || (oEvent.shiftKey && oEvent.which === KeyCodes.DELETE)) {
-			if (this.getEditable()) {
-				oTokenizer._cut();
-			} else {
-				oTokenizer._copy();
-			}
-		}
-
 		// ctrl/meta + I -> Open suggestions
 		if ((oEvent.ctrlKey || oEvent.metaKey) && oEvent.which === KeyCodes.I && oTokenizer.getTokens().length) {
-			oTokenizer._togglePopup(oTokenizer.getTokensPopup(), this.getDomRef());
+			oTokenizer._togglePopup();
 			oEvent.preventDefault();
 		}
 	};
@@ -1138,7 +1145,7 @@ function(
 		if (!this.getEditable()
 			&& oTokenizer.getHiddenTokensCount()
 			&& oEvent.target === this.getFocusDomRef()) {
-			oTokenizer._togglePopup(oTokenizer.getTokensPopup(), this.getDomRef());
+			oTokenizer._togglePopup();
 		}
 
 		if (!containsOrEquals(oTokenizer.getFocusDomRef(), document.activeElement)) {
@@ -1204,7 +1211,7 @@ function(
 		}
 
 		if (!bFocusIsInSelectedItemPopup && !bNewFocusIsInTokenizer) {
-			oSelectedItemsPopup.isOpen() && !this.isMobileDevice() && oTokenizer._togglePopup(oSelectedItemsPopup, this.getDomRef());
+			oSelectedItemsPopup.isOpen() && !this.isMobileDevice() && oTokenizer._togglePopup();
 			oTokenizer.setRenderMode(TokenizerRenderMode.Narrow);
 		}
 
@@ -1234,7 +1241,10 @@ function(
 			return;
 		}
 
-		Input.prototype.ontap.apply(this, arguments);
+		if (!bNMoreLabelClick) {
+			Input.prototype.ontap.apply(this, arguments);
+			this._getSuggestionsPopover()?.getInput()?.setValueHelpIconSrc("sap-icon://search");
+		}
 	};
 
 	/**
@@ -1264,6 +1274,7 @@ function(
 			!(this._getIsSuggestionPopupOpen())
 		) {
 			oTokenizer.setRenderMode(TokenizerRenderMode.Loose);
+			oTokenizer.scrollToEnd();
 			this._setValueVisible(true);
 		}
 
@@ -1281,10 +1292,14 @@ function(
 
 		//deselect everything
 		this.getAggregation("tokenizer").selectAllTokens(false);
-		this.selectText(0, 0);
+
+		// Only clear text selection if there actually is one
+		if (this.getFocusDomRef().selectionStart !== this.getFocusDomRef().selectionEnd) {
+			this.selectText(0, 0);
+		}
 
 		if (oPopup.isOpen()) {
-			oTokenizer._togglePopup(oPopup, this.getDomRef());
+			oTokenizer._togglePopup();
 		}
 
 		Input.prototype.onsapescape.apply(this, arguments);
@@ -1409,6 +1424,7 @@ function(
 		this.detachValueHelpRequest(this._onValueHelpRequested, this);
 
 		oClone = Input.prototype.clone.apply(this, arguments);
+		oClone.setProperty("selectedKey", '', true);
 
 		this.attachSuggestionItemSelected(this._onSuggestionItemSelected, this);
 		this.attachLiveChange(this._onLiveChange, this);
@@ -1805,7 +1821,7 @@ function(
 		const oTokenizer = this.getAggregation("tokenizer");
 
 		oTokenizer._bIsOpenedByNMoreIndicator = true;
-		oTokenizer._togglePopup(oTokenizer.getTokensPopup(), this.getDomRef());
+		oTokenizer._togglePopup();
 	};
 
 	/**
@@ -2234,6 +2250,28 @@ function(
 	 */
 	MultiInput.prototype.updateFormValueProperty = function () {
 		this.setProperty("_semanticFormValue", this.getFormFormattedValue(), true);
+	};
+
+	/**
+	 * Updates the state of the mobile dialog's filter-selected button
+	 * @private
+	 */
+	MultiInput.prototype._updateFilterSelectedButtonState = function() {
+		const oSuggestionsPopover = this._getSuggestionsPopover();
+		if (!this.isMobileDevice() || !oSuggestionsPopover) {
+			return;
+		}
+
+		const oButton = oSuggestionsPopover.getFilterSelectedButton();
+		if (!oButton) {
+			return;
+		}
+
+		const iHasTokens = this.getTokens().length > 0;
+
+		if (oButton.getEnabled() !== iHasTokens) {
+			oButton.setEnabled(iHasTokens);
+		}
 	};
 
 	return MultiInput;

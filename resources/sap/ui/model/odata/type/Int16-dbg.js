@@ -14,9 +14,13 @@ sap.ui.define([
 	/**
 	 * Constructor for a primitive type <code>Edm.Int16</code>.
 	 *
-	 * @class This class represents the OData primitive type <a
-	 * href="http://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
-	 * <code>Edm.Int16</code></a>.
+	 * @class This class represents the OData primitive type <code>Edm.Int16</code>, see
+	 * <a
+	 * href="https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338">
+	 * type definition for OData V4.01</a> or
+	 * <a
+	 * href="https://www.odata.org/documentation/odata-version-2-0/overview#AbstractTypeSystem">
+	 * type definition for OData V2</a>.
 	 *
 	 * In both {@link sap.ui.model.odata.v2.ODataModel} and {@link sap.ui.model.odata.v4.ODataModel}
 	 * this type is represented as a <code>number</code>.
@@ -24,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.Int
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @alias sap.ui.model.odata.type.Int16
 	 * @param {object} [oFormatOptions]
@@ -52,7 +56,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.Int16"}
 	 *   the type's name
 	 * @public
 	 */
@@ -64,7 +68,7 @@ sap.ui.define([
 	 * Returns the type's supported range as object with properties <code>minimum</code> and
 	 * <code>maximum</code>.
 	 *
-	 * @returns {object} the range
+	 * @returns {{minimum: number, maximum: number}} the range
 	 * @protected
 	 */
 	Int16.prototype.getRange = function () {

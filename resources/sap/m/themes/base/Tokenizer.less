@@ -18,6 +18,10 @@
 	vertical-align: inherit;
 }
 
+.sapMTokenizerHeightMargin {
+  margin: 0.1875rem 0;
+}
+
 .sapMTokenizer .sapMToken {
 	margin-top: 0.25rem;
 	margin-bottom: 0.25rem;
@@ -27,10 +31,6 @@
 }
 
 .sapMTokenizer.sapMTokenizerReadonly {
-
-	.sapMToken {
-		padding: 0 0.375rem;
-	}
 
 	.sapMTokenIcon {
 		display: none;
@@ -116,6 +116,14 @@
 	height: 100%;
 }
 
+.sapMTokenizerMultiLineContainer {
+	display: flex;
+	height: 100%;
+	flex-wrap: wrap;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
 .sapMTokenizer.sapMTokenizerOneLongToken .sapMTokenizerScrollContainer {
 	width: 100%;
 	overflow: hidden;
@@ -133,8 +141,12 @@
 	min-width: 5rem;
 	max-width: 40rem;
 
-	.sapMListUl > .sapMLIB.sapMSLIWrapping {
-		min-height: 2.5rem;
+	.sapMListUl > .sapMLIB {
+		border-bottom: none;
+
+		&.sapMSLIWrapping {
+			min-height: 2.5rem;
+		}
 	}
 
 	.sapMSLIWrapping > .sapMLIBContent > .sapMSLIDiv {
@@ -142,7 +154,29 @@
 	}
 }
 
+.sapMTokenizerClearAll {
+	margin-top: 0.5rem;
+	color: @sapUiLink;
+	font-size: @sapMFontMediumSize;
+	cursor: pointer;
+	outline: none;
+
+	&:hover {
+		color: @sapUiLinkHoverColor;
+		text-decoration: @sapUiLinkHoverTextDecoration;
+	}
+
+	&:active {
+		color: @sapUiLinkActiveColor;
+		text-decoration: @sapUiLinkActiveTextDecoration;
+	}
+}
+
 .sapUiSizeCompact {
+
+	.sapMTokenizerClearAll {
+		margin-top: 0.25rem;
+	}
 
 	.sapMTokenizerTokensPopup,
 	&.sapMTokenizerTokensPopup {

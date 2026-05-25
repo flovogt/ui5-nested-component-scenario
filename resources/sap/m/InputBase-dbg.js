@@ -17,6 +17,7 @@ sap.ui.define([
 	'sap/ui/Device',
 	'sap/ui/core/Popup',
 	"sap/ui/dom/containsOrEquals",
+	"sap/ui/core/LabelEnablement",
 	'./InputBaseRenderer',
 	'sap/base/Log',
 	"sap/ui/events/KeyCodes",
@@ -42,6 +43,7 @@ function(
 	Device,
 	Popup,
 	containsOrEquals,
+	LabelEnablement,
 	InputBaseRenderer,
 	log,
 	KeyCodes,
@@ -78,7 +80,7 @@ function(
 	 * @borrows sap.ui.core.ILabelable.hasLabelableHTMLElement as #hasLabelableHTMLElement
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -393,7 +395,7 @@ function(
 	InputBase.prototype.oncompositionend = function (oEvent) {
 		this._bIsComposingCharacter = false;
 
-		// In Firefox and Edge the events are fired correctly
+		// In Firefox the events are fired correctly
 		// http://blog.evanyou.me/2014/01/03/composition-event/
 		if (!Device.browser.firefox) {
 			// dom value updated other than value property
@@ -553,8 +555,11 @@ function(
 	 * @private
 	 */
 	InputBase.prototype.onfocusout = function(oEvent) {
-		this.removeStyleClass("sapMFocus");
-		// Don't close the ValueStateMessage on focusout if it contains sap.m.Formatted text, it can contain links
+		// Keep the focus class if focus moves to an element within the control (e.g., clear icon, value help icon)
+		if (!containsOrEquals(this.getDomRef(), oEvent.relatedTarget)) {
+			this.removeStyleClass("sapMFocus");
+		}
+		// Don't close the ValueStateMessage on focusout if it contains sap.m.FormattedText, it can contain links
 		if (!this._bClickOnValueStateLink(oEvent)) {
 			this.closeValueStateMessage();
 		}
@@ -1236,17 +1241,15 @@ function(
 	 * @protected
 	 */
 	InputBase.prototype.getLabels = function() {
-		var aLabelIDs = this.getAriaLabelledBy().map(function(sLabelID) {
+		var aLabelIDs = this.getAriaLabelledBy()
+			.concat(LabelEnablement.getReferencingLabels(this));
+
+		aLabelIDs = aLabelIDs.filter(function(sId, iIndex) {
+			return aLabelIDs.indexOf(sId) === iIndex;
+		})
+		.map(function(sLabelID) {
 			return Element.getElementById(sLabelID);
 		});
-
-		var oLabelEnablement = sap.ui.require("sap/ui/core/LabelEnablement");
-
-		if (oLabelEnablement) {
-			aLabelIDs = aLabelIDs.concat(oLabelEnablement.getReferencingLabels(this).map(function(sLabelID) {
-				return Element.getElementById(sLabelID);
-			}));
-		}
 
 		return aLabelIDs;
 	};
@@ -1490,7 +1493,7 @@ function(
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	InputBase.prototype._getToolbarInteractive = function () {
 		return true;

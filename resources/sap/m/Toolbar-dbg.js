@@ -80,7 +80,7 @@ function(
 	 * @implements sap.ui.core.Toolbar,sap.m.IBar
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -372,10 +372,16 @@ function(
 	Toolbar.prototype._handleKeyNavigation = function(oEvent) {
 		const focusedElement = document.activeElement;
 		const toolbarDom = this.getDomRef();
+
+		// Prevent navigation if Ctrl, Alt, or Command is pressed
+		if (oEvent.ctrlKey || oEvent.altKey || oEvent.metaKey) {
+			return; // Let browser handle default behavior
+		}
+
 		if (toolbarDom.contains(focusedElement)) {
 			if (oEvent.keyCode === KeyCodes.ARROW_RIGHT || oEvent.keyCode === KeyCodes.ARROW_DOWN) {
 				this._moveFocus("forward", oEvent);
-			} else if (oEvent.keyCode === KeyCodes.ARROW_LEFT || oEvent.keyCode === KeyCodes.ARROW_UP) {
+			} else if (oEvent.keyCode === KeyCodes.ARROW_LEFT  || oEvent.keyCode === KeyCodes.ARROW_UP) {
 				this._moveFocus("backward", oEvent);
 			}
 		}
@@ -468,13 +474,14 @@ function(
 					return oElement && oElement.isA(vType);
 				});
 			},
-			bIsSelectOrComboBox = fnHasType(["sap.m.Select", "sap.m.ComboBox"]),
+			bIsSelectOrComboBox = fnHasType(["sap.m.Select", "sap.m.ComboBox", "sap.m.MultiComboBox"]),
+			bIsMenuButton = fnHasType("sap.m.MenuButton"),
 			bIsUpOrDownArrowKey = [KeyCodes.ARROW_UP, KeyCodes.ARROW_DOWN].includes(oEvent.keyCode),
 			bIsBreadcrumbs = fnHasType("sap.m.Breadcrumbs"),
 			bIsSlider = fnHasType(["sap.m.Slider", "sap.m.RangeSlider"]),
-			bIsTokenizer = fnHasType("sap.m.Tokenizer");
+			bIsTokenizer = fnHasType(["sap.m.OverflowToolbarTokenizer", "sap.m.Tokenizer"]);
 
-		if (bIsUpOrDownArrowKey && bIsSelectOrComboBox || bIsBreadcrumbs || bIsSlider || bIsTokenizer) {
+		if (bIsUpOrDownArrowKey && (bIsSelectOrComboBox  || bIsMenuButton || bIsBreadcrumbs || bIsSlider || bIsTokenizer)) {
 			return true;
 		}
 
@@ -789,37 +796,25 @@ function(
 	};
 
 	/**
-	 * Returns the first sap.m.Title control instance inside the toolbar for the accessibility
+	 * Returns the first visible control inside the toolbar that implements the {@link sap.ui.core.ITitle} interface.
 	 *
-	 * @returns {sap.m.Title|undefined} The <code>sap.m.Title</code> instance or undefined
+	 * @returns {sap.ui.core.ITitle|undefined} The visible control implementing {@link sap.ui.core.ITitle}, or <code>undefined</code> if none exists.
 	 * @since 1.44
 	 * @protected
 	 */
 	Toolbar.prototype.getTitleControl = function() {
-		var Title = sap.ui.require("sap/m/Title");
-		if (!Title) {
-			return;
-		}
-
-		var aContent = this.getContent();
-		for (var i = 0; i < aContent.length; i++) {
-			var oContent = aContent[i];
-			if (oContent instanceof Title && oContent.getVisible()) {
-				return oContent;
-			}
-		}
+		return this.getContent().find((oContent) => oContent.isA("sap.ui.core.ITitle") && oContent.getVisible());
 	};
 
 	/**
-	 * Returns the first sap.m.Title control id inside the toolbar for the accessibility
+	 * Returns the ID of the first visible control inside the toolbar that implements the {@link sap.ui.core.ITitle} interface.
 	 *
-	 * @returns {sap.ui.core.ID} The <code>sap.m.Title</code> ID
+	 * @returns {sap.ui.core.ID} The ID of the visible control implementing {@link sap.ui.core.ITitle}, or an empty string if none exists.
 	 * @since 1.28
 	 * @protected
 	 */
 	Toolbar.prototype.getTitleId = function() {
-		var oTitle = this.getTitleControl();
-		return oTitle ? oTitle.getId() : "";
+		return this.getTitleControl()?.getId() || "";
 	};
 
 	///////////////////////////

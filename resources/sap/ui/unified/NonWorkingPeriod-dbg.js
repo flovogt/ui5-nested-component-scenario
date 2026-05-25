@@ -24,12 +24,11 @@ sap.ui.define([
 	 * @class
 	 * NonWorkingPeriod
 	 * @extends sap.ui.core.Element
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
-	 * @since 1.27.0
-	 * @experimental Since version 1.127.0.
+	 * @ui5-experimental-since 1.127.0
 	 * @alias sap.ui.unified.NonWorkingPeriod
 	 */
 	var NonWorkingPeriod = Element.extend("sap.ui.unified.NonWorkingPeriod", /** @lends sap.ui.unified.NonWorkingPeriod.prototype */ { metadata : {

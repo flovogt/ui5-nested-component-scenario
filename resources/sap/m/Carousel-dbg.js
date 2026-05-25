@@ -8,6 +8,7 @@
 sap.ui.define([
 	"./library",
 	"sap/base/i18n/Localization",
+	"sap/base/util/clamp",
 	"sap/ui/core/Control",
 	"sap/ui/core/Element",
 	"sap/ui/core/Theming",
@@ -23,13 +24,14 @@ sap.ui.define([
 	"sap/base/util/isPlainObject",
 	"sap/m/ImageHelper",
 	"sap/ui/thirdparty/jquery",
-	"sap/ui/core/IconPool",
 	"./CarouselLayout",
+	"sap/ui/core/IconPool",
 	// provides jQuery custom selector ":sapTabbable"
 	"sap/ui/dom/jquery/Selectors"
 ], function(
 	library,
 	Localization,
+	clamp,
 	Control,
 	Element,
 	Theming,
@@ -44,7 +46,8 @@ sap.ui.define([
 	Log,
 	isPlainObject,
 	ImageHelper,
-	jQuery
+	jQuery,
+	CarouselLayout
 	/*, IconPool (indirect dependency, kept for compatibility with tests, to be fixed in ImageHelper) */
 ) {
 	"use strict";
@@ -70,6 +73,7 @@ sap.ui.define([
 	var iDragRadius = 10;
 	var iMoveRadius = 20;
 	var bRtl = Localization.getRTL();
+	const MIN_PAGE_WIDTH = 16;
 
 	function getCursorPosition(e) {
 		e = e.originalEvent || e;
@@ -128,11 +132,13 @@ sap.ui.define([
 	 * <li>On touch devices, navigation is performed with swipe gestures (swipe right or swipe left) or with the navigation arrows.</li>
 	 * <li>On desktop, navigation is done with the navigation arrows.</li>
 	 * <li>The paging indicator (when activated) is visible on each form factor.</li>
+	 * <li>When using {@link sap.m.CarouselLayout CarouselLayout} with the <code>responsive</code> property set to <code>true</code>,
+	 * the number of visible pages adjusts automatically based on the available width and the specified <code>minPageWidth</code>.</li>
 	 * </ul>
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -413,26 +419,29 @@ sap.ui.define([
 	};
 
 	Carousel.prototype._resize = function() {
-		var $inner = this.$().find('> .sapMCrslInner');
+		var iNumberOfItemsToShow = this._getNumberOfItemsToShow();
 
-		if (this._iResizeTimeoutId) {
-			clearTimeout(this._iResizeTimeoutId);
-			delete this._iResizeTimeoutId;
+		if (iNumberOfItemsToShow !== this._iNumberOfItemsToShow) {
+			this._iNumberOfItemsToShow = iNumberOfItemsToShow;
+
+			var $inner = this.$().find('> .sapMCrslList > .sapMCrslInner');
+
+			if (this._iResizeTimeoutId) {
+				clearTimeout(this._iResizeTimeoutId);
+				delete this._iResizeTimeoutId;
+			}
+
+			$inner.addClass("sapMCrslNoTransition");
+			$inner.addClass("sapMCrslHideNonActive");
+
+			this._iResizeTimeoutId = setTimeout(function () {
+				$inner.removeClass("sapMCrslNoTransition");
+				$inner.removeClass("sapMCrslHideNonActive");
+			});
+			this.invalidate();
+		} else {
+			this._initialize();
 		}
-
-		$inner.addClass("sapMCrslNoTransition");
-		$inner.addClass("sapMCrslHideNonActive");
-
-		if (this.getPages().length > 1) {
-			this._setWidthOfPages(this._getNumberOfItemsToShow());
-		}
-
-		this._updateTransformValue();
-
-		this._iResizeTimeoutId = setTimeout(function () {
-			$inner.removeClass("sapMCrslNoTransition");
-			$inner.removeClass("sapMCrslHideNonActive");
-		});
 	};
 
 	/**
@@ -441,21 +450,31 @@ sap.ui.define([
 	 * @private
 	 */
 	Carousel.prototype._getNumberOfItemsToShow = function () {
-		var iPagesCount = this.getPages().length,
-			oCarouselLayout = this.getCustomLayout(),
-			iNumberOfItemsToShow = 1;
+		const iPagesCount = this.getPages().length;
+		const oCarouselLayout = this.getCustomLayout();
 
-		// If someone sets visiblePagesCount <= 0 to the CarouselLayout aggregation, the default value of 1 is returned instead.
-		if (oCarouselLayout && oCarouselLayout.isA("sap.m.CarouselLayout")) {
-			iNumberOfItemsToShow = Math.max(oCarouselLayout.getVisiblePagesCount(), 1);
+		if (!oCarouselLayout || !iPagesCount) {
+			return 1;
 		}
 
-		// Carousel cannot show more items than its total pages count
-		if (iNumberOfItemsToShow > 1 && iPagesCount < iNumberOfItemsToShow) {
-			return iPagesCount;
+		let iNumberOfItemsToShow;
+		const bResponsive = oCarouselLayout.getResponsive();
+
+		if (bResponsive) {
+			if (!this.getDomRef()) {
+				return 1;
+			}
+
+			const oFirstItem = this.getDomRef().querySelector(".sapMCrslList .sapMCrslItem");
+			const iMargin = parseFloat(window.getComputedStyle(oFirstItem).marginInlineEnd);
+
+			const iMinWidth = Math.max(MIN_PAGE_WIDTH, oCarouselLayout.getMinPageWidth()) + iMargin;
+			iNumberOfItemsToShow = Math.floor(this.$().width() / iMinWidth);
+		} else {
+			iNumberOfItemsToShow = oCarouselLayout.getVisiblePagesCount();
 		}
 
-		return iNumberOfItemsToShow;
+		return clamp(iNumberOfItemsToShow, 1, iPagesCount);
 	};
 
 	/**
@@ -485,6 +504,7 @@ sap.ui.define([
 			Theming.attachApplied(this._handleThemeAppliedBound);
 		}
 
+		this._iNumberOfItemsToShow = this._getNumberOfItemsToShow();
 		this._sResizeListenerId = ResizeHandler.register($innerDiv, this._resize.bind(this));
 	};
 
@@ -561,7 +581,7 @@ sap.ui.define([
 	Carousel.prototype._calculatePagesWidth = function (iNumberOfItemsToShow) {
 		var iWidth = this.$().width(),
 			oSlide = this.getDomRef().querySelector(".sapMCrslFluid .sapMCrslItem"),
-			iMargin = parseFloat(window.getComputedStyle(oSlide).marginRight),
+			iMargin = parseFloat(window.getComputedStyle(oSlide).marginInlineEnd),
 			iItemWidth = (iWidth - (iMargin * (iNumberOfItemsToShow - 1))) / iNumberOfItemsToShow,
 			iItemWidthPercent = (iItemWidth / iWidth) * 100;
 
@@ -581,7 +601,7 @@ sap.ui.define([
 		}
 
 		var $element = this.$(),
-			$inner = $element.find('> .sapMCrslInner'),
+			$inner = $element.find('> .sapMCrslList > .sapMCrslInner'),
 			$items = $inner.children(),
 			iIndex = this._iCurrSlideIndex,
 			iLength = $items.length,
@@ -698,7 +718,6 @@ sap.ui.define([
 		this.$().find(Carousel._ITEM_SELECTOR).each(function (iIndex, oPage) {
 			var bSelected = iIndex === iSelectedPageIndex;
 
-			oPage.setAttribute("aria-selected", bSelected);
 			oPage.setAttribute("aria-hidden", !this._isPageDisplayed(iIndex));
 			oPage.setAttribute("tabindex", bSelected ? 0 : -1);
 		}.bind(this));
@@ -823,6 +842,17 @@ sap.ui.define([
 	};
 
 	/**
+	 * Returns whether the carousel is in VisiblePages scroll mode
+	 * @private
+	 * @returns {boolean} true if the carousel is in VisiblePages scroll mode, false otherwise
+	 */
+	Carousel.prototype._isVisiblePagesScrollMode = function () {
+		const oCarouselLayout = this.getCustomLayout();
+
+		return oCarouselLayout && oCarouselLayout.getScrollMode() === CarouselScrollMode.VisiblePages;
+	};
+
+	/**
 	 * Returns the index of the slide that should be shown
 	 * @private
 	 * @param {int} iCurrentSlideIndex Current slide index
@@ -830,10 +860,9 @@ sap.ui.define([
 	 * @returns {int} Index of the slide
 	 */
 	Carousel.prototype._calculateSlideIndex = function (iCurrentSlideIndex, iDefaultIndexStep) {
-		const oCarouselLayout = this.getCustomLayout();
 		let iSlideIndex;
 
-		if (oCarouselLayout && oCarouselLayout.getScrollMode() === CarouselScrollMode.VisiblePages) {
+		if (this._isVisiblePagesScrollMode()) {
 			const iNumberOfItemsOnPage =  this._getNumberOfItemsToShow();
 			iSlideIndex = iDefaultIndexStep > 0 ? iCurrentSlideIndex + iNumberOfItemsOnPage : Math.max(0, iCurrentSlideIndex - iNumberOfItemsOnPage);
 		} else {
@@ -853,7 +882,10 @@ sap.ui.define([
 		const iSlideIndex = this._calculateSlideIndex(this._iCurrSlideIndex, -1);
 		let iFocusPageIndex = this._iFocusedPageIndex;
 
-		if (this._aAllActivePagesIndexes.at(-1) === this._iFocusedPageIndex) {
+		if (this._isVisiblePagesScrollMode()) {
+			// In VisiblePages mode, focus should go to the last page of the new visible set.
+			iFocusPageIndex = iSlideIndex + this._getNumberOfItemsToShow() - 1;
+		} else if (this._aAllActivePagesIndexes.at(-1) === this._iFocusedPageIndex) {
 			iFocusPageIndex = this._iFocusedPageIndex - 1;
 		}
 
@@ -872,7 +904,10 @@ sap.ui.define([
 		const iSlideIndex = this._calculateSlideIndex(this._iCurrSlideIndex, 1);
 		let iFocusPageIndex = this._iFocusedPageIndex;
 
-		if (this._aAllActivePagesIndexes[0] === this._iFocusedPageIndex) {
+		if (this._isVisiblePagesScrollMode()) {
+			// In VisiblePages mode, focus should go to the first page of the new visible set.
+			iFocusPageIndex = iSlideIndex;
+		} else if (this._aAllActivePagesIndexes[0] === this._iFocusedPageIndex) {
 			iFocusPageIndex = this._iFocusedPageIndex + 1;
 		}
 
@@ -1213,7 +1248,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Carousel.prototype.onsapup = function(oEvent) {
-		this._fnSkipToIndex(oEvent, 1, false);
+		this._fnSkipToIndex(oEvent, -1, false);
 	};
 
 	/**
@@ -1234,7 +1269,7 @@ sap.ui.define([
 	 * @private
 	 */
 	Carousel.prototype.onsapdown = function(oEvent) {
-		this._fnSkipToIndex(oEvent, -1, false);
+		this._fnSkipToIndex(oEvent, 1, false);
 	};
 
 	/**
@@ -1383,10 +1418,7 @@ sap.ui.define([
 		}
 
 		// When CarouselLayout is used, the index of the activePage should not exceed allPages count minus the number of visible pages
-		if (iNewPageIndex > aAllPages.length - iNumberOfItemsToShown) {
-			iNewPageIndex = aAllPages.length - iNumberOfItemsToShown;
-		}
-
+		iNewPageIndex = Math.min(iNewPageIndex, aAllPages.length - iNumberOfItemsToShown);
 		iLastPageIndex = iNewPageIndex + iNumberOfItemsToShown;
 
 		this._aAllActivePages = [];
@@ -1556,7 +1588,7 @@ sap.ui.define([
 	};
 
 	Carousel.prototype._initialize  = function () {
-		var $inner = this.$().find('> .sapMCrslInner'),
+		var $inner = this.$().find('> .sapMCrslList > .sapMCrslInner'),
 			iNumberOfItemsToShow = this._getNumberOfItemsToShow();
 
 		this._bIsInitialized = false;
@@ -1595,7 +1627,7 @@ sap.ui.define([
 		}
 
 		var $element = this.$(),
-			$inner = $element.find('> .sapMCrslInner'),
+			$inner = $element.find('> .sapMCrslList > .sapMCrslInner'),
 			$items = $inner.children(),
 			$start = $items.eq(0),
 			$current = $items.eq(this._iCurrSlideIndex),
@@ -1620,7 +1652,7 @@ sap.ui.define([
 	Carousel.prototype._initActivePages = function () {
 		var sActiveClass = "sapMCrslActive",
 			$element = this.$(),
-			$inner = $element.find('> .sapMCrslInner'),
+			$inner = $element.find('> .sapMCrslList > .sapMCrslInner'),
 			$items = $inner.children(),
 			sId = this.getDomRef().id,
 			sPageIndicatorId = sId.replace(/(:|\.)/g,'\\$1') + '-pageIndicator',

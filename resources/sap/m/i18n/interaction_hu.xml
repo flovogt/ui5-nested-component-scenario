@@ -115,7 +115,7 @@
 		</interaction>
 		<interaction> <kbd>Shift + MouseClick</kbd> <description>
 				<p><span class="emphasis">Ha engedélyezett a cellakijelölés:</span></p>
-				<p>Ha vannak kijelölve cellák, és lenyomja a(z) <kbd>Shift</kbd> + kattintás billentyűkombinációt egy másik cellán, akkor a kijelölés kibővül a kattintott celláig.</p>
+				<p>Ha vannak kijelölve cellák, és egy másik cellánál lenyomja a(z) <kbd>Shift + MouseClick</kbd> billentyűkombinációt, akkor a kijelölés kibővül a kattintott celláig.</p>
 			</description>
 		</interaction>
 		<interaction> <kbd>Ctrl + C</kbd> <description>
@@ -130,11 +130,19 @@
 	<control-interactions>
 		<control name="sap.m.VariantManagement"/>
 		<interaction> <kbd>F4</kbd> <kbd>Spacebar</kbd> <kbd>Alt + ArrowUp</kbd> <kbd>Alt + ArrowDown</kbd> <description>
-				<p>Megnyitja a változatkezelést.</p>
-			</description>
+				<p>A Saját nézetek dialógusablak megnyitása.</p>
+			</description> 
 		</interaction>
 		<interaction> <kbd>PageUp</kbd> <description>
-				<p>Bezárja a változatkezelés előugró ablakát.</p>
+				<p>A Saját nézetek dialógusablak felett megnyíló hibaablak bezárása</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + Enter</kbd> <description>
+				<p>Menti az új nézetet a Mentés másként dialógusablakban.</p>
+			</description>
+		</interaction>
+		<interaction> <kbd>Ctrl + S</kbd> <description>
+				<p>Menti a nézetek módosításait.</p>
 			</description>
 		</interaction>
 	</control-interactions>

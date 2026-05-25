@@ -44,7 +44,7 @@ sap.ui.define([
 		 * With this plugIn the performance measurements are displayed
 		 *
 		 * @extends sap.ui.core.support.Plugin
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 * @private
 		 * @alias sap.ui.core.support.plugins.Interaction
 		 */
@@ -193,17 +193,18 @@ sap.ui.define([
 		}
 
 		function initInApps(oSupportStub) {
-			var _bFesrActive = BaseConfig.get({
+			const bFESRActive = BaseConfig.get({
 				name: "sapUiFesr",
-				type: BaseConfig.Type.Boolean,
+				type: BaseConfig.Type.String,
 				external: true,
 				freeze: true
-			});
+			}) != "false";
+
 			var _bODATA_Stats_On = Supportability.isStatisticsEnabled();
 
 			this._oStub.sendEvent(this.getId() + "SetQueryString", {
 				"queryString": {
-					bFesrActive: _bFesrActive,
+					bFesrActive: bFESRActive,
 					bODATA_Stats_On: _bODATA_Stats_On
 				}
 			});

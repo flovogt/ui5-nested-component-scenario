@@ -170,7 +170,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @param {object} [oRootNode] reference to the DOM element that should be 'hosting' the UI Area.
 	 * @public
 	 * @alias sap.ui.core.UIArea
@@ -640,9 +640,10 @@ sap.ui.define([
 	 *
 	 * Either renders the whole <code>UIArea</code> or a set of descendant controls that have been invalidated.
 	 *
-	 * @param {boolean} bForce Whether a re-rendering of the <code>UIArea</code> should be enforced
+	 * @param {boolean} [bForce=false] Whether a re-rendering of the <code>UIArea</code> should be enforced
 	 * @return {boolean} Whether a redraw was necessary or not
 	 * @private
+	 * @ui5-restricted sap/ui/core/Rendering
 	 */
 	 UIArea.prototype.rerender = function(bForce) {
 		var that = this;

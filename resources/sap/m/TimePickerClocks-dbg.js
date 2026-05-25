@@ -49,10 +49,11 @@ sap.ui.define([
 		 *
 		 * @class
 		 * A picker clocks container control used inside the {@link sap.m.TimePicker}.
+		 * If you use the control standalone, please call the {@link #prepareForOpen} method before opening or displaying it.
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @constructor
 		 * @public
@@ -115,9 +116,7 @@ sap.ui.define([
 				sTooltip = oButton._getTooltip(),
 				sText = oButton._getText(),
 				sTextDir = oButton.getTextDirection(),
-				bIE_Edge = Device.browser.internet_explorer || Device.browser.edge,
-				// render bdi tag only if the browser is different from IE and Edge since it is not supported there
-				bRenderBDI = (sTextDir === TextDirection.Inherit) && !bIE_Edge;
+				bRenderBDI = (sTextDir === TextDirection.Inherit);
 
 			// start button tag
 			oRm.openStart("div", oButton);
@@ -173,10 +172,6 @@ sap.ui.define([
 			// check if button is focusable (not disabled)
 			if (bEnabled) {
 				oRm.class("sapMFocusable");
-				// special focus handling for IE
-				if (bIE_Edge) {
-					oRm.class("sapMIE");
-				}
 			}
 
 			if (sText) {
@@ -217,14 +212,6 @@ sap.ui.define([
 				oRm.close("span");
 			}
 
-			// special handling for IE focus outline
-			if (bIE_Edge && bEnabled) {
-				oRm.openStart("span");
-				oRm.class("sapMBtnFocusDiv");
-				oRm.openEnd();
-				oRm.close("span");
-			}
-
 			// end inner button tag
 			oRm.close("span");
 
@@ -261,8 +248,9 @@ sap.ui.define([
 		 *
 		 * @public
 		 */
-		 TimePickerClocks.prototype.init = function() {
+		TimePickerClocks.prototype.init = function() {
 			TimePickerInternals.prototype.init.apply(this, arguments);
+			this._performInitialFocus = false;
 		};
 
 		/**
@@ -270,11 +258,14 @@ sap.ui.define([
 		 *
 		 * @private
 		 */
-		 TimePickerClocks.prototype.onAfterRendering = function() {
+		TimePickerClocks.prototype.onAfterRendering = function() {
 			if (!this._clickAttached) {
 				this._attachClickEvent();
 			}
 			this._clockConstraints = this._getClocksConstraints();
+			if (this._performInitialFocus) {
+				this._focusActiveButton();
+			}
 		};
 
 		/**
@@ -356,7 +347,10 @@ sap.ui.define([
 				// AM/PM
 				oEvent.preventDefault();
 				oAmPm = this._getFormatButton();
-				oAmPm && oAmPm.setSelectedKey(iKey === KeyCodes.P ? "pm" : "am");
+				if (oAmPm) {
+					oAmPm.setSelectedKey(iKey === KeyCodes.P ? "pm" : "am");
+					oAmPm.fireSelectionChange();
+				}
 			} else if (iKey === KeyCodes.SPACE && !this._spaceKeyDown) {
 				// check if the SPACE is pressed over the hours/minutes/seconds Buttons and return if it is not
 				if (!bEventTargetOverButtons) {
@@ -544,6 +538,7 @@ sap.ui.define([
 					aButtons[iIndex].setPressed(iIndex === 0);
 				});
 			}
+			this._performInitialFocus = true;
 
 			return this;
 		};
@@ -567,13 +562,24 @@ sap.ui.define([
 		/**
 		 * Returns focus to the recently focused input in order to keep entering of numbers.
 		 *
+		 * @param {Event} oEvent the click event
 		 * @private
 		 */
-		TimePickerClocks.prototype._focusActiveButton = function() {
+		TimePickerClocks.prototype._focusActiveButton = function(oEvent) {
 			var aButtons = this.getAggregation("_buttons"),
-				iActiveClock = this._getActiveClockIndex();
+				iActiveClock = this._getActiveClockIndex(),
+				oAmPmButton = this._getFormatButton();
+
+			// Don't refocus if click originated from AM/PM button
+			if (oEvent && oAmPmButton && oEvent.target) {
+				var oAmPmDomRef = oAmPmButton.getDomRef();
+				if (oAmPmDomRef && oAmPmDomRef.contains(oEvent.target)) {
+					return;
+				}
+			}
 
 			aButtons && aButtons[iActiveClock] && aButtons[iActiveClock].focus();
+			this._performInitialFocus = false;
 		};
 
 		/**
@@ -1147,6 +1153,11 @@ sap.ui.define([
 				return;
 			}
 
+			// Prevent switching while animation is in progress
+			if (this._isSwitching && !bSkipAnimation) {
+				return;
+			}
+
 			const oCurrentClock = this._getActiveClock(),
 				oNewClock = this.getAggregation("_clocks")[iNewClock],
 				aButtons = this.getAggregation("_buttons");
@@ -1169,6 +1180,7 @@ sap.ui.define([
 				aButtons[iNewClock].setPressed(true);
 				aButtons[iNewClock].focus();
 			} else {
+				this._isSwitching = true;
 				oCurrentClock.getDomRef().querySelector(".sapMTPCItems .sapMTPCNumber").addEventListener("animationend", jQuery.proxy(this._swapClocks, this, this._activeClock, iNewClock), {once: true});
 				oCurrentClock.setSkipAnimation(false).setFadeOut(true);
 			}
@@ -1183,13 +1195,18 @@ sap.ui.define([
 
 			if (bIsTherePrevClock) {
 				oPrevClock.setFadeIn(false).setFadeOut(false).setSkipAnimation(false);
-				aButtons[iPrevClock].setPressed(false);
+				aButtons.forEach(function(button, index) {
+					button.setPressed(false);
+				});
 			}
 
 			this._activeClock = iNextClock;
 			oNextClock.setFadeIn(true);
 			aButtons[iNextClock].setPressed(true);
 			aButtons[iNextClock].focus();
+
+			// Clear the switching flag to allow next switch
+			this._isSwitching = false;
 		};
 
 		/**

@@ -29,6 +29,7 @@ sap.ui.define([
 	"sap/ui/layout/form/FormElement",
 	"sap/ui/layout/form/ResponsiveGridLayout",
 	"sap/ui/layout/GridData",
+	"sap/ui/performance/trace/FESRHelper",
 	"sap/ui/thirdparty/jquery",
 	"sap/ui/dom/containsOrEquals",
 	"sap/ui/events/ControlEvents",
@@ -63,6 +64,7 @@ sap.ui.define([
 	FormElement,
 	ResponsiveGridLayout,
 	GridData,
+	FESRHelper,
 	jQuery,
 	containsOrEquals,
 	ControlEvents,
@@ -97,7 +99,7 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.MenuBase
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @since 1.110
@@ -239,7 +241,7 @@ sap.ui.define([
 	};
 
 	function createTableSettingsButton(oMenu) {
-		return new Button({
+		const oButton = new Button({
 			icon: "sap-icon://action-settings",
 			tooltip: oMenu._getResourceText("table.COLUMNMENU_TABLE_SETTINGS"),
 			press: () => {
@@ -247,6 +249,10 @@ sap.ui.define([
 				oMenu.fireTableSettingsPressed();
 			}
 		});
+
+		FESRHelper.setSemanticStepname(oButton, "press", "tbl:p13n");
+
+		return oButton;
 	}
 
 	/**
@@ -363,9 +369,10 @@ sap.ui.define([
 			horizontalScrolling: false,
 			verticalScrolling: true,
 			afterClose: [this._onPopoverAfterClose, this],
+			ariaLabelledBy: this.getId() + "-title",
 			customHeader: new OverflowToolbar({
 				content: [
-					new Title({text: this._getResourceText("table.COLUMNMENU_TITLE")}),
+					new Title({id: this.getId() + "-title", text: this._getResourceText("table.COLUMNMENU_TITLE")}),
 					new ToolbarSpacer(),
 					new Button({
 						icon: "sap-icon://decline",
@@ -564,7 +571,7 @@ sap.ui.define([
 
 		this._oItemsContainer.setListHeader(new OverflowToolbar({
 			content: [
-				new Title({text: sTitle})
+				new Title({text: sTitle, level: coreLibrary.TitleLevel.H3})
 			]
 		}));
 		this._oItemsContainer.getHeader().addContentRight(new Button({
@@ -696,9 +703,10 @@ sap.ui.define([
 		if (aQuickActions.length) {
 			oList = new List({
 				headerToolbar: new OverflowToolbar({
-					content: [new Title({text: sTitle})]
+					content: [new Title({text: sTitle, level: coreLibrary.TitleLevel.H3})]
 				}),
 				keyboardMode: "Edit",
+				rememberFocus: false,
 				items: []
 			});
 

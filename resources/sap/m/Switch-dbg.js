@@ -15,7 +15,8 @@ sap.ui.define([
 	'sap/ui/core/theming/Parameters',
 	'sap/ui/events/KeyCodes',
 	'./SwitchRenderer',
-	"sap/base/assert"
+	"sap/base/assert",
+	"sap/ui/core/InvisibleText"
 ],
 function(
 	library,
@@ -27,7 +28,8 @@ function(
 	Parameters,
 	KeyCodes,
 	SwitchRenderer,
-	assert
+	assert,
+	InvisibleText
 ) {
 		"use strict";
 
@@ -52,7 +54,7 @@ function(
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @constructor
 		 * @public
@@ -103,7 +105,15 @@ function(
 					/**
 					 * Type of a Switch. Possibles values "Default", "AcceptReject".
 					 */
-					type: { type : "sap.m.SwitchType", group: "Appearance", defaultValue: SwitchType.Default }
+					type: { type : "sap.m.SwitchType", group: "Appearance", defaultValue: SwitchType.Default },
+
+					/**
+					 * Specifies whether the user shall be allowed to change the state of the switch.
+					 * When set to <code>false</code>, the switch is in read-only mode and can still be focused
+					 * and the user can copy the text from it.
+					 * @since 1.147.0
+					 */
+					editable: { type: "boolean", group: "Behavior", defaultValue: true }
 				},
 				associations: {
 
@@ -184,6 +194,10 @@ function(
 			return this.getId() + "-invisible";
 		};
 
+		Switch.prototype._getDescribedByElementId = function() {
+			return InvisibleText.getStaticId("sap.m", "CONTROL_READONLY");
+		};
+
 		Switch.prototype.getInvisibleElementText = function(bState) {
 			var oBundle = Library.getResourceBundleFor("sap.m");
 			var sText = "";
@@ -256,6 +270,7 @@ function(
 			// only process single touches (only the first active touch point)
 			if (touch.countContained(oEvent.touches, this.getId()) > 1 ||
 				!this.getEnabled() ||
+				!this.getEditable() ||
 
 				// detect which mouse button caused the event and only process the standard click
 				// (this is usually the left button, oEvent.button === 0 for standard click)
@@ -304,6 +319,7 @@ function(
 				fnTouch = touch;
 
 			if (!this.getEnabled() ||
+				!this.getEditable() ||
 
 				// detect which mouse button caused the event and only process the standard click
 				// (this is usually the left button, oEvent.button === 0 for standard click)
@@ -359,6 +375,7 @@ function(
 				fnTouch = touch;
 
 			if (!this.getEnabled() ||
+				!this.getEditable() ||
 
 				// detect which mouse button caused the event and only process the standard click
 				// (this is usually the left button, oEvent.button === 0 for standard click)
@@ -402,7 +419,7 @@ function(
 		 * @private
 		 */
 		Switch.prototype._handleSpaceOrEnter = function(oEvent) {
-			if (this.getEnabled()) {
+			if (this.getEnabled() && this.getEditable()) {
 
 				// mark the event for components that needs to know if the event was handled by the Switch
 				oEvent.setMarked();
@@ -429,7 +446,29 @@ function(
 		*/
 		Switch.prototype.onkeyup = function (oEvent) {
 			if (oEvent.which === KeyCodes.SPACE) {
+				if (this._bShouldCancelAction) {
+					this._bShouldCancelAction = false;
+					this._bSpacePressed = false;
+					return;
+				}
+
+				this._bSpacePressed = false;
 				this._handleSpaceOrEnter(oEvent);
+			} else if ((oEvent.which === KeyCodes.ESCAPE || oEvent.which === KeyCodes.SHIFT) && !this._bSpacePressed) {
+				this._bShouldCancelAction = false;
+			}
+		};
+
+		/**
+		 * Handles space key on key down
+		 *
+		 * @private
+		*/
+		Switch.prototype.onkeydown = function (oEvent) {
+			if (oEvent.which === KeyCodes.ESCAPE || oEvent.which === KeyCodes.SHIFT) {
+				this._bShouldCancelAction = true;
+			} else if (oEvent.which === KeyCodes.SPACE) {
+				this._bSpacePressed = true;
 			}
 		};
 
@@ -463,15 +502,15 @@ function(
 
 		Switch.prototype.getAccessibilityInfo = function() {
 			var oBundle = Library.getResourceBundleFor("sap.m"),
-				bState = this.getState(),
-				sDesc = this.getInvisibleElementText(bState);
+				sDesc = this._getAccDescription();
 
 			return {
 				role: "switch",
 				type: oBundle.getText("ACC_CTR_TYPE_SWITCH"),
 				description: sDesc,
 				focusable: this.getEnabled(),
-				enabled: this.getEnabled()
+				enabled: this.getEnabled(),
+				editable: this.getEditable()
 			};
 		};
 
@@ -481,7 +520,7 @@ function(
 	 * @returns {object} Configuration information for the <code>sap.m.IOverflowToolbarContent</code> interface.
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar
+	 * @ui5-restricted sap.m.OverflowToolbar
 	 */
 	Switch.prototype.getOverflowToolbarConfig = function() {
 		return {
@@ -496,10 +535,27 @@ function(
 	 * @returns {boolean} If it is an interactive Control
 	 *
 	 * @private
-	 * @ui5-restricted sap.m.OverflowToolBar, sap.m.Toolbar
+	 * @ui5-restricted sap.m.OverflowToolbar, sap.m.Toolbar
 	 */
 	 Switch.prototype._getToolbarInteractive = function () {
 		return true;
+	};
+
+	/**
+	 * Returns accessibility description of the control
+	 *
+	 * @returns {string} description text
+	 *
+	 * @private
+	 *
+	 */
+	 Switch.prototype._getAccDescription = function () {
+		var bState = this.getState(),
+			oBundle = Library.getResourceBundleFor("sap.m"),
+			sStateDescr = bState ? oBundle.getText("SWITCH_ON") : oBundle.getText("SWITCH_OFF"),
+			sInvisibleText = this.getInvisibleElementText(bState);
+
+		return sStateDescr + (sInvisibleText ? ", " + sInvisibleText : "");
 	};
 
 	return Switch;

@@ -79,6 +79,7 @@
 		font-family: var(--sapFontFamily);
 		font-size:  @sapMFontMediumSize;
 		color: var(--sapContent_LabelColor);
+		overflow: visible;
 	}
 
 	.sapMSLITitle {
@@ -86,6 +87,12 @@
 		font-size: var(--sapFontHeader5Size);
 		font-weight: @sapUiFontHeaderWeight;
 		color: var(--sapGroup_TitleTextColor);
+		overflow: visible;
+	}
+
+	.sapMMsgViewItem.sapMSLIWrapping > .sapMLIBContent,
+	.sapMMsgViewItem.sapMSLIWrapping > .sapMLIBContent > .sapMSLIDiv {
+		overflow: visible;
 	}
 
 	.sapMSLITitleOnly {
@@ -116,6 +123,10 @@
 	.sapMSLIWithDescription > .sapMLIBContent > .sapMSLIDiv > .sapMSLIDescription,
 	.sapMMsgViewItem.sapMSLIWrapping > .sapMLIBContent > .sapMSLIDiv {
 		padding: 0;
+	}
+
+	.sapMMsgViewCustomHeader.sapMTB.sapMTBStandard {
+		border-bottom: none;
 	}
 
 	.sapMMsgViewHiddenContainer {
@@ -165,11 +176,6 @@
 
 	.sapMMsgViewItemActive .sapMLnk {
 		font-size: var(--sapFontHeader6Size);
-	}
-
-	.sapMMsgViewItem .sapMLIBImgNav.sapUiIcon {
-		height: 3.4375rem;
-		line-height: 3.4375rem;
 	}
 
 	.sapMMsgViewCloseBtn .sapMBtnIcon {
@@ -223,24 +229,32 @@
 
 .sapMMsgViewItemSuccess .sapMSLIImgIcon,
 .sapMMsgViewBtnSuccess.sapMSegBBtn .sapUiIcon,
+.sapMMsgViewBtnSuccess.sapMSegBBtn.sapMSegBBtnSel .sapMSegBBtnInner .sapUiIcon,
+.sapMMsgViewBtnSuccess.sapMSegBBtn.sapMSegBBtnFocusable:active:hover .sapMSegBBtnInner .sapUiIcon,
 .sapMMsgViewDescIconSuccess {
 	color: var(--sapPositiveElementColor);
 }
 
 .sapMMsgViewItemWarning .sapMSLIImgIcon,
 .sapMMsgViewBtnWarning.sapMSegBBtn .sapUiIcon,
+.sapMMsgViewBtnWarning.sapMSegBBtn.sapMSegBBtnSel .sapMSegBBtnInner .sapUiIcon,
+.sapMMsgViewBtnWarning.sapMSegBBtn.sapMSegBBtnFocusable:active:hover .sapMSegBBtnInner .sapUiIcon,
 .sapMMsgViewDescIconWarning {
 	color: var(--sapCriticalElementColor);
 }
 
 .sapMMsgViewItemError .sapMSLIImgIcon,
 .sapMMsgViewBtnError.sapMSegBBtn .sapUiIcon,
+.sapMMsgViewBtnError.sapMSegBBtn.sapMSegBBtnSel .sapMSegBBtnInner .sapUiIcon,
+.sapMMsgViewBtnError.sapMSegBBtn.sapMSegBBtnFocusable:active:hover .sapMSegBBtnInner .sapUiIcon,
 .sapMMsgViewDescIconError {
 	color: var(--sapNegativeElementColor);
 }
 
 .sapMMsgViewItemInformation .sapMSLIImgIcon,
 .sapMMsgViewBtnInformation.sapMSegBBtn .sapUiIcon,
+.sapMMsgViewBtnInformation.sapMSegBBtn.sapMSegBBtnSel .sapMSegBBtnInner .sapUiIcon,
+.sapMMsgViewBtnInformation.sapMSegBBtn.sapMSegBBtnFocusable:active:hover .sapMSegBBtnInner .sapUiIcon,
 .sapMMsgViewDescIconInformation {
 	color: var(--sapInformativeElementColor);
 }

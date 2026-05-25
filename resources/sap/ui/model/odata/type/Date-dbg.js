@@ -76,7 +76,7 @@ sap.ui.define([
 	 * @extends sap.ui.model.odata.type.ODataType
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @alias sap.ui.model.odata.type.Date
 	 * @param {object} [oFormatOptions]
@@ -88,7 +88,7 @@ sap.ui.define([
 	 *   if <code>true</code>, the value <code>null</code> is accepted
 	 * @public
 	 * @since 1.37.0
-	 * @see http://docs.oasis-open.org/odata/odata/v4.0/odata-v4.0-part3-csdl.html
+	 * @see https://docs.oasis-open.org/odata/odata-csdl-xml/v4.01/odata-csdl-xml-v4.01.html#_Toc38530338
 	 */
 	var EdmDate = ODataType.extend("sap.ui.model.odata.type.Date",
 			/** @lends sap.ui.model.odata.type.Date.prototype */
@@ -281,7 +281,7 @@ sap.ui.define([
 	/**
 	 * Returns the type's name.
 	 *
-	 * @returns {string}
+	 * @returns {"sap.ui.model.odata.type.Date"}
 	 *   the type's name
 	 * @public
 	 */

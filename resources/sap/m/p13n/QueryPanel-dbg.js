@@ -8,6 +8,7 @@ sap.ui.define([
 	"./BasePanel",
 	"sap/ui/core/ListItem",
 	"sap/m/CustomListItem",
+	"sap/m/ListItemAction",
 	"sap/m/ComboBox",
 	"sap/m/List",
 	"sap/m/HBox",
@@ -21,6 +22,7 @@ sap.ui.define([
 	BasePanel,
 	Item,
 	CustomListItem,
+	ListItemAction,
 	ComboBox,
 	List,
 	HBox,
@@ -47,7 +49,7 @@ sap.ui.define([
 	 * @extends sap.m.p13n.BasePanel
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 *
@@ -155,11 +157,15 @@ sap.ui.define([
 		const iQueryLimit = this.getQueryLimit();
 
 		// Rules for the movement:
-		// 1) The row is not the template row
-		// 2) in case all entries are used, allow reordering for all rows
-		// 3) in case a query limit is provided, limit the movement to the allowed limit
-		if ((iCurrentIndex !== iMaxListLength || this._allEntriesUsed()) && (iQueryLimit === -1 || iNewIndex < iQueryLimit)) {
-			this._oListControl.removeItem(oItem);
+		// 1) The row is not the template row (dropdown for adding new items)
+		// 2) queryLimit reached
+		// 3) in case all entries are used, allow reordering for all rows
+		// 4) in case a query limit is provided, limit the movement to the allowed limit
+
+		const bIsNotTemplateRow = iCurrentIndex !== iMaxListLength;
+		const bQueryLimitReached = iCurrentIndex === iMaxListLength && this._oListControl.getItems().length === iQueryLimit;
+		if ((bIsNotTemplateRow || bQueryLimitReached || this._allEntriesUsed()) && (iQueryLimit === -1 || iNewIndex < iQueryLimit)) {
+			this._oListControl.removeAggregation("items", oItem, true); // supress invalidation as inserted again (to not remove focus)
 			this._oListControl.insertItem(oItem, iNewIndex);
 
 			this._updateEnableOfMoveButtons(oItem, false);
@@ -187,9 +193,10 @@ sap.ui.define([
 	QueryPanel.prototype._createInnerListControl = function() {
 		const oList = new List(this.getId() + "-innerP13nList", {
 			itemPress: [this._onItemPressed, this],
-			dragDropConfig: this._getDragDropConfig()
+			dragDropConfig: this._getDragDropConfig(),
+			rememberFocus: false,
+			keyboardMode: ListKeyboardMode.Edit
 		});
-		oList.setKeyboardMode(ListKeyboardMode.Edit);
 		return oList;
 	};
 
@@ -268,7 +275,9 @@ sap.ui.define([
 
 		const bShowRemoveBtn = !!oItem.name;
 		const oRemoveButton = this._createRemoveButton(bShowRemoveBtn);
-		oRow.getContent()[0].addContent(oRemoveButton);
+		if (oRemoveButton) {
+			oRow.getContent()[0].addContent(oRemoveButton);
+		}
 
 		return oRow;
 	};
@@ -395,30 +404,7 @@ sap.ui.define([
 					icon: "sap-icon://decline",
 					press: (oEvt) => {
 						const oRow = oEvt.getSource().getParent().getParent().getParent();
-
-						const iQueries = this._oListControl.getItems().length;
-						//A new row with (none) needs to be created if either no row is left, or if the last potential row
-						//has been removed, as no row will be created if every possible key has been used
-						const bNewRowRequired = iQueries === 1 || iQueries == this.getP13nData(true).length;
-
-						this._oListControl.removeItem(oRow);
-						this._updatePresence(this._getControlFromRow(oRow)._key, false, undefined);
-						if (bNewRowRequired) {
-							this._addQueryRow();
-						}
-
-						this._announce(this._getRemoveButtonAnnouncementText());
-
-						//In case an item has been removed, focus the Select control of the new 'none' row
-						//Needs timeout because the new queryRow and control might not be rendered
-						setTimeout(() => {
-							if (!this.bIsDestroyed) {
-								this.getInitialFocusedControl().focus();
-							}
-						}, 0);
-
-						this._getP13nModel().checkUpdate(true);
-
+						this._onRemoveRow(oRow);
 					}
 				})
 			]
@@ -429,6 +415,31 @@ sap.ui.define([
 		}
 
 		return oRemoveBox;
+	};
+
+	QueryPanel.prototype._onRemoveRow = function(oRow) {
+		const iQueries = this._oListControl.getItems().length;
+		//A new row with (none) needs to be created if either no row is left, or if the last potential row
+		//has been removed, as no row will be created if every possible key has been used
+		const bNewRowRequired = iQueries === 1 || iQueries == this.getP13nData(true).length;
+
+		this._oListControl.removeItem(oRow);
+		this._updatePresence(this._getControlFromRow(oRow)._key, false, undefined);
+		if (bNewRowRequired) {
+			this._addQueryRow();
+		}
+
+		this._announce(this._getRemoveButtonAnnouncementText());
+
+		//In case an item has been removed, focus the Select control of the new 'none' row
+		//Needs timeout because the new queryRow and control might not be rendered
+		setTimeout(() => {
+			if (!this.bIsDestroyed) {
+				this.getInitialFocusedControl().focus();
+			}
+		}, 0);
+
+		this._getP13nModel().checkUpdate(true);
 	};
 
 	QueryPanel.prototype._moveSelectedItem = function() {

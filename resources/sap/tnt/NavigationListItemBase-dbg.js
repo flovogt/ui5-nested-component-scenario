@@ -29,7 +29,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Item
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -79,11 +79,36 @@ sap.ui.define([
 				 * @since 1.133
 				 */
 				press: {
+					allowPreventDefault: true,
 					parameters: {
 						/**
 						 * The pressed item.
 						 */
-						item: { type: "sap.ui.core.Item" }
+						item: { type: "sap.ui.core.Item" },
+						/**
+						 * Indicates whether the CTRL key was pressed when the link was selected.
+						 * @since 1.137
+						 */
+						ctrlKey: { type: "boolean" },
+						/**
+						 * Indicates whether the Shift key was pressed when the link was selected.
+						 * @since 1.137
+						 */
+						shiftKey: { type: "boolean" },
+						/**
+						 * Indicates whether the Alt key was pressed when the link was selected.
+						 * @since 1.137
+						 */
+						altKey: { type: "boolean" },
+						/**
+						 * Indicates whether the "meta" key was pressed when the link was selected.
+						 *
+						 * On Macintosh keyboards, this is the command key (⌘).
+						 * On Windows keyboards, this is the windows key (⊞).
+						 *
+						 * @since 1.137
+						 */
+						metaKey: { type: "boolean" }
 					}
 				}
 			}
@@ -185,12 +210,6 @@ sap.ui.define([
 	NavigationListItemBase.prototype._getFocusDomRefs = function () { };
 
 	/**
-	 * Gets DOM reference of the accessibility element.
-	 * @abstract
-	 */
-	NavigationListItemBase.prototype._getAccessibilityRef = function () { };
-
-	/**
 	 * Returns the <code>sap.ui.core.Icon</code> control used to display the expand/collapse icon.
 	 *
 	 * @returns {sap.ui.core.Icon} Icon control instance
@@ -280,11 +299,42 @@ sap.ui.define([
 	 * @private
 	 */
 	NavigationListItemBase.prototype.onkeydown = function (oEvent) {
+		const bRtl = Localization.getRTL();
+
 		if (oEvent.key ? oEvent.key === " " : oEvent.keyCode === KeyCodes.SPACE) {
 			oEvent.preventDefault();
 		}
 
+		if (this._isInsidePopover()) {
+			if ((oEvent.which == KeyCodes.ARROW_LEFT && !bRtl) || (oEvent.which == KeyCodes.ARROW_RIGHT && bRtl)) {
+				this.getNavigationList().oParent.close();
+				// prevent ItemNavigation to move the focus to the next/previous item
+				oEvent.stopPropagation();
+			}
+
+			if 	((oEvent.which == KeyCodes.ARROW_RIGHT && !bRtl) ||	(oEvent.which == KeyCodes.ARROW_LEFT && bRtl)) {
+				// prevent ItemNavigation to move the focus to the next/previous item
+				oEvent.stopPropagation();
+			}
+
+			return;
+		}
+
 		if (!this._isListExpanded()) {
+			if 	((oEvent.which == KeyCodes.ARROW_RIGHT && !bRtl) ||	(oEvent.which == KeyCodes.ARROW_LEFT && bRtl)) {
+				if (this.getItems().length > 0 ) {
+					this.ontap(oEvent);
+				}
+
+				// prevent ItemNavigation to move the focus to the next/previous item
+				oEvent.stopPropagation();
+			}
+
+			if ((oEvent.which == KeyCodes.ARROW_LEFT && !bRtl) || (oEvent.which == KeyCodes.ARROW_RIGHT && bRtl)) {
+				// prevent ItemNavigation to move the focus to the next/previous item
+				oEvent.stopPropagation();
+			}
+
 			return;
 		}
 
@@ -297,30 +347,33 @@ sap.ui.define([
 		}
 
 		if (this.getLevel() !== 0) {
+
+			if (oEvent.which == KeyCodes.ARROW_RIGHT && !bRtl || oEvent.which == KeyCodes.ARROW_LEFT && bRtl ||
+				oEvent.which == KeyCodes.ARROW_LEFT && !bRtl || oEvent.which == KeyCodes.ARROW_RIGHT && bRtl) {
+					// prevent ItemNavigation to move the focus to the next/previous item
+					oEvent.stopPropagation();
+				}
+
 			return;
 		}
-
-		const bRtl = Localization.getRTL();
 
 		//  KeyCodes.MINUS is not returning 189
 		if ((oEvent.shiftKey && oEvent.which == 189) ||
 			oEvent.which == KeyCodes.NUMPAD_MINUS ||
 			(oEvent.which == KeyCodes.ARROW_RIGHT && bRtl) ||
 			(oEvent.which == KeyCodes.ARROW_LEFT && !bRtl)) {
-			if (this.collapse()) {
-				oEvent.preventDefault();
-				// prevent ItemNavigation to move the focus to the next/previous item
-				oEvent.stopPropagation();
-			}
+			this.collapse();
+			oEvent.preventDefault();
+			// prevent ItemNavigation to move the focus to the next/previous item
+			oEvent.stopPropagation();
 		} else if (oEvent.which == KeyCodes.NUMPAD_PLUS ||
 			(oEvent.shiftKey && oEvent.which == KeyCodes.PLUS) ||
 			oEvent.which == KeyCodes.ARROW_LEFT && bRtl ||
 			oEvent.which == KeyCodes.ARROW_RIGHT && !bRtl) {
-			if (this.expand()) {
-				oEvent.preventDefault();
-				// prevent ItemNavigation to move the focus to the next/previous item
-				oEvent.stopPropagation();
-			}
+			this.expand();
+			oEvent.preventDefault();
+			// prevent ItemNavigation to move the focus to the next/previous item
+			oEvent.stopPropagation();
 		}
 	};
 
@@ -332,13 +385,10 @@ sap.ui.define([
 	 * @returns {boolean} whether the event was handled
 	 */
 	NavigationListItemBase.prototype.ontap = function (oEvent) {
-		const oParams = {
-			item: this
-		};
-
 		if (this.getEnabled() && !(oEvent.srcControl.isA("sap.ui.core.Icon")) && !this._isOverflow && !(!this.getNavigationList().getExpanded() && this.getItems().length)) {
-			this._firePress(oParams);
-
+			if (!this._firePress(oEvent, this)) {
+				return true;
+			}
 			oEvent.stopPropagation();
 		}
 
@@ -349,6 +399,7 @@ sap.ui.define([
 		oEvent.setMarked("subItem");
 
 		if (!this.getEnabled() || !this.getAllParentsEnabled()) {
+			oEvent.stopPropagation();
 			return true;
 		}
 
@@ -360,15 +411,105 @@ sap.ui.define([
 	};
 
 	/**
+	* Handle the mouseover event
+	* @param {jQuery.Event} oEvent The event object for the mouseover event in the callout.
+	* @private
+	*/
+	NavigationListItemBase.prototype.onmouseover = function (oEvent) {
+		const oTarget = oEvent.target,
+			oSrcControl = oEvent.srcControl;
+
+		if (!oTarget || (oSrcControl && !oSrcControl.isA("sap.tnt.NavigationListItemBase"))) {
+			return;
+		}
+
+		oEvent.stopPropagation();
+
+		const oTooltipElement = this._getTooltipElement();
+
+		if (!oTooltipElement) {
+			return;
+		}
+
+		const oTextElement = oTooltipElement.querySelector(".sapMText") || oTooltipElement.querySelector(".sapTntNLGroupText");
+
+		if (oTextElement.offsetWidth >= oTextElement.scrollWidth) {
+			return;
+		}
+
+		let sText = oSrcControl?.getText();
+		const sTooltip = oSrcControl.getTooltip_AsString();
+
+		if (sTooltip) {
+			sText += " - " + sTooltip;
+		}
+
+		oTooltipElement.setAttribute("title", sText);
+	};
+
+	NavigationListItemBase.prototype._getTooltipElement = function () {
+		return this.getDomRef().querySelector("[role='treeitem']");
+	};
+
+	/**
+    * Handle the onmouseout event
+    * @param {jQuery.Event} oEvent The event object for the onmouseout event in the callout.
+    * @private
+    */
+	NavigationListItemBase.prototype.onmouseout = function (oEvent) {
+		const oTarget = oEvent.target,
+			oSrcControl = oEvent.srcControl;
+
+		if (!oTarget || oSrcControl && !oSrcControl.isA("sap.tnt.NavigationListItemBase")) {
+			return;
+		}
+
+		oEvent.stopPropagation();
+
+		const oTooltipElement = this._getTooltipElement();
+		const sTooltip = oSrcControl?.getTooltip_AsString();
+
+		if (oTooltipElement) {
+			if (sTooltip) {
+				oTooltipElement.setAttribute("title", sTooltip);
+			} else {
+				oTooltipElement.removeAttribute("title");
+			}
+		}
+	};
+
+	/**
 	 * Fires a press event on an item.
-	 * @param {object} oParams The event parameters
+	 * @param {sap.ui.base.Event} oEvent press event
+	 * @param {sap.tnt.NavigationListMenuItem|sap.tnt.NavigationListItem} oItem The item that triggered the event
+	 * @returns {boolean} whether the event was successfully fired
 	 * @private
 	 */
-	NavigationListItemBase.prototype._firePress = function(oParams) {
+	NavigationListItemBase.prototype._firePress = function(oEvent, oItem) {
 		const oNavList = this.getNavigationList();
+		const oParams = oEvent.getParameters ? oEvent.getParameters() : {
+			item: oItem,
+			ctrlKey: !!oEvent.ctrlKey,
+			shiftKey: !!oEvent.shiftKey,
+			altKey: !!oEvent.altKey,
+			metaKey: !!oEvent.metaKey
+		};
 
-		oNavList?.fireItemPress({ item: this });
-		this.firePress(oParams);
+		if (!this.getEnabled()) {
+			return false;
+		}
+
+		if (!this.firePress(oParams)) {
+			oEvent.preventDefault();
+			return false;
+		}
+
+		if (!oNavList?.fireItemPress(oParams)) {
+			oEvent.preventDefault();
+			return false;
+		}
+
+		return true;
 	};
 
 	/**
@@ -382,6 +523,11 @@ sap.ui.define([
 		const sClickTargetClassName = this._getExpanderActivationTarget(),
 			oClickedRef = oEvent.target.closest(sClickTargetClassName);
 		if (!this._isListExpanded() || this.getLevel() !== 0 || !oClickedRef) {
+			return false;
+		}
+
+		if ((oEvent.key ? oEvent.key === "Enter" : oEvent.keyCode === KeyCodes.ENTER)
+			|| (oEvent.key ? oEvent.key === " " : oEvent.keyCode === KeyCodes.SPACE)) {
 			return false;
 		}
 
@@ -412,36 +558,16 @@ sap.ui.define([
 	 * @returns {boolean} whether the items will be expanded
 	 */
 	NavigationListItemBase.prototype.expand = function () {
-		if (this.getExpanded() || !this.getHasExpander() || this.getItems().length == 0 || this.getLevel() !== 0) {
+		if (!this.getEnabled() || this.getExpanded() || !this.getHasExpander() || this.getItems().length == 0 || this.getLevel() !== 0) {
 			return false;
 		}
 
-		this.setProperty("expanded", true, true);
-		this._getExpandIconControl()
-			.setSrc(COLLAPSE_ICON_SRC)
-			.setTooltip(this._getExpandIconTooltip(false));
-
-		this._getAccessibilityRef().setAttribute("aria-expanded", "true");
-
-		const $container = this.$().find(".sapTntNLIItemsContainer").first();
-		$container.stop(true, true).slideDown("fast", () => {
-			this._updateContainerVisibility();
-			this.getNavigationList()?._updateNavItems();
-		});
+		this.setProperty("expanded", true);
+		this._animateExpand = true;
 
 		return true;
 	};
 
-	NavigationListItemBase.prototype._updateContainerVisibility = function () {
-		const oContainerRef = this.getDomRef()?.querySelector(".sapTntNLIItemsContainer");
-		if (oContainerRef) {
-			if (this.getExpanded()) {
-				oContainerRef.classList.remove("sapTntNLIItemsContainerHidden");
-			} else {
-				oContainerRef.classList.add("sapTntNLIItemsContainerHidden");
-			}
-		}
-	};
 
 	/**
 	 * Collapses the child items (works only on first-level items).
@@ -449,22 +575,13 @@ sap.ui.define([
 	 * @returns {boolean} whether the items will be collapsed
 	 */
 	NavigationListItemBase.prototype.collapse = function () {
-		if (!this.getExpanded() || !this.getHasExpander() || this.getItems().length == 0 || this.getLevel() !== 0) {
+		if (!this.getEnabled() || !this.getExpanded() || !this.getHasExpander() || this.getItems().length == 0 || this.getLevel() !== 0) {
 			return false;
 		}
 
-		this.setProperty("expanded", false, true);
-		this._getExpandIconControl()
-			.setSrc(EXPAND_ICON_SRC)
-			.setTooltip(this._getExpandIconTooltip(true));
+		this.setProperty("expanded", false);
+		this._animateCollapse = true;
 
-		this._getAccessibilityRef().setAttribute("aria-expanded", "false");
-
-		const $container = this.$().find(".sapTntNLIItemsContainer").first();
-		$container.stop(true, true).slideUp("fast", () => {
-			this._updateContainerVisibility();
-			this.getNavigationList()?._updateNavItems();
-		});
 
 		return true;
 	};

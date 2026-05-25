@@ -98,10 +98,18 @@ sap.ui.define([], function() {
 			ControlMemoryLeaks: "ControlMemoryLeaks",
 
 			/**
+			 * Test ControlInstances
+			 * @private
+			 * @ui5-restricted SAPUI5 Distribution Layer Libraries
+			 */
+			ControlInstances: "ControlInstances",
+
+			/**
 			 * Test ControlRenderer
 			 * @private
 			 * @ui5-restricted SAPUI5 Distribution Layer Libraries
-			 * @deprecated As of version 1.120
+			 * @deprecated As of version 1.120, sap.ui.requireSync is deprecated,
+			 *             therefore it's not needed to test that no sync request is sent when control renderer is retrieved.
 			 */
 			ControlRenderer: "ControlRenderer",
 
@@ -159,6 +167,9 @@ sap.ui.define([], function() {
 					ControlMemoryLeaks: {
 						title: "QUnit Page for memory leak detection in UI5 controls"
 					},
+					ControlInstances: {
+						title: "QUnit Page for detecting excessive control instance creation"
+					},
 					/**
 					 * @deprecated As of 1.120
 					 * sap.ui.requireSync is deprecated, therefore it's not needed to test that no sync request is sent
@@ -171,7 +182,7 @@ sap.ui.define([], function() {
 						title: "QUnit Page for duplicate ID issues detection in UI5 controls"
 					},
 					SettersContextReturn: {
-						title: "All setters should return correct context (Reason: https://github.com/SAP/openui5/blob/master/docs/guidelines.md#creating-classes)"
+						title: "All setters should return correct context (Reason: https://github.com/UI5/openui5/blob/master/docs/guidelines.md#creating-classes)"
 					},
 					EnforceSemanticRendering: {
 						title: "QUnit Page for Semantic Rendering Coverage"

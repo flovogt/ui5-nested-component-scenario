@@ -15,7 +15,7 @@ sap.ui.define(['sap/ui/core/Core', "sap/ui/VersionInfo", "sap/ui/core/Lib"],
 	 * (and provide control name and class and more information about the control as arguments), so a test could be executed for this control.
 	 *
 	 * The second parameter of the <code>run</code> function can be used to configure several options, e.g. to define a hard-coded list of control libraries
-	 * to test (otherwise all available libraries are discovered), to exclude certain controls or libraries, to state whether sap.ui.core.Elements should
+	 * to test (otherwise all available libraries are discovered), to exclude certain controls or libraries, to state whether subclasses of sap.ui.core.Element should
 	 * also be tested, etc.
 	 * Check the documentation of the <code>run</code> function parameters to understand which Controls/Elements are used by default and which ones are excluded.
 	 *
@@ -53,7 +53,7 @@ sap.ui.define(['sap/ui/core/Core', "sap/ui/VersionInfo", "sap/ui/core/Lib"],
 	 * @namespace
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @since 1.48.0
@@ -63,7 +63,6 @@ sap.ui.define(['sap/ui/core/Core', "sap/ui/VersionInfo", "sap/ui/core/Lib"],
 
 	var aControlsThatCannotBeRenderedGenerically = [
 		"sap.chart.Chart",
-		"sap.m.ColumnHeaderPopover",
 		"sap.m.FacetFilterItem",
 		"sap.m.internal.NumericInput",
 		"sap.m.IconTabBarSelectList",
@@ -105,6 +104,10 @@ sap.ui.define(['sap/ui/core/Core', "sap/ui/VersionInfo", "sap/ui/core/Lib"],
 		"sap.ui.core.mvc.TemplateView",
 		"sap.ui.core.mvc.View",
 		"sap.ui.core.mvc.XMLView",
+		/**
+		 * @deprecated since 1.120
+		 */
+		"sap.ui.core.mvc.XMLAfterRenderingNotifier",
 		/**
 		 * @deprecated since 1.56
 		 */
@@ -185,6 +188,10 @@ sap.ui.define(['sap/ui/core/Core', "sap/ui/VersionInfo", "sap/ui/core/Lib"],
 		"sap.ui.core.mvc.TemplateView",
 		"sap.ui.core.mvc.View",
 		"sap.ui.core.mvc.XMLView",
+		/**
+		 * @deprecated since 1.120
+		 */
+		"sap.ui.core.mvc.XMLAfterRenderingNotifier",
 		/**
 		 * @deprecated since 1.56
 		 */
@@ -469,7 +476,7 @@ sap.ui.define(['sap/ui/core/Core', "sap/ui/VersionInfo", "sap/ui/core/Lib"],
 	 * @param {object.string[]} [mOptions.controlsToTest=undefined] which controls to test, e.g. <code>["sap.m.Button"]</code>. When set, exactly these controls will be tested (IF they are found in the available/tested libraries) and the option excludedControls will be ignored. Otherwise, the module will try to discover all available controls.
 	 * @param {object.string[]} [mOptions.excludedControls=undefined] which controls to exclude from testing, e.g. <code>["sap.m.Button"]</code>.
 	 * @param {object.boolean} [mOptions.includeDistLayer=false] whether to include dist-layer libraries in the test. Only used when librariesToTest is not set.
-	 * @param {object.boolean} [mOptions.includeElements=false] whether to include all entities inheriting from sap.ui.core.Element in the test. Otherwise only those inheriting from sap.ui.core.Controls are tested.
+	 * @param {object.boolean} [mOptions.includeElements=false] whether to include all entities inheriting from sap.ui.core.Element in the test. Otherwise only those inheriting from sap.ui.core.Control are tested.
 	 * @param {object.boolean} [mOptions.includeNonRenderable=true] whether to include entities that cannot be generically rendered (some controls fail when they are not configured in a specific way).
 	 * @param {object.boolean} [mOptions.includeNonInstantiable=false] whether to include entities that cannot be generically instantiated.
 	 * @param {object.object} [mOptions.qunit=undefined] optionally, the QUnit object can be given here, so this module can do some internal sanity checks.

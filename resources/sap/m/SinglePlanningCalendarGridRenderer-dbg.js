@@ -526,15 +526,25 @@ sap.ui.define([
 
 				oRm.openEnd();
 
-				oAppointmentsByDate.oAppointmentsList.getIterator().forEach(function (oAppointmentNode) {
-					var iMaxLevel = oAppointmentsByDate.iMaxLevel,
-						iLevel = oAppointmentNode.level,
-						iWidth = oAppointmentNode.width,
-						oAppointment = oAppointmentNode.getData();
+				oAppointmentsByDate.oAppointmentsList
+					.sort((oAppA, oAppB) => {
+						const oAppointmentA = oAppA.getData();
+						const oAppointmentB = oAppB.getData();
 
-					that.renderAppointment(oRm, oControl, iMaxLevel, iLevel, iWidth, oAppointment, oColumnDate, iColumn, iIndex);
-					iIndex++;
-				});
+						return oAppointmentA.getStartDate().getTime() - oAppointmentB.getStartDate().getTime() ||
+						oAppointmentB.getEndDate().getTime() - oAppointmentA.getEndDate().getTime();
+					})
+					.getIterator()
+					.forEach(function (oAppointmentNode) {
+						var iMaxLevel = oAppointmentsByDate.iMaxLevel,
+							iLevel = oAppointmentNode.level,
+							iWidth = oAppointmentNode.width,
+							oAppointment = oAppointmentNode.getData();
+
+						that.renderAppointment(oRm, oControl, iMaxLevel, iLevel, iWidth, oAppointment, oColumnDate, iColumn, iIndex);
+						iIndex++;
+					});
+
 				oRm.close("div");
 				oRm.close("div");
 			}
@@ -748,24 +758,25 @@ sap.ui.define([
 		SinglePlanningCalendarGridRenderer.renderNowMarker = function (oRm, oControl) {
 			var oDate = UI5Date.getInstance();
 
-			oRm.openStart("div", oControl.getId() + "-nowMarker");
-			oRm.style("top", oControl._calculateTopPosition(oDate) + "rem");
-			oRm.class("sapMSinglePCNowMarker");
-
-			oRm.openEnd();
-			oRm.openStart("span", oControl.getId() + "-nowMarkerText");
-			oRm.class("sapMSinglePCNowMarkerText");
-			oRm.openEnd();
-			oRm.text(oControl._formatTimeAsString(oDate));
-			if (oControl._hasAMPM()) {
-				oRm.openStart("span", oControl.getId() + "-nowMarkerAMPM");
-				oRm.class("sapMSinglePCNowMarkerAMPM");
+			if (oControl._isNowMarkerInView(oDate)) {
+				oRm.openStart("div", oControl.getId() + "-nowMarker");
+				oRm.style("top", oControl._calculateTopPosition(oDate) + "rem");
+				oRm.class("sapMSinglePCNowMarker");
 				oRm.openEnd();
-				oRm.text(oControl._addAMPM(oDate));
-				oRm.close("span");
+				oRm.openStart("span", oControl.getId() + "-nowMarkerText");
+				oRm.class("sapMSinglePCNowMarkerText");
+				oRm.openEnd();
+				oRm.text(oControl._formatTimeAsString(oDate));
+				if (oControl._hasAMPM()) {
+					oRm.openStart("span", oControl.getId() + "-nowMarkerAMPM");
+					oRm.class("sapMSinglePCNowMarkerAMPM");
+					oRm.openEnd();
+					oRm.text(oControl._addAMPM(oDate));
+					oRm.close("span");
+				}
+				oRm.close("span"); // END .sapMSinglePCNowMarkerText
+				oRm.close("div"); // END .sapMSinglePCNowMarker
 			}
-			oRm.close("span"); // END .sapMSinglePCNowMarkerText
-			oRm.close("div"); // END .sapMSinglePCNowMarker
 		};
 
 		SinglePlanningCalendarGridRenderer.renderResizeHandles = function(oRm, bRenderTop, bRenderBottom) {

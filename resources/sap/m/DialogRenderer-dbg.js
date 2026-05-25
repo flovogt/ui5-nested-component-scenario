@@ -82,6 +82,10 @@ sap.ui.define([
 			oRM.class("sapMDialogStretched");
 		}
 
+		if (oDialog.getResizable() && !bStretch) {
+			oRM.class("sapMDialogResizable");
+		}
+
 		/**
 		 * @deprecated As of version 1.11.2
 		 */
@@ -112,8 +116,9 @@ sap.ui.define([
 		}
 
 		oRM.accessibilityState(oDialog, {
-			role: sRole,
-			modal: true
+			role: sRole.toLowerCase(),
+			modal: true,
+			describedby: oDialog._oAriaDescribedbyText.getText() ? oDialog._oAriaDescribedbyText.getId() : undefined
 		});
 
 		if (oSubHeader && oSubHeader.getVisible()) {
@@ -158,6 +163,10 @@ sap.ui.define([
 
 		oRM.openEnd();
 
+		if (oDialog._oAriaDescribedbyText.getText()) {
+			oRM.renderControl(oDialog._oAriaDescribedbyText);
+		}
+
 		if (Device.system.desktop) {
 			if (oDialog.getResizable() && !bStretch) {
 				DialogRenderer.renderResizeHandle(oRM);
@@ -168,10 +177,35 @@ sap.ui.define([
 			// In that case, the controller will focus the last focusable element.
 			oRM.openStart("span", sId + "-firstfe")
 				.class("sapMDialogFirstFE")
+				.class("sapUiSkipFocusFail")
 				.attr("role", "none")
 				.attr("tabindex", "0")
 				.openEnd()
 				.close("span");
+		}
+
+		if (oDialog._isDraggableOrResizable()) {
+			var oRb = Library.getResourceBundleFor("sap.m");
+			let sLabel;
+			if (oDialog.getResizable() && oDialog.getDraggable()) {
+				sLabel = oRb.getText("DIALOG_DRAG_AND_RESIZE_HANDLE_ARIA_LABEL");
+			} else if (oDialog.getDraggable()) {
+				sLabel = oRb.getText("DIALOG_DRAG_HANDLE_ARIA_LABEL");
+			} else if (oDialog.getResizable()) {
+				sLabel = oRb.getText("DIALOG_RESIZE_HANDLE_ARIA_LABEL");
+			}
+
+			oRM.openStart("span", sId + "-dragAndResizeHandler")
+				.class("sapMDialogDragAndResizeHandler")
+				.attr("tabindex", "0")
+				.attr("role", "img")
+				.attr("aria-roledescription", oRb.getText("DIALOG_HANDLE_ARIA_ROLEDESCRIPTION"))
+				.attr("aria-label", sLabel)
+				.attr("aria-describedby", oDialog._oDescribedbyDragAndResizeHandleText.getId())
+				.openEnd()
+				.close("span");
+
+			oRM.renderControl(oDialog._oDescribedbyDragAndResizeHandleText);
 		}
 
 		if (oHeader || oSubHeader) {
@@ -184,23 +218,16 @@ sap.ui.define([
 				oRM.openStart("div", sId + "-titleGroup")
 					.class("sapMDialogTitleGroup");
 
-				if (oDialog._isDraggableOrResizable()) {
-					oRM.attr("tabindex", 0)
-						.accessibilityState(oHeader, {
-							role: "group",
-							roledescription: Library.getResourceBundleFor("sap.m").getText("DIALOG_HEADER_ARIA_ROLE_DESCRIPTION"),
-							describedby: { value: oDialog.getId() + "-ariaDescribedbyText", append: true }
-						});
-				}
 
 				oRM.openEnd()
 					.renderControl(oHeader)
-					.renderControl(oDialog._oAriaDescribedbyText)
 					.close("div");
 			}
 
 			if (oSubHeader && oSubHeader.getVisible()) {
-				oSubHeader._applyContextClassFor("subheader");
+				if (oSubHeader._applyContextClassFor) {
+					oSubHeader._applyContextClassFor("subheader");
+				}
 				oRM.openStart("div")
 					.class("sapMDialogSubHeader")
 					.openEnd()
@@ -243,10 +270,14 @@ sap.ui.define([
 				.class("sapMDialogFooter")
 				.openEnd();
 			if (oFooter) {
-				oFooter._applyContextClassFor("footer");
+				if (oFooter._applyContextClassFor) {
+					oFooter._applyContextClassFor("footer");
+				}
 				oRM.renderControl(oFooter);
 			} else {
-				oDialog._oToolbar._applyContextClassFor("footer");
+				if (oDialog._oToolbar._applyContextClassFor) {
+					oDialog._oToolbar._applyContextClassFor("footer");
+				}
 				oRM.renderControl(oDialog._oToolbar);
 			}
 			oRM.close("footer");
@@ -258,6 +289,7 @@ sap.ui.define([
 			// In that case, the controller will focus the first focusable element.
 			oRM.openStart("span", sId + "-lastfe")
 				.class("sapMDialogLastFE")
+				.class("sapUiSkipFocusFail")
 				.attr("role", "none")
 				.attr("tabindex", "0")
 				.openEnd()
@@ -268,11 +300,13 @@ sap.ui.define([
 	};
 
 	DialogRenderer.renderResizeHandle = function(oRM) {
+		var oRb = Library.getResourceBundleFor("sap.m");
+
 		oRM.openStart("div")
 			.class("sapMDialogResizeHandle")
 			.openEnd();
 
-		oRM.icon("sap-icon://resize-corner", ["sapMDialogResizeHandleIcon"], { "title": null, "aria-label": null });
+		oRM.icon("sap-icon://resize-corner", ["sapMDialogResizeHandleIcon"], { "title": oRb.getText("DIALOG_RESIZE_HANDLE_TOOLTIP"), "aria-label": null });
 
 		oRM.close("div");
 	};

@@ -6,6 +6,7 @@
 
 sap.ui.define([
 	'../base/ManagedObject',
+	'../base/OwnStatics',
 	'./Element',
 	'./DeclarativeSupport',
 	'./XMLTemplateProcessor',
@@ -19,6 +20,7 @@ sap.ui.define([
 ],
 function(
 	ManagedObject,
+	OwnStatics,
 	Element,
 	DeclarativeSupport,
 	XMLTemplateProcessor,
@@ -36,12 +38,14 @@ function(
 	var mRegistry = {}, // the Fragment registry
 	mTypes = {}; // the Fragment types registry, holding their implementations
 
+	const { getCurrentOwnerId, runWithPreprocessors } = OwnStatics.get(ManagedObject);
+
 	/**
 	 * @classdesc Fragments support the definition of light-weight stand-alone UI control trees.
 	 * This class acts as factory which returns the UI control tree defined inside the Fragments. When used within declarative Views,
 	 * the Fragment content is imported and seamlessly integrated into the View.
 	 *
-	 * Fragments are used similar as sap.ui.core.mvc.Views, but Fragments do not have a Controller on their own (they may know one, though),
+	 * Fragments are used similar as sap.ui.core.mvc.View, but Fragments do not have a Controller on their own (they may know one, though),
 	 * they are not a Control, they are not part of the UI tree and they have no representation in HTML.
 	 * By default, in contrast to declarative Views, they do not do anything to guarantee ID uniqueness.
 	 *
@@ -99,7 +103,7 @@ function(
 	 * @class
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @public
 	 * @alias sap.ui.core.Fragment
 	 */
@@ -107,8 +111,8 @@ function(
 		metadata: {
 			properties: {
 
-				/*
-				 * The Fragment type. Types "XML", "HTML" and JS" are built-in and always available.
+				/**
+				 * The Fragment type.
 				 */
 				type: 'string'
 			},
@@ -163,8 +167,11 @@ function(
 		constructor: function(sId, mSettings) {
 			ManagedObject.apply(this, arguments);
 
-			// When async, the fragment content is already passed to the constructor
+			/**
+			 * @deprecated because sync case is deprecated.
+			 */
 			if (!this._bAsync) {
+				// When async, the fragment content is already passed to the constructor
 				if (this._aContent && this._aContent.length == 1) {
 					// in case of only one control, return it directly
 					return this._aContent[0];
@@ -209,6 +216,9 @@ function(
 			this.oController = mSettings.oController;
 		}
 
+		/**
+		 * @deprecated because sync case is deprecated.
+		 */
 		this._bAsync = mSettings.async || false;
 
 		// remember the ID which has been explicitly given in the factory function
@@ -217,7 +227,7 @@ function(
 		// remember the name of this Fragment
 		this._sFragmentName = mSettings.fragmentName;
 
-		// if the containing view (or fragment) has a scoped runWithOnwer function we need to propagate this to the nested Fragment (only for async case)
+		// if the containing view (or fragment) has a scoped runWithOwner function we need to propagate this to the nested Fragment (only for async case)
 		this.fnScopedRunWithOwner = mSettings.containingView && mSettings.containingView.fnScopedRunWithOwner;
 
 		if (!this.fnScopedRunWithOwner && this._sOwnerId) {
@@ -593,7 +603,7 @@ function(
 		mParameters.fragmentName = mParameters.fragmentName || mParameters.name;
 		mParameters.fragmentContent = mParameters.fragmentContent || mParameters.definition;
 		mParameters.oController = mParameters.controller;
-		mParameters.sOwnerId = ManagedObject._sOwnerId;
+		mParameters.sOwnerId = getCurrentOwnerId();
 		delete mParameters.name;
 		delete mParameters.definition;
 		delete mParameters.controller;
@@ -832,8 +842,12 @@ function(
 		},
 		init: function(mSettings) {
 			this._aContent = [];
-			// use specified content or load the content definition
-			if (mSettings.fragmentContent) {
+			/**
+			 * @ui5-transform-hint replace-local true
+			 */
+			const bFragmentContent = !!mSettings.fragmentContent;
+			if (bFragmentContent) {
+				// use specified content or load the content definition
 				if (typeof (mSettings.fragmentContent) === "string") {
 					this._xContent = XMLHelper.parse(mSettings.fragmentContent).documentElement;
 				} else {
@@ -869,7 +883,7 @@ function(
 			// similar to the XMLView we need to have a scoped runWithPreprocessors function
 			var oParseConfig = {
 				fnRunWithPreprocessor: function(fn) {
-					return ManagedObject.runWithPreprocessors(fn, {
+					return runWithPreprocessors(fn, {
 						settings: fnSettingsPreprocessor
 					});
 				}
@@ -879,7 +893,12 @@ function(
 			// IMPORTANT:
 			// this call can be triggered with both "async = true" and "async = false"
 			// In case of sync processing, the XMLTemplateProcessor makes sure to only use SyncPromises.
-			var pContentPromise = XMLTemplateProcessor.parseTemplatePromise(this._xContent, this, this._bAsync, oParseConfig).then(function(aContent) {
+
+			/**
+			 * @ui5-transform-hint replace-local true
+			 */
+			const bAsync = this._bAsync;
+			var pContentPromise = XMLTemplateProcessor.parseTemplatePromise(this._xContent, this, bAsync, oParseConfig).then(function(aContent) {
 				this._aContent = aContent;
 				/*
 				 * If content was parsed and an objectBinding at the fragment was defined
@@ -897,9 +916,10 @@ function(
 
 				return this._aContent.length > 1 ? this._aContent : this._aContent[0];
 			}.bind(this));
-			// in sync case we must get a SyncPromise and need to unwrap for error logging
-			if (!this._bAsync) {
+
+			if (!bAsync) {
 				try {
+					// in sync case we must get a SyncPromise and need to unwrap for error logging
 					pContentPromise.unwrap();
 				} catch (e) {
 					future.errorThrows(this.getMetadata().getName() +
@@ -957,7 +977,7 @@ function(
 			this._oContainingView = mSettings.containingView || this;
 
 			// unset any preprocessors (e.g. from an enclosing JSON view)
-			return ManagedObject.runWithPreprocessors(function() {
+			return runWithPreprocessors(function() {
 				var vContent;
 				if (this.fnScopedRunWithOwner) {
 					this.fnScopedRunWithOwner(function () {
@@ -1095,7 +1115,7 @@ function(
 				}
 
 				// unset any preprocessors (e.g. from an enclosing HTML view)
-				return ManagedObject.runWithPreprocessors(function() {
+				return runWithPreprocessors(function() {
 					if (this.fnScopedRunWithOwner) {
 						this.fnScopedRunWithOwner(function () {
 							DeclarativeSupport.compile(this._oTemplate, this);

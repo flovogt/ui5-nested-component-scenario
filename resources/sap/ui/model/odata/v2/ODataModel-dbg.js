@@ -53,13 +53,12 @@ sap.ui.define([
 	"sap/ui/model/odata/OperationMode",
 	"sap/ui/model/odata/UpdateMethod",
 	"sap/ui/thirdparty/datajs",
-	"sap/ui/thirdparty/URI",
 	"sap/ui/util/isCrossOriginURL"
 ], function(_CreatedContextsCache, Context, ODataAnnotations, ODataContextBinding, ODataListBinding, ODataTreeBinding,
 		assert, Log, Localization, encodeURL, deepEqual, deepExtend, each, extend, isEmptyObject, isPlainObject, merge,
 		uid, SyncPromise, Messaging, Message, MessageParser, MessageType, Supportability, _Helper, BindingMode,
 		BaseContext, FilterProcessor, Model, CountMode, MessageScope, ODataMetadata, ODataMetaModel, ODataMessageParser,
-		ODataPropertyBinding, ODataUtils, OperationMode, UpdateMethod, OData, URI, isCrossOriginURL
+		ODataPropertyBinding, ODataUtils, OperationMode, UpdateMethod, OData, isCrossOriginURL
 ) {
 
 	"use strict";
@@ -89,7 +88,7 @@ sap.ui.define([
 	 *   be appended to every request. If you pass an object, it will be interpreted as the
 	 *   parameter object (second parameter). Then <code>mParameters.serviceUrl</code> becomes a
 	 *   mandatory parameter.
-	 * @param {object} [mParameters]
+	 * @param {Object<string, any>} [mParameters]
 	 *   Map which contains the following parameter properties:
 	 * @param {string|string[]} [mParameters.annotationURI=[]]
 	 *   The URL (or an array of URLs) from which the annotation metadata should be loaded
@@ -177,7 +176,7 @@ sap.ui.define([
 	 *   Enable/disable automatic refresh after change operations
 	 * @param {boolean} [mParameters.sequentializeRequests=false]
 	 *   Whether to sequentialize all requests, needed in case the service cannot handle parallel
-	 *   requests. <b>Deprecated</b> as of version 1.128.0, the concept has been discarded.
+	 *   requests. <b>Deprecated as of version 1.128.0</b>, the concept has been discarded.
 	 * @param {string} [mParameters.serviceUrl]
 	 *   Base URI of the service to request data from; this property is mandatory when the first
 	 *   method parameter <code>serviceUrl</code> is omitted, but ignored otherwise
@@ -198,16 +197,16 @@ sap.ui.define([
 	 *   If set to <code>true</code>, the user credentials are included in a cross-origin request. <b>Note:</b> This
 	 *   only works if all requests are asynchronous.
 	 * @param {string} [mParameters.password]
-	 *   <b>Deprecated</b> for security reasons. Use strong server side authentication instead.
+	 *   <b>Deprecated as of version 1.75.0</b> for security reasons. Use strong server side authentication instead.
 	 *   Password for the service.
 	 * @param {boolean} [mParameters.skipMetadataAnnotationParsing]
-	 *   <b>Deprecated</b> This parameter does not prevent creation of annotations from the metadata
-	 *   document in this model's metamodel.
+	 *   <b>Deprecated as of version 1.112.0</b> This parameter does not prevent creation of annotations from the
+	 *   metadata document in this model's metamodel.
 	 *   Whether to skip the automated loading of annotations from the metadata document. Loading
 	 *   annotations from metadata does not have any effects (except the lost performance by
 	 *   invoking the parser) if there are no annotations inside the metadata document
 	 * @param {string} [mParameters.user]
-	 *   <b>Deprecated</b> for security reasons. Use strong server side authentication instead.
+	 *   <b>Deprecated as of version 1.75.0</b> for security reasons. Use strong server side authentication instead.
 	 *   UserID for the service.
 	 *
 	 * @class
@@ -219,7 +218,7 @@ sap.ui.define([
 	 * This model is not prepared to be inherited from.
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel
@@ -325,7 +324,7 @@ sap.ui.define([
 			this.sWarmupUrl = sWarmupUrl;
 			this.bWarmup = !!sWarmupUrl;
 			this.mSupportedBindingModes = {"OneWay": true, "OneTime": true, "TwoWay":true};
-			this.mUnsupportedFilterOperators = {"Any": true, "All": true};
+			this.mUnsupportedFilterOperators = {All: true, Any: true, NotAll: true, NotAny: true};
 			this.sDefaultBindingMode = sDefaultBindingMode || BindingMode.OneWay;
 			this.bIsMessageScopeSupported = false;
 			this.iPendingDeferredRequests = 0;
@@ -758,7 +757,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            [oListener=this] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.v2.ODataModel</code> itself
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
@@ -778,7 +777,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
+	 *            [oListener=this] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
@@ -837,7 +836,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            [oListener=this] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.v2.ODataModel</code> itself
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
@@ -857,7 +856,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
+	 *            [oListener=this] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
@@ -915,7 +914,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            [oListener=this] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.v2.ODataModel</code> itself
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
@@ -935,7 +934,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
+	 *            [oListener=this] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
@@ -1088,7 +1087,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            [oListener=this] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.v2.ODataModel</code> itself
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
@@ -1108,7 +1107,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
+	 *            [oListener=this] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
@@ -1145,7 +1144,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            [oListener=this] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.v2.ODataModel</code> itself
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
@@ -1165,7 +1164,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
+	 *            [oListener=this] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
@@ -1198,7 +1197,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            [oListener=this] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.v2.ODataModel</code> itself
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
@@ -1218,7 +1217,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
+	 *            [oListener=this] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
@@ -1254,7 +1253,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            [oListener=this] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.v2.ODataModel</code> itself
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
@@ -1274,7 +1273,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object on which the given function had to be called
+	 *            [oListener=this] Context object on which the given function had to be called
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
 	 * @public
 	 */
@@ -1407,15 +1406,13 @@ sap.ui.define([
 	};
 
 	/**
-	 * Extracts the server base URL from the service URL
+	 * Computes and returns the server base URL from the service URL.
+	 *
 	 * @returns {string} The server base URL
 	 * @private
 	 */
-	ODataModel.prototype._getServerUrl = function() {
-		var oServiceURI, sURI;
-		oServiceURI = new URI(this.sServiceUrl).absoluteTo(document.baseURI);
-		sURI = new URI("/").absoluteTo(oServiceURI).toString();
-		return sURI;
+	ODataModel.prototype._getServerUrl = function () {
+		return new URL("/", new URL(this.sServiceUrl, document.baseURI)).href;
 	};
 
 	/**
@@ -1848,7 +1845,7 @@ sap.ui.define([
 	 *
 	 * To refresh all model data use {@link sap.ui.model.odata.v2.ODataModel#refresh}
 	 *
-	 * @param {function} [fnCheckEntry]
+	 * @param {function(string, object): boolean} [fnCheckEntry]
 	 *   A function which can be used to restrict invalidation to specific entries, gets the entity
 	 *   key and object as parameters and should return true for entities to invalidate.
 	 * @public
@@ -1979,6 +1976,10 @@ sap.ui.define([
 	 *   Map of changed entities
 	 * @param {boolean} bMetaModelOnly
 	 *   Whether to only update metamodel bindings
+	 * @returns {number|undefined}
+	 *   The number of bindings which were checked synchronously for updates; 0 if <code>bAsync</code> is set.
+	 *   Subclasses overwriting this method may also return <code>undefined</code>.
+	 *
 	 * @private
 	 */
 	ODataModel.prototype.checkUpdate = function(bForceUpdate, bAsync, mChangedEntities, bMetaModelOnly) {
@@ -1990,7 +1991,7 @@ sap.ui.define([
 					this.checkUpdate(this.bForceUpdate, false, this.mChangedEntities4checkUpdate);
 				}.bind(this), 0);
 			}
-			return;
+			return 0;
 		}
 		bForceUpdate = this.bForceUpdate || bForceUpdate;
 		if (this.sUpdateTimer) {
@@ -2006,6 +2007,8 @@ sap.ui.define([
 			}
 		}.bind(this));
 		this._processAfterUpdate();
+
+		return aBindings.length;
 	};
 
 	/**
@@ -2028,8 +2031,8 @@ sap.ui.define([
 	 *
 	 * @param {string} sPath Path pointing to the property that should be bound;
 	 *                 either an absolute path or a path relative to a given <code>oContext</code>
-	 * @param {object} [oContext] A context object for the new binding
-	 * @param {Object<string,any>} [mParameters] Map of optional parameters for the binding
+	 * @param {sap.ui.model.Context} [oContext] A context object for the new binding
+	 * @param {Object<string, any>} [mParameters] Map of optional parameters for the binding
 	 * @param {boolean} [mParameters.ignoreMessages]
 	 *   Whether this binding does not propagate model messages to the control; supported since
 	 *   1.82.0. Some composite types like {@link sap.ui.model.type.Currency} automatically ignore
@@ -2065,7 +2068,7 @@ sap.ui.define([
 	 * @param {sap.ui.model.Filter[]|sap.ui.model.Filter} [aFilters=[]]
 	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call
 	 *   {@link sap.ui.model.odata.v2.ODataListBinding#filter} to replace them
-	 * @param {object} [mParameters] A map which contains additional parameters for the binding.
+	 * @param {Object<string, any>} [mParameters] A map which contains additional parameters for the binding.
 	 * @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
 	 *   Defines the count mode of the binding; if not specified, the default count mode of the
 	 *   <code>oModel</code> is applied.
@@ -2104,10 +2107,10 @@ sap.ui.define([
 	 *   {@link topic:6c47b2b39db9404582994070ec3d57a2#loio62149734b5c24507868e722fe87a75db
 	 *   Optimizing Dependent Bindings}.
 	 * @param {string} [mParameters.batchGroupId]
-	 *   <b>Deprecated</b>, use <code>groupId</code> instead. Sets the batch group id to be used for
-	 *   requests originating from the binding.
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead. Sets the batch group id to be used
+	 *   for requests originating from the binding.
 	 * @param {int} [mParameters.threshold]
-	 *   Deprecated since 1.102.0, as {@link sap.ui.model.odata.OperationMode.Auto} is deprecated;
+	 *   <b>Deprecated as of version 1.102.0</b>, as {@link sap.ui.model.odata.OperationMode.Auto} is deprecated;
 	 *   the threshold that defines how many entries should be fetched at least by the binding if
 	 *   <code>operationMode</code> is set to <code>Auto</code>.
 	 * @throws {Error} If one of the filters uses an operator that is not supported by the underlying model
@@ -2137,33 +2140,22 @@ sap.ui.define([
 	 * single initial OData request.
 	 *
 	 * For services without the <code>hierarchy-node-descendant-count-for</code> annotation, the
-	 * <code>numberOfExpandedLevels</code> property is not supported and deprecated.
+	 * <code>numberOfExpandedLevels</code> property is not supported and deprecated since 1.44.5.
 	 *
-	 * <h3>Operation Modes</h3>
+	 * The OData service must always return node collections which are sufficient to create a valid hierarchy on the
+	 * client. This means that for each node in the response all parent nodes up to the hierarchy root must also
+	 * be contained in the response. Note that this rule applies independent of any filters set for the binding.
+	 *
+	 * You must not define filters on tree annotation properties for this binding as this interferes with hierarchy
+	 * filters defined by the binding itself.
+	 *
+	 * <h3>Notes On Operation Modes</h3>
 	 * For a full definition and explanation of all OData binding operation modes, see
 	 * {@link sap.ui.model.odata.OperationMode}.
 	 *
-	 * <h4>OperationMode.Server</h4>
-	 * Filtering on the <code>ODataTreeBinding</code> is only supported with filters of type
-	 * {@link sap.ui.model.FilterType.Application}. Be aware that this applies
-	 * only to filters which do not prevent the creation of a hierarchy. So filtering on a property
-	 * (e.g. a "Customer") is fine, as long as the application ensures that the responses from the
-	 * back end are sufficient to create a valid hierarchy on the client. Subsequent paging requests
-	 * for sibling and child nodes must also return responses, since the filters are sent with every
-	 * request. Using control-defined filters (see {@link sap.ui.model.FilterType.Control}) via the
-	 * {@link #filter} function is not supported for the operation mode <code>Server</code>.
-	 *
-	 * <h4>OperationMode.Client and OperationMode.Auto</h4>
-	 * The ODataTreeBinding supports control-defined filters only in operation modes
-	 * <code>Client</code> and <code>Auto</code>. With these operation modes, the filters and
-	 * sorters are applied on the client, like for the
-	 * {@link sap.ui.model.odata.v2.ODataListBinding}.
-	 *
 	 * The operation modes <code>Client</code> and <code>Auto</code> are only supported for services
 	 * which expose the hierarchy annotations mentioned above, but do <b>not</b> expose the
-	 * <code>hierarchy-node-descendant-count-for</code> annotation. Services with hierarchy
-	 * annotations including the <code>hierarchy-node-descendant-count-for</code> annotation, do
-	 * <b>not</b> support the operation modes <code>Client</code> and <code>Auto</code>.
+	 * <code>hierarchy-node-descendant-count-for</code> annotation.
 	 * <b>Note:</b> {@link sap.ui.model.odata.OperationMode.Auto} is deprecated since 1.102.0.
 	 *
 	 * <b>Note:</b> OData tree bindings do neither support
@@ -2177,7 +2169,7 @@ sap.ui.define([
 	 *   The filters to be used initially with type {@link sap.ui.model.FilterType.Application}; call
 	 *   {@link sap.ui.model.odata.v2.ODataTreeBinding#filter} to replace them; depending on the operation mode, there
 	 *   are restrictions for using filters; see above
-	 * @param {object} [mParameters]
+	 * @param {Object<string, any>} [mParameters]
 	 *   Map of binding parameters
 	 * @param {boolean} [mParameters.transitionMessagesOnly=false]
 	 *   Whether the tree binding only requests transition messages from the back end. If messages
@@ -2202,10 +2194,13 @@ sap.ui.define([
 	 * @param {string} [mParameters.treeAnnotationProperties.hierarchyNodeDescendantCountFor]
 	 *   The property name in the same type holding the descendant count for the node; the type of
 	 *   the referenced property has to be an integer type
+	 * @param {string} [mParameters.treeAnnotationProperties.hierarchyPreorderRankFor]
+	 *   The property name in the same type holding the preorder rank for the node; the type of
+	 *   the referenced property has to be an integer type
 	 * @param {number} [mParameters.numberOfExpandedLevels=0]
 	 *   The number of levels that are auto-expanded initially. Setting this property might lead to
-	 *   multiple back-end requests. The auto-expand feature is <b>deprecated for services without
-	 *   the <code>hierarchy-node-descendant-count-for</code> annotation</b>
+	 *   multiple back-end requests. The auto-expand feature is <b>deprecated as of Version 1.44.5
+	 *   for services without the <code>hierarchy-node-descendant-count-for</code> annotation</b>
 	 * @param {number} [mParameters.rootLevel=0]
 	 *   The level of the topmost tree nodes
 	 * @param {string} [mParameters.groupId]
@@ -2215,22 +2210,15 @@ sap.ui.define([
 	 *   specified. {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto} is only
 	 *   supported for services which expose the hierarchy annotations, yet do <b>NOT</b> expose the
 	 *   <code>hierarchy-node-descendant-count-for</code> annotation.
-	 *   <b>Note:</b> {@link sap.ui.model.odata.OperationMode.Auto} is deprecated since 1.102.0.
 	 * @param {number} [mParameters.threshold]
 	 *   Deprecated since 1.102.0, as {@link sap.ui.model.odata.OperationMode.Auto} is deprecated;
 	 *   the threshold that defines how many entries should be fetched at least by the binding if
 	 *   <code>operationMode</code> is set to <code>Auto</code>
 	 * @param {boolean} [mParameters.useServersideApplicationFilters]
-	 *   Deprecated since 1.102.0, as {@link sap.ui.model.odata.OperationMode.Auto} is deprecated;
-	 *   whether <code>$filter</code> statements should be used for the <code>$count</code> /
+	 *   Whether <code>$filter</code> statements should be used for the <code>$count</code> /
 	 *   <code>$inlinecount</code> requests and for the data request if the operation mode is
-	 *   {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto}. Use this feature only
-	 *   if your back end supports pre-filtering the tree and is capable of responding with
-	 *   a complete tree hierarchy, including all inner nodes. To construct the hierarchy on the
-	 *   client, it is mandatory that all filter matches include their complete parent chain up to
-	 *   the root level. If {@link sap.ui.model.odata.OperationMode.Client OperationMode.Client} is
-	 *   used, the complete collection without filters is requested; filters are applied on the
-	 *   client side.
+	 *   {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto} or
+	 *   {@link sap.ui.model.odata.OperationMode.Client OperationMode.Client}
 	 * @param {any} [mParameters.treeState]
 	 *   A tree state handle can be given to the <code>ODataTreeBinding</code> when two conditions
 	 *   are met: <ul>
@@ -2244,23 +2232,33 @@ sap.ui.define([
 	 *   This feature is not supported if
 	 *   {@link sap.ui.model.odata.OperationMode.Server OperationMode.Server} or
 	 *   {@link sap.ui.model.odata.OperationMode.Auto OperationMode.Auto} is used.
-	 *  @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
-	 *    Defines the count mode of this binding; if not specified, the default count mode of the
-	 *    binding's model is applied. The resulting count mode must not be
-	 *    {@link sap.ui.model.odata.CountMode.None}.
-	 *  @param {boolean} [mParameters.usePreliminaryContext]
-	 *    Whether a preliminary context is used; defaults to the value of the parameter
-	 *    <code>preliminaryContext</code> given on construction of the binding's model, see
-	 *    {@link sap.ui.model.odata.v2.ODataModel}
+	 * @param {boolean} [mParameters.restoreTreeStateAfterChange]
+	 *   Whether the tree state is restored on hierarchy maintenance, such as adding, removing, or deleting a node.
+	 *   This is only supported if the following conditions are met: <ul>
+	 *   <li>The binding has to use {@link sap.ui.model.odata.OperationMode.Server OperationMode.Server}</li>
+	 *   <li>The <code>"hierarchy-node-descendant-count-for"</code> annotation must be present in the service metadata
+	 *     or provided via <code>treeAnnotationProperties.hierarchyNodeDescendantCountFor</code></li>
+	 *   <li>The <code>"hierarchy-preorder-rank-for"</code> annotation must be present in the service metadata or
+	 *     provided via <code>treeAnnotationProperties.hierarchyPreorderRankFor</code></li>
+	 *   <li>The hierarchy maintenance is performed on the client side</li>
+	 *   </ul>
+	 * @param {sap.ui.model.odata.CountMode} [mParameters.countMode]
+	 *   Defines the count mode of this binding; if not specified, the default count mode of the
+	 *   binding's model is applied. The resulting count mode must not be
+	 *   {@link sap.ui.model.odata.CountMode.None}.
+	 * @param {boolean} [mParameters.usePreliminaryContext]
+	 *   Whether a preliminary context is used; defaults to the value of the parameter
+	 *   <code>preliminaryContext</code> given on construction of the binding's model, see
+	 *   {@link sap.ui.model.odata.v2.ODataModel}
 	 * @param {string} [mParameters.batchGroupId]
-	 *   <b>Deprecated</b>, use <code>groupId</code> instead. Sets the batch group id to be used
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead. Sets the batch group id to be used
 	 *   for requests originating from this binding
 	 * @param {object} [mParameters.navigation]
 	 *   A map describing the navigation properties between entity sets, which is used for
 	 *   constructing and paging the tree. Keys in this object are entity names, whereas the values
 	 *   name the navigation properties.
 	 *
-	 *   <b>Deprecated: since 1.44</b> The use of navigation properties to build up the hierarchy
+	 *   <b>Deprecated as of version 1.44</b> The use of navigation properties to build up the hierarchy
 	 *   structure is deprecated. It is recommended to use the hierarchy annotations mentioned above
 	 *   instead.
 	 * @param {sap.ui.model.Sorter[]|sap.ui.model.Sorter} [vSorters=[]]
@@ -2290,8 +2288,8 @@ sap.ui.define([
 	 *
 	 * @see sap.ui.model.Model.prototype.createBindingContext
 	 * @param {string} sPath Binding path
-	 * @param {object} [oContext] Binding context
-	 * @param {object} [mParameters] Map which contains additional parameters for the binding
+	 * @param {sap.ui.model.Context} [oContext] Binding context
+	 * @param {Object<string, any>} [mParameters] Map which contains additional parameters for the binding
 	 * @param {string} [mParameters.expand] Value for the OData <code>$expand</code> query parameter which should be included in the request
 	 * @param {string} [mParameters.select] Value for the OData <code>$select</code> query parameter which should be included in the request
 	 * @param {boolean} [mParameters.createPreliminaryContext]
@@ -2300,7 +2298,7 @@ sap.ui.define([
 	 *   information, see
 	 *   {@link topic:6c47b2b39db9404582994070ec3d57a2#loio62149734b5c24507868e722fe87a75db Optimizing Dependent Bindings}
 	 * @param {Object<string,string>} [mParameters.custom] Optional map of custom query parameters, names of custom parameters must not start with <code>$</code>.
-	 * @param {function} [fnCallBack]
+	 * @param {function(sap.ui.model.Context): void} [fnCallBack]
 	 *   The function to be called when the context has been created. The parameter of the callback
 	 *   function is the newly created binding context, an instance of
 	 *   {@link sap.ui.model.odata.v2.Context}.
@@ -2766,7 +2764,7 @@ sap.ui.define([
 	 * @param {string} sPath The binding path in the model
 	 * @param {sap.ui.model.Context} [oContext]
 	 *   The context which is required as base for a relative path.
-	 * @param {object} [mParameters] A map which contains additional parameters for the binding.
+	 * @param {Object<string, any>} [mParameters] A map which contains additional parameters for the binding.
 	 * @param {boolean} [mParameters.createPreliminaryContext]
 	 *   Whether a preliminary context is created
 	 * @param {Object<string,string>} [mParameters.custom]
@@ -2786,8 +2784,8 @@ sap.ui.define([
 	 *   see {@link topic:6c47b2b39db9404582994070ec3d57a2#loio62149734b5c24507868e722fe87a75db
 	 *   Optimizing Dependent Bindings}.
 	 * @param {string} [mParameters.batchGroupId]
-	 *   <b>Deprecated</b>, use <code>groupId</code> instead. Sets the batch group id to be used for
-	 *   requests originating from the binding.
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead. Sets the batch group id to be used
+	 *   for requests originating from the binding.
 	 * @returns {sap.ui.model.odata.v2.ODataContextBinding} The new context binding
 	 * @see sap.ui.model.Model.prototype.bindContext
 	 * @public
@@ -2917,7 +2915,7 @@ sap.ui.define([
 	 * Please make sure that the metadata document is loaded before using this function.
 	 *
 	 * @param {string} sCollection Name of the collection
-	 * @param {object} oKeyProperties Object containing at least all the key properties of the entity type
+	 * @param {Object<string, string>} oKeyProperties Object containing at least all the key properties of the entity type
 	 * @returns {string} Key of the entry
 	 * @public
 	 */
@@ -2966,10 +2964,10 @@ sap.ui.define([
 	 * </ul>
 	 *
 	 * @param {string} sPath Path/name of the property
-	 * @param {object} [oContext] Context if available to access the property value
+	 * @param {sap.ui.model.Context} [oContext] Context if available to access the property value
 	 * @param {boolean} [bIncludeExpandEntries=false]
-	 *   Deprecated, use {@link #getObject} function with 'select' and 'expand' parameters instead.
-	 *   Whether entities for navigation properties of this property which have been read via
+	 *   <b>Deprecated as of version 1.41.0</b>, use {@link #getObject} function with 'select' and 'expand' parameters
+	 *   instead. Whether entities for navigation properties of this property which have been read via
 	 *   <code>$expand</code> are part of the return value.
 	 * @returns {any} Value of the property
 	 * @throws {Error}
@@ -3360,7 +3358,7 @@ sap.ui.define([
 	/**
 	 * Returns a promise, which will resolve with the security token as soon as it is available.
 	 *
-	 * @returns {Promise} A promise on the security token
+	 * @returns {Promise<string>} A promise on the security token
 	 *
 	 * @public
 	 */
@@ -3384,12 +3382,12 @@ sap.ui.define([
 	/**
 	 * Refresh XSRF token by performing a GET request against the service root URL.
 	 *
-	 * @param {function} [fnSuccess] Callback function which is called when the data has
+	 * @param {function(object, object): void} [fnSuccess] Callback function which is called when the data has
 	 *            					 been successfully retrieved.
-	 * @param {function} [fnError] Callback function which is called when the request failed. The handler can have the parameter: oError which contains
+	 * @param {function(object): void} [fnError] Callback function which is called when the request failed. The handler can have the parameter: oError which contains
 	 *  additional error information.
 	 * @param {boolean} [bAsync=false] Whether the request should be sent asynchronously
-	 * @returns {object} An object which has an <code>abort</code> function to abort the current request.
+	 * @returns {{abort: function(): void}} An object which has an <code>abort</code> function to abort the current request.
 	 *
 	 * @public
 	 */
@@ -3899,7 +3897,7 @@ sap.ui.define([
 						//changeSet failed
 						if (oResponse.message) {
 							for (j = 0; j < aRequests[i].length; j++) {
-								// ensure that messages are reported for each request in a changeset
+								// ensure that messages are reported for each request in a change set
 								// as we cannot assign the error to a specific request
 								oResponse.$reported = false;
 								oRequestObject = aRequests[i][j];
@@ -4081,7 +4079,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sGroupId ID of the group that should be searched for the request
 	 * @param {object} [mParameters]
-	 * Map which contains the following parameter properties:
+	 *   Map which contains the following parameter properties:
 	 * @param {string} [mParameters.requestKey] Request key used to find the requests, which needs to aborted.
 	 * @param {string} [mParameters.path] Path used to find the requests, which needs to be aborted.
 	 * @private
@@ -5035,7 +5033,7 @@ sap.ui.define([
 	 * Return requested data as object if the data has already been loaded and stored in the model.
 	 *
 	 * @param {string} sPath A string containing the path to the data object that should be returned.
-	 * @param {object} [oContext] The optional context which is used with the <code>sPath</code> to retrieve the requested data.
+	 * @param {sap.ui.model.Context} [oContext] The optional context which is used with the <code>sPath</code> to retrieve the requested data.
 	 * @param {boolean} [bIncludeExpandEntries=null] This parameter should be set when a URI or custom parameter
 	 * with a <code>$expand</code> system query option was used to retrieve associated entries embedded.
 	 * If set to <code>true</code> then the <code>getProperty</code> function returns a desired property value or entry and includes the associated expand entries (if any).
@@ -5294,7 +5292,7 @@ sap.ui.define([
 	 *   The path is concatenated to the sServiceUrl which was specified
 	 *   in the model constructor.
 	 * @param {object} oData Data of the entry that should be updated.
-	 * @param {object} [mParameters] Optional, can contain the following attributes:
+	 * @param {Object<string, any>} [mParameters] Optional, can contain the following attributes:
 	 * @param {object} [mParameters.context] If specified the sPath has to be is relative to the path given with the context.
 	 * @param {function} [mParameters.success] A callback function which is called when the data has been successfully updated.
 	 * @param {function} [mParameters.error] A callback function which is called when the request failed.
@@ -5307,12 +5305,12 @@ sap.ui.define([
 	 *   sure that the request is completed before the data is processed any further.
 	 * @param {Object<string,string>} [mParameters.urlParameters] A map containing the parameters that will be passed as query strings
 	 * @param {Object<string,string>} [mParameters.headers] A map of headers for this request
-	 * @param {string} [mParameters.batchGroupId] Deprecated - use <code>groupId</code> instead
+	 * @param {string} [mParameters.batchGroupId] <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead
 	 * @param {string} [mParameters.groupId] ID of a request group; requests belonging to the same group will be bundled in one batch request
-	 * @param {string} [mParameters.changeSetId] ID of the <code>ChangeSet</code> that this request should belong to
+	 * @param {string} [mParameters.changeSetId] ID of the change set that this request should belong to
 	 * @param {boolean} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation.
 	 *   See {@link #setRefreshAfterChange}. If given, this overrules the model-wide <code>refreshAfterChange</code> flag for this operation only.
-	 * @return {object} An object which has an <code>abort</code> function to abort the current request.
+	 * @return {{abort: function(): void}} An object which has an <code>abort</code> function to abort the current request.
 	 *
 	 * @public
 	 */
@@ -5380,7 +5378,7 @@ sap.ui.define([
 	 *   should be created. The path is concatenated to the service URL
 	 *   which was specified in the model constructor.
 	 * @param {object} oData Data of the entry that should be created.
-	 * @param {object} [mParameters] Optional parameter map containing any of the following properties:
+	 * @param {Object<string, any>} [mParameters] Optional parameter map containing any of the following properties:
 	 * @param {object} [mParameters.context] If specified , <code>sPath</code> has to be relative to the path given with the context.
 	 * @param {function} [mParameters.success] A callback function which is called when the data has
 	 *   been successfully retrieved. The handler can have the
@@ -5392,12 +5390,12 @@ sap.ui.define([
 	 *   <code>true</code>.
 	 * @param {Object<string,string>} [mParameters.urlParameters] A map containing the parameters that will be passed as query strings
 	 * @param {Object<string,string>} [mParameters.headers] A map of headers for this request
-	 * @param {string} [mParameters.batchGroupId] Deprecated - use <code>groupId</code> instead
+	 * @param {string} [mParameters.batchGroupId] <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead
 	 * @param {string} [mParameters.groupId] ID of a request group; requests belonging to the same group will be bundled in one batch request
-	 * @param {string} [mParameters.changeSetId] ID of the <code>ChangeSet</code> that this request should belong to
+	 * @param {string} [mParameters.changeSetId] ID of the change set that this request should belong to
 	 * @param {boolean} [mParameters.refreshAfterChange] Since 1.46; defines whether to update all bindings after submitting this change operation.
 	 *   See {@link #setRefreshAfterChange}. If given, this overrules the model-wide <code>refreshAfterChange</code> flag for this operation only.
-	 * @return {object} An object which has an <code>abort</code> function to abort the current request.
+	 * @return {{abort: function(): void}} An object which has an <code>abort</code> function to abort the current request.
 	 *
 	 * @public
 	 */
@@ -5461,9 +5459,9 @@ sap.ui.define([
 	 * @param {string} sPath
 	 *   A string containing the path to the data that should be removed. The path is concatenated
 	 *   to the service URL which was specified in the model constructor.
-	 * @param {object} [mParameters]
+	 * @param {Object<string, any>} [mParameters]
 	 *   Optional, can contain the following attributes:
-	 * @param {object} [mParameters.context]
+	 * @param {sap.ui.model.Context} [mParameters.context]
 	 *   If specified, <code>sPath</code> has to be relative to the path given with the context.
 	 * @param {function} [mParameters.success]
 	 *   A callback function which is called when the data has been successfully retrieved. The
@@ -5480,18 +5478,18 @@ sap.ui.define([
 	 * @param {Object<string,string>} [mParameters.headers]
 	 *   A map of headers for this request
 	 * @param {string} [mParameters.batchGroupId]
-	 *   Deprecated - use <code>groupId</code> instead
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead
 	 * @param {string} [mParameters.groupId]
 	 *   ID of a request group; requests belonging to the same group will be bundled in one batch
 	 *   request
 	 * @param {string} [mParameters.changeSetId]
-	 *   ID of the <code>ChangeSet</code> that this request should belong to
+	 *   ID of the change set that this request should belong to
 	 * @param {boolean} [mParameters.refreshAfterChange]
 	 *   Since 1.46; defines whether to update all bindings after submitting this change operation,
 	 *   see {@link #setRefreshAfterChange}. If given, this overrules the model-wide
 	 *   <code>refreshAfterChange</code> flag for this operation only.
 	 *
-	 * @return {object} An object which has an <code>abort</code> function to abort the current
+	 * @return {{abort: function(): void}} An object which has an <code>abort</code> function to abort the current
 	 *   request.
 	 *
 	 * @public
@@ -5585,7 +5583,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sFunctionName
 	 *   The name of the function import starting with a slash, for example <code>/Activate</code>.
-	 * @param {object} [mParameters]
+	 * @param {Object<string, any>} [mParameters]
 	 *   The parameter map containing any of the following properties:
 	 * @param {function} [mParameters.adjustDeepPath]
 	 *   Defines a callback function to adjust the deep path for the resulting entity of the
@@ -5606,7 +5604,7 @@ sap.ui.define([
 	 *     <li><code>{object} mParameters.response</code>: A copy of the OData response object</li>
 	 *   </ul>
 	 * @param {string} [mParameters.changeSetId]
-	 *   ID of the <code>ChangeSet</code> that this request belongs to
+	 *   ID of the change set that this request belongs to
 	 * @param {function} [mParameters.error]
 	 *   A callback function which is called when the request failed. The handler can have the
 	 *   parameter: <code>oError</code> which contains additional error information.
@@ -5627,7 +5625,7 @@ sap.ui.define([
 	 *     <li>the function import returns a single entity,</li>
 	 *     <li>the back-end service must support the "Content-ID" header,</li>
 	 *     <li>the back end must allow GET requests relative to this content ID outside the
-	 *       changeset within the <code>$batch</code> request.</li>
+	 *       change set within the <code>$batch</code> request.</li>
 	 *   </ul>
 	 *   The success and error callback functions are called only once, even if there are two
 	 *   requests in the <code>$batch</code> related to a single call of {@link #callFunction}.
@@ -5662,9 +5660,9 @@ sap.ui.define([
 	 *   Maps the function import parameter name as specified in the function import's metadata to
 	 *   its value; the value is formatted based on the parameter's type as specified in the metadata
 	 * @param {string} [mParameters.batchGroupId]
-	 *   <b>Deprecated - use <code>groupId</code> instead</b>
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead
 	 *
-	 * @return {object}
+	 * @returns {{contextCreated: function(): Promise<sap.ui.model.Context>, abort: function(): void}|undefined}
 	 *   An object which has a <code>contextCreated</code> function that returns a
 	 *   <code>Promise</code>. This resolves with the created {@link sap.ui.model.Context}. In
 	 *   addition it has an <code>abort</code> function to abort the current request. The Promise
@@ -5947,8 +5945,8 @@ sap.ui.define([
 	 *   An absolute path or a path relative to the context given in
 	 *   <code>mParameters.context</code>; if the path contains a query string, the query string is
 	 *   ignored, use <code>mParameters.urlParameters</code> instead
-	 * @param {object} [mParameters] Optional parameter map containing any of the following properties:
-	 * @param {object} [mParameters.context] If specified, <code>sPath</code> has to be relative to the path
+	 * @param {Object<string, any>} [mParameters] Optional parameter map containing any of the following properties:
+	 * @param {sap.ui.model.Context} [mParameters.context] If specified, <code>sPath</code> has to be relative to the path
 	 *   given with the context.
 	 * @param {Object<string,string>} [mParameters.urlParameters] A map containing the parameters that will be passed as query strings
 	 * @param {sap.ui.model.Filter[]} [mParameters.filters] An array of filters to be included in the request URL
@@ -5961,14 +5959,14 @@ sap.ui.define([
 	 *   failed. The handler can have the parameter: <code>oError</code> which contains additional error information.
 	 *   If the <code>GET</code> request has been aborted, the error has an <code>aborted</code> flag set to
 	 *   <code>true</code>.
-	 * @param {string} [mParameters.batchGroupId] Deprecated - use <code>groupId</code> instead
+	 * @param {string} [mParameters.batchGroupId] <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead
 	 * @param {string} [mParameters.groupId] ID of a request group; requests belonging to the same group will be bundled in one batch request
 	 * @param {boolean} [mParameters.updateAggregatedMessages]
 	 *   Whether messages for child entities belonging to the same business object as the requested
 	 *   or changed resources are updated. It is considered only if
 	 *   {@link sap.ui.model.odata.MessageScope.BusinessObject} is set using
 	 *   {@link #setMessageScope} and if the OData service supports message scope.
-	 * @return {object} An object which has an <code>abort</code> function to abort the current request.
+	 * @return {{abort: function(): void}} An object which has an <code>abort</code> function to abort the current request.
 	 *
 	 * @public
 	 */
@@ -5981,7 +5979,7 @@ sap.ui.define([
 	 *
 	 * @param {string} sPath
 	 *   The path as specified in {@link #read}
-	 * @param {object} [mParameters]
+	 * @param {Object<string, any>} [mParameters]
 	 *   The parameters as specified in {@link #read}
 	 * @param {boolean} [bSideEffects]
 	 *   Whether to read data as side effects
@@ -6087,7 +6085,7 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.model.odata.v2.Context} oContext
 	 *   The context referring to the entity to read side effects for
-	 * @param {object} [mParameters]
+	 * @param {Object<string, any>} [mParameters]
 	 *   A map of parameters as specified for {@link sap.ui.model.odata.v2.ODataModel#read}, where
 	 *   only the following subset of these is supported. The <code>updateAggregatedMessages</code>
 	 *   parameter is immutably set to <code>true</code>.
@@ -6226,7 +6224,7 @@ sap.ui.define([
 	 *   of the metadata fails. In case the model parameter <code>loadAnnotationsJoined</code> is
 	 *   set, the returned promise fails also if loading the annotations fails.
 	 *
-	 * @returns {Promise} A promise on metadata loaded state
+	 * @returns {Promise<void>} A promise on metadata loaded state
 	 *
 	 * @public
 	 * @since 1.30
@@ -6260,7 +6258,7 @@ sap.ui.define([
 	 * {@link sap.ui.model.odata.ODataMetaModel#getODataValueLists}.
 	 * In order to get information about those, the event <code>annotationsLoaded</code> can be used.
 	 *
-	 * @returns {Promise}
+	 * @returns {Promise<Array<{source: sap.ui.model.odata.v2.ODataAnnotations.Source, data: any}|Error>>}
 	 *   A promise that resolves with an array containing information about the initially loaded
 	 *   annotations
 	 *
@@ -6384,7 +6382,7 @@ sap.ui.define([
 	 * If there are no changes/requests or all contained requests are aborted before a batch request returns, the success handler will be called with an empty response object.
 	 * If the abort method on the return object is called, all contained batch requests will be aborted and the error handler will be called for each of them.
 	 *
-	 * @param {object} [mParameters] A map which contains the following parameter properties:
+	 * @param {Object<string, any>} [mParameters] A map which contains the following parameter properties:
 	 * @param {string} [mParameters.groupId] Defines the group that should be submitted. If not specified, all deferred groups will be submitted. Requests belonging to the same group will be bundled in one batch request.
 	 * @param {function} [mParameters.success] A callback function which is called when the data has been successfully updated. The handler can have the following parameters: <code>oData</code>. <code>oData</code> contains the
 	 * parsed response data as a Javascript object. The batch response is in the <code>__batchResponses</code> property which may contain further <code>__changeResponses</code> in an array depending on the amount of changes
@@ -6396,13 +6394,13 @@ sap.ui.define([
 	 *   If all contained requests have been aborted, the error has an <code>aborted</code> flag set to
 	 *   <code>true</code>.
 	 * @param {string} [mParameters.batchGroupId]
-	 *   <b>Deprecated</b>, use <code>groupId</code> instead
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead
 	 * @param {boolean} [mParameters.merge]
-	 *   <b>Deprecated</b> since 1.38.0; use the <code>defaultUpdateMethod</code> constructor parameter instead.
+	 *   <b>Deprecated as of version 1.38.0</b>, use the <code>defaultUpdateMethod</code> constructor parameter instead.
 	 *   If unset, the update method is determined from the <code>defaultUpdateMethod</code> constructor parameter.
 	 *   If <code>true</code>, <code>sap.ui.model.odata.UpdateMethod.MERGE</code> is used for update operations;
 	 *   if set to <code>false</code>, <code>sap.ui.model.odata.UpdateMethod.PUT</code> is used.
-	 * @return {object} An object which has an <code>abort</code> function to abort the current request or requests
+	 * @return {{abort: function(): void}} An object which has an <code>abort</code> function to abort the current request or requests
 	 *
 	 * @public
 	 */
@@ -6420,7 +6418,7 @@ sap.ui.define([
 	 * Submits all deferred requests just like {@link #submitChanges} but in addition adds the given headers to
 	 * all requests in the $batch request(s).
 	 *
-	 * @param {object} [mParameters]
+	 * @param {Object<string, any>} [mParameters]
 	 *   A map of parameters
 	 * @param {Object<string,string>} [mParameters.changeHeaders]
 	 *   The map of headers to add to each change (i.e. non-GET) request within the $batch; ignored if $batch is not
@@ -6432,10 +6430,10 @@ sap.ui.define([
 	 * @param {function} [mParameters.success]
 	 *   A callback function which is called when the request has been successful
 	 * @param {string} [mParameters.batchGroupId]
-	 *   <b>Deprecated</b>, use <code>groupId</code> instead
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead
 	 * @param {boolean} [mParameters.merge]
-	 *   <b>Deprecated</b> since 1.38.0; whether the update method
-	 *   <code>sap.ui.model.odata.UpdateMethod.MERGE</code> is used
+	 *   <b>Deprecated as of version 1.38.0</b>, use the <code>defaultUpdateMethod</code> constructor parameter instead.
+	 *   Whether the update method <code>sap.ui.model.odata.UpdateMethod.MERGE</code> is used
 	 * @returns {object}
 	 *   An object which has an <code>abort</code> function
 	 * @throws {Error}
@@ -6710,7 +6708,7 @@ sap.ui.define([
 	 * @param {boolean} [bDeleteCreatedEntities=false]
 	 *   Whether to delete the entities created via {@link #createEntry} or {@link #callFunction};
 	 *   since 1.95.0
-	 * @returns {Promise}
+	 * @returns {Promise<void>}
 	 *   Resolves when all regarded changes have been reset.
 	 *
 	 * @public
@@ -6848,6 +6846,10 @@ sap.ui.define([
 	 * {@link #setDeferredGroups deferred}, changes could be submitted with {@link #submitChanges}.
 	 * Otherwise the change will be submitted directly.
 	 *
+	 * Consecutive calls of this method which update bindings <em>synchronously</em> may cause performance issues; see
+	 * {@link topic:6c47b2b39db9404582994070ec3d57a2#loioadd47c3966dd40489e952bb4f5f74a7c Accessing Data from an OData Model}
+	 * for details.
+	 *
 	 * @param {string} sPath
 	 *   Path of the property to set
 	 * @param {any} oValue
@@ -6855,7 +6857,7 @@ sap.ui.define([
 	 * @param {sap.ui.model.Context} [oContext=null]
 	 *   The context which will be used to set the property
 	 * @param {boolean} [bAsyncUpdate]
-	 *   Whether to update other bindings dependent on this property asynchronously
+	 *   Whether to update bindings dependent on this property asynchronously
 	 * @returns {boolean}
 	 *   <code>true</code> if the value was set correctly and <code>false</code> if errors occurred
 	 *   like the entry was not found or another entry was already updated.
@@ -7023,7 +7025,8 @@ sap.ui.define([
 		});
 
 		mChangedEntities[sKey] = true;
-		this.checkUpdate(false, bAsyncUpdate, mChangedEntities);
+		const iUpdatedBindings = this.checkUpdate(false, bAsyncUpdate, mChangedEntities);
+		this.checkPerformanceOfUpdate(iUpdatedBindings, bAsyncUpdate);
 		return true;
 	};
 
@@ -7056,7 +7059,7 @@ sap.ui.define([
 	 * Please also note that when calling this method again, all previous custom headers
 	 * are removed unless they are specified again in the <code>mHeaders</code> parameter.
 	 *
-	 * @param {object} mHeaders The header name/value map.
+	 * @param {Object<string, string>} mHeaders The header name/value map.
 	 * @public
 	 */
 	ODataModel.prototype.setHeaders = function(mHeaders) {
@@ -7105,7 +7108,7 @@ sap.ui.define([
 	/**
 	 * Returns all headers and custom headers which are stored in this OData model.
 	 *
-	 * @return {object} The header map
+	 * @return {Object<string, any>} The header map
 	 * @public
 	 */
 	ODataModel.prototype.getHeaders = function() {
@@ -7302,7 +7305,7 @@ sap.ui.define([
 	 * The parameter <code>expand</code> is supported since 1.78.0. If this parameter is set, the
 	 * given navigation properties are expanded automatically with the same $batch request in which
 	 * the POST request for the creation is contained. Ensure that the batch mode is used and the
-	 * back-end service supports GET requests relative to a content ID outside the changeset.
+	 * back-end service supports GET requests relative to a content ID outside the change set.
 	 * The success and error callback functions are called only once, even if there are two requests
 	 * in the <code>$batch</code> related to a single call of {@link #createEntry}:
 	 * <ul>
@@ -7344,9 +7347,9 @@ sap.ui.define([
 	 * @param {object} mParameters
 	 *   A map of the following parameters:
 	 * @param {string} [mParameters.batchGroupId]
-	 *   Deprecated - use <code>groupId</code> instead
+	 *   <b>Deprecated as of version 1.31.0</b>, use <code>groupId</code> instead
 	 * @param {string} [mParameters.changeSetId]
-	 *   The ID of the <code>ChangeSet</code> that this request should belong to
+	 *   The ID of the change set that this request should belong to
 	 * @param {sap.ui.model.Context} [mParameters.context]
 	 *   The binding context
 	 * @param {function} [mParameters.created]
@@ -7367,7 +7370,7 @@ sap.ui.define([
 	 *     <li>batch mode must be enabled; see constructor parameter <code>useBatch</code>,</li>
 	 *     <li>the back-end service must support the "Content-ID" header,</li>
 	 *     <li>the back end must allow GET requests relative to this content ID outside the
-	 *       changeset within the <code>$batch</code> request.</li>
+	 *       change set within the <code>$batch</code> request.</li>
 	 *   </ul>
 	 * @param {string} [mParameters.groupId]
 	 *   The ID of a request group; requests belonging to the same group will be bundled in one
@@ -8183,11 +8186,12 @@ sap.ui.define([
 	 * {@link sap.ui.model.odata.ODataMetaModel#loaded loaded} has been resolved!
 	 *
 	 * @public
-	 * @returns {sap.ui.model.odata.ODataMetaModel} The meta model for this <code>ODataModel</code>
+	 * @returns {sap.ui.model.odata.ODataMetaModel|undefined} The meta model for this
+	 *   <code>ODataModel</code>, or <code>undefined</code> if the model has been destroyed
 	 */
 	ODataModel.prototype.getMetaModel = function() {
 		var that = this;
-		if (!this.oMetaModel) {
+		if (!this.oMetaModel && !this.bDestroyed) {
 			this.oMetaModel = new ODataMetaModel(this.oMetadata, this.oAnnotations, this);
 			// Call checkUpdate when metamodel has been loaded to update metamodel bindings
 			this.oMetaModel.loaded().then(function() {
@@ -8213,7 +8217,7 @@ sap.ui.define([
 	 * The original value is the value that was last responded by the server.
 	 *
 	 * @param {string} sPath The path/name of the property
-	 * @param {object} [oContext] The context if available to access the property value
+	 * @param {sap.ui.model.Context} [oContext] The context if available to access the property value
 	 * @returns {any} the value of the property
 	 * @public
 	 */
@@ -8646,7 +8650,7 @@ sap.ui.define([
 	 * the setting of {@link sap.ui.model.odata.MessageScope.BusinessObject} via
 	 * {@link #setMessageScope}.
 	 *
-	 * @returns {Promise} A promise resolving with <code>true</code> if the OData V2 annotation
+	 * @returns {Promise<boolean>} A promise resolving with <code>true</code> if the OData V2 annotation
 	 *   "message-scope-supported" on the <code>EntityContainer</code> is set to <code>true</code>
 	 *
 	 * @public

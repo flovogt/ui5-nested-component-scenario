@@ -14,6 +14,7 @@ sap.ui.define([
 	'sap/ui/core/ElementRegistry',
 	'./mvc/View',
 	'./mvc/ViewType',
+	'./mvc/_ViewFactory',
 	'./mvc/XMLProcessingMode',
 	'./mvc/EventHandlerResolver',
 	'./ExtensionPoint',
@@ -38,6 +39,7 @@ function(
 	ElementRegistry,
 	View,
 	ViewType,
+	_ViewFactory,
 	XMLProcessingMode,
 	EventHandlerResolver,
 	ExtensionPoint,
@@ -268,6 +270,7 @@ function(
 	 * @param {string} sTemplateName the template/fragment/view resource to be loaded
 	 * @param {string} [sExtension] the file extension, e.g. "fragment"
 	 * @return {Element} an XML document root element
+	 * @deprecated As of version 1.56
 	 */
 	XMLTemplateProcessor.loadTemplate = function(sTemplateName, sExtension) {
 		var sResourceName = sTemplateName.replace(/\./g, "/") + ("." + (sExtension || "view") + ".xml");
@@ -319,6 +322,7 @@ function(
 	 * @param {sap.ui.core.mvc.XMLView|sap.ui.core.Fragment} oView the View/Fragment which corresponds to the parsed XML
 	 * @return {Element} The element enriched with the full ids
 	 * @protected
+	 * @deprecated
 	 */
 	XMLTemplateProcessor.enrichTemplateIds = function(xmlNode, oView) {
 		XMLTemplateProcessor.enrichTemplateIdsPromise(xmlNode, oView, false);
@@ -348,6 +352,7 @@ function(
 	 * @param {sap.ui.core.mvc.XMLView|sap.ui.core.Fragment} oView the View/Fragment which corresponds to the parsed XML
 	 * @param {object} mSettings The settings object that is given to the view's factory method
 	 * @return {Array} an array containing Controls and/or plain HTML element strings
+	 * @deprecated As of version 1.56 because sync XMLView parsing is deprecated.
 	 */
 	XMLTemplateProcessor.parseTemplate = function(xmlNode, oView, mSettings) {
 		return XMLTemplateProcessor.parseTemplatePromise(xmlNode, oView, false, { settings: mSettings }).unwrap();
@@ -1378,7 +1383,7 @@ function(
 								var sLocalName = localName(attr);
 								aCustomData.push(new CustomData({
 									key: sLocalName,
-									value: parseScalarType("any", sValue, sLocalName, oView._oContainingView.oController, oRequireModules, aTypePromises)
+									value: parseScalarType("any", sValue, sLocalName, oView._oContainingView.oController, oRequireModules, aTypePromises, mAdditionalBindableValues)
 								}));
 							} else if (sNamespace === SUPPORT_INFO_NAMESPACE) {
 								sSupportData = sValue;
@@ -1467,6 +1472,7 @@ function(
 							}
 						} else {
 							future.assertThrows(sName === 'xmlns', oView + ": encountered unknown setting '" + sName + "' for class " + oMetadata.getName() + " (value:'" + sValue + "')");
+							/** @deprecated since 1.120.0 */
 							if (XMLTemplateProcessor._supportInfo) {
 								XMLTemplateProcessor._supportInfo({
 									context : node,
@@ -1764,7 +1770,7 @@ function(
 						}
 
 						vNewControlInstance = scopedRunWithOwner(function() {
-							return View._create(mSettings);
+							return _ViewFactory.create(mSettings);
 						});
 					}
 				} else if (oClass.getMetadata().isA("sap.ui.core.Fragment") && bAsync) {
@@ -1871,6 +1877,7 @@ function(
 					}
 
 					//apply support info if needed
+					/** @deprecated since 1.120.0 */
 					if (XMLTemplateProcessor._supportInfo && vFinalInstance) {
 						for (var i = 0, iLength = vFinalInstance.length; i < iLength; i++) {
 							var oInstance = vFinalInstance[i];

@@ -17,11 +17,12 @@ sap.ui.define([
 	'sap/base/util/deepExtend',
 	'sap/base/util/merge',
 	'sap/ui/base/ManagedObject',
+	'sap/ui/base/OwnStatics',
 	'sap/ui/core/Lib',
 	'sap/ui/core/ResizeHandler',
-	'sap/ui/thirdparty/URI',
 	'sap/ui/performance/trace/Interaction',
 	'sap/ui/util/_enforceNoReturnValue',
+	'sap/ui/util/_URL',
 	'sap/base/assert',
 	'sap/base/Log',
 	'sap/base/util/Deferred',
@@ -31,7 +32,6 @@ sap.ui.define([
 	'sap/base/strings/camelize',
 	'sap/ui/core/_UrlResolver',
 	'sap/ui/VersionInfo',
-	'sap/ui/core/mvc/ViewType',
 	'sap/ui/core/ComponentRegistry',
 	'sap/ui/core/util/_LocalizationHelper'
 ], function(
@@ -46,11 +46,12 @@ sap.ui.define([
 	deepExtend,
 	merge,
 	ManagedObject,
+	OwnStatics,
 	Library,
 	ResizeHandler,
-	URI,
 	Interaction,
 	_enforceNoReturnValue,
+	_URL,
 	assert,
 	Log,
 	Deferred,
@@ -60,13 +61,12 @@ sap.ui.define([
 	camelize,
 	_UrlResolver,
 	VersionInfo,
-	ViewType,
 	ComponentRegistry,
 	_LocalizationHelper
 ) {
 	"use strict";
 
-	/* global Promise */
+	const { runWithOwner, getCurrentOwnerId } = OwnStatics.get(ManagedObject);
 
 	var ServiceStartupOptions = {
 		lazy: "lazy",
@@ -78,17 +78,17 @@ sap.ui.define([
 		return {name: sName, type: BaseConfig.Type.String, external: true};
 	}
 	/**
-	 * Utility function which adds SAP-specific parameters to a URI instance
+	 * Utility function which adds SAP-specific parameters to a URL instance
 	 *
-	 * @param {URI} oUri URI.js instance
+	 * @param {URL} oUri Native URL instance
 	 * @private
 	 */
 	function addSapParams(oUri) {
 		['sap-client', 'sap-server'].forEach(function(sName) {
-			if (!oUri.hasSearch(sName)) {
+			if (!oUri.searchParams.has(sName)) {
 				var sValue = BaseConfig.get(getConfigParam(camelize(sName)));
 				if (sValue) {
-					oUri.addSearch(sName, sValue);
+					oUri.searchParams.set(sName, sValue);
 				}
 			}
 		});
@@ -225,6 +225,11 @@ sap.ui.define([
 			return 2; // instance specific manifest => metadata version 2!
 		};
 
+		/*
+		 * Provide oMetadataProxy to collectRoutingClasses, to derive routing classes from correct manifest object
+		 */
+		oMetadataProxy.collectRoutingClasses = oMetadata.collectRoutingClasses;
+
 		oMetadataProxy[Symbol("isProxy")] = true;
 
 		return oMetadataProxy;
@@ -283,7 +288,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.ManagedObject
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @alias sap.ui.core.Component
 	 * @since 1.9.2
 	 */
@@ -418,7 +423,7 @@ sap.ui.define([
 					"sap.xx.new.Main": {
 						"extensionX": {
 							name: "sap.xx.new.Fragment1",
-							type: "sap.ui.core.XMLFragment"
+							className: "sap.ui.core.Fragment"
 						},
 						"extensionY": {
 							...
@@ -445,7 +450,8 @@ sap.ui.define([
 				config : "any"
 			},
 			*/
-			library: "sap.ui.core"
+			library: "sap.ui.core",
+			designtime: "sap/ui/core/designtime/Component.designtime"
 		}
 
 	}, /* Metadata constructor */ ComponentMetadata);
@@ -828,7 +834,7 @@ sap.ui.define([
 			throw new Error("Execute 'runAsOwner' on an inactive owner component is not supported. Component: '" +
 				this.getMetadata().getName() + "' with id '" + this.getId() + "'.");
 		}
-		return ManagedObject.runWithOwner(fn, this.getId());
+		return runWithOwner(fn, this.getId());
 	};
 
 	// ---- ----
@@ -936,6 +942,10 @@ sap.ui.define([
 	 */
 	Component.prototype.destroy = function() {
 		var pAsyncDestroy, bSomeRejected = false;
+
+		// destroy the object and call exit
+		ManagedObject.prototype.destroy.apply(this, arguments);
+
 		// destroy all services
 		for (var sLocalServiceAlias in this._mServices) {
 			if (this._mServices[sLocalServiceAlias].instance) {
@@ -1004,9 +1014,6 @@ sap.ui.define([
 				}
 			}.bind(this));
 		}
-
-		// destroy the object
-		ManagedObject.prototype.destroy.apply(this, arguments);
 
 		// unregister for messaging (on Messaging)
 		const Messaging = sap.ui.require("sap/ui/core/Messaging");
@@ -1124,7 +1131,7 @@ sap.ui.define([
 	Component.prototype._initComponentModels = function(mModels, mDataSources, mCacheTokens) {
 		var sComponentName = this.getManifestObject().getComponentName();
 
-		var mAllModelConfigs = Component._findManifestModelClasses({
+		var mAllModelConfigs = _findManifestModelClasses({
 			models: mModels,
 			dataSources: mDataSources,
 			componentName: sComponentName
@@ -1134,10 +1141,10 @@ sap.ui.define([
 		 * @deprecated since 1.120
 		 */
 		if (this._bSyncCreation) {
-			Component._loadManifestModelClasses(mAllModelConfigs, sComponentName, this._bSyncCreation);
+			_loadManifestModelClasses(mAllModelConfigs, sComponentName, this._bSyncCreation);
 		}
 
-		var mAllModelConfigurations = Component._createManifestModelConfigurations({
+		var mAllModelConfigurations = _createManifestModelConfigurations({
 			models: mAllModelConfigs,
 			dataSources: mDataSources,
 			component: this,
@@ -1160,7 +1167,7 @@ sap.ui.define([
 		}
 
 		// create all models which are not created, yet.
-		var mCreatedModels = Component._createManifestModels(mModelConfigurations, this._componentConfig, this.getManifestObject());
+		var mCreatedModels = _createManifestModels(mModelConfigurations, this._componentConfig, this.getManifestObject(), Component.getOwnerIdFor(this));
 		for (sModelName in mCreatedModels) {
 			// keep the model instance to be able to destroy the created models on component destroy
 			this._mManifestModels[sModelName] = mCreatedModels[sModelName];
@@ -1420,7 +1427,24 @@ sap.ui.define([
 		}
 
 		// create the component in the owner context of the current component
-		var oComponent = Component._createComponent(mConfig, this);
+		if (!this.isActive()) {
+			throw new Error("Creation of component '" + mConfig.name + "' is not possible due to inactive owner component '" + this.getId() + "'");
+		}
+
+		/**
+		* @ui5-transform-hint replace-local true
+		*/
+		const bAsync = mConfig.async;
+
+		// create the nested component in the context of this component
+		const oComponent = this.runAsOwner(() => {
+			if (bAsync === true) {
+				return Component.create(mConfig);
+			} else {
+				return sap.ui.component(mConfig); // legacy-relevant: use deprecated factory for sync use case only
+			}
+		});
+
 		if (oComponent instanceof Promise) {
 			this.registerForDestroy(oComponent);
 		}
@@ -1572,50 +1596,21 @@ sap.ui.define([
 	 */
 	//onConfigChange : null, // function(sConfigKey)
 
-
 	/**
-	 * Internal API to create a component with Component.create (async) or sap.ui.component (sync).
-	 * In case a <code>oOwnerComponent</code> is given, it will be created within the context
-	 * of it.
-	 *
-	 * @param {object} mConfig Configuration object that creates the component
-	 * @param {sap.ui.core.Component} [oOwnerComponent] Owner component
-	 * @return {sap.ui.core.Component|Promise} Component instance or Promise which will be resolved with the component instance
-	 *
+	 * @param {module:sap/ui/util/_URL} oUri URL to apply the token to
+	 * @param {object} oLogInfo Additional data used to create meaningful log entries
+	 * @param {Object<string,string>} mMetadataUrlParams
 	 * @private
-	 * @ui5-restricted sap.ui.core.ComponentContainer
-	 * @ui5-transform-hint replace-param mConfig.async true
 	 */
-	Component._createComponent = function(mConfig, oOwnerComponent) {
-
-		function createComponent() {
-			if (mConfig.async === true) {
-				return Component.create(mConfig);
-			} else {
-				return sap.ui.component(mConfig); // legacy-relevant: use deprecated factory for sync use case only
-			}
-		}
-
-		if (oOwnerComponent) {
-			if (!oOwnerComponent.isActive()) {
-				throw new Error("Creation of component '" + mConfig.name + "' is not possible due to inactive owner component '" + oOwnerComponent.getId() + "'");
-			}
-			// create the nested component in the context of this component
-			return oOwnerComponent.runAsOwner(createComponent);
-		} else {
-			return createComponent();
-		}
-	};
-
-	Component._applyCacheToken = function(oUri, oLogInfo, mMetadataUrlParams) {
+	function _applyCacheToken(oUri, oLogInfo, mMetadataUrlParams) {
 		var sSource = mMetadataUrlParams ? "Model" : "DataSource";
 		var sManifestPath = mMetadataUrlParams ? "[\"sap.ui5\"][\"models\"]" : "[\"sap.app\"][\"dataSources\"]";
-		var sLanguage = mMetadataUrlParams && mMetadataUrlParams["sap-language"] || oUri.search(true)["sap-language"];
-		var sClient = mMetadataUrlParams && mMetadataUrlParams["sap-client"] || oUri.search(true)["sap-client"];
+		var sLanguage = mMetadataUrlParams && mMetadataUrlParams["sap-language"] || oUri.searchParams.get("sap-language");
+		var sClient = mMetadataUrlParams && mMetadataUrlParams["sap-client"] || oUri.searchParams.get("sap-client");
 
 		// 1. "sap-language" must be part of the annotation URI
 		if (!sLanguage) {
-			Log.warning("Component Manifest: Ignoring provided \"sap-context-token=" + oLogInfo.cacheToken + "\" for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.toString() + "). " +
+			Log.warning("Component Manifest: Ignoring provided \"sap-context-token=" + oLogInfo.cacheToken + "\" for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.sourceUrl + "). " +
 				"Missing \"sap-language\" URI parameter",
 				sManifestPath + "[\"" + oLogInfo.dataSource + "\"]", oLogInfo.componentName);
 			return;
@@ -1623,7 +1618,7 @@ sap.ui.define([
 
 		// 2. "sap-client" must be set as URI param
 		if (!sClient) {
-			Log.warning("Component Manifest: Ignoring provided \"sap-context-token=" + oLogInfo.cacheToken + "\" for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.toString() + "). " +
+			Log.warning("Component Manifest: Ignoring provided \"sap-context-token=" + oLogInfo.cacheToken + "\" for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.sourceUrl + "). " +
 				"Missing \"sap-client\" URI parameter",
 				sManifestPath + "[\"" + oLogInfo.dataSource + "\"]", oLogInfo.componentName);
 			return;
@@ -1632,34 +1627,34 @@ sap.ui.define([
 		// 3. "sap-client" must equal to the value of Configuration "sap-client"
 		var sClientFromConfig = BaseConfig.get(getConfigParam("sapClient"));
 		if (sClient !== sClientFromConfig) {
-			Log.warning("Component Manifest: Ignoring provided \"sap-context-token=" + oLogInfo.cacheToken + "\" for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.toString() + "). " +
+			Log.warning("Component Manifest: Ignoring provided \"sap-context-token=" + oLogInfo.cacheToken + "\" for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.sourceUrl + "). " +
 				"URI parameter \"sap-client=" + sClient + "\" must be identical with configuration \"sap-client=" + sClientFromConfig + "\"",
 				sManifestPath + "[\"" + oLogInfo.dataSource + "\"]", oLogInfo.componentName);
 			return;
 		}
 
 		// 4. uri has cache-token that does not match the given one - override it
-		if (oUri.hasQuery("sap-context-token") && !oUri.hasQuery("sap-context-token", oLogInfo.cacheToken) ||
+		if (oUri.searchParams.has("sap-context-token") && oUri.searchParams.get("sap-context-token") !== oLogInfo.cacheToken ||
 			mMetadataUrlParams && mMetadataUrlParams["sap-context-token"] && mMetadataUrlParams["sap-context-token"] !== oLogInfo.cacheToken) {
-			Log.warning("Component Manifest: Overriding existing \"sap-context-token=" + (oUri.query(true)["sap-context-token"] || mMetadataUrlParams["sap-context-token"]) + "\" with provided value \"" + oLogInfo.cacheToken + "\" for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.toString() + ").",
+			Log.warning("Component Manifest: Overriding existing \"sap-context-token=" + (oUri.searchParams.get("sap-context-token") || mMetadataUrlParams["sap-context-token"]) + "\" with provided value \"" + oLogInfo.cacheToken + "\" for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.sourceUrl + ").",
 			sManifestPath + "[\"" + oLogInfo.dataSource + "\"]", oLogInfo.componentName);
 		}
 
 		if (mMetadataUrlParams) {
 			//if serviceUrl contains a valid cache token move it to metadataURLParams so it will be only added for the metadata request
-			if (oUri.hasQuery("sap-context-token")) {
-				Log.warning("Component Manifest: Move existing \"sap-context-token=" + oUri.query(true)["sap-context-token"] + "\" to metadataUrlParams for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.toString() + ").",
+			if (oUri.searchParams.has("sap-context-token")) {
+				Log.warning("Component Manifest: Move existing \"sap-context-token=" + oUri.searchParams.get("sap-context-token") + "\" to metadataUrlParams for " + sSource + " \"" + oLogInfo.dataSource + "\" (" + oUri.sourceUrl + ").",
 				sManifestPath + "[\"" + oLogInfo.dataSource + "\"]", oLogInfo.componentName);
 			}
-			oUri.removeQuery("sap-context-token");
+			oUri.searchParams.delete("sap-context-token");
 			mMetadataUrlParams["sap-context-token"] = oLogInfo.cacheToken;
 		} else {
-			oUri.setQuery("sap-context-token", oLogInfo.cacheToken);
+			oUri.searchParams.set("sap-context-token", oLogInfo.cacheToken);
 		}
 
-	};
+	}
 
-	Component._findManifestModelClasses = function(mOptions) {
+	function _findManifestModelClasses(mOptions) {
 		if (!mOptions.models) {
 			// skipping model creation because of missing sap.ui5 models manifest entry
 			return null;
@@ -1716,11 +1711,11 @@ sap.ui.define([
 						switch (oDataSource.type) {
 							case 'OData':
 								sODataVersion = oDataSource.settings && oDataSource.settings.odataVersion;
-								if (sODataVersion === "4.0") {
-									oModelConfig.type = 'sap.ui.model.odata.v4.ODataModel';
-								} else if (!sODataVersion || sODataVersion === "2.0") {
+								if (!sODataVersion || sODataVersion === "2.0") {
 									// 2.0 is the default in case no version is provided
 									oModelConfig.type = 'sap.ui.model.odata.v2.ODataModel';
+								} else if (sODataVersion.startsWith("4.")) {
+									oModelConfig.type = 'sap.ui.model.odata.v4.ODataModel';
 								} else {
 									future.errorThrows(`${sLogComponentName}: Component Manifest: Provided OData version "${sODataVersion}" in dataSource "${oModelConfig.dataSource}" for model "${sModelName}" is unknown. ["sap.app"]["dataSources"]["${oModelConfig.dataSource}"].`,
 										{ suffix: 'Falling back to default model type "sap.ui.model.odata.v2.ODataModel".' });
@@ -1751,11 +1746,11 @@ sap.ui.define([
 		}
 
 		return mModelConfigurations;
-	};
+	}
 
 	/**
 	 * Creates model configurations by processing "/sap.app/dataSources" and "/sap.ui5/models" manifest entries.
-	 * Result can be handed over to {@link sap.ui.core.Component._createManifestModels} in order to create instances.
+	 * Result can be handed over to _createManifestModels function in order to create instances.
 	 *
 	 * @param {object} mOptions Configuration object (see below)
 	 * @param {object} mOptions.models Manifest models section (/sap.ui5/models)
@@ -1768,7 +1763,7 @@ sap.ui.define([
 	 * @return {object} key-value map with model name as key and model configuration as value
 	 * @private
 	 */
-	Component._createManifestModelConfigurations = function(mOptions) {
+	function _createManifestModelConfigurations(mOptions) {
 		var oComponent = mOptions.component;
 		var oManifest = mOptions.manifest || oComponent.getManifestObject();
 		var bMergeParent = mOptions.mergeParent;
@@ -1910,21 +1905,21 @@ sap.ui.define([
 									continue;
 								}
 
-								var oAnnotationUri = new URI(oAnnotation.uri);
+								var oAnnotationUri = new _URL(oAnnotation.uri);
 
 								if (bIsV2Model || bIsV4Model) {
 									var sValueFromConfig = Localization.getSAPLogonLanguage();
-									if (!oAnnotationUri.hasQuery("sap-language") && sValueFromConfig) {
-										oAnnotationUri.setQuery("sap-language", sValueFromConfig);
+									if (!oAnnotationUri.searchParams.has("sap-language") && sValueFromConfig) {
+										oAnnotationUri.searchParams.set("sap-language", sValueFromConfig);
 									}
 									sValueFromConfig = BaseConfig.get(getConfigParam("sapClient"));
-									if (!oAnnotationUri.hasQuery("sap-client") && sValueFromConfig) {
-										oAnnotationUri.setQuery("sap-client", sValueFromConfig);
+									if (!oAnnotationUri.searchParams.has("sap-client") && sValueFromConfig) {
+										oAnnotationUri.searchParams.set("sap-client", sValueFromConfig);
 									}
 
 									var sCacheTokenForAnnotation = mCacheTokens.dataSources && mCacheTokens.dataSources[oAnnotation.uri];
 									if (sCacheTokenForAnnotation) {
-										Component._applyCacheToken(oAnnotationUri, {
+										_applyCacheToken(oAnnotationUri, {
 											cacheToken: sCacheTokenForAnnotation,
 											componentName: sLogComponentName,
 											dataSource: sAnnotation
@@ -1934,7 +1929,7 @@ sap.ui.define([
 
 								// resolve relative to component, ui5:// URLs are already resolved upfront
 								var oAnnotationSourceManifest = mConfig.origin.dataSources[aAnnotations[i]] || oManifest;
-								var sAnnotationUri = oAnnotationSourceManifest.resolveUri(oAnnotationUri.toString());
+								var sAnnotationUri = oAnnotationSourceManifest.resolveUri(oAnnotationUri.sourceUrl);
 
 								// add uri to annotationURI array in settings (this parameter applies for ODataModel v1 & v2)
 								oModelConfig.settings.annotationURI = oModelConfig.settings.annotationURI || [];
@@ -1977,11 +1972,11 @@ sap.ui.define([
 			if (oModelConfig.uri) {
 
 				// parse model URI to be able to modify it
-				var oUri = new URI(oModelConfig.uri);
+				var oUri = new _URL(oModelConfig.uri);
 
 				// resolve URI relative to component which defined it
 				var oUriSourceManifest = (bIsDataSourceUri ? mConfig.origin.dataSources[oModelConfig.dataSource] : mConfig.origin.models[sModelName]) || oManifest;
-				oUri = new URI(oUriSourceManifest.resolveUri(oModelConfig.uri));
+				oUri = new _URL(oUriSourceManifest.resolveUri(oModelConfig.uri));
 
 				// inherit sap-specific parameters from document (only if "sap.app/dataSources" reference is defined)
 				if (oModelConfig.dataSource) {
@@ -1995,7 +1990,7 @@ sap.ui.define([
 						// Do not add it if it is already set in the "metadataUrlParams" or is part of the model URI
 						mMetadataUrlParams = oModelConfig.settings && oModelConfig.settings.metadataUrlParams;
 						var bNeedsLanguage = (!mMetadataUrlParams || typeof mMetadataUrlParams['sap-language'] === 'undefined')
-							&& !oUri.hasQuery('sap-language')
+							&& !oUri.searchParams.has('sap-language')
 							&& Localization.getSAPLogonLanguage();
 
 						if (bNeedsLanguage || sCacheToken) {
@@ -2011,7 +2006,7 @@ sap.ui.define([
 
 						// Handle cacheToken
 						if (sCacheToken) {
-							Component._applyCacheToken(oUri, {
+							_applyCacheToken(oUri, {
 								cacheToken: sCacheToken,
 								componentName: sLogComponentName,
 								dataSource: sModelName
@@ -2020,7 +2015,7 @@ sap.ui.define([
 					}
 				}
 
-				oModelConfig.uri = oUri.toString();
+				oModelConfig.uri = oUri.sourceUrl;
 			}
 
 			// set model specific "uri" property names which should be used to map "uri" to model specific constructor
@@ -2142,13 +2137,13 @@ sap.ui.define([
 		}
 
 		return mModelConfigurations;
-	};
+	}
 
 	/**
 	 * @private
 	 * @ui5-transform-hint replace-param bSync false
 	 */
-	Component._loadManifestModelClasses = function(mModelConfigurations, sLogComponentName, bSync) {
+	function _loadManifestModelClasses(mModelConfigurations, sLogComponentName, bSync) {
 		const aLoadPromises = [];
 
 		function logLoadingError(sModelClassName, sModelName, oError) {
@@ -2177,18 +2172,18 @@ sap.ui.define([
 		}
 
 		return Promise.all(aLoadPromises);
-	};
+	}
 
 	/**
-	 * Creates model instances using a configuration provided by {@link sap.ui.core.Component._createManifestModelConfigurations}.
+	 * Creates model instances using a configuration provided by {@link _createManifestModelConfigurations}.
 	 *
-	 * @param {object} mModelConfigurations key-value configuration object created via {@link sap.ui.core.Component._createManifestModelConfigurations}
+	 * @param {object} mModelConfigurations key-value configuration object created via {@link _createManifestModelConfigurations}
 	 * @param {object} oConfig see <code>sap.ui.component</code> / <code>sap.ui.component.load</code>
 	 * @param {object} oManifest The manifest object
 	 * @returns {object} key-value map with model name as key and model instance as value
 	 * @private
 	 */
-	Component._createManifestModels = function(mModelConfigurations, oConfig, oManifest) {
+	function _createManifestModels(mModelConfigurations, oConfig, oManifest, sOwnerId) {
 		var mModels = {};
 		for (var sModelName in mModelConfigurations) {
 			var oModelConfig = mModelConfigurations[sModelName];
@@ -2222,10 +2217,10 @@ sap.ui.define([
 					model: oModel,
 					modelId: sModelName
 				};
-				const oOwnerComponent = Component.getComponentById(ManagedObject._sOwnerId);
+				const oOwnerComponent = Component.getComponentById(sOwnerId);
 				if (oOwnerComponent) {
 					oInfo.owner = {
-						id: ManagedObject._sOwnerId,
+						id: sOwnerId,
 						config: oOwnerComponent._componentConfig
 					};
 				}
@@ -2236,7 +2231,7 @@ sap.ui.define([
 			mModels[sModelName] = oModel;
 		}
 		return mModels;
-	};
+	}
 
 	/**
 	 * Returns two maps of model configurations to be used for the model "preload" feature.
@@ -2268,7 +2263,7 @@ sap.ui.define([
 		var oManifestDataSources = merge({}, oManifest.getEntry("/sap.app/dataSources"));
 		var oManifestModels = merge({}, oManifest.getEntry("/sap.ui5/models"));
 		var sComponentName = oManifest.getComponentName();
-		var mAllModelConfigurations = Component._findManifestModelClasses({
+		var mAllModelConfigurations = _findManifestModelClasses({
 			models: oManifestModels,
 			dataSources: oManifestDataSources,
 			componentName: sComponentName
@@ -2480,13 +2475,13 @@ sap.ui.define([
 	 *     Instead of specifying just the names of preload bundles, an object might be given that contains a
 	 *     mandatory <code>name</code> property and optionally, an <code>url</code> that will be used for a <code>registerModulePath</code>.
 	 * @param {Promise|Promise[]} [mOptions.asyncHints.waitFor] <code>Promise</code> or array of <code>Promise</code>s for which the Component instantiation should wait
-	 * @returns {Promise<sap.ui.core.Component>} A Promise that resolves with the newly created component instance
-	 * @throws {TypeError} When <code>mOptions</code> is null or not an object.
+	 * @returns {Promise<sap.ui.core.Component>} A Promise that resolves with the newly created
+	 *   component instance, or rejects with an error if the component could not be created
 	 * @since 1.56.0
 	 * @static
 	 * @public
 	 */
-	Component.create = function(mOptions) {
+	Component.create = async function(mOptions) {
 		if (mOptions == null || typeof mOptions !== "object") {
 			throw new TypeError("Component.create() must be called with a configuration object.");
 		}
@@ -2500,7 +2495,12 @@ sap.ui.define([
 			mParameters.manifest = true;
 		}
 
-		return componentFactory(mParameters);
+		try {
+			return await componentFactory(mParameters);
+		} catch (err) {
+			Log.error("Component.create() failed", err, "sap.ui.core.Component");
+			throw err;
+		}
 	};
 
 	/**
@@ -2622,8 +2622,7 @@ sap.ui.define([
 	}
 
 	function findRoutingClasses(oClassMetadata) {
-		const fnCollectRoutingClasses = oClassMetadata.getStaticProperty("collectRoutingClasses");
-		const mRoutingClasses = typeof fnCollectRoutingClasses == "function" ? fnCollectRoutingClasses.call(oClassMetadata.getClass()) : {};
+		const mRoutingClasses =  oClassMetadata.collectRoutingClasses?.() ?? {};
 		return Object.values(mRoutingClasses);
 	}
 
@@ -2631,7 +2630,7 @@ sap.ui.define([
 	 * Part of the old sap.ui.component implementation than can be re-used by the new factory
 	 */
 	function componentFactory(vConfig, bLegacy) {
-		var oOwnerComponent = Component.getComponentById(ManagedObject._sOwnerId);
+		var oOwnerComponent = Component.getComponentById(getCurrentOwnerId());
 
 		if (Array.isArray(vConfig.activeTerminologies) && vConfig.activeTerminologies.length &&
 			Array.isArray(Localization.getActiveTerminologies()) && Localization.getActiveTerminologies().length) {
@@ -2698,6 +2697,15 @@ sap.ui.define([
 			assert(oInstance instanceof Component, "The specified component \"" + sController + "\" must be an instance of sap.ui.core.Component!");
 			Log.info("Component instance Id = " + oInstance.getId());
 
+			// if maybeA2A collect the component id for the given hash
+			if (Interaction.getPending()?.maybeA2A) {
+				var oApp = oInstance.getManifestEntry("sap.app");
+				if (oApp?.type === "application") {
+					Interaction.getNavInfo().set(Interaction.getPending().hash, oInstance.getId());
+					delete Interaction.getPending().maybeA2A;
+				}
+			}
+
 			/*
 			 * register for messaging: register if either handleValidation is set in metadata
 			 * or if not set in metadata and set on instance
@@ -2743,7 +2751,7 @@ sap.ui.define([
 		if ( vConfig.async ) {
 			// async: instantiate component after Promise has been fulfilled with component
 			//        constructor and delegate the current owner id for the instance creation
-			var sCurrentOwnerId = ManagedObject._sOwnerId;
+			var sCurrentOwnerId = getCurrentOwnerId();
 			return vClassOrPromise.then(function(oClass) {
 				// [Compatibility]: We sequentialize the dependency loading for the inheritance chain of the component.
 				// This keeps the order of the dependency execution stable (e.g. thirdparty script includes).
@@ -2788,19 +2796,19 @@ sap.ui.define([
 					const mManifestModels = getManifestEntry(oClassMetadata, oManifest, "/sap.ui5/models", true) || {};
 
 					//     extract classes from manifest
-					const mAllModelConfigs = Component._findManifestModelClasses({
+					const mAllModelConfigs = _findManifestModelClasses({
 						models: mManifestModels,
 						dataSources: mManifestDataSources,
 						componentName: sComponentName
 					});
 
 					//     load model classes async
-					const pModelClassLoading = Component._loadManifestModelClasses(mAllModelConfigs, sComponentName);
+					const pModelClassLoading = _loadManifestModelClasses(mAllModelConfigs, sComponentName);
 
 					// load all classes in parallel
 					await Promise.all([...aModuleLoadingPromises, pModelClassLoading]);
 
-					return ManagedObject.runWithOwner(function() {
+					return runWithOwner(function() {
 						return createInstance(oClass);
 					}, sCurrentOwnerId);
 				});
@@ -3481,6 +3489,7 @@ sap.ui.define([
 
 				// create "afterPreload" models in parallel to loading the component preload (below)
 				if (mOptions.createModels) {
+					const sOwnerId = getCurrentOwnerId();
 					collect(oManifest.then(async function(oManifest) {
 						var sComponentName = oManifest.getComponentName();
 						// Calculate configurations of preloaded models once the manifest is available
@@ -3488,11 +3497,11 @@ sap.ui.define([
 
 						// Create preloaded models directly after the manifest has been loaded
 						if (Object.keys(mPreloadModelConfigs.afterManifest).length > 0) {
-							await Component._loadManifestModelClasses(mPreloadModelConfigs.afterManifest, sComponentName);
+							await _loadManifestModelClasses(mPreloadModelConfigs.afterManifest, sComponentName);
 
 							// deep clone is needed as manifest only returns a read-only copy (frozen object)
 							var oManifestDataSources = merge({}, oManifest.getEntry("/sap.app/dataSources"));
-							var mAllModelConfigurations = Component._createManifestModelConfigurations({
+							var mAllModelConfigurations = _createManifestModelConfigurations({
 								models: mPreloadModelConfigs.afterManifest,
 								dataSources: oManifestDataSources,
 								manifest: oManifest,
@@ -3501,7 +3510,7 @@ sap.ui.define([
 								activeTerminologies: aActiveTerminologies
 							});
 
-							mModels = Component._createManifestModels(mAllModelConfigurations, oConfig, oManifest);
+							mModels = _createManifestModels(mAllModelConfigurations, oConfig, oManifest, sOwnerId);
 						}
 
 						return oManifest;
@@ -3558,7 +3567,7 @@ sap.ui.define([
 
 							// deep clone is needed as manifest only returns a read-only copy (frozen object)
 							var oManifestDataSources = merge({}, oManifest.getEntry("/sap.app/dataSources"));
-							var mAfterPreloadModelConfigurations = Component._createManifestModelConfigurations({
+							var mAfterPreloadModelConfigurations = _createManifestModelConfigurations({
 								models: mPreloadModelConfigs.afterPreload,
 								dataSources: oManifestDataSources,
 								manifest: oManifest,
@@ -3611,7 +3620,7 @@ sap.ui.define([
 							// Load all ResourceBundles for all models in parallel
 							return Promise.all(aResourceModelNames.map(loadResourceBundle)).then(function() {
 								if (Object.keys(mAfterPreloadModelConfigurations).length > 0) {
-									var mResourceModels = Component._createManifestModels(mAfterPreloadModelConfigurations);
+									var mResourceModels = _createManifestModels(mAfterPreloadModelConfigurations);
 									if (!mModels) {
 										mModels = {};
 									}
@@ -3770,7 +3779,7 @@ sap.ui.define([
 				// lookup model classes
 				var mManifestModels = merge({}, oManifest.getEntry("/sap.ui5/models"));
 				var mManifestDataSources = merge({}, oManifest.getEntry("/sap.app/dataSources"));
-				var mAllModelConfigurations = Component._findManifestModelClasses({
+				var mAllModelConfigurations = _findManifestModelClasses({
 					models: mManifestModels,
 					dataSources: mManifestDataSources,
 					componentName: oManifest.getComponentName()

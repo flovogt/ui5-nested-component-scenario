@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.calendar.YearPicker
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @private
@@ -292,7 +292,7 @@ sap.ui.define([
 
 	/**
 	 * Calculates the first and last displayed date about a given year range.
-	 * @param {sap.ui.unified.CalendarDate} oDate the year about which the dates are calculated
+	 * @param {sap.ui.unified.calendar.CalendarDate} oDate the year about which the dates are calculated
 	 * @returns {object} two values - start and end date
 	 */
 	YearRangePicker.prototype._getDisplayedSecondaryDates = function(oDate){

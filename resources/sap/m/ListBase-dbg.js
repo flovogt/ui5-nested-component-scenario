@@ -59,33 +59,17 @@ function(
 ) {
 	"use strict";
 
-
-	// shortcut for sap.m.ListType
-	var ListItemType = library.ListType;
-
-	// shortcut for sap.m.ListGrowingDirection
-	var ListGrowingDirection = library.ListGrowingDirection;
-
-	// shortcut for sap.m.SwipeDirection
-	var SwipeDirection = library.SwipeDirection;
-
-	// shortcut for sap.m.ListSeparators
-	var ListSeparators = library.ListSeparators;
-
-	// shortcut for sap.m.ListMode
-	var ListMode = library.ListMode;
-
-	// shortcut for sap.m.ListHeaderDesign
-	var ListHeaderDesign = library.ListHeaderDesign;
-
-	// shortcut for sap.m.Sticky
-	var Sticky = library.Sticky;
-
-	// shortcut for sap.m.MultiSelectMode
-	var MultiSelectMode = library.MultiSelectMode;
-
-	// shortcut for sap.ui.core.TitleLevel
-	var TitleLevel = coreLibrary.TitleLevel;
+	// shortcut for enums
+	const {
+		ListType: ListItemType,
+		ListGrowingDirection,
+		SwipeDirection,
+		ListSeparators,
+		ListMode,
+		ListHeaderDesign,
+		Sticky,
+		MultiSelectMode
+	} = library;
 
 	/**
 	 * Constructor for a new ListBase.
@@ -105,7 +89,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -145,7 +129,7 @@ function(
 				 *
 				 * @since 1.117.0
 				 */
-				headerLevel : {type : "sap.ui.core.TitleLevel", group : "Misc", defaultValue : TitleLevel.Auto},
+				headerLevel : {type : "sap.ui.core.TitleLevel", group : "Misc", defaultValue : coreLibrary.TitleLevel.Auto},
 
 				/**
 				 * Defines the header style of the control. Possible values are <code>Standard</code> and <code>Plain</code>.
@@ -253,7 +237,7 @@ function(
 				/**
 				 * If set to true, this control remembers and retains the selection of the items after a binding update has been performed (e.g. sorting, filtering).
 				 * <b>Note:</b> This feature works only if two-way data binding for the <code>selected</code> property of the item is not used. It also needs to be turned off if the binding context of the item does not always point to the same entry in the model, for example, if the order of the data in the <code>JSONModel</code> is changed.
-				 * <b>Note:</b> This feature leverages the built-in selection mechanism of the corresponding binding context when the OData V4 model is used. Therefore, all binding-relevant limitations apply in this context as well. For more details, see the {@link sap.ui.model.odata.v4.Context#setSelected setSelected}, the {@link sap.ui.model.odata.v4.ODataModel#bindList bindList}, and the {@link sap.ui.model.odata.v4.ODataMetaModel#requestValueListInfo requestValueListInfo} API documentation. Do not enable this feature when <code>$$SharedRequests</code> or <code>$$clearSelectionOnFilter</code> is active.
+				 * <b>Note:</b> This feature leverages the built-in selection mechanism of the corresponding binding context if the OData V4 model is used. Therefore, all binding-relevant limitations apply in this context as well. For more details, see the {@link sap.ui.model.odata.v4.Context#setSelected setSelected}, the {@link sap.ui.model.odata.v4.ODataModel#bindList bindList}, and the {@link sap.ui.model.odata.v4.ODataMetaModel#requestValueListInfo requestValueListInfo} API documentation. Do not enable this feature if <code>$$sharedRequest</code> or <code>$$clearSelectionOnFilter</code> is active.
 				 * <b>Note:</b> If this property is set to <code>false</code>, a possible binding context update of items (for example, filtering or sorting the list binding) would clear the selection of the items.
 				 * @since 1.16.6
 				 */
@@ -276,7 +260,8 @@ function(
 				 * prevent the sticky elements of the control from becoming fixed at the top of the viewport.</li>
 				 * <li>If sticky column headers are enabled in the <code>sap.m.Table</code> control, setting focus on the column headers will let the table scroll to the top.</li>
 				 * <li>A transparent toolbar design is not supported for sticky bars. The toolbar will automatically get an intransparent background color.</li>
-				 * <li>This feature supports only the default height of the toolbar control.</li>
+				 * <li>This feature supports only the default height of the toolbar control and the column headers.</li>
+				 * <li>When sticky group headers are enabled, wrapping in the column headers is not supported.</li>
 				 * </ul>
 				 *
 				 * @since 1.58
@@ -301,7 +286,36 @@ function(
 				 *
 				 * @since 1.93
 				 */
-				multiSelectMode : {type: "sap.m.MultiSelectMode", group: "Behavior", defaultValue: MultiSelectMode.Default}
+				multiSelectMode : {type: "sap.m.MultiSelectMode", group: "Behavior", defaultValue: MultiSelectMode.Default},
+
+				/**
+				 * Defines the maximum number of {@link sap.m.ListItemBase#getActions actions} displayed for the items.
+				 *
+				 * If the number of item actions exceeds the <code>itemActionCount</code> property value, an overflow button will appear, providing access to the additional actions.
+				 *
+				 * <b>Note:</b> Only values between <code>0-2</code> enables the use of the new <code>actions</code> aggregation. When enabled, the {@link sap.m.ListMode Delete} mode and the {@link sap.m.ListType Detail} list item type have no effect. Instead, dedicated actions of {@link sap.m.ListItemActionType type} <code>Delete</code> or <code>Edit</code> should be used.<br>
+				 * <b>Note:</b> As of version 1.147, items with type {@link sap.m.ListType Navigation} render the navigation indicator as an action, which is not counted in <code>itemActionCount</code>.
+				 *
+				 * @since 1.137
+				 */
+				itemActionCount : {type : "int", group: "Misc", defaultValue: -1},
+
+				/**
+				 * Defines whether the control remembers and restores the focus position of items.
+				 *
+				 * If set to <code>true</code> (default), the control remembers the last focused item and restores
+				 * focus to it when the user returns to the control. This is helpful for data inspection scenarios
+				 * where users navigate away and return to continue their work.
+				 *
+				 * If set to <code>false</code>, the control does not restore the previously focused item on re-entry.
+				 * This is suitable for configuration dialogs, settings panels, and other form-like usages where
+				 * a predictable initial focus is required.
+				 *
+				 * @private
+				 * @ui5-restricted sap.m
+				 * @since 1.148
+				 */
+				rememberFocus : {type : "boolean", group : "Behavior", defaultValue : true}
 			},
 			defaultAggregation : "items",
 			aggregations : {
@@ -578,6 +592,25 @@ function(
 					parameters : {
 						/**
 						 * Item in which the context menu was opened.
+						 */
+						listItem : {type : "sap.m.ListItemBase"}
+					}
+				},
+
+				/**
+				 * Fired when an item action is pressed.
+				 * @since 1.137
+				 */
+				itemActionPress: {
+					parameters: {
+
+						/**
+						 * The list item action that fired the event
+						 */
+						action : {type : "sap.m.ListItemAction"},
+
+						/**
+						 * The list item in which the action was performed
 						 */
 						listItem : {type : "sap.m.ListItemBase"}
 					}
@@ -1700,19 +1733,18 @@ function(
 
 	// this gets called from item when item is pressed(enter/tap/click)
 	ListBase.prototype.onItemPress = function(oListItem, oSrcControl) {
-
 		// do not fire press event for inactive type
-		if (oListItem.getType() == ListItemType.Inactive) {
+		if (oListItem.getEffectiveType() === ListItemType.Inactive) {
 			return;
 		}
 
 		// fire event async
-		setTimeout(function() {
+		setTimeout(() => {
 			this.fireItemPress({
 				listItem : oListItem,
 				srcControl : oSrcControl
 			});
-		}.bind(this), 0);
+		}, 0);
 	};
 
 	ListBase.prototype.onItemKeyDown = function (oItem, oEvent) {
@@ -1783,6 +1815,26 @@ function(
 		}
 	};
 
+	ListBase.prototype._getSelectionCount = function() {
+		const oBinding = this.getBinding("items");
+		if (oBinding && this.getRememberSelections()) {
+			if (oBinding.getSelectionCount) {
+				return oBinding.getSelectionCount();
+			}
+			if (this._aSelectedPaths.length) {
+				const oModel = oBinding.getModel();
+				if (oModel.hasContext) {
+					return this._aSelectedPaths.filter((sPath) => oModel.hasContext(sPath)).length;
+				}
+				if (oModel.getContext) {
+					return this._aSelectedPaths.filter((sPath) => oModel.getContext(sPath).getObject()).length;
+				}
+			}
+		}
+
+		return this.getSelectedItems().length;
+	};
+
 	ListBase.prototype._destroyGrowingDelegate = function() {
 		if (this._oGrowingDelegate) {
 			this._oGrowingDelegate.destroy();
@@ -1796,6 +1848,24 @@ function(
 			this._oItemNavigation.destroy();
 			this._oItemNavigation = null;
 		}
+	};
+
+	ListBase.prototype._getItemActionCount = function() {
+		let iItemActionCount = this.getItemActionCount();
+
+		// Navigation actions make list items behave as if their type property were set to "Navigation" therefore they are not counted as item actions
+		if (iItemActionCount > 0 && this.bUseActionsForNavigation && this.getItems().some((oItem) => oItem._hasNavigationAction())) {
+			iItemActionCount--;
+		}
+
+		return Math.min(2, Math.max(-1, iItemActionCount));
+	};
+
+	ListBase.prototype._onItemActionPress = function(oItem, oAction) {
+		this.fireItemActionPress({
+			listItem: oItem,
+			action: oAction
+		});
 	};
 
 	/**
@@ -2539,6 +2609,10 @@ function(
 			return;
 		}
 
+		if (this._bItemNavigationInvalidated) {
+			this._startItemNavigation();
+		}
+
 		var bItemEvent = $Target.hasClass("sapMLIBFocusable");
 		var preventDefault = function() {
 			oEvent.preventDefault();
@@ -2565,14 +2639,20 @@ function(
 		}
 
 		// Enter / F2: focus from container to the content
-		if ((oEvent.code == "Enter" || oEvent.code == "F2") && $Target.hasClass("sapMTblCellFocusable")) {
+		if (!oEvent.shiftKey && (oEvent.code == "Enter" || oEvent.code == "F2") && $Target.hasClass("sapMTblCellFocusable")) {
 			$Target.find(":sapTabbable").first().trigger("focus");
 			return preventDefault();
 		}
 
 		// F2 / F7: focus from item to the first interactive element
-		if ((oEvent.code == "F2" && bItemEvent) || (oEvent.code == "F7" && bItemEvent && this._iFocusIndexOfItem == undefined)) {
+		if (!oEvent.shiftKey && bItemEvent && (oEvent.code == "F2" || (oEvent.code == "F7" && this._iFocusIndexOfItem == undefined))) {
 			$FocusableItem.find(":sapTabbable").first().trigger("focus");
+			return preventDefault();
+		}
+
+		// Shift + F2 / F7: focus from nested item to the parent item
+		if (oEvent.shiftKey && bItemEvent && (oEvent.code == "F7" || oEvent.code == "F2")) {
+			$FocusableItem.parents(".sapMLIBFocusable,.sapMTblCellFocusable").first().trigger("focus");
 			return preventDefault();
 		}
 
@@ -2635,6 +2715,10 @@ function(
 			return;
 		}
 
+		if (this.getNavigationRoot()?.contains(oEvent.target)) {
+			this.$("after").attr("tabindex", "-1");
+		}
+
 		// check whether item navigation should be reapplied from scratch
 		if (this._bItemNavigationInvalidated) {
 			this._startItemNavigation();
@@ -2679,16 +2763,28 @@ function(
 	};
 
 	ListBase.prototype.onsapfocusleave = function(oEvent) {
-		if (this._oItemNavigation &&
-			!this.bAnnounceDetails &&
-			!this.getNavigationRoot().contains(document.activeElement)) {
-			this.bAnnounceDetails = true;
+		const oNavigationRoot = this.getNavigationRoot();
+		const oRelatedControl = oEvent.relatedControlId && Element.getElementById(oEvent.relatedControlId);
+		const oNextFocusedDomRef = oRelatedControl?.getFocusDomRef?.() || document.activeElement;
+		const bFocusLeftNavigationRoot = oNavigationRoot && !oNavigationRoot.contains(oNextFocusedDomRef);
+
+		if (bFocusLeftNavigationRoot) {
+			this.$("after").attr("tabindex", "0");
+		}
+
+		if (this._oItemNavigation && bFocusLeftNavigationRoot) {
+			if (!this.getRememberFocus()) {
+				this._oItemNavigation.resetFocusedIndex();
+			}
+			if (!this.bAnnounceDetails) {
+				this.bAnnounceDetails = true;
+			}
 		}
 	};
 
 	// this gets called when items up arrow key is pressed for the edit keyboard mode
 	ListBase.prototype.onItemArrowUpDown = function(oListItem, oEvent) {
-		if (oEvent.target instanceof HTMLTextAreaElement) {
+		if (oEvent.isMarked() || oEvent.target instanceof HTMLTextAreaElement) {
 			return;
 		}
 
@@ -2702,6 +2798,7 @@ function(
 		}
 
 		if (!oItem) {
+			oEvent.setMarked();
 			return;
 		}
 
@@ -2960,7 +3057,7 @@ function(
 	 * @since 1.76
 	 * @public
 	 */
-	ListBase.prototype.scrollToIndex = function(iIndex) {
+	ListBase.prototype.scrollToIndex = function(iIndex, _lastChance) {
 		return new Promise(function(resolve, reject) {
 			var oItem, oScrollDelegate;
 
@@ -2971,19 +3068,24 @@ function(
 			}
 
 			oItem = getItemAtIndex(this, iIndex);
-			if (!oItem) {
+			if (!oItem && _lastChance) {
 				return reject();
 			}
-
-			// adding timeout of 0 ensures the DOM is ready in case of rerendering
-			setTimeout(function() {
-				try {
-					oScrollDelegate.scrollToElement(oItem.getDomRef(), null, [0, this._getStickyAreaHeight() * -1], true);
-					resolve();
-				} catch (e) {
-					reject(e);
-				}
-			}.bind(this), 0);
+			if (!oItem || !oItem.getDomRef()) {
+				this.attachEventOnce("updateFinished", () => {
+					this.scrollToIndex(iIndex, true).then(resolve).catch(reject);
+				});
+			} else {
+				// adding timeout of 0 ensures the DOM is ready in case of rerendering
+				setTimeout(() => {
+					try {
+						oScrollDelegate.scrollToElement(oItem.getDomRef(), null, [0, this._getStickyAreaHeight() * -1], true);
+						resolve();
+					} catch (e) {
+						reject(e);
+					}
+				}, 0);
+			}
 		}.bind(this));
 	};
 

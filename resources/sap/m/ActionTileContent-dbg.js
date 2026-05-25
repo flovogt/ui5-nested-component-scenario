@@ -27,7 +27,7 @@ sap.ui.define([
      * @extends sap.m.TileContent
      *
      * @author SAP SE
-     * @version 1.136.16
+     * @version 1.148.0
      * @since 1.122
      *
      * @public
@@ -150,6 +150,26 @@ sap.ui.define([
         }
     };
 
+    /**
+    * Returns true or false based on link click/press
+    * @private
+    */
+    ActionTileContent.prototype._isLinkClicked = function (oSrcControl) {
+        // Check header link
+        var oHeaderLink = this.getHeaderLink();
+        if (oHeaderLink && oHeaderLink.getId() === oSrcControl.getId()) {
+            return true;
+        }
+
+        // Check attributes
+        var aAttributes = this.getAttributes();
+        var bisClicked = aAttributes.some(function (oAttribute) {
+            var oLink = oAttribute.getContentConfig()?.getInnerControl();
+            return oLink && oLink.getId() === oSrcControl.getId();
+        });
+
+        return bisClicked;
+    };
     /**
     * Returns the text inside the control so that it can be used for setting the tooltip,aria-label
     * @private

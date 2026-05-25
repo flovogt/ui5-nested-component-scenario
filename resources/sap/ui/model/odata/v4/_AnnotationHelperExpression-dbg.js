@@ -9,14 +9,14 @@
 sap.ui.define([
 	"../_AnnotationHelperBasics",
 	"sap/base/Log",
+	"sap/ui/base/BindingInfo",
 	"sap/ui/base/BindingParser",
-	"sap/ui/base/ManagedObject",
 	"sap/ui/base/SyncPromise",
 	"sap/ui/performance/Measurement"
-], function (Basics, Log, BindingParser, ManagedObject, SyncPromise, Measurement) {
+], function (Basics, Log, BindingInfo, BindingParser, SyncPromise, Measurement) {
 	"use strict";
 
-	// see http://docs.oasis-open.org/odata/odata/v4.0/errata02/os/complete/abnf/odata-abnf-construction-rules.txt
+	// see https://docs.oasis-open.org/odata/odata/v4.01/os/abnf/
 	var sAnnotationHelper = "sap.ui.model.odata.v4.AnnotationHelper",
 		aPerformanceCategories = [sAnnotationHelper],
 		sPerformanceGetExpression = sAnnotationHelper + "/getExpression",
@@ -122,7 +122,7 @@ sap.ui.define([
 	 *
 	 * @param {object} oPathValue
 	 * @param {string} sMessage
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 */
 	function asyncError(oPathValue, sMessage) {
 		return SyncPromise.resolve().then(function () {
@@ -165,24 +165,24 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.3 Expression edm:Apply".
+		 * Handling of "14.4.4 Expression edm:Apply".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the apply (see Expression object)
 		 * @param {object} oParameters
 		 *   path and value information pointing to the parameter array (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		apply : function (oPathValue, oParameters) {
 			var oFunction = Basics.descend(oPathValue, "$Function", "string");
 
 			switch (oFunction.value) {
-				case "odata.concat": // 14.5.3.1.1 Function odata.concat
+				case "odata.concat": // 14.4.4.1 Function odata.concat
 					return Expression.concat(oParameters);
-				case "odata.fillUriTemplate": // 14.5.3.1.2 Function odata.fillUriTemplate
+				case "odata.fillUriTemplate": // 14.4.4.2 Function odata.fillUriTemplate
 					return Expression.fillUriTemplate(oParameters);
-				case "odata.uriEncode": // 14.5.3.1.3 Function odata.uriEncode
+				case "odata.uriEncode": // 14.4.4.4 Function odata.uriEncode
 					return Expression.uriEncode(oParameters);
 				default:
 					return asyncError(oFunction, "unknown function: " + oFunction.value);
@@ -190,11 +190,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.5 Expression edm:Collection".
+		 * Handling of "14.4.6 Expression edm:Collection".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the array (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		collection : function (oPathValue) {
@@ -221,11 +221,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.3.1.1 Function odata.concat".
+		 * Handling of "odata.concat" from "14.4.4.1 Canonical Functions".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		concat : function (oPathValue) {
@@ -270,7 +270,7 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.6 Expression edm:If".
+		 * Handling of "14.4.7 Expression edm:If".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object).
@@ -278,9 +278,9 @@ sap.ui.define([
 		 *   Edm.Boolean. The second and third child elements are the expressions, which are
 		 *   evaluated conditionally.
 		 * @param {boolean} [bInCollection]
-		 *   Whether "14.5.6 Expression edm:If" appears as a direct child of
-		 *   "14.5.5 Expression edm:Collection" and thus needs no third child element ("else")
-		 * @returns {sap.ui.base.SyncPromise}
+		 *   Whether "14.4.7 Expression edm:If" appears as a direct child of
+		 *   "14.4.6 Expression edm:Collection" and thus needs no third child element ("else")
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		conditional : function (oPathValue, bInCollection) {
@@ -330,17 +330,17 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.4 Constant Expressions", i.e.
+		 * Handling of "14.3 Constant Expressions", i.e.
 		 * <ul>
-		 *   <li> "14.4.2 Expression edm:Bool",
-		 *   <li> "14.4.3 Expression edm:Date",
-		 *   <li> "14.4.4 Expression edm:DateTimeOffset",
-		 *   <li> "14.4.5 Expression edm:Decimal",
-		 *   <li> "14.4.8 Expression edm:Float",
-		 *   <li> "14.4.9 Expression edm:Guid",
-		 *   <li> "14.4.10 Expression edm:Int",
-		 *   <li> "14.4.11 Expression edm:String",
-		 *   <li> "14.4.12 Expression edm:TimeOfDay".
+		 *   <li> "14.3.2 Expression edm:Bool",
+		 *   <li> "14.3.3 Expression edm:Date",
+		 *   <li> "14.3.4 Expression edm:DateTimeOffset",
+		 *   <li> "14.3.5 Expression edm:Decimal",
+		 *   <li> "14.3.8 Expression edm:Float",
+		 *   <li> "14.3.9 Expression edm:Guid",
+		 *   <li> "14.3.10 Expression edm:Int",
+		 *   <li> "14.3.11 Expression edm:String",
+		 *   <li> "14.3.12 Expression edm:TimeOfDay".
 		 * </ul>
 		 *
 		 * @param {object} oPathValue
@@ -378,8 +378,8 @@ sap.ui.define([
 		 *   path and value information pointing to the expression (see Expression object)
 		 * @param {boolean} [bInCollection]
 		 *   Whether the current expression appears as a direct child of
-		 *  "14.5.5 Expression edm:Collection"
-		 * @returns {sap.ui.base.SyncPromise}
+		 *  "14.4.6 Expression edm:Collection"
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		expression : function (oPathValue, bInCollection) {
@@ -397,7 +397,7 @@ sap.ui.define([
 					: "Float";
 			} else if (typeof oRawValue === "string") {
 				sType = "String";
-			} else if (Array.isArray(oRawValue)) { // 14.5.5 Expression edm:Collection
+			} else if (Array.isArray(oRawValue)) { // 14.4.6 Expression edm:Collection
 				return Expression.collection(oPathValue);
 			} else {
 				Basics.expectType(oPathValue, "object");
@@ -420,29 +420,29 @@ sap.ui.define([
 			}
 
 			switch (sType) {
-				case "Apply": // 14.5.3 Expression edm:Apply
+				case "Apply": // 14.4.4 Expression edm:Apply
 					return Expression.apply(oPathValue, oSubPathValue);
 
-				case "If": // 14.5.6 Expression edm:If
+				case "If": // 14.4.7 Expression edm:If
 					return Expression.conditional(oSubPathValue, bInCollection);
 
-				case "Name": // 12.4.1 Attribute Name
-				case "Path": // 14.5.12 Expression edm:Path
-				case "PropertyPath": // 14.5.13 Expression edm:PropertyPath
+				case "Name": // 12.9 Attribute Name
+				case "Path": // 14.4.1.7 Expression edm:Path
+				case "PropertyPath": // 14.4.1.6 Expression edm:PropertyPath
 					return Expression.path(oSubPathValue);
 
-				case "Date": // 14.4.3 Expression edm:Date
-				case "DateTimeOffset": // 14.4.4 Expression edm:DateTimeOffset
-				case "Decimal": // 14.4.5 Expression edm:Decimal
-				case "Guid": // 14.4.9 Expression edm:Guid
-				case "Int": // 14.4.10 Expression edm:Int
-				case "String": // 14.4.11 Expression edm:String
-				case "TimeOfDay": // 14.4.12 Expression edm:TimeOfDay
+				case "Date": // 14.3.3 Expression edm:Date
+				case "DateTimeOffset": // 14.3.4 Expression edm:DateTimeOffset
+				case "Decimal": // 14.3.5 Expression edm:Decimal
+				case "Guid": // 14.3.9 Expression edm:Guid
+				case "Int": // 14.3.10 Expression edm:Int
+				case "String": // 14.3.11 Expression edm:String
+				case "TimeOfDay": // 14.3.12 Expression edm:TimeOfDay
 					Basics.expectType(oSubPathValue, "string");
 					// fall through
-				case "Bool": // 14.4.2 Expression edm:Bool
-				case "Float": // 14.4.8 Expression edm:Float
-				case "Int32": // 14.4.10 Expression edm:Int
+				case "Bool": // 14.3.2 Expression edm:Bool
+				case "Float": // 14.3.8 Expression edm:Float
+				case "Int32": // 14.3.10 Expression edm:Int
 					return SyncPromise.resolve(Expression.constant(oSubPathValue, sType));
 
 				case "And":
@@ -453,20 +453,20 @@ sap.ui.define([
 				case "Lt":
 				case "Ne":
 				case "Or":
-					// 14.5.1 Comparison and Logical Operators
+					// 14.4.2 Comparison and Logical Operators
 					return Expression.operator(oSubPathValue, sType);
 
-				case "Not": // 14.5.1 Comparison and Logical Operators
+				case "Not": // 14.4.2 Comparison and Logical Operators
 					return Expression.not(oSubPathValue);
 
-				case "Null": // 14.5.10 Expression edm:Null
+				case "Null": // 14.4.11 Expression edm:Null
 					return SyncPromise.resolve({
 						result : "constant",
 						type : "edm:Null",
 						value : null
 					});
 
-				// case "LabeledElement": 14.5.8 Expression edm:LabeledElement
+				// case "LabeledElement": 14.4.9 Expression edm:LabeledElement
 				default:
 					return asyncError(oPathValue, "Unsupported OData expression");
 			}
@@ -491,7 +491,7 @@ sap.ui.define([
 		 *   the type of the property referenced by <code>oPathValue.path</code>
 		 * @param {object} mConstraints
 		 *   the type constraints for the property referenced by <code>oPathValue.path</code>
-		 * @returns {sap.ui.base.SyncPromise|undefined}
+		 * @returns {sap.ui.base.SyncPromise<object>|undefined}
 		 *   a sync promise which resolves with a result object for the currency or unit, or is
 		 *   rejected with an error; <code>undefined</code> if there are no unit and currency
 		 *   annotations for the property referenced by <code>oPathValue.path</code>
@@ -555,7 +555,7 @@ sap.ui.define([
 		 *   use this value instead of <code>oPathValue.value</code>!
 		 * @param {object} mConstraints
 		 *   the type constraints for the property referenced by <code>oPathValue.path</code>
-		 * @returns {sap.ui.base.SyncPromise|undefined}
+		 * @returns {sap.ui.base.SyncPromise<object>|undefined}
 		 *   a sync promise which resolves with a result object for the date/time with timezone, or
 		 *   is rejected with an error; <code>undefined</code> if there is no timezone annotation
 		 *   for the property referenced by <code>oPathValue.path</code>
@@ -589,11 +589,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.3.1.2 Function odata.fillUriTemplate".
+		 * Handling of "14.4.4.2 Function odata.fillUriTemplate".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		fillUriTemplate : function (oPathValue) {
@@ -667,7 +667,7 @@ sap.ui.define([
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the expression (see Expression object)
-		 * @returns {Promise|string|undefined}
+		 * @returns {string|undefined|Promise<string|undefined>}
 		 *   the expression value or "Unsupported: oRawValue" in case of an error or
 		 *   <code>undefined</code> in case the raw value is undefined; may instead return a
 		 *   <code>Promise</code> resolving with that result.
@@ -680,7 +680,7 @@ sap.ui.define([
 			Measurement.average(sPerformanceGetExpression, "", aPerformanceCategories);
 
 			if (!bSimpleParserWarningLogged
-					&& ManagedObject.bindingParser === BindingParser.simpleParser) {
+					&& BindingInfo.parse === BindingParser.simpleParser) {
 				Log.warning("Complex binding syntax not active", null, sAnnotationHelper);
 				bSimpleParserWarningLogged = true;
 			}
@@ -699,11 +699,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.1 Comparison and Logical Operators": <code>edm:Not</code>.
+		 * Handling of "14.4.2 Comparison and Logical Operators": <code>edm:Not</code>.
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		not : function (oPathValue) {
@@ -722,13 +722,13 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.1 Comparison and Logical Operators" except <code>edm:Not</code>.
+		 * Handling of "14.4.2 Comparison and Logical Operators" except <code>edm:Not</code>.
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object)
 		 * @param {string} sType
 		 *   the operator as text (like "And" or "Or")
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		operator : function (oPathValue, sType) {
@@ -796,7 +796,7 @@ sap.ui.define([
 		 *   the parameter index
 		 * @param {string} [sEdmType]
 		 *   the expected EDM type or <code>undefined</code> if any type is allowed
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		parameter : function (oPathValue, iIndex, sEdmType) {
@@ -811,7 +811,7 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.12 Expression edm:Path" and "14.5.13 Expression edm:PropertyPath".
+		 * Handling of "14.4.1.7 Expression edm:Path" and "14.4.1.6 Expression edm:PropertyPath".
 		 * If <code>oPathValue.path</code> references a property which has an
 		 * <code>Org.OData.Measures.V1.ISOCurrency</code> annotation, a composite result object for
 		 * a <code>sap.ui.model.odata.type.Currency</code> type with the currency, the currency code
@@ -828,7 +828,7 @@ sap.ui.define([
 		 *
 		 * @param {object} oPathValue
 		 *   model, path and value information pointing to the path (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		path : function (oPathValue) {
@@ -892,11 +892,11 @@ sap.ui.define([
 		},
 
 		/**
-		 * Handling of "14.5.3.1.3 Function odata.uriEncode".
+		 * Handling of "14.4.4.4 Function odata.uriEncode".
 		 *
 		 * @param {object} oPathValue
 		 *   path and value information pointing to the parameter array (see Expression object)
-		 * @returns {sap.ui.base.SyncPromise}
+		 * @returns {sap.ui.base.SyncPromise<object>}
 		 *   a sync promise which resolves with the result object or is rejected with an error
 		 */
 		uriEncode : function (oPathValue) {

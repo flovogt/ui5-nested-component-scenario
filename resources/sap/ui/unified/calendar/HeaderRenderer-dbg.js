@@ -23,6 +23,14 @@ sap.ui.define([
 		apiVersion: 2
 	};
 
+	// Holds the possible values for the "_currentPicker" property.
+	var CALENDAR_PICKERS = {
+		MONTH: "month", // represents the "month" aggregation
+		MONTH_PICKER: "monthPicker",  // represents the "monthPicker" aggregation
+		YEAR_PICKER: "yearPicker",  // represents the "yearPicker" aggregation
+		YEAR_RANGE_PICKER: "yearRangePicker"  // represents the "yearRangePicker" aggregation
+	};
+
 	/**
 	 * Renders the HTML for the given control, using the provided {@link sap.ui.core.RenderManager}.
 	 *
@@ -30,13 +38,26 @@ sap.ui.define([
 	 * @param {sap.ui.unified.calendar.Header} oHead an object representation of the control that should be rendered
 	 */
 	HeaderRenderer.render = function(oRm, oHead){
-		var sLanguage = new Locale(Localization.getLanguageTag()).getLanguage();
-		var sTooltip = oHead.getTooltip_AsString();
-		var sId = oHead.getId();
-		var oRB = Library.getResourceBundleFor("sap.ui.unified");
-		var sLabelNext = oRB.getText("CALENDAR_BTN_NEXT");
-		var sLabelPrev = oRB.getText("CALENDAR_BTN_PREV");
-		var sLabelToday = oRB.getText("CALENDAR_BTN_TODAY");
+		const sLanguage = new Locale(Localization.getLanguageTag()).getLanguage();
+		const sTooltip = oHead.getTooltip_AsString();
+		const sId = oHead.getId();
+		const sPicker = oHead.getProperty("_currentPicker");
+		const oRB = Library.getResourceBundleFor("sap.ui.unified");
+		const sNextBtnShortCut = oRB.getText("CALENDAR_BTN_NEXT_MONTH_SHORTCUT");
+		const sPrevBtnShortCut = oRB.getText("CALENDAR_BTN_PREV_MONTH_SHORTCUT");
+		let sNextBtnMainLabel = oRB.getText("CALENDAR_BTN_NEXT_MONTH_TITLE");
+		let sPrevBtnMainLabel = oRB.getText("CALENDAR_BTN_PREV_MONTH_TITLE");
+		const sLabelToday = oRB.getText("CALENDAR_BTN_TODAY");
+
+		if (sPicker === CALENDAR_PICKERS.MONTH_PICKER) {
+			sNextBtnMainLabel = oRB.getText("CALENDAR_BTN_NEXT_YEAR_TITLE");
+			sPrevBtnMainLabel = oRB.getText("CALENDAR_BTN_PREV_YEAR_TITLE");
+		} else if (sPicker === CALENDAR_PICKERS.YEAR_RANGE_PICKER || sPicker === CALENDAR_PICKERS.YEAR_PICKER) {
+			sNextBtnMainLabel = oRB.getText("CALENDAR_BTN_NEXT_YEAR_RANGE_TITLE");
+			sPrevBtnMainLabel = oRB.getText("CALENDAR_BTN_PREV_YEAR_RANGE_TITLE");
+		}
+		const sNextBtnTitle = `${sNextBtnMainLabel} (${sNextBtnShortCut})`;
+		const sPrevBtnTitle = `${sPrevBtnMainLabel} (${sPrevBtnShortCut})`;
 
 		oRm.openStart("div", oHead);
 		oRm.class("sapUiCalHead");
@@ -53,15 +74,20 @@ sap.ui.define([
 		oRm.openEnd(); // div element
 
 		oRm.openStart("button", sId + '-prev');
-		oRm.attr("title", sLabelPrev);
-		oRm.accessibilityState(null, { label: sLabelPrev});
+		oRm.attr("title", sPrevBtnTitle);
+		oRm.accessibilityState(null, {
+			label: sPrevBtnMainLabel,
+			description: sPrevBtnMainLabel,
+			keyshortcuts: sPrevBtnShortCut
+		});
 
+		const isPrevBtnEnabled = oHead.getEnabledPrevious();
 		oRm.class("sapUiCalHeadPrev");
-		if (!oHead.getEnabledPrevious()) {
+		if (!isPrevBtnEnabled) {
 			oRm.class("sapUiCalDsbl");
 			oRm.attr('disabled', "disabled");
 		}
-		oRm.attr('tabindex', "-1");
+		oRm.attr('tabindex', isPrevBtnEnabled ? "0" : "-1");
 		oRm.openEnd(); // button element
 		oRm.icon("sap-icon://slim-arrow-left", null, { title: null });
 		oRm.close("button");
@@ -119,15 +145,20 @@ sap.ui.define([
 		}
 
 		oRm.openStart("button", sId + '-next');
-		oRm.attr("title", sLabelNext);
-		oRm.accessibilityState(null, { label: sLabelNext});
+		oRm.attr("title", sNextBtnTitle);
+		oRm.accessibilityState(null, {
+			label: sNextBtnMainLabel,
+			description: sNextBtnMainLabel,
+			keyshortcuts: sNextBtnShortCut
+		});
 
+		const isNextBtnEnabled = oHead.getEnabledNext();
 		oRm.class("sapUiCalHeadNext");
-		if (!oHead.getEnabledNext()) {
+		if (!isNextBtnEnabled) {
 			oRm.class("sapUiCalDsbl");
 			oRm.attr('disabled', "disabled");
 		}
-		oRm.attr('tabindex', "-1");
+		oRm.attr('tabindex', isNextBtnEnabled ? "0" : "-1");
 		oRm.openEnd(); // button element
 		oRm.icon("sap-icon://slim-arrow-right", null, { title: null });
 		oRm.close("button");
@@ -163,6 +194,14 @@ sap.ui.define([
 			}
 			if (this.getAriaLabelButton(oHead, i)) {
 				mAccProps["label"] = this.getAriaLabelButton(oHead, i);
+			}
+
+			// Set descriptions and keyboard shortcuts from private properties using helper functions
+			this._setAccessibilityDescription(oHead, i, mAccProps);
+			this._setAccessibilityKeyShortcuts(oHead, i, mAccProps);
+
+			if (this.getTooltipButton(oHead, i)) {
+				oRm.attr("title", this.getTooltipButton(oHead, i));
 			}
 			oRm.accessibilityState(null, mAccProps);
 			mAccProps = {};
@@ -236,8 +275,60 @@ sap.ui.define([
 		return sText;
 	};
 
+	HeaderRenderer.getTooltipButton = function (oHead, iButton) {
+		var sTooltip;
+
+		if (oHead["getTooltipButton" + iButton]) {
+			sTooltip = oHead["getTooltipButton" + iButton]();
+		} else if (oHead["_getTooltipButton" + iButton]) {
+			sTooltip = oHead["_getTooltipButton" + iButton]();
+		} else if (iButton === 1) {
+			sTooltip = oHead.getProperty("_tooltipButton1");
+		} else if (iButton === 2) {
+			sTooltip = oHead.getProperty("_tooltipButton2");
+		} else if (iButton === 3) {
+			sTooltip = oHead.getProperty("_tooltipButton3");
+		} else if (iButton === 4) {
+			sTooltip = oHead.getProperty("_tooltipButton4");
+		}
+
+		return sTooltip;
+	};
+
 	HeaderRenderer._isTwoMonthsCalendar = function (oHead) {
 		return (oHead.getParent() instanceof sap.ui.unified.Calendar && (oHead.getParent().getMonths() >= 2));
+	};
+
+	/**
+	 * Helper function to set accessibility description for calendar header buttons
+	 * @param {sap.ui.unified.calendar.Header} oHead The header control
+	 * @param {number} iButton The button index (1-4)
+	 * @param {object} mAccProps Accessibility properties object to modify
+	 * @private
+	 */
+	HeaderRenderer._setAccessibilityDescription = function (oHead, iButton, mAccProps) {
+		if (iButton >= 1 && iButton <= 4) {
+			var sDescription = oHead.getProperty("_descriptionButton" + iButton);
+			if (sDescription) {
+				mAccProps["description"] = sDescription;
+			}
+		}
+	};
+
+	/**
+	 * Helper function to set accessibility keyboard shortcuts for calendar header buttons
+	 * @param {sap.ui.unified.calendar.Header} oHead The header control
+	 * @param {number} iButton The button index (1-4)
+	 * @param {object} mAccProps Accessibility properties object to modify
+	 * @private
+	 */
+	HeaderRenderer._setAccessibilityKeyShortcuts = function (oHead, iButton, mAccProps) {
+		if (iButton >= 1 && iButton <= 4) {
+			var sShortcut = oHead.getProperty("_keyShortcutButton" + iButton);
+			if (sShortcut) {
+				mAccProps["keyshortcuts"] = sShortcut;
+			}
+		}
 	};
 
 	return HeaderRenderer;

@@ -173,7 +173,7 @@ function(
 		*
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.136.16
+		* @version 1.148.0
 		*
 		* @constructor
 		* @public
@@ -399,7 +399,10 @@ function(
 					rightButton: {type: "sap.m.Button", multiple: false, deprecated: true},
 
 					/**
-					 * In the Dialog focus is set first on the <code>beginButton</code> and then on <code>endButton</code>, when available. If another control needs to get the focus, set the <code>initialFocus</code> with the control which should be focused on. Setting <code>initialFocus</code> to input controls doesn't open the On-Screen keyboard on mobile device as, due to browser restriction, the On-Screen keyboard can't be opened with JavaScript code. The opening of On-Screen keyboard must be triggered by real user action.
+					 * In the Dialog, focus is initially set on the first focusable element, or on the dialog itself if no such element is available.
+					 * If another control needs to receive focus, set the <code>initialFocus</code> to the control that should be focused.
+					 * Setting <code>initialFocus</code> on input controls does not open the on-screen keyboard on mobile devices.
+					 * Due to browser restrictions, the on-screen keyboard can't be opened with JavaScript code; it must be triggered explicitly by the user.
 					 * @since 1.15.0
 					 */
 					initialFocus: {type: "sap.ui.core.Control", multiple: false},
@@ -597,6 +600,8 @@ function(
 			this._initResponsivePaddingsEnablement();
 
 			this._oAriaDescribedbyText = new InvisibleText({id: this.getId() + "-ariaDescribedbyText"});
+
+			this._oDescribedbyDragAndResizeHandleText = new InvisibleText({id: this.getId() + "-describedbyDragAndResizeHandleText"});
 		};
 
 		Dialog.prototype.onBeforeRendering = function () {
@@ -649,7 +654,12 @@ function(
 				oHeader._setRootAriaLevel("2");
 			}
 
+			[this._getAnyHeader(), this.getSubHeader(), this._getAnyFooter()].forEach(function (oControl) {
+				oControl?.addStyleClass("sapMIBar-CTX");
+			});
+
 			this._oAriaDescribedbyText.setText(this._getAriaDescribedByText());
+			this._oDescribedbyDragAndResizeHandleText.setText(this._getDescribedByDragAndResizeHandleText());
 		};
 
 		Dialog.prototype.onAfterRendering = function () {
@@ -663,7 +673,6 @@ function(
 			}
 
 			if (this.isOpen()) {
-				//restore the focus after rendering when dialog is already open
 				this._setInitialFocus();
 			}
 		};
@@ -707,6 +716,11 @@ function(
 			if (this._oAriaDescribedbyText) {
 				this._oAriaDescribedbyText.destroy();
 				this._oAriaDescribedbyText = null;
+			}
+
+			if (this._oDescribedbyDragAndResizeHandleText) {
+				this._oDescribedbyDragAndResizeHandleText.destroy();
+				this._oDescribedbyDragAndResizeHandleText = null;
 			}
 
 			PreventKeyboardEvents.restore(this.getDomRef());
@@ -935,14 +949,34 @@ function(
 			//Check if the invisible FIRST focusable element (suffix '-firstfe') has gained focus
 			if (oSourceDomRef.id === this.getId() + "-firstfe") {
 				//Check if buttons are available
-				var oLastFocusableDomRef = this._getAnyFooter()?.$().lastFocusableDomRef() || this.$("cont").lastFocusableDomRef() || (this.getSubHeader() && this.getSubHeader().$().firstFocusableDomRef()) || (this._getAnyHeader() && this._getAnyHeader().$().lastFocusableDomRef());
+				var oLastFocusableDomRef =
+					this._getAnyFooter()?.$().lastFocusableDomRef() ||
+					this.$("cont").lastFocusableDomRef({
+						includeSelf: true,
+						includeScroller: true
+					}) ||
+					this.getSubHeader()?.$().firstFocusableDomRef() ||
+					this._getAnyHeader()?.$().lastFocusableDomRef();
+
 				if (oLastFocusableDomRef) {
 					oLastFocusableDomRef.focus();
 				}
-			} else if (oSourceDomRef.id === this.getId() + "-lastfe") {
+
+				return;
+			}
+
+			if (oSourceDomRef.id === this.getId() + "-lastfe") {
 				//Check if the invisible LAST focusable element (suffix '-lastfe') has gained focus
 				//First check if header content is available
-				var oFirstFocusableDomRef = this._getFocusableHeader() || (this._getAnyHeader() && this._getAnyHeader().$().firstFocusableDomRef()) || (this.getSubHeader() && this.getSubHeader().$().firstFocusableDomRef()) || this.$("cont").firstFocusableDomRef() || this.$("footer").firstFocusableDomRef();
+				var oFirstFocusableDomRef = this.getDomRef("dragAndResizeHandler") ||
+					this._getAnyHeader()?.$().firstFocusableDomRef() ||
+					this.getSubHeader()?.$().firstFocusableDomRef() ||
+					this.$("cont").firstFocusableDomRef({
+						includeSelf: true,
+						includeScroller: true
+					}) ||
+					this.$("footer").firstFocusableDomRef();
+
 				if (oFirstFocusableDomRef) {
 					oFirstFocusableDomRef.focus();
 				}
@@ -980,7 +1014,7 @@ function(
 				oPromiseArgument = {},
 				that = this;
 
-			if (this._isSpaceOrEnterPressed) {
+			if (this._isSpacePressed) {
 				return;
 			}
 
@@ -1018,27 +1052,27 @@ function(
 
 		/**
 		 * Event handler for the onkeyup event.
-		 * Register if SPACE or ENTER is released.
+		 * Register if SPACE is released.
 		 *
 		 * @param {jQuery.Event} oEvent The event object
 		 * @private
 		 */
 		Dialog.prototype.onkeyup = function (oEvent) {
-			if (this._isSpaceOrEnter(oEvent)) {
-				this._isSpaceOrEnterPressed = false;
+			if (this._isSpace(oEvent)) {
+				this._isSpacePressed = false;
 			}
 		};
 
 		/**
 		 * Event handler for the onkeydown event.
-		 * Register if SPACE or ENTER is pressed.
+		 * Register if SPACE is pressed.
 		 *
 		 * @param {jQuery.Event} oEvent The event object
 		 * @private
 		 */
 		Dialog.prototype.onkeydown = function (oEvent) {
-			if (this._isSpaceOrEnter(oEvent)) {
-				this._isSpaceOrEnterPressed = true;
+			if (this._isSpace(oEvent)) {
+				this._isSpacePressed = true;
 			}
 
 			var iKeyCode = oEvent.which || oEvent.keyCode;
@@ -1091,8 +1125,7 @@ function(
 		 * @private
 		 */
 		Dialog.prototype._handleKeyboardDragResize = function (oEvent) {
-
-			if (oEvent.target !== this._getFocusableHeader() ||
+			if (oEvent.target !== this.getDomRef("dragAndResizeHandler") ||
 				[KeyCodes.ARROW_LEFT,
 					KeyCodes.ARROW_RIGHT,
 					KeyCodes.ARROW_UP,
@@ -1180,16 +1213,16 @@ function(
 		};
 
 		/**
-		 * Determines if the key from oEvent is SPACE or ENTER.
+		 * Determines if the key from oEvent is SPACE.
 		 *
 		 * @param {jQuery.Event} oEvent The event object
 		 * @private
-		 * @return {boolean} True if the key from the event is space or enter
+		 * @return {boolean} True if the key from the event is space
 		 */
-		Dialog.prototype._isSpaceOrEnter = function (oEvent) {
-			var iKeyCode = oEvent.which || oEvent.keyCode;
+		Dialog.prototype._isSpace = function (oEvent) {
+			var iKeyCode = oEvent.which || oEvent.key;
 
-			return iKeyCode == KeyCodes.SPACE || iKeyCode == KeyCodes.ENTER;
+			return iKeyCode == KeyCodes.SPACE;
 		};
 
 		/* =========================================================== */
@@ -1516,7 +1549,7 @@ function(
 		};
 
 		/**
-		 * If a scrollable control (<code>sap.m.NavContainer</code>, <code>sap.m.ScrollContainer</code>, <code>sap.m.Page</code>, <code>sap.m.SplitContainer</code>) is added to the Dialog content aggregation as a single child or through one or more <code>sap.ui.mvc.View</code> instances,
+		 * If a scrollable control (<code>sap.m.NavContainer</code>, <code>sap.m.ScrollContainer</code>, <code>sap.m.Page</code>, <code>sap.m.SplitContainer</code>) is added to the Dialog content aggregation as a single child or through one or more <code>sap.ui.core.mvc.View</code> instances,
 		 * the scrolling inside the Dialog will be disabled in order to avoid wrapped scrolling areas.
 		 *
 		 * If more than one scrollable control is added to the Dialog, the scrolling needs to be disabled manually.
@@ -1536,6 +1569,25 @@ function(
 			return false;
 		};
 
+		Dialog.prototype.getFocusInfo = function () {
+			return {
+				id: this.getId(),
+				dialogActiveElement: this.getDomRef()?.contains(document.activeElement) ? document.activeElement : null
+			};
+		};
+
+		Dialog.prototype.applyFocusInfo = function (oFocusInfo) {
+			const oDialogActiveElement = oFocusInfo?.dialogActiveElement;
+
+			if (oDialogActiveElement && this.getDomRef()?.contains(oDialogActiveElement)) {
+				oDialogActiveElement.focus();
+
+				return this;
+			}
+
+			return Control.prototype.applyFocusInfo.apply(this, arguments);
+		};
+
 		/**
 		 *
 		 * @private
@@ -1549,10 +1601,11 @@ function(
 				return document.getElementById(sInitialFocusId);
 			}
 
-			return this._getFocusableHeader()
-				|| this._getFirstFocusableContentSubHeader()
+			return this._getFirstFocusableHeaderElement()
+				||  this._getFirstFocusableContentSubHeader()
 				|| this._getFirstFocusableContentElement()
 				|| this._getFirstVisibleButtonDomRef()
+				|| this.getDomRef("dragAndResizeHandler")
 				|| this.getDomRef();
 		};
 
@@ -1584,17 +1637,12 @@ function(
 		};
 
 		/**
-		 * Returns the focusable header if any
-		 * @returns {HTMLElement}
+		 * Gets the first focusable element in the header.
+		 * @returns {object} First focusable element in the header
 		 * @private
 		 */
-		Dialog.prototype._getFocusableHeader = function () {
-
-			if (!this._isDraggableOrResizable()) {
-				return null;
-			}
-
-			return this.$().find('header .sapMDialogTitleGroup')[0];
+		Dialog.prototype._getFirstFocusableHeaderElement = function () {
+			return this._getAnyHeader()?.$().firstFocusableDomRef();
 		};
 
 		/**
@@ -1616,16 +1664,14 @@ function(
 		Dialog.prototype._getFirstFocusableContentElement = function () {
 			var $dialogContent = this.$("cont");
 
-			return $dialogContent.firstFocusableDomRef();
+			return $dialogContent.firstFocusableDomRef({
+				includeSelf: true,
+				includeScroller: true
+			});
 		};
 
-		// The control that needs to be focused after the Dialog is open is calculated in the following sequence:
-		// initialFocus, first focusable element in content area, beginButton, endButton
-		// the Dialog is always modal so the focus doesn't need to be on the Dialog when there's
-		// no initialFocus, beginButton and endButton available, but to keep the consistency,
-		// the focus will in the end fall back on the Dialog itself.
 		/**
-		 *
+		 * Applies focus and sets initial focus association
 		 * @private
 		 */
 		Dialog.prototype._setInitialFocus = function () {
@@ -1657,7 +1703,7 @@ function(
 			}
 
 			if (oControl) {
-				//if someone tries to focus on an existing but not visible control, focus the Dialog itself.
+				// If attempting to focus on an existing but invisible control, focus the dialog itself.
 				if (oControl.getVisible && !oControl.getVisible()) {
 					return {
 						realTarget: this,
@@ -1668,7 +1714,6 @@ function(
 				oFocusDomRef = oControl.getFocusDomRef();
 			}
 
-			// if focus dom ref is not found
 			if (!oFocusDomRef) {
 				sInitialFocusProperty = ""; // clear the saved initial focus
 				oFocusDomRef = this._getFocusDomRef(true); // Recalculate the element to focus on.
@@ -1957,11 +2002,38 @@ function(
 			return !this.getStretch() && (this.getDraggable() || this.getResizable());
 		};
 
+	/**
+	 * Returns the correct message to be read by the aria-describedby attribute
+	 * @private
+	 */
+	Dialog.prototype._getAriaDescribedByText = function () {
+		if (this.getStretch()) {
+			return "";
+		}
+
+		var oRb = Library.getResourceBundleFor("sap.m");
+
+		if (this.getResizable() && this.getDraggable()) {
+			return oRb.getText("DIALOG_ARIA_DESCRIBEDBY_DRAGGABLE_RESIZABLE");
+		}
+		if (this.getDraggable()) {
+			return oRb.getText("DIALOG_ARIA_DESCRIBEDBY_DRAGGABLE");
+		}
+		if (this.getResizable()) {
+			return oRb.getText("DIALOG_ARIA_DESCRIBEDBY_RESIZABLE");
+		}
+		return "";
+	};
+
 		/**
-		 * Returns the correct message to be read by the aria-describedby attribute
+		 * Returns the correct message to be read by the aria-describedby attribute for drag and resize handle
 		 * @private
+		 * @returns {string} The text for aria-describedby attribute for drag and resize handle
 		 */
-		Dialog.prototype._getAriaDescribedByText = function () {
+		Dialog.prototype._getDescribedByDragAndResizeHandleText = function () {
+			if (this.getStretch()) {
+				return "";
+			}
 			var oRb = Library.getResourceBundleFor("sap.m");
 			if (this.getResizable() && this.getDraggable()) {
 				return oRb.getText("DIALOG_HEADER_ARIA_DESCRIBEDBY_DRAGGABLE_RESIZABLE");
@@ -1972,9 +2044,9 @@ function(
 			if (this.getResizable()) {
 				return oRb.getText("DIALOG_HEADER_ARIA_DESCRIBEDBY_RESIZABLE");
 			}
+
 			return "";
 		};
-
 		/**
 		 * Returns the value of the Vertical Margin from the CSS parameter
 		 * @private

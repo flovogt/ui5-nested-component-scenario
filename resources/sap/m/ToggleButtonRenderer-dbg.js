@@ -4,7 +4,7 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 
-// Provides default renderer for control sap.m.Togglebutton
+// Provides default renderer for control sap.m.ToggleButton
 sap.ui.define(['./ButtonRenderer', 'sap/ui/core/Renderer'],
 	function(ButtonRenderer, Renderer) {
 	"use strict";

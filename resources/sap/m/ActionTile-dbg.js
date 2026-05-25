@@ -41,7 +41,7 @@ sap.ui.define([
 	* @extends sap.m.GenericTile
 	*
 	* @author SAP SE
-	* @version 1.136.16
+	* @version 1.148.0
 	*
 	* @public
 	* @since 1.122
@@ -133,6 +133,19 @@ sap.ui.define([
 	};
 
 	/**
+	 * Helper method to handle keyboard/pointer events with link prevention
+	 * @param {sap.ui.base.Event} oEvent - The event object
+	 * @param {string} sMethodName - The parent method name to call
+	 * @private
+	 */
+	ActionTile.prototype._handleInteractionEvent = function(oEvent) {
+		if (this._shouldRenderLink()) {
+			oEvent.preventDefault();
+		}
+		GenericTile.prototype["on" + oEvent.type]?.apply(this, arguments);
+	};
+
+	/**
 	* Removes the style classes inherited from the parent control
 	* @private
 	*/
@@ -171,7 +184,8 @@ sap.ui.define([
 				displaySize: AvatarSize.Custom,
 				customDisplaySize: "3.25rem",
 				displayShape: AvatarShape.Square,
-				backgroundColor: AvatarColor.Placeholder
+				backgroundColor: AvatarColor.Placeholder,
+				decorative: true
 			}).addStyleClass("sapMATIconFrame");
 			this.addDependent(this._oAvatar);
 
@@ -236,6 +250,20 @@ sap.ui.define([
 		if (this._oAvatar) {
 			this._oAvatar.destroy();
 		}
+	};
+
+	//Event handling for keyboard and pointer interactions
+
+	ActionTile.prototype.ontap = function(oEvent) {
+		this._handleInteractionEvent(oEvent);
+	};
+
+	ActionTile.prototype.onsapenter = function(oEvent) {
+		this._handleInteractionEvent(oEvent);
+	};
+
+	ActionTile.prototype.onsapspace = function(oEvent) {
+		this._handleInteractionEvent(oEvent);
 	};
 
 	return ActionTile;

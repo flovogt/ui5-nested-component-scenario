@@ -82,7 +82,7 @@ sap.ui.define([
 	// shortcut for sap.m.AvatarShape
 	var AvatarShape = library.AvatarShape;
 
-	// shortcut for sap.m.EmptyIndicator
+	// shortcut for sap.m.EmptyIndicatorMode
 	var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
 	var oRB = Library.getResourceBundleFor('sap.m');
@@ -98,12 +98,12 @@ sap.ui.define([
 	 *
 	 * @class QuickViewPage consists of a page header, an avatar,
 	 * an object name with short description, and an object information divided in groups.
-	 * The control uses the sap.m.SimpleForm control to display information.
+	 * The control uses the sap.ui.layout.form.SimpleForm control to display information.
 	 *
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public

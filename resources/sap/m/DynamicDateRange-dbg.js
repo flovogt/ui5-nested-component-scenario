@@ -288,7 +288,7 @@ sap.ui.define([
 		 * is opened. The dialog is closed via a date time period value selection or by pressing the "Cancel" button.
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @constructor
 		 * @public
@@ -568,6 +568,8 @@ sap.ui.define([
 		var aLastIncludedOptions = ["LASTMINUTESINCLUDED", "LASTHOURSINCLUDED", "LASTDAYSINCLUDED", "LASTWEEKSINCLUDED", "LASTMONTHSINCLUDED", "LASTQUARTERSINCLUDED", "LASTYEARSINCLUDED"];
 		var aNextIncludedOptions = ["NEXTMINUTESINCLUDED", "NEXTHOURSINCLUDED", "NEXTDAYSINCLUDED", "NEXTWEEKSINCLUDED", "NEXTMONTHSINCLUDED", "NEXTQUARTERSINCLUDED", "NEXTYEARSINCLUDED"];
 
+		const POPUP_MAX_HEIGHT = 512;
+
 		DynamicDateRange.prototype.init = function() {
 			var bValueHelpDecorative = !Device.support.touch || Device.system.desktop ? true : false;
 			this._oInput = new DynamicDateRangeInput(this.getId() + "-input", {
@@ -607,6 +609,11 @@ sap.ui.define([
 			this._oInput.removeDelegate(this._onBeforeInputRenderingDelegate);
 			this._onBeforeInputRenderingDelegate = undefined;
 			this.oValueObserver.destroy();
+
+			if (this._oInvisibleLabelText) {
+				this._oInvisibleLabelText.destroy();
+				this._oInvisibleLabelText = undefined;
+			}
 
 			this._infoDatesFooter = undefined;
 			this.aInputControls = undefined;
@@ -748,30 +755,44 @@ sap.ui.define([
 				this._removeAllListItemDelegates();
 				this._oOptionsList.destroyAggregation("items");
 
-				this._collectValueHelpItems(this._getOptions(), true).map(function(vOption) {
+				let oCurrentGroupHeader;
+
+				this._collectValueHelpItems(this._getOptions(), true).forEach(function(vOption) {
+					let oItem;
 					// check if it's a group header
 					if (typeof (vOption) === "string") {
-						return this._createHeaderListItem(vOption);
+						// Create and add group header using ListBase.addItemGroup
+						const oGroupData = { text: vOption };
+						oCurrentGroupHeader = this._oOptionsList.addItemGroup(oGroupData, null, true);
+						oCurrentGroupHeader.addDelegate(this._oListItemDelegate, this);
+					} else {
+						if (vOption.getKey() === "FROMDATETIME") {
+							vOption._bAdditionalTimeText = !!this._findOption("FROM");
+						} else if (vOption.getKey() === "TODATETIME") {
+							vOption._bAdditionalTimeText = !!this._findOption("TO");
+						} else if (vOption.getKey() === "DATETIMERANGE") {
+							vOption._bAdditionalTimeText = !!this._findOption("DATERANGE");
+						}
+						oItem = this._createListItem(vOption);
+						oItem.addDelegate(this._oListItemDelegate, this);
+						this._oOptionsList.addItem(oItem);
 					}
-					if (vOption.getKey() === "FROMDATETIME") {
-						vOption._bAdditionalTimeText = !!this._findOption("FROM");
-					} else if (vOption.getKey() === "TODATETIME") {
-						vOption._bAdditionalTimeText = !!this._findOption("TO");
-					} else if (vOption.getKey() === "DATETIMERANGE") {
-						vOption._bAdditionalTimeText = !!this._findOption("DATERANGE");
-					}
-					return this._createListItem(vOption);
-				}, this).forEach(function(oItem) {
-					oItem.addDelegate(this._oListItemDelegate, this);
-					this._oOptionsList.addItem(oItem);
 				}, this);
 
 				//reset value help page
 				this._oNavContainer.to(this._oNavContainer.getPages()[0]);
 
+				// Enable auto-sizing for the options list page
+				if (!Device.system.phone) {
+					this._oPopup.addStyleClass("sapMDDRAutoSize");
+					this._oPopup.setContentHeight("");
+				}
+
 				this._openPopup(oDomRef);
 			}
 		};
+
+
 
 		/**
 		 * Searches if there is an option with the given key included.
@@ -1145,7 +1166,9 @@ sap.ui.define([
 			this._oInput.addSuggestionItem(oItem);
 
 			// Called after addSuggestionItem because the suggested items are needed in _getDatesLabelFormatter.
-			oItem.setAdditionalText(this._getDatesLabelFormatter().format(aResultingDates));
+			if (aResultingDates.length > 0) {
+				oItem.setAdditionalText(this._getDatesLabelFormatter().format(aResultingDates));
+			}
 		};
 
 		/**
@@ -1256,8 +1279,6 @@ sap.ui.define([
 		DynamicDateRange.prototype._createPopup = function() {
 			if (!this._oPopup) {
 				this._oPopup = new ResponsivePopover(this.getId() + "-RP", {
-					//read the documentation about those two - the page addapts its size to its container...
-					contentHeight: '512px',
 					contentWidth: '320px',
 					showCloseButton: false,
 					showArrow: false,
@@ -1437,13 +1458,6 @@ sap.ui.define([
 			});
 		};
 
-		DynamicDateRange.prototype._createHeaderListItem = function(sHeader) {
-			var oHeader = new GroupHeaderListItem();
-			oHeader.setTitle(sHeader);
-			oHeader._bGroupHeader = true;
-
-			return oHeader;
-		};
 
 		DynamicDateRange.prototype._handleOptionPress = function(oEvent) {
 			var sOptionKey = oEvent.getSource().getOptionKey(),
@@ -1473,6 +1487,12 @@ sap.ui.define([
 
 				oSecondPage.setFooter(oToolbar);
 				oSecondPage.setTitle(oOption.getText(this));
+
+				// Switch to fixed height for value help page
+				if (!Device.system.phone) {
+					this._oPopup.removeStyleClass("sapMDDRAutoSize");
+					this._oPopup.setContentHeight(POPUP_MAX_HEIGHT + "px");
+				}
 
 				this._setFooterVisibility(true);
 				this._updateInternalControls(oOption);
@@ -1616,6 +1636,7 @@ sap.ui.define([
 					showSeparators: ListSeparators.None,
 					mode: ListMode.SingleSelectMaster
 				});
+
 			}
 
 			if (!this._oNavContainer) {
@@ -1647,13 +1668,13 @@ sap.ui.define([
 				)[0];
 
 			if (!oOption) {
-				if (aLastOptions.indexOf(oValue.operator) > -1) {
+				if (this.lastOptionsIndex(oValue.operator) > -1) {
 					oOption = aOptions.filter(
-						function (oItem) { return oItem.getOptionKey && oItem.getOptionKey() === aLastOptions[0];}
+						function (oItem) { return oItem.getOptionKey && StandardDynamicDateOption.LastXKeys.indexOf(oItem.getOptionKey()) !== -1;}
 					)[0];
 				} else if (this.nextOptionsIndex(oValue.operator) > -1) {
 					oOption = aOptions.filter(
-						function (oItem) { return oItem.getOptionKey && oItem.getOptionKey() === aNextOptions[0];}
+						function (oItem) { return oItem.getOptionKey && StandardDynamicDateOption.NextXKeys.indexOf(oItem.getOptionKey()) !== -1;}
 					)[0];
 				}
 			}
@@ -1700,6 +1721,59 @@ sap.ui.define([
 		DynamicDateRange.prototype._reApplyFocusToElement = function (oToPage, oValue) {};
 
 		/**
+		 * Returns the invisible label text for the DynamicDateRange options page.
+		 * @private
+		 * @returns {sap.ui.core.InvisibleText} The invisible label text
+		 */
+		DynamicDateRange.prototype._getInvisibleLabelText = function() {
+			if (!this._oInvisibleLabelText) {
+				this._oInvisibleLabelText = new InvisibleText({
+					text: ""
+				}).toStatic();
+			}
+
+			return this._oInvisibleLabelText;
+		};
+
+		/**
+		 * Updates the invisible label text with the options page title.
+		 * @param {sap.m.Page} oToPage The options page
+		 * @private
+		 */
+		DynamicDateRange.prototype._updateInvisibleLabelText = function(oToPage) {
+			// Ensure the invisible label is created first
+			this._getInvisibleLabelText();
+
+			if (this._oInvisibleLabelText && oToPage && oToPage.getTitle) {
+				this._oInvisibleLabelText.setText(oToPage.getTitle());
+			}
+		};
+
+		/**
+		 * Adds the invisible label to the popover's ariaLabelledBy association.
+		 * @private
+		 */
+		DynamicDateRange.prototype._addInvisibleLabelToPopover = function() {
+			if (this._oPopup && this._oInvisibleLabelText) {
+				var aCurrentLabels = this._oPopup.getAriaLabelledBy();
+				var sInvisibleLabelId = this._oInvisibleLabelText.getId();
+				if (aCurrentLabels.indexOf(sInvisibleLabelId) === -1) {
+					this._oPopup.addAriaLabelledBy(sInvisibleLabelId);
+				}
+			}
+		};
+
+		/**
+		 * Removes the invisible label from the popover's ariaLabelledBy association.
+		 * @private
+		 */
+		DynamicDateRange.prototype._removeInvisibleLabelFromPopover = function() {
+			if (this._oPopup && this._oInvisibleLabelText) {
+				this._oPopup.removeAriaLabelledBy(this._oInvisibleLabelText.getId());
+			}
+		};
+
+		/**
 		 * Creates the title text for the options page.
 		 *
 		 * @returns {string} title text
@@ -1722,18 +1796,27 @@ sap.ui.define([
 		 */
 		DynamicDateRange.prototype._navContainerAfterNavigate = function(oEvent) {
 			var oOptionDetailsPage = this._oNavContainer.getPages()[1],
-				oToPage = oEvent.getParameters()["to"];
+				oToPage = oEvent.getParameters()["to"],
+				oOptionsListPage = this._oNavContainer.getPages()[0];
 
 			if (oToPage === oOptionDetailsPage) {
-				this.aInputControls.forEach(function(oControl) {
-					if (oControl.$().firstFocusableDomRef()) {
-						oControl.addAriaLabelledBy && oControl.addAriaLabelledBy(oToPage.getId() + "-title");
+				// Update the invisible label text with the page title and add it to popover
+				this._updateInvisibleLabelText(oToPage);
+				this._addInvisibleLabelToPopover();
 
-						if (!this._isCalendarBasedControl(oControl) && oControl.addAriaDescribedBy) {
-							oControl.addAriaDescribedBy(oToPage.getFooter().getContent()[0]);
-						}
+				this.aInputControls.forEach(function(oControl) {
+					if (oControl.$().firstFocusableDomRef() && !this._isCalendarBasedControl(oControl) && oControl.addAriaDescribedBy) {
+						oControl.addAriaDescribedBy(oToPage.getFooter().getContent()[0]);
 					}
 				}, this);
+			} else if (oToPage === oOptionsListPage) {
+				// Switch back to auto-sizing for options list page
+				if (!Device.system.phone) {
+					this._oPopup.addStyleClass("sapMDDRAutoSize");
+					this._oPopup.setContentHeight("");
+				}
+				// Remove the invisible label from popover when navigating back to options list
+				this._removeInvisibleLabelFromPopover();
 			}
 
 			if (this._oPopup && this._oPopup.isOpen()) {
@@ -2178,11 +2261,12 @@ sap.ui.define([
 			if (bDateOption || bDateTimeOption) {
 				oNavControl.addStyleClass("sapMDDRDateOption");
 				sNavgationIconURI = bDateOption ? IconPool.getIconURI("appointment-2") : IconPool.getIconURI("date-time");
+				oNavControl.setTooltip(oResourceBundle.getText("OPEN_PICKER_TEXT"));
 			} else {
 				sNavgationIconURI = IconPool.getIconURI("slim-arrow-right");
 			}
 
-			oNavControl.setSrc(sNavgationIconURI);
+			oNavControl.setIcon(sNavgationIconURI);
 
 			return oNavControl;
 		};

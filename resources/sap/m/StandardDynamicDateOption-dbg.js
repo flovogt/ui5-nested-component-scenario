@@ -13,8 +13,8 @@ sap.ui.define([
 	'./DynamicDateOption',
 	'./Label',
 	'./RadioButton',
+	'./RadioButtonGroup',
 	'./Select',
-	'./VBox',
 	'sap/ui/core/date/UniversalDateUtils',
 	'sap/ui/core/date/UniversalDate',
 	'sap/ui/core/date/UI5Date',
@@ -29,8 +29,8 @@ sap.ui.define([
 		DynamicDateOption,
 		Label,
 		RadioButton,
+		RadioButtonGroup,
 		Select,
-		VBox,
 		UniversalDateUtils,
 		UniversalDate,
 		UI5Date,
@@ -54,7 +54,7 @@ sap.ui.define([
 		 * @extends sap.m.DynamicDateOption
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @private
 		 * @alias sap.m.StandardDynamicDateOption
@@ -550,7 +550,10 @@ sap.ui.define([
 				}
 
 				aControls.push(oInputControl);
-				oCurrentLabel && oCurrentLabel.setLabelFor(oInputControl);
+
+				if (oCurrentLabel) {
+					oCurrentLabel.setLabelFor(oInputControl);
+				}
 
 				if (aParams[iIndex].getAdditionalText()) {
 					aControls.push(
@@ -568,7 +571,7 @@ sap.ui.define([
 
 		StandardDynamicDateOption.prototype._createIntegerControl = function(oValue, iIndex, fnControlsUpdated) {
 			var oControl = DynamicDateOption.prototype._createIntegerControl.call(this, oValue, iIndex, fnControlsUpdated);
-			var iMin = this.getKey() === "TODAYFROMTO" ? -MAX_VALUE_HELP_INTEGER : MIN_VALUE_HELP_INTEGER;
+			var iMin = this.getKey() === "TODAYFROMTO" ? 0 : MIN_VALUE_HELP_INTEGER;
 			var bUseDefaultValue = !oValue || this.getKey() !== oValue.operator;
 
 			if (bUseDefaultValue) {
@@ -642,43 +645,32 @@ sap.ui.define([
 		};
 
 		StandardDynamicDateOption.prototype._createIncludedControl = function(oValue, fnControlsUpdated) {
-			const oIncludedRadioButton = new RadioButton({
-				text: _resourceBundle.getText("DDR_LASTNEXTX_INCLUDE_LABEL"),
-				groupName: `includedSelection-${this.getKey()}`
-			});
-			const oExcludedRadioButton = new RadioButton({
-				text: _resourceBundle.getText("DDR_LASTNEXTX_EXCLUDE_LABEL"),
-				selected: true,
-				groupName: `includedSelection-${this.getKey()}`
-			});
-
-			const oControl = new VBox({
-				items: [
-					oExcludedRadioButton,
-					new Label({text:"", wrapping: true}),
-					oIncludedRadioButton,
-					new Label({text: "", wrapping: true})
+			const oRadioButtonGroup = new RadioButtonGroup({
+				columns: 1,
+				buttons: [
+					new RadioButton({
+						text: _resourceBundle.getText("DDR_LASTNEXTX_EXCLUDE_LABEL"),
+						selected: true
+					}),
+					new RadioButton({
+						text: _resourceBundle.getText("DDR_LASTNEXTX_INCLUDE_LABEL")
+					})
 				]
 			});
 
 			if (oValue && oValue.operator.indexOf("INCLUDED") > -1) {
-				oIncludedRadioButton.setSelected(true);
-			} else {
-				oExcludedRadioButton.setSelected(true);
+				oRadioButtonGroup.setSelectedIndex(1);
 			}
-
-			this._oInternalIncludedControl = oControl;
 
 			if (fnControlsUpdated instanceof Function) {
-				oIncludedRadioButton.attachSelect(function() {
-					fnControlsUpdated(this);
-				}, this);
-				oExcludedRadioButton.attachSelect(function() {
+				oRadioButtonGroup.attachSelect(function() {
 					fnControlsUpdated(this);
 				}, this);
 			}
 
-			return oControl;
+			this._oInternalIncludedControl = oRadioButtonGroup;
+
+			return oRadioButtonGroup;
 		};
 
 		StandardDynamicDateOption.prototype._getOptionParams = function(aGroupOptions, oOptions){
@@ -803,7 +795,8 @@ sap.ui.define([
 
 			if (aLastOptions.indexOf(this.getKey()) !== -1 || aNextOptions.indexOf(this.getKey()) !== -1) {
 				const bCurrentOptionHasAlsoIncluded = oControl.getStandardOptions().indexOf(aResult.operator + "INCLUDED") > -1;
-				const bIncludedRadioButtonIsSelected = oControl.aControlsByParameters && oControl.aControlsByParameters[this.getKey()] && oControl.aControlsByParameters[this.getKey()][2]?.getItems()[2].getSelected();
+				const oRadioButtonGroup = oControl.aControlsByParameters && oControl.aControlsByParameters[this.getKey()] && oControl.aControlsByParameters[this.getKey()][2];
+				const bIncludedRadioButtonIsSelected = oRadioButtonGroup ? oRadioButtonGroup.getSelectedIndex() === 1 : false;
 
 				if (bIncludedRadioButtonIsSelected && bCurrentOptionHasAlsoIncluded) {
 					aResult.operator = aResult.operator + "INCLUDED";
@@ -937,22 +930,13 @@ sap.ui.define([
 
 			const sSelectedOption = oSelectControl.getSelectedKey();
 			const sFullOptionName = this.getKey().slice(0,4) + sSelectedOption.toUpperCase();
-			const oIncludedControl = aControls[2];
+			const oRadioButtonGroup = aControls[2];
 			const oIncludedControlLabel = oControl.aInputControls[4];
-			const oInputControl = aControls[0];
-			const oIncludedDates = this.toDates({"operator": sFullOptionName + "INCLUDED", "values": [oInputControl.getValue()]});
-			const oExcludedDates = this.toDates({"operator": sFullOptionName, "values": [oInputControl.getValue()]});
-			const sIncludedLabel = oControl._getDatesLabelFormatter().format(oIncludedDates);
-			const sExcludedLabel = oControl._getDatesLabelFormatter().format(oExcludedDates);
-
-			oIncludedControl?.getItems()[1].setText(sExcludedLabel);
-			oIncludedControl?.getItems()[3].setText(sIncludedLabel);
-
 			if (oControl.getStandardOptions().indexOf(sFullOptionName + "INCLUDED") !== -1 && oControl.getStandardOptions().indexOf(sFullOptionName) !== -1) {
-				oIncludedControl?.setVisible(true);
+				oRadioButtonGroup?.setVisible(true);
 				oIncludedControlLabel?.setVisible(true);
 			} else {
-				oIncludedControl?.setVisible(false);
+				oRadioButtonGroup?.setVisible(false);
 				oIncludedControlLabel?.setVisible(false);
 			}
 		};

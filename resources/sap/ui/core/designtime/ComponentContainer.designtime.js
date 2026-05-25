@@ -3,5 +3,5 @@
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
-sap.ui.define([],function(){"use strict";return{associations:{component:{aggregationLike:true}}}});
+sap.ui.define([],function(){"use strict";return{associations:{component:{aggregationLike:true}},actions:{extendController:null,addXML:null}}});
 //# sourceMappingURL=ComponentContainer.designtime.js.map

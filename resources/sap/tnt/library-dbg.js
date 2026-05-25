@@ -22,14 +22,14 @@ sap.ui.define([
 	 * @namespace
 	 * @alias sap.tnt
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @since 1.36
 	 * @public
 	 */
 	var thisLib = Library.init({
 		apiVersion: 2,
 		name : "sap.tnt",
-		version: "1.136.16",
+		version: "1.148.0",
 		dependencies : ["sap.ui.core", "sap.m"],
 		designtime: "sap/tnt/designtime/library.designtime",
 		types: [
@@ -89,7 +89,6 @@ sap.ui.define([
 	 * @public
 	 * @enum {string}
 	 * @since 1.133.0
-	 * @experimental Behavior might change.
 	 */
 	thisLib.NavigationListItemDesign = {
 
@@ -111,7 +110,6 @@ sap.ui.define([
 	 * @public
 	 * @enum {string}
 	 * @since 1.134.0
-	 * @experimental Behavior might change.
 	 */
 	thisLib.SideNavigationDesign = {
 

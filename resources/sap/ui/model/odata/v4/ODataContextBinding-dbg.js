@@ -74,7 +74,7 @@ sap.ui.define([
 		 * @mixes sap.ui.model.odata.v4.ODataParentBinding
 		 * @public
 		 * @since 1.37.0
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getGroupId as #getGroupId
 		 * @borrows sap.ui.model.odata.v4.ODataBinding#getRootBinding as #getRootBinding
@@ -206,7 +206,7 @@ sap.ui.define([
 	 *   Whether this operation binding's parent context, which must belong to a list binding, is
 	 *   replaced with the operation's return value context (see below) and that new list context is
 	 *   returned instead. Since 1.97.0.
-	 * @returns {Promise}
+	 * @returns {Promise<sap.ui.model.odata.v4.Context|undefined>}
 	 *   A promise that is resolved without data or with a return value context when the operation
 	 *   call succeeded, or rejected with an <code>Error</code> instance <code>oError</code> in case
 	 *   of failure.
@@ -225,7 +225,7 @@ sap.ui.define([
 
 		/*
 		 * Fires a "change" event and refreshes dependent bindings.
-		 * @returns {sap.ui.base.SyncPromise} A promise resolving when the refresh is finished
+		 * @returns {sap.ui.base.SyncPromise<void>} A promise resolving when the refresh is finished
 		 */
 		function fireChangeAndRefreshDependentBindings() {
 			that._fireChange({reason : ChangeReason.Change});
@@ -428,7 +428,7 @@ sap.ui.define([
 	 * If a back-end request fails, the 'dataReceived' event provides an <code>Error</code> in the
 	 * 'error' event parameter.
 	 *
-	 * Since 1.106 this event is bubbled up to the model, unless a listener calls
+	 * Since 1.106, this event is bubbled up to the model, unless a listener calls
 	 * {@link sap.ui.base.Event#cancelBubble oEvent.cancelBubble()}.
 	 *
 	 * @param {sap.ui.base.Event} oEvent
@@ -456,7 +456,7 @@ sap.ui.define([
 	 * fired: Whatever should happen in the event handler attached to that event, can instead be
 	 * done before calling {@link #invoke}.
 	 *
-	 * Since 1.106 this event is bubbled up to the model, unless a listener calls
+	 * Since 1.106, this event is bubbled up to the model, unless a listener calls
 	 * {@link sap.ui.base.Event#cancelBubble oEvent.cancelBubble()}.
 	 *
 	 * @param {sap.ui.base.Event} oEvent
@@ -540,7 +540,7 @@ sap.ui.define([
 	 * @private
 	 */
 	ODataContextBinding.prototype.computeOperationQueryOptions = function () {
-		return Object.assign({}, this.oModel.mUriParameters, this.getQueryOptionsFromParameters());
+		return Object.assign({}, this.oModel.mURLParameters, this.getQueryOptionsFromParameters());
 	};
 
 	/**
@@ -563,7 +563,7 @@ sap.ui.define([
 	 *   actions only
 	 * @param {function} [fnOnStrictHandlingFailed]
 	 *   Callback for strict handling; supported for actions only
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<any>}
 	 *   The request promise
 	 * @throws {Error} If
 	 *   <ul>
@@ -615,7 +615,7 @@ sap.ui.define([
 		/*
 		 * Calls back into the application with the messages whether to repeat the action.
 		 * @param {Error} oError The error from the failed request
-		 * @returns {Promise} A promise resolving with a boolean
+		 * @returns {Promise<boolean>} A promise resolving with a boolean
 		 * @throws {Error} If <code>fnOnStrictHandlingFailed</code> does not return a promise
 		 */
 		function onStrictHandling(oError) {
@@ -879,7 +879,7 @@ sap.ui.define([
 	 *   A property binding which registers itself as listener at the cache
 	 * @param {boolean} [bCached]
 	 *   Whether to return cached values only and not initiate a request
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<any>}
 	 *   A promise on the outcome of the cache's <code>fetchValue</code> call; it is rejected in
 	 *   case cached values are asked for, but not found, or if the cache is no longer the active
 	 *   cache when the response arrives
@@ -1215,7 +1215,7 @@ sap.ui.define([
 	 * 1. Operation is bound.
 	 * 2. Operation has single entity return value. Note: existence of EntitySetPath
 	 *    implies the return value is an entity or a collection thereof;
-	 *    see OData V4 spec part 3, 12.1.3. It thus ensures the "entity" in this condition.
+	 *    see [OData-CSDL-XML-v4.01], 12.6. It thus ensures the "entity" in this condition.
 	 * 3. EntitySetPath of operation is the binding parameter.
 	 * 4. Operation binding has
 	 *    (a) a V4 parent context which
@@ -1358,12 +1358,13 @@ sap.ui.define([
 	 *   context only. Such a message can only be connected to a corresponding control if the
 	 *   control's property bindings use the return value context as binding context.
 	 *   <br>
-	 *   A return value context may also be provided if the parent context's path contains a maximum
-	 *   of one navigation property. In addition to the existing preconditions for a return value
-	 *   context, the metadata has to specify a partner attribute for the navigation property and
-	 *   the partner relationship has to be bi-directional. Also the navigation property binding has
-	 *   to be available in the entity set of the first segment in the parent context's path
-	 *   (@experimental as of version 1.119.0).
+	 *   Since 1.141.0, a return value context may also be provided if the parent context's path
+	 *   contains a maximum of one navigation property. In addition to the existing preconditions
+	 *   for a return value context, the metadata has to specify a partner attribute for the
+	 *   navigation property and the partner relationship has to be bi-directional. Also a
+	 *   navigation property binding has to be available for the entity set of the first segment in
+	 *   the parent context's path. <b>Note:</b> Ensure your service implementation returns all
+	 *   selected key properties; otherwise, no return value context is provided.
 	 * @throws {Error} If
 	 *   <ul>
 	 *     <li> the binding's root binding is suspended,
@@ -1453,7 +1454,7 @@ sap.ui.define([
 	 * 1. Operation is bound.
 	 * 2. Operation has single entity return value. Note: existence of EntitySetPath
 	 *    implies the return value is an entity or a collection thereof;
-	 *    see OData V4 spec part 3, 12.1.3. It thus ensures the "entity" in this condition.
+	 *    see [OData-CSDL-XML-v4.01], 12.6. It thus ensures the "entity" in this condition.
 	 * 3. EntitySetPath of operation is the binding parameter.
 	 * 4. Operation binding has
 	 *    (a) a V4 parent context.
@@ -1501,7 +1502,7 @@ sap.ui.define([
 	/**
 	 * Returns a sync promise that tells whether we are ready to inherit $expand/$select.
 	 *
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A sync promise that resolves without a defined result as soon as we are ready to inherit
 	 *   $expand/$select
 	 *
@@ -1525,7 +1526,7 @@ sap.ui.define([
 	 *   If <code>true</code>, a property binding is expected to check for updates
 	 * @param {boolean} [bKeepCacheOnError]
 	 *   If <code>true</code>, the binding data remains unchanged if the refresh fails
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise resolving when all dependent bindings are refreshed; it is rejected
 	 *   when the refresh fails; the promise is resolved immediately on a suspended binding
 	 * @throws {Error}
@@ -1551,7 +1552,9 @@ sap.ui.define([
 		var that = this;
 
 		if (this.oOperation && this.oOperation.bAction !== false) {
-			return SyncPromise.resolve();
+			// there may be dependent bindings that refer the parent entity
+			return this.refreshDependentBindings(sResourcePathPrefix, sGroupId, bCheckUpdate,
+				bKeepCacheOnError);
 		}
 
 		this.bHasFetchedExpandSelectProperties = false;
@@ -1632,11 +1635,11 @@ sap.ui.define([
 	 *
 	 * @param {sap.ui.model.odata.v4.Context} oContext
 	 *   The context to refresh
-	 * @param {string} sGroupId
+	 * @param {string} [sGroupId]
 	 *   The group ID for the refresh
 	 * @param {boolean} [bKeepCacheOnError]
 	 *   If <code>true</code>, the binding data remains unchanged if the refresh fails
-	 * @returns {sap.ui.base.SyncPromise}
+	 * @returns {sap.ui.base.SyncPromise<void>}
 	 *   A promise which is resolved without a defined result when the refresh is finished and if
 	 *   the context is this binding's return value context; <code>null</code> otherwise
 	 *
@@ -1683,9 +1686,9 @@ sap.ui.define([
 	/**
 	 * Returns a promise on the value for the given path relative to this binding. The function
 	 * allows access to the complete data the binding points to (if <code>sPath</code> is "") or
-	 * any part thereof. The data is a JSON structure as described in <a href=
-	 * "https://docs.oasis-open.org/odata/odata-json-format/v4.0/odata-json-format-v4.0.html"
-	 * >"OData JSON Format Version 4.0"</a>.
+	 * any part thereof. The data is a JSON structure as described in
+	 * <a href="https://docs.oasis-open.org/odata/odata-json-format/v4.01/">
+	 * "OData JSON Format Version 4.01"</a>.
 	 * Note that the function clones the result. Modify values via
 	 * {@link sap.ui.model.odata.v4.Context#setProperty}.
 	 *
@@ -1723,8 +1726,8 @@ sap.ui.define([
 		 * Adds an error handler to the given promise which reports errors to the model and ignores
 		 * cancellations.
 		 *
-		 * @param {Promise} oPromise - A promise
-		 * @returns {Promise} A promise including an error handler
+		 * @param {Promise<any>} oPromise - A promise
+		 * @returns {Promise<any>} A promise including an error handler
 		 */
 		function reportError(oPromise) {
 			return oPromise.catch(function (oError) {

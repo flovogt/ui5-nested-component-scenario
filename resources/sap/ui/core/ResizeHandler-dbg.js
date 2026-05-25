@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @alias sap.ui.core.ResizeHandler
 	 * @extends sap.ui.base.Object
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @public
 	 */
 

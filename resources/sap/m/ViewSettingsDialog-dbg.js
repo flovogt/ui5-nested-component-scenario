@@ -38,7 +38,8 @@ sap.ui.define([
 	"sap/ui/core/library",
 	"sap/ui/thirdparty/jquery",
 	// jQuery Plugin "firstFocusableDomRef"
-	"sap/ui/dom/jquery/Focusable"
+	"sap/ui/dom/jquery/Focusable",
+	"sap/ui/core/InvisibleMessage"
 ],
 function(
 	library,
@@ -71,7 +72,9 @@ function(
 	StaticArea,
 	Log,
 	coreLibrary,
-	jQuery
+	jQuery,
+	jQueryFocusable,
+	InvisibleMessage
 ) {
 	"use strict";
 
@@ -94,6 +97,8 @@ function(
 	var TitleLevel = coreLibrary.TitleLevel;
 
 	var LIST_ITEM_SUFFIX = "-list-item";
+
+	var InvisibleMessageMode = coreLibrary.InvisibleMessageMode;
 
 	/**
 	 * Constructor for a new <code>ViewSettingsDialog</code>.
@@ -155,7 +160,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -380,6 +385,7 @@ function(
 		this._sFilterDetailTitleLabelId     = sId + "-detailtitle";
 		this._oFiltersSelectedOnly			= {};
 		this._oKeylessFilters				= {};
+		this._oInvisibleMessage				= null;
 
 		/* setup a name map between the sortItems
 		 aggregation and an sap.m.List with items
@@ -437,6 +443,7 @@ function(
 		this._sCustomTabsButtonsIdPrefix    = null;
 		this._fnFilterSearchCallback        = null;
 		this._oKeylessFilters               = null;
+		this._oInvisibleMessage				= null;
 
 		// sap.ui.core.Popup removes its content on close()/destroy() automatically from the static UIArea,
 		// but only if it added it there itself. As we did that, we have to remove it also on our own
@@ -956,7 +963,7 @@ function(
 	/**
 	 * Observes the items aggregation of the passed filterItem
 	 *
-	 * @param {sap.m.ViewSettingsDialogFilterItem} oFilterItem the filterItem, which aggregation will be observed
+	 * @param {sap.m.ViewSettingsFilterItem} oFilterItem the filterItem, which aggregation will be observed
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._observeItem = function (oFilterItem) {
@@ -968,7 +975,7 @@ function(
 	/**
 	 * Unobserves the items aggregation of the passed filterItem
 	 *
-	 * @param {sap.m.ViewSettingsDialogFilterItem} oFilterItem the filterItem, which aggregation will be unobserved
+	 * @param {sap.m.ViewSettingsFilterItem} oFilterItem the filterItem, which aggregation will be unobserved
 	 * @private
 	 */
 	ViewSettingsDialog.prototype._unobserveItem = function (oFilterItem) {
@@ -1389,6 +1396,10 @@ function(
 
 		// open dialog
 		this._getDialog().open();
+
+		if (!this._oInvisibleMessage) {
+			this._oInvisibleMessage = InvisibleMessage.getInstance();
+		}
 
 		return this;
 	};
@@ -1851,6 +1862,9 @@ function(
 
 		// fire the reset event. It can be used to set the state of custom tabs.
 		this.fireReset();
+
+		//Announce to the screen reader that filters are reset
+		this._oInvisibleMessage.announce(this._rb.getText("VIEWSETTINGS_RESET_BUTTON_ACTION"), InvisibleMessageMode.Assertive);
 	};
 
 	/**
@@ -3123,13 +3137,29 @@ function(
 	 * @returns {sap.m.SearchField} A search field instance
 	 * @private
 	 */
-	ViewSettingsDialog.prototype._getFilterSearchField = function(oFilterDetailList) {
+	ViewSettingsDialog.prototype._getFilterSearchField = function (oFilterDetailList) {
+		var sDetailTitleText = this._getDetailTitleLabel().getText(); // e.g. 'Filter by: Type'
+		var sSearchFieldLabel = sDetailTitleText.includes(':') ? sDetailTitleText.split(':')[1].trim() : sDetailTitleText;
+		var sInvisibleText = this._rb.getText('VIEWSETTINGS_SEARCHFIELD_ARIA', [sSearchFieldLabel]); // e.g. 'Search for Type'
+		var oInvisibleText = new InvisibleText({ text: sInvisibleText }).toStatic();
 		var oFilterSearchField = new SearchField({
-				liveChange: function() {
-					this._setFilterDetailItemsVisibility(oFilterDetailList);
-				}.bind(this)
-			});
+			ariaLabelledBy: oInvisibleText,
+			liveChange: function () {
+				this._setFilterDetailItemsVisibility(oFilterDetailList);
 
+				// announce number of found items
+				var sAriaText,
+					iVisibleItems = oFilterDetailList.getItems().filter(function (oItem) { return oItem.getVisible(); }).length;
+				if (iVisibleItems === 1) {
+					sAriaText = this._rb.getText("VIEWSETTINGS_FOUND_ONE_RESULT");
+				} else if (iVisibleItems > 1) {
+					sAriaText = this._rb.getText("VIEWSETTINGS_FOUND_MANY_RESULTS", [iVisibleItems]);
+				} else {
+					sAriaText = this._rb.getText("VIEWSETTINGS_NO_RESULTS");
+				}
+				this._oInvisibleMessage.announce(sAriaText, InvisibleMessageMode.Polite);
+			}.bind(this)
+		});
 		return oFilterSearchField;
 	};
 

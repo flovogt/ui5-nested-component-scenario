@@ -1,22 +1,36 @@
-/*********************************************************************
-	Style of the DT Contextmenu - Horizon High Contrast White theme
-**********************************************************************/
-@_sap_ui_dt_ContextMenu_BorderRadius: @sapUiButtonBorderCornerRadius; // .375rem
-@_sap_ui_dt_ContextMenu_OpenSubMenuBackgroundColor: @sapUiButtonSelectedBackground; //#5c93ff
+/* ====================================== */
+/* CSS for control sap.ui.dt/ContextMenu  */
+/* Horizon High Contrast White theme      */
+/* ====================================== */
 
-.sapUiDtContextMenu {
-	.sapUiMnuLst {
-		.sapUiMnuItm {
+@_sap_ui_dt_ContextMenu_BorderRadius: var(--sapButton_BorderCornerRadius); /* .375rem */
+@_sap_ui_dt_ContextMenu_OpenSubMenuBackgroundColor: var(--sapButton_Selected_Background); /* #5c93ff */
+
+.sapUiDtContextMenu.sapMMenu {
+
+	.sapMMenuList {
+
+		.sapMMenuItem {
+
+			.sapMMenuEndContent {
+
+				.sapMBtn {
+
+					&:focus-visible > .sapMFocusable,
+					&:focus > .sapMFocusable {
+						outline: none;
+					}
+				}
+			}
 
 			&:focus {
 				border-radius: @_sap_ui_dt_ContextMenu_BorderRadius;
 			}
 
-			&.sapUiMnuItmSubMnuOpen {
-				border-bottom: 0.0625rem solid transparent !important; //1px
+			&.sapMMenuItemSubMenuOpen {
 				border-radius: @_sap_ui_dt_ContextMenu_BorderRadius;
 
-				&:not(.sapUiMnuItmHov) {
+				&:not(:hover) {
 					background-color: @_sap_ui_dt_ContextMenu_OpenSubMenuBackgroundColor;
 				}
 			}

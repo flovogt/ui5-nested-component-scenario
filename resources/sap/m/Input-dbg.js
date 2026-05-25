@@ -162,7 +162,7 @@ function(
 	 * @extends sap.m.InputBase
 	 * @implements sap.ui.core.IAccessKeySupport
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -1450,7 +1450,7 @@ function(
 
 			// revert autocompleted value on desktop
 			if (this._getTypedInValue() !== this.getValue()) {
-				this.setValue(this._getTypedInValue());
+				this.$("inner").val(this._getTypedInValue());
 			}
 			return; // override InputBase.onsapescape()
 		}
@@ -1598,6 +1598,8 @@ function(
 	Input.prototype.onmousedown = function(oEvent) {
 		if (this._isSuggestionsPopoverOpen()) {
 			oEvent.stopPropagation();
+			// prevent double focus while a suggestion item has visual focus
+			this._getSuggestionsPopover()?.updateFocus(this, null);
 		}
 	};
 
@@ -1656,7 +1658,7 @@ function(
 	 * @private
 	 */
 	Input.prototype.updateSelectionFromList = function (oSelectedItem) {
-		if (this._hasTabularSuggestions() && (this.getSelectedRow() !== oSelectedItem)) {
+		if (this._hasTabularSuggestions() && (this.getSelectedRow() !== oSelectedItem?.getId())) {
 			this.setSelectionRow(oSelectedItem, true);
 		} else {
 			var oNewItem = ListHelpers.getItemByListItem(this.getSuggestionItems(), oSelectedItem);
@@ -2463,7 +2465,16 @@ function(
 	 */
 	Input.prototype.onfocusout = function (oEvent) {
 		InputBase.prototype.onfocusout.apply(this, arguments);
-		this.removeStyleClass("sapMInputFocused");
+
+		var oRelatedTarget = oEvent.relatedTarget,
+			oTokenizer = this.getAggregation && this.getAggregation("tokenizer"),
+			bFocusMovesToTokenizer = oTokenizer && oRelatedTarget && containsOrEquals(oTokenizer.getDomRef(), oRelatedTarget);
+
+		// Keep the focused classес if focus moves to an element within the Input but not to a token within the tokenizer (e.g., clear icon, value help icon)
+		if (!containsOrEquals(this.getDomRef(), oRelatedTarget) || bFocusMovesToTokenizer) {
+			this.removeStyleClass("sapMInputFocused");
+			this.removeStyleClass("sapMFocus");
+		}
 	};
 
 	/**
@@ -3118,6 +3129,7 @@ function(
 
 			oItemToBeSelected = this._hasTabularSuggestions() ? mTypeAheadInfo.selectedItem : ListHelpers.getListItem(mTypeAheadInfo.selectedItem);
 			oItemToBeSelected.setSelected(true);
+			this.setAssociation("selectedRow", oItemToBeSelected, true);
 		}, this);
 
 		if (this.isMobileDevice()) {

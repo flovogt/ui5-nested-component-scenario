@@ -6,7 +6,7 @@
 @_sap_m_Carousel_BackgroundColorSolid: var(--sapGroup_ContentBackground);
 @_sap_m_Carousel_BackgroundColorTransparent: transparent;
 @_sap_m_Carousel_BackgroundColorTranslucent: var(--sapGroup_ContentBackground);
-@_sap_m_Carousel_MinWidth: 20rem;
+@_sap_m_Carousel_MinWidth: 11.25rem;
 @_sap_m_Carousel_PageIndicatorBarHeight: 3.5rem;
 @_sap_m_Carousel_BottomArrowsOffset: calc(~'3.5rem + 1px');
 @_sap_m_Carousel_ControlsNoArrowsHeight: 2rem;
@@ -34,6 +34,11 @@
 	overflow: hidden;
 	box-sizing: border-box;
 	min-width: @_sap_m_Carousel_MinWidth;
+}
+
+.sapMCrslList{
+	width: 100%;
+	height: 100%;
 }
 
 .sapMCrslBackground-Solid {
@@ -89,11 +94,11 @@
 	text-align: center;
 }
 
-.sapMCrsl.sapMCrslFluid > .sapMCrslInner > * {
+.sapMCrsl.sapMCrslFluid .sapMCrslInner > * {
 	width: 100%;
 }
 
-.sapMCrsl.sapMCrslFluid.sapMCrslCenter > .sapMCrslInner >*:first-child {
+.sapMCrsl.sapMCrslFluid.sapMCrslCenter .sapMCrslInner >*:first-child {
 	margin-left: 0;
 }
 
@@ -120,7 +125,7 @@
 
 html[data-sap-ui-animation='off'] .sapMCrsl .sapMCrslInner {
 	transition: none;
- }
+}
 
 .sapMCrslItemTable {
 	height: 100%;
@@ -174,7 +179,7 @@ html[data-sap-ui-animation='off'] .sapMCrsl .sapMCrslInner {
 	font-size: 1rem;
 }
 
-.sapMCrslFluid > .sapMCrslInner > * {
+.sapMCrslFluid .sapMCrslInner > * {
 	box-sizing: border-box;
 }
 
@@ -185,10 +190,10 @@ html[data-sap-ui-animation='off'] .sapMCrsl .sapMCrslInner {
 }
 
 /* mixin call for creating container content padding classes (arguments: rootContainer, contentSelector) */
-.sapUiContainerContentPadding(~'.sapMCrsl', ~'> .sapMCrslInner > .sapMCrslItem > .sapMScrollCont > .sapMScrollContScroll');
+.sapUiContainerContentPadding(~'.sapMCrsl', ~'.sapMCrslInner > .sapMCrslItem > .sapMScrollCont > .sapMScrollContScroll');
 
 /*
-  Carousel control base styling
+Carousel control base styling
 */
 .sapMCrslControls {
 	text-align: center;
@@ -653,7 +658,7 @@ html[data-sap-ui-animation='off'] .sapMCrslItem {
 
 /* Default Themes/Sytles for Slider */
 .sapMCrslFluid .sapMCrslItem {
-	margin-right: 1.25rem;
+	margin-inline-end: 1rem;
 	width: 100%;
 	height: 100%;
 	overflow: hidden;

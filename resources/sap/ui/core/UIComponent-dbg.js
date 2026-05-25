@@ -7,6 +7,7 @@
 // Provides base class sap.ui.core.Component for all components
 sap.ui.define([
 	'../base/ManagedObject',
+	'../base/OwnStatics',
 	'./Component',
 	'./ComponentHooks',
 	'./Element',
@@ -15,12 +16,14 @@ sap.ui.define([
 	'./UIComponentMetadata',
 	'./mvc/Controller',
 	'./mvc/View',
+	'./mvc/_ViewFactory',
 	'sap/base/util/ObjectPath',
 	'sap/base/future',
 	'sap/base/Log'
 ],
 	function(
 		ManagedObject,
+		OwnStatics,
 		Component,
 		ComponentHooks,
 		Element,
@@ -29,11 +32,14 @@ sap.ui.define([
 		UIComponentMetadata,
 		Controller,
 		View,
+		_ViewFactory,
 		ObjectPath,
 		future,
 		Log
 	) {
 	"use strict";
+
+	const { runWithPreprocessors } = OwnStatics.get(ManagedObject);
 
 	/**
 	 * As <code>UIComponent</code> is an abstract base class for UI components, applications should not call the constructor.
@@ -61,7 +67,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Component
 	 * @abstract
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 * @alias sap.ui.core.UIComponent
 	 * @since 1.9.2
 	 */
@@ -146,7 +152,7 @@ sap.ui.define([
 	 *             "controlId": "App",
 	 *             "controlAggregation": "pages",
 	 *             "viewNamespace": "myApplication.namespace",
-	 *             // If you are using the mobile library, you have to use an sap.m.Router, to get support for
+	 *             // If you are using the mobile library, you have to use an sap.m.routing.Router, to get support for
 	 *             // the controls sap.m.App, sap.m.SplitApp, sap.m.NavContainer and sap.m.SplitContainer.
 	 *             "routerClass": "sap.m.routing.Router",
 	 *             // What happens if no route matches the hash?
@@ -242,54 +248,23 @@ sap.ui.define([
 	 */
 
 	/**
-	 * Callback handler which will be executed once a new Component instance is initialized.
-	 *
-	 * Example usage:
-	 * <pre>
-	 * sap.ui.require(['sap/ui/core/UIComponent'], function(UIComponent) {
-	 *   UIComponent._fnOnInstanceInitialized = function(oComponent) {
-	 *     // do some logic with the Component
-	 *   }
-	 * });
-	 * </pre>
-	 *
-	 * <b>ATTENTION:</b> This hook must only be used by Fiori 2.0 adapter.
-	 *
-	 * @private
-	 * @ui5-restricted sap.ushell
-	 * @since 1.37.0
-	 */
-	UIComponent._fnOnInstanceInitialized = null;
-
-	/**
-	 * Callback handler which will be executed when a Component instance is destroyed.
-	 *
-	 * Example usage:
-	 * <pre>
-	 * sap.ui.require(['sap/ui/core/UIComponent'], function(UIComponent) {
-	 *   UIComponent._fnOnInstanceDestroy = function(oComponent) {
-	 *     // do some logic with the Component
-	 *   }
-	 * });
-	 * </pre>
-	 *
-	 * <b>ATTENTION:</b> This hook must only be used by Fiori 2.0 adapter.
-	 *
-	 * @private
-	 * @ui5-restricted sap.ushell
-	 * @since 1.40
-	 */
-	UIComponent._fnOnInstanceDestroy = null;
-
-	/**
 	 * Initializes the component instance after creation.
 	 *
-	 * Applications must not call this hook method directly, it is called by the
-	 * framework while the constructor of a Component is executed.
+	 * The primary responsibility of this method is to create the root control of the component and
+	 * manage its aggregation in the "rootControl" aggregation. This is performed internally by invoking
+	 * the {@link sap.ui.core.UIComponent#createContent} method.
 	 *
-	 * Subclasses of <code>UIComponent</code> should override this hook to implement any necessary
-	 * initialization. <b>When overriding this function make sure to invoke the
-	 * <code>init</code> function of the <code>UIComponent</code> as well!</b>
+	 * Depending on the class metadata (e.g., if the "sap.ui.core.IAsyncContentCreation" interface is implemented),
+	 * the root control may be created synchronously or asynchronously.
+	 *
+	 * Additionally, this method is responsible for creating the router and targets instances.
+	 *
+	 * <b>Note:</b> Applications must not call this hook method directly; it is invoked by the framework
+	 * during the execution of the Component constructor.
+	 *
+	 * Subclasses of <code>UIComponent</code> should override this hook to implement any required
+	 * initialization logic. <b>When overriding this method, ensure that you always invoke the
+	 * <code>init</code> method of the <code>UIComponent</code> base class.</b>
 	 *
 	 * @protected
 	 */
@@ -309,9 +284,6 @@ sap.ui.define([
 		function setRootControl(vRootControl) {
 			var fnFireInstanceInitialized = function() {
 				ComponentHooks.onUIComponentInstanceInitialized.execute(that);
-				if (typeof UIComponent._fnOnInstanceInitialized === "function") {
-					UIComponent._fnOnInstanceInitialized(that);
-				}
 			};
 			var fnAggregateRootControl = function(oRootControl) {
 				that.setAggregation("rootControl", oRootControl);
@@ -368,7 +340,7 @@ sap.ui.define([
 		}
 
 	  // create the router for the component instance
-		const mRoutingClasses = UIComponent.collectRoutingClasses.call(this.getMetadata().getClass(), this) || {};
+		const mRoutingClasses = this.getMetadata().collectRoutingClasses(this) || {};
 		if (mRoutingClasses.routerClass) {
 			var fnRouterConstructor = mRoutingClasses.routerClass;
 
@@ -393,7 +365,7 @@ sap.ui.define([
 
 		// create the content
 		this.runAsOwner(function() {
-			ManagedObject.runWithPreprocessors(function() {
+			runWithPreprocessors(function() {
 				vRootControl = that.createContent();
 			}, oPreprocessors);
 		});
@@ -497,9 +469,6 @@ sap.ui.define([
 
 		// notify Component destruction callback handler
 		ComponentHooks.onUIComponentInstanceDestroy.execute(this);
-		if (typeof UIComponent._fnOnInstanceDestroy === "function") {
-			UIComponent._fnOnInstanceDestroy(this);
-		}
 		// destroy the router
 		this._destroyCreatedInstances();
 		// make sure that the component is destroyed properly
@@ -641,7 +610,7 @@ sap.ui.define([
 	 */
 	UIComponent.prototype.createId = function(sId) {
 		if (!this.isPrefixedId(sId)) {
-			// components have 3 dashes as separator, views 2 and controls/elements 1
+			// components have 3 hyphens as separator, views 2 and controls/elements 1
 			sId = this.getId() + "---" + sId;
 		}
 		return sId;
@@ -785,7 +754,7 @@ sap.ui.define([
 			if (bModernFactory) {
 				return View.create(oRootView);
 			} else {
-				return View._create(oRootView);
+				return _ViewFactory.create(oRootView);
 			}
 		} else if (oRootView) {
 			throw new Error("Configuration option 'rootView' of component '" + this.getMetadata().getName() + "' is invalid! 'rootView' must be type of string or object!");
@@ -926,14 +895,13 @@ sap.ui.define([
 	 * <code>_fnGetRouterClassName</code> hook, which is expected to be defined within a subclass of the UIComponent.
 	 *
 	 * @param {sap.ui.core.UIComponent} oInstance An UIComponent instance provided by the {@link sap.ui.core.UIComponent#init}.
-	 * @returns {object} Returns a map containing routing module names. Returns routing classes if <code>oInstane</code> is provided.
+	 * @returns {object} Returns a map containing routing module names. Returns routing classes if <code>oInstance</code> is provided.
 	 */
-	UIComponent.collectRoutingClasses = function(oInstance) {
+	UIComponentMetadata.prototype.collectRoutingClasses = function(oInstance) {
 		const mRoutingClasses = {};
-		const oMetadata = this.getMetadata();
 
 		// lookup rootView class
-		const oRootView = oMetadata._getManifestEntry("/sap.ui5/rootView");
+		const oRootView = this._getManifestEntry("/sap.ui5/rootView");
 		const sRootViewName = typeof oRootView === "string" ? oRootView : oRootView?.viewName;
 		if (sRootViewName?.startsWith("module:")) {
 			mRoutingClasses["viewClass"] = sRootViewName;
@@ -950,15 +918,15 @@ sap.ui.define([
 
 		// lookup of the router / targets and views class
 		// ASYNC Only: prevents lazy synchronous loading in UIComponent#init (regardless of manifirst or manilast)
-		const oRouting = oMetadata._getManifestEntry("/sap.ui5/routing", true);
+		const oRouting = this._getManifestEntry("/sap.ui5/routing", true);
 		if (oRouting) {
 			if (oRouting.routes) {
 				// the "sap.ui5/routing/config/routerClass" entry can also contain a Router constructor
 				// See the typedef "sap.ui.core.UIComponent.RoutingMetadata" in sap/ui/core/UIComponent.js
 				let vRouterClass;
-				const _fnGetRouterClassName = this.getMetadata().getStaticProperty("_fnGetRouterClassName");
+				const _fnGetRouterClassName = this.getStaticProperty("_fnGetRouterClassName");
 				if (typeof _fnGetRouterClassName === "function") {
-					vRouterClass = _fnGetRouterClassName(this.getMetadata().getManifestObject());
+					vRouterClass = _fnGetRouterClassName(this.getManifestObject());
 				}
 				vRouterClass ??= oInstance?._getRouterClassName() || oRouting.config?.routerClass || "sap.ui.core.routing.Router";
 

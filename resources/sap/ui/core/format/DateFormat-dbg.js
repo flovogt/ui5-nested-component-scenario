@@ -15,7 +15,6 @@ sap.ui.define([
 	"sap/base/strings/formatMessage",
 	"sap/base/util/deepEqual",
 	"sap/base/util/extend",
-	"sap/ui/core/Lib",
 	"sap/ui/core/Locale",
 	"sap/ui/core/LocaleData",
 	"sap/ui/core/Supportability",
@@ -24,8 +23,7 @@ sap.ui.define([
 	"sap/ui/core/date/UniversalDate",
 	"sap/ui/core/format/FormatUtils"
 ], function(Log, Formatting, Localization, CalendarType, CalendarWeekNumbering, TimezoneUtils, formatMessage,
-		deepEqual, extend, Library, Locale, LocaleData, Supportability, CalendarUtils, UI5Date,
-		UniversalDate, FormatUtils) {
+		deepEqual, extend, Locale, LocaleData, Supportability, CalendarUtils, UI5Date, UniversalDate, FormatUtils) {
 	"use strict";
 
 	/**
@@ -232,7 +230,8 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.minimalDaysInFirstWeek] since 1.105.0 minimal days at the beginning of the year which define the first calendar week; if not defined, the value taken from the locale is used
 	 * @param {string} [oFormatOptions.format] since 1.34.0 contains pattern symbols (e.g. "yMMMd" or "Hms") which will be converted into the pattern in the used locale, which matches the wanted symbols best.
 	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w), Day-Of-Week (E/e/c), Day (d), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
-	 *  See {@link http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems}
+	 *  See {@link https://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+	 *    Unicode Locale Data Markup Language (LDML): Elements availableFormats, appendItems}.
 	 * @param {string} [oFormatOptions.pattern] a data pattern in LDML format. It is not verified whether the pattern represents only a date.
 	 * @param {string} [oFormatOptions.style] can be either 'short, 'medium', 'long' or 'full'. If no pattern is given, a locale dependent default date pattern of that style is used from the LocaleData class.
 	 * @param {boolean} [oFormatOptions.strictParsing] if true, by parsing it is checked if the value is a valid date
@@ -276,7 +275,8 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.minimalDaysInFirstWeek] since 1.105.0 minimal days at the beginning of the year which define the first calendar week; if not defined, the value taken from the locale is used
 	 * @param {string} [oFormatOptions.format] since 1.34.0 contains pattern symbols (e.g. "yMMMd" or "Hms") which will be converted into the pattern in the used locale, which matches the wanted symbols best.
 	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w), Day-Of-Week (E/e/c), Day (d), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
-	 *  See http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+	 *  See {@link https://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+	 *    Unicode Locale Data Markup Language (LDML): Elements availableFormats, appendItems}.
 	 * @param {string} [oFormatOptions.pattern] a datetime pattern in LDML format. It is not verified whether the pattern represents a full datetime.
 	 * @param {string} [oFormatOptions.style] can be either 'short, 'medium', 'long' or 'full'. For datetime you can also define mixed styles, separated with a slash, where the first part is the date style and the second part is the time style (e.g. "medium/short"). If no pattern is given, a locale dependent default datetime pattern of that style is used from the LocaleData class.
 	 * @param {boolean} [oFormatOptions.strictParsing] if true, by parsing it is checked if the value is a valid datetime
@@ -429,7 +429,8 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.minimalDaysInFirstWeek] since 1.105.0 minimal days at the beginning of the year which define the first calendar week; if not defined, the value taken from the locale is used
 	 * @param {string} [oFormatOptions.format] A string containing pattern symbols (e.g. "yMMMd" or "Hms") which will be converted into a pattern for the used locale that matches the wanted symbols best.
 	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w), Day-Of-Week (E/e/c), Day (d), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
-	 *  See http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+	 *  See {@link https://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+	 *    Unicode Locale Data Markup Language (LDML): Elements availableFormats, appendItems}.
 	 * @param {string} [oFormatOptions.pattern] a datetime pattern in LDML format. It is not verified whether the pattern represents a full datetime.
 	 * @param {boolean} [oFormatOptions.showDate=true] Specifies if the date should be displayed.
 	 *   It is ignored for formatting when an options pattern or a format are supplied.
@@ -500,7 +501,8 @@ sap.ui.define([
 	 * @param {int} [oFormatOptions.minimalDaysInFirstWeek] since 1.105.0 minimal days at the beginning of the year which define the first calendar week; if not defined, the value taken from the locale is used
 	 * @param {string} [oFormatOptions.format] since 1.34.0 contains pattern symbols (e.g. "yMMMd" or "Hms") which will be converted into the pattern in the used locale, which matches the wanted symbols best.
 	 *  The symbols must be in canonical order, that is: Era (G), Year (y/Y), Quarter (q/Q), Month (M/L), Week (w), Day-Of-Week (E/e/c), Day (d), Hour (h/H/k/K/j/J), Minute (m), Second (s), Timezone (z/Z/v/V/O/X/x)
-	 *  See http://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+	 *  See {@link https://unicode.org/reports/tr35/tr35-dates.html#availableFormats_appendItems
+	 *    Unicode Locale Data Markup Language (LDML): Elements availableFormats, appendItems}.
 	 * @param {string} [oFormatOptions.pattern] a time pattern in LDML format. It is not verified whether the pattern only represents a time.
 	 * @param {string} [oFormatOptions.style] can be either 'short, 'medium', 'long' or 'full'. If no pattern is given, a locale dependent default time pattern of that style is used from the LocaleData class.
 	 * @param {boolean} [oFormatOptions.strictParsing] if true, by parsing it is checked if the value is a valid time
@@ -750,7 +752,7 @@ sap.ui.define([
 	 * @param {sap.ui.core.Locale} oLocale Locale to ask for locale specific texts/settings
 	 * @param {Object} oInfo The default info object of the current date type
 	 * @param {object} oParentFormatOptions the format options, relevant are: interval, showDate, showTime and showTimezone
-	 * @return {sap.ui.core.DateFormat[]} an array of fallback DateFormat instances
+	 * @return {sap.ui.core.format.DateFormat[]} an array of fallback DateFormat instances
 	 * @private
 	 */
 	DateFormat._createFallbackFormat = function(aFallbackFormatOptions, sCalendarType, oLocale, oInfo, oParentFormatOptions) {
@@ -3462,9 +3464,9 @@ sap.ui.define([
 	 * @ui5-restricted sap.m
 	 */
 	DateFormat.prototype.getPlaceholderText = function() {
-		var oResourceBundle = Library.getResourceBundleFor("sap.ui.core");
+		const sPlaceholder = this.oLocaleData.getDatePlaceholder();
 
-		return oResourceBundle.getText("date.placeholder", [this.format.apply(this, this.getSampleValue())]);
+		return sPlaceholder.replace("{0}", this.format.apply(this, this.getSampleValue()));
 	};
 
 	/**

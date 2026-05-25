@@ -44,7 +44,7 @@ sap.ui.define([
 	 * <li>If the execution needs to branch after a given step, you should set all possible next steps in the <code>subsequentSteps</code> aggregation.
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @constructor
 	 * @public
@@ -157,8 +157,9 @@ sap.ui.define([
 			text: this._oResourceBundle.getText("WIZARD_STEP") + 2,
 			type: ButtonType.Emphasized,
 			press: this._complete.bind(this)
-		}).addStyleClass("sapMWizardNextButtonVisible");
+		}).addStyleClass("sapMWizardNextButton");
 
+		this._oNextButton.data("sap-ui-fastnavgroup", "true", true);
 		this.setAggregation("_nextButton", this._oNextButton);
 	};
 
@@ -219,24 +220,6 @@ sap.ui.define([
 		}
 
 		return this;
-	};
-
-	/**
-	 * Handler for F6 Navigation.
-	 *
-	 * @param {Object} oEvent - The event object
-	 */
-	WizardStep.prototype.onsapskipforward = function(oEvent) {
-		oEvent.preventDefault();
-		const oEventF6 = new jQuery.Event("keydown");
-		oEventF6.target = oEvent.target;
-		oEventF6.key = 'F6';
-
-		if (this._oNextButton.hasStyleClass("sapMWizardNextButtonVisible")) {
-			this._oNextButton.focus();
-		} else {
-			F6Navigation.handleF6GroupNavigation(oEventF6);
-		}
 	};
 
 	/**
@@ -308,7 +291,6 @@ sap.ui.define([
 	WizardStep.prototype.setLast = function(bLast){
 		this.bLast = bLast;
 		this.toggleStyleClass("sapMWizardLastActivatedStep", bLast);
-		this.setButtonVisibility();
 	};
 
 	WizardStep.prototype.setButtonVisibility = function() {
@@ -323,10 +305,14 @@ sap.ui.define([
 	};
 
 	WizardStep.prototype.displayButton = function (bShow) {
+		this._oNextButton.removeStyleClass("sapMWizardNextButtonAnimated");
 		this._oNextButton.toggleStyleClass("sapMWizardNextButtonHidden", !bShow);
-		this._oNextButton.toggleStyleClass("sapMWizardNextButtonVisible", bShow);
 
-		this._oNextButton.setVisible(bShow);
+		if (bShow) {
+			window.requestAnimationFrame(() => {
+				this._oNextButton.addStyleClass("sapMWizardNextButtonAnimated");
+			});
+		}
 	};
 
 	WizardStep.prototype._activate = function () {

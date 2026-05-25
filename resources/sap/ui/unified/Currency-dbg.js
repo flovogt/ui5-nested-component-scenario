@@ -13,7 +13,7 @@ sap.ui.define([
 ], function(Control, library, NumberFormat, CurrencyRenderer) {
 		"use strict";
 
-		// shortcut for sap.m.EmptyIndicator
+		// shortcut for sap.m.EmptyIndicatorMode
 		var EmptyIndicatorMode = library.EmptyIndicatorMode;
 
 
@@ -58,7 +58,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Control
 		 *
 		 * @author SAP SE
-		 * @version 1.136.16
+		 * @version 1.148.0
 		 *
 		 * @constructor
 		 * @public

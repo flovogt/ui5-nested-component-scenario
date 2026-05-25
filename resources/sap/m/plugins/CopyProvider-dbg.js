@@ -37,7 +37,7 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/base/strings/formatMessage",
 	 *
 	 * @extends sap.ui.core.Element
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @since 1.110
@@ -98,6 +98,9 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/base/strings/formatMessage",
 			 * Determines whether unselected rows that are located between the selected rows are copied to the clipboard as an empty row.
 			 *
 			 * This can be useful for maintaining the original structure of the data when it is pasted into a new location (e.g. spreadsheets).
+			 *
+			 * <b>Note:</b> Sparse copying must not be enabled in combination with <code>sap.ui.table.plugins.ODataV4MultiSelection</code> or the
+			 * <code>sap.ui.mdc.Table</code> with the <code>sap.ui.mdc.odata.v4.TableDelegate</code>.
 			 */
 			copySparse: { type: "boolean", defaultValue: false, invalidate: false },
 
@@ -243,10 +246,15 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/base/strings/formatMessage",
 
 	CopyProvider.prototype.setParent = function() {
 		PluginBase.prototype.setParent.apply(this, arguments);
-		if (!this.getParent() && this._oCopyButton) {
-			this._oCopyButton.destroy(true);
-			this._oCopyButton = null;
+		if (!this.getParent()) {
+			this._destroyCopyButton();
 		}
+	};
+
+	CopyProvider.prototype.exit = function() {
+		PluginBase.prototype.exit.call(this);
+		this._mColumnClipboardSettings = null;
+		this._destroyCopyButton();
 	};
 
 	/**
@@ -276,22 +284,12 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/base/strings/formatMessage",
 			sap.ui.require(["sap/ui/core/ShortcutHintsMixin"], (ShortcutHintsMixin) => {
 				if (this._oCopyButton) { // Button might be destroyed in the meantime, esp. in tests
 					ShortcutHintsMixin.addConfig(this._oCopyButton, {
-						message: oBundle.getText(Device.os.macintosh ? "COPYPROVIDER_SHORTCUT_MAC" : "COPYPROVIDER_SHORTCUT_WIN")
+						shortcut: "Ctrl+C" // ShortcutHintMixin takes care of normalizing and localizing
 					}, this.getParent());
 				}
 			});
 		}
 		return this._oCopyButton;
-	};
-
-	CopyProvider.prototype.exit = function() {
-		if (this._oCopyButton) {
-			this._oCopyButton.destroy(true);
-			this._oCopyButton = null;
-		}
-		if (this._mColumnClipboardSettings) {
-			this._mColumnClipboardSettings = null;
-		}
 	};
 
 	/**
@@ -521,6 +519,13 @@ sap.ui.define(["./PluginBase", "sap/base/Log", "sap/base/strings/formatMessage",
 			this.getConfig("hasSelection", this.getControl()) ||
 			this.getPlugin("sap.m.plugins.CellSelector")?.hasSelection()
 		);
+	};
+
+	CopyProvider.prototype._destroyCopyButton = function() {
+		if (this._oCopyButton) {
+			this._oCopyButton.destroy();
+			this._oCopyButton = null;
+		}
 	};
 
 	CopyProvider.prototype._getEffectiveVisible = function() {

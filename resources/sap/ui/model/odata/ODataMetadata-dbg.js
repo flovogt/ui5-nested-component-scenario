@@ -35,9 +35,9 @@ sap.ui.define([
 	 * @param {string} sMetadataURI needs the correct metadata uri including $metadata
 	 * @param {object} mParams map of parameters.
 	 * @param {boolean} [mParams.async=true] request is per default async
-	 * @param {string} [mParams.user] <b>Deprecated</b> for security reasons. Use strong server side
-	 *   authentication instead. UserID for the service.
-	 * @param {string} [mParams.password] <b>Deprecated</b> for security reasons. Use strong server
+	 * @param {string} [mParams.user] <b>Deprecated as of version 1.75.0</b> for security reasons. Use strong server
+	 *   side authentication instead. UserID for the service.
+	 * @param {string} [mParams.password] <b>Deprecated as of version 1.75.0</b> for security reasons. Use strong server
 	 *   side authentication instead. Password for the service.
 	 * @param {object} [mParams.headers] (optional) map of custom headers which should be set with the request.
 	 * @param {string} [mParams.cacheKey] (optional) A valid cache key
@@ -49,7 +49,7 @@ sap.ui.define([
 	 * Implementation to access OData metadata
 	 *
 	 * @author SAP SE
-	 * @version 1.136.16
+	 * @version 1.148.0
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.ODataMetadata
@@ -386,7 +386,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            [oListener=this] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.ODataMetadata</code> itself
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining
@@ -457,7 +457,7 @@ sap.ui.define([
 	 * @param {function}
 	 *            fnFunction The function to be called, when the event occurs
 	 * @param {object}
-	 *            [oListener] Context object to call the event handler with. Defaults to this
+	 *            [oListener=this] Context object to call the event handler with. Defaults to this
 	 *            <code>sap.ui.model.odata.ODataMetadata</code> itself
 	 *
 	 * @returns {this} Reference to <code>this</code> in order to allow method chaining

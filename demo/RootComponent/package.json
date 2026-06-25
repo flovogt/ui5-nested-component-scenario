@@ -32,7 +32,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.0",
     "eslint": "^10.0.0",
-    "@ui5/cli": "^4.0.14",
+    "@ui5/cli": "^5.0.0-alpha.5",
     "@ui5/linter": "^1.16.0",
 		"@ui5/middleware-code-coverage": "^2.0.1",
     "globals": "^17.0.0",

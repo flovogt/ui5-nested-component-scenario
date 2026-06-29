@@ -144,7 +144,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.ManagedObject
 	 * @author SAP SE
-	 * @version 1.148.0
+	 * @version 1.148.1
 	 * @public
 	 * @alias sap.ui.core.Element
 	 */

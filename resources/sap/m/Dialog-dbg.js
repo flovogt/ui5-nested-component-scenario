@@ -173,7 +173,7 @@ function(
 		*
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.148.0
+		* @version 1.148.1
 		*
 		* @constructor
 		* @public

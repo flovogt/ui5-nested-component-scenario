@@ -160,7 +160,7 @@ function(
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.148.0
+	 * @version 1.148.1
 	 *
 	 * @constructor
 	 * @public

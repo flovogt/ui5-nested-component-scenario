@@ -21,7 +21,7 @@ function(Control, Library, SliderTooltipBaseRenderer) {
 		 * @abstract
 		 *
 		 * @author SAP SE
-		 * @version 1.148.0
+		 * @version 1.148.1
 		 *
 		 * @constructor
 		 * @public

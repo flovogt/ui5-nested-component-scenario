@@ -13,7 +13,7 @@ sap.ui.define(["sap/ui/thirdparty/jquery"],
 	 * Utility class to handle files.
 	 *
 	 * @author SAP SE
-	 * @version 1.148.1
+	 * @version 1.148.2
 	 * @namespace
 	 *
 	 * @public

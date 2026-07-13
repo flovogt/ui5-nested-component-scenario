@@ -84,7 +84,7 @@ sap.ui.define([
 	 * @extends sap.ui.core.Control
 	 *
 	 * @author SAP SE
-	 * @version 1.148.1
+	 * @version 1.148.2
 	 *
 	 * @public
 	 * @abstract
@@ -614,7 +614,7 @@ sap.ui.define([
 		return {
 			mode: ListMode.MultiSelect,
 			rememberSelections: true,
-			rememberFocus: false,
+			formsMode: true,
 			keyboardMode: ListKeyboardMode.Edit,
 			itemPress: [this._onItemPressed, this],
 			selectionChange: [this._onSelectionChange, this],

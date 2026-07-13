@@ -6,7 +6,7 @@
   <copyright>OpenUI5
  * (c) Copyright 2026 SAP SE or an SAP affiliate company.
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.</copyright>
-  <version>1.148.1</version>
+  <version>1.148.2</version>
 
   <documentation>The SAPUI5 Core Runtime.
 
@@ -144,7 +144,7 @@
     </jscoverage>
     <!-- Thirdparty references -->
     <thirdparty xmlns="http://www.sap.com/ui5/buildext/thirdparty" >
-        <lib name="jquery-3" displayName="jQuery 3" npmName="jquery" version="3.6.0" hash="dae961667d638591bd0b4717c1f8144b" homepage="https://jquery.com" id="73554900106100068050">
+        <lib name="jquery-3" displayName="jQuery 3" npmName="jquery" version="3.6.0" hash="795bb1f853e48e125092d7be4b592309" homepage="https://jquery.com" id="73554900106100068050">
             <license url="http://jQuery.org/license" type="MIT"/>
             <copyright>OpenJS Foundation and other contributors</copyright>
             <pattern>sap/ui/thirdparty/jquery.js</pattern>

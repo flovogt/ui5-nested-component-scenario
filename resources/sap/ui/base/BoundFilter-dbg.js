@@ -33,7 +33,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.core.ManagedObject
 	 *
-	 * @version 1.148.1
+	 * @version 1.148.2
 	 *
 	 * @private
 	 * @ui5-restricted sap.ui.model

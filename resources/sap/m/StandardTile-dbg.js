@@ -35,7 +35,7 @@ sap.ui.define([
 	 * @extends sap.m.Tile
 	 *
 	 * @author SAP SE
-	 * @version 1.148.1
+	 * @version 1.148.2
 	 *
 	 * @constructor
 	 * @public

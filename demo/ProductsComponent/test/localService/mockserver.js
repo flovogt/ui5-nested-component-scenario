@@ -6,10 +6,9 @@ sap.ui.define([
 	"use strict";
 
 
-	// eslint-disable-next-line init-declarations
 	let oMockServer;
 
-	const sAppPath = "my/lib/sample/suppliers/",
+	const sAppPath = "my/lib/sample/products/",
 	 sJsonFilesPath = `${sAppPath  }localService/mockdata`,
 	 oMockServerInterface = {
 

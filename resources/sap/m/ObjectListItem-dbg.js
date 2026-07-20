@@ -60,7 +60,7 @@ function(
 		 *
 		 * <b>Note:</b> The control must only be used in the context of a list.
 		 * @extends sap.m.ListItemBase
-		 * @version 1.148.2
+		 * @version 1.148.3
 		 *
 		 * @constructor
 		 * @public

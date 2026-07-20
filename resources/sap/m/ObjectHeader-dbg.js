@@ -86,7 +86,7 @@ sap.ui.define([
 	 * <code>sapUiResponsivePadding--header</code>.
 	 *
 	 * @extends sap.ui.core.Control
-	 * @version 1.148.2
+	 * @version 1.148.3
 	 *
 	 * @constructor
 	 * @public
@@ -1062,7 +1062,7 @@ sap.ui.define([
 				alt: this.isPropertyInitial("iconAlt") ? ObjectHeader._getResourceBundle().getText("OH_ARIA_ICON") : this.getIconAlt(),
 				useIconTooltip : false,
 				densityAware : this.getIconDensityAware(),
-				decorative : false
+				decorative : (!this.isPropertyInitial("iconAlt") && this.getIconAlt().trim() === "") ? true : false
 			},
 			IconPool.isIconURI(this.getIcon()) ? { size : sSize } : {}
 		);

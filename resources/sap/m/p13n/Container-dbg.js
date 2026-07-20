@@ -52,7 +52,7 @@ sap.ui.define([
 	 * @extends sap.m.p13n.AbstractContainer
 	 *
 	 * @author SAP SE
-	 * @version 1.148.2
+	 * @version 1.148.3
 	 *
 	 * @private
 	 * @ui5-restricted

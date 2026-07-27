@@ -30,7 +30,7 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer", "sap/ui/core/Lib", "
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.148.3
+	 * @version 1.148.4
 	 *
 	 * @constructor
 	 * @public
@@ -104,7 +104,7 @@ sap.ui.define(["./library", "./ListBase", "./ListRenderer", "sap/ui/core/Lib", "
 	 *
 	 * @param {string} [sTextKey] aria role description text key
 	 * @private
-	 * @ui5-restricted sap.m.upload.UploadSet
+	 * @ui5-restricted sap.m.upload.UploadSet, sap.ui.mdc.chart.SelectionButton
 	 * @since 1.120
 	 */
 	List.prototype.applyAriaRoleDescription = function(sTextKey) {

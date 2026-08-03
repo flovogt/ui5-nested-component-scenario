@@ -42,7 +42,7 @@ sap.ui.define([
 		 * @hideconstructor
 		 * @public
 		 * @since 1.39.0
-		 * @version 1.148.4
+		 * @version 1.148.5
 		 */
 		Context = BaseContext.extend("sap.ui.model.odata.v4.Context", {
 				constructor : constructor
@@ -479,6 +479,7 @@ sap.ui.define([
 			that.checkUpdate();
 			throw oError;
 		});
+		// Note: #deleteFromCache may cancel request and thus deselect synchronously!
 		if (this.bSelected) {
 			this.oBinding.getHeaderContext().onSelectionChanged(this);
 		}

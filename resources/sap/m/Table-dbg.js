@@ -66,7 +66,7 @@ sap.ui.define([
 	 * @extends sap.m.ListBase
 	 *
 	 * @author SAP SE
-	 * @version 1.148.4
+	 * @version 1.148.5
 	 *
 	 * @constructor
 	 * @public
@@ -1152,7 +1152,9 @@ sap.ui.define([
 		}
 
 		ListBase.prototype.onfocusin.call(this, oEvent);
-		this._setNoColumnsMessageAnnouncement(oTarget);
+		if (oTarget.id === this.getId("nodata")) {
+			this._setNoColumnsMessageAnnouncement(oTarget);
+		}
 	};
 
 	// event listener for theme changed

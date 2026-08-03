@@ -60,7 +60,7 @@ function(library, Localization, Control, coreLibrary, Device, HyphenationSupport
 	 * @borrows sap.ui.core.ILabelable.hasLabelableHTMLElement as #hasLabelableHTMLElement
 	 *
 	 * @author SAP SE
-	 * @version 1.148.4
+	 * @version 1.148.5
 	 *
 	 * @constructor
 	 * @public

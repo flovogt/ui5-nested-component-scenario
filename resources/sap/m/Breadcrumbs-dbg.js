@@ -76,7 +76,7 @@ sap.ui.define([
 	 * @implements sap.m.IBreadcrumbs, sap.m.IOverflowToolbarContent, sap.ui.core.IShrinkable
 	 *
 	 * @author SAP SE
-	 * @version 1.148.4
+	 * @version 1.148.5
 	 *
 	 * @constructor
 	 * @public

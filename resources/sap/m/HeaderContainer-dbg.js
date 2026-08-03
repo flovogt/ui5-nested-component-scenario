@@ -125,7 +125,7 @@ sap.ui.define([
 		 * @since 1.44.0
 		 *
 		 * @author SAP SE
-		 * @version 1.148.4
+		 * @version 1.148.5
 		 *
 		 * @public
 		 * @alias sap.m.HeaderContainer

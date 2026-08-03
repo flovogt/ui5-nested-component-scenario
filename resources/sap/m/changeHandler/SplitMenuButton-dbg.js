@@ -20,7 +20,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.m.changeHandler.SplitMenuButton
 	 * @author SAP SE
-	 * @version 1.148.4
+	 * @version 1.148.5
 	 */
 	var SplitMenuButton = {};
 

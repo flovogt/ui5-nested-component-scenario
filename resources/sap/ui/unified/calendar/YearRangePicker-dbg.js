@@ -45,7 +45,7 @@ sap.ui.define([
 	 * @extends sap.ui.unified.calendar.YearPicker
 	 *
 	 * @author SAP SE
-	 * @version 1.148.4
+	 * @version 1.148.5
 	 *
 	 * @constructor
 	 * @private

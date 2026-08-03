@@ -113,7 +113,7 @@ function(
 	 * @abstract
 	 *
 	 * @author SAP SE
-	 * @version 1.148.4
+	 * @version 1.148.5
 	 *
 	 * @constructor
 	 * @public

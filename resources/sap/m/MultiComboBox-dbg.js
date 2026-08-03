@@ -145,7 +145,7 @@ function(
 	 * </ul>
 	 *
 	 * @author SAP SE
-	 * @version 1.148.4
+	 * @version 1.148.5
 	 *
 	 * @constructor
 	 * @extends sap.m.ComboBoxBase

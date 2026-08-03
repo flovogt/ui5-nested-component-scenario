@@ -13,7 +13,8 @@ sap.ui.define([
 	"sap/ui/core/library",
 	"sap/m/library",
 	"sap/m/Label",
-	"sap/ui/core/Lib"
+	"sap/ui/core/Lib",
+	"sap/ui/core/InvisibleMessage"
 ], (
 	QueryPanel,
 	VBox,
@@ -24,11 +25,12 @@ sap.ui.define([
 	coreLibrary,
 	mLibrary,
 	Label,
-	Library
+	Library,
+	InvisibleMessage
 ) => {
 	"use strict";
 
-	const { ValueState, InvisibleMessage, InvisibleMessageMode } = coreLibrary;
+	const { ValueState, InvisibleMessageMode } = coreLibrary;
 
 	const { ListKeyboardMode, FlexJustifyContent, WrappingType } = mLibrary;
 
@@ -45,7 +47,7 @@ sap.ui.define([
 	 * @extends sap.m.p13n.QueryPanel
 	 *
 	 * @author SAP SE
-	 * @version 1.148.4
+	 * @version 1.148.5
 	 *
 	 * @private
 	 * @since 1.121

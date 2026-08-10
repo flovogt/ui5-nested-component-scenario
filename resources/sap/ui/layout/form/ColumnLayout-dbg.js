@@ -60,7 +60,7 @@ sap.ui.define([
 	 * This control cannot be used stand-alone, it just renders a {@link sap.ui.layout.form.Form Form} control,
 	 * so it must be assigned to a {@link sap.ui.layout.form.Form Form} control using the {@link sap.ui.layout.form.Form#setLayout layout} aggregation.
 	 * @extends sap.ui.layout.form.FormLayout
-	 * @version 1.148.5
+	 * @version 1.148.6
 	 *
 	 * @constructor
 	 * @public

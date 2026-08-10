@@ -132,7 +132,7 @@ function(
 	 * @extends sap.m.SelectDialogBase
 	 *
 	 * @author SAP SE
-	 * @version 1.148.5
+	 * @version 1.148.6
 	 *
 	 * @constructor
 	 * @public

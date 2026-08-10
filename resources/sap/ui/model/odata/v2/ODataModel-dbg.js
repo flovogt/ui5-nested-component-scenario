@@ -218,7 +218,7 @@ sap.ui.define([
 	 * This model is not prepared to be inherited from.
 	 *
 	 * @author SAP SE
-	 * @version 1.148.5
+	 * @version 1.148.6
 	 *
 	 * @public
 	 * @alias sap.ui.model.odata.v2.ODataModel

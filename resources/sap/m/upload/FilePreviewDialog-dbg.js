@@ -74,7 +74,7 @@ sap.ui.define([
 	 * @constructor
 	 * @public
 	 * @since 1.120
-	 * @version 1.148.5
+	 * @version 1.148.6
 	 * @extends sap.ui.core.Element
 	 * @name sap.m.upload.FilePreviewDialog
 	 */

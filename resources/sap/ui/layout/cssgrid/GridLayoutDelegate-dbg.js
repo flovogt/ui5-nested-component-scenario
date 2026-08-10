@@ -20,7 +20,7 @@ sap.ui.define([
 	 *
 	 * @extends sap.ui.base.Object
 	 *
-	 * @version 1.148.5
+	 * @version 1.148.6
 	 * @alias sap.ui.layout.cssgrid.GridLayoutDelegate
 	 * @public
 	 */

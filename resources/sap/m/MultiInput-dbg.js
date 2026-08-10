@@ -112,7 +112,7 @@ function(
 	* @extends sap.m.Input
 	*
 	* @author SAP SE
-	* @version 1.148.5
+	* @version 1.148.6
 	*
 	* @constructor
 	* @public

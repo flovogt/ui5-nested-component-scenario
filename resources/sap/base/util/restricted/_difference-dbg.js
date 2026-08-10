@@ -4,13 +4,13 @@
  * Licensed under the Apache License, Version 2.0 - see LICENSE.txt.
  */
 /**
- * See {@link https://lodash.com/docs/4.17.23#difference}
+ * See {@link https://lodash.com/docs/4.18.1#difference}
  *
  * @function
  * @alias module:sap/base/util/restricted/_difference
  * @author SAP SE
  * @since 1.80
- * @version 1.148.5
+ * @version 1.148.6
  * @private
  * @ui5-restricted
 */

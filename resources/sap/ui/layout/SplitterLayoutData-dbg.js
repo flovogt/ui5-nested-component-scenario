@@ -21,7 +21,7 @@ sap.ui.define(['sap/ui/core/LayoutData', './library'],
 	 * Holds layout data for the splitter contents.
 
 	 * @extends sap.ui.core.LayoutData
-	 * @version 1.148.6
+	 * @version 1.148.7
 	 *
 	 * @constructor
 	 * @public

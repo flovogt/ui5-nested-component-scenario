@@ -80,7 +80,7 @@ sap.ui.define([
 	 * Basic Calendar.
 	 * This calendar is used for DatePickers
 	 * @extends sap.ui.core.Control
-	 * @version 1.148.6
+	 * @version 1.148.7
 	 *
 	 * @constructor
 	 * @public

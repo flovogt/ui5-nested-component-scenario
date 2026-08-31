@@ -186,7 +186,7 @@ sap.ui.define([
 	 * mobile devices, it opens in full screen.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.148.6
+	 * @version 1.148.7
 	 *
 	 * @constructor
 	 * @public

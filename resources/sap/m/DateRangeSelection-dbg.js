@@ -168,8 +168,8 @@ sap.ui.define([
 	 * compact mode and provides a touch-friendly size in cozy mode.
 	 *
 	 * @extends sap.m.DatePicker
-	 * @version 1.148.6
-	 * @version 1.148.6
+	 * @version 1.148.7
+	 * @version 1.148.7
 	 *
 	 * @constructor
 	 * @public

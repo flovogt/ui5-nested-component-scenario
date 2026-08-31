@@ -49,7 +49,7 @@ sap.ui.define([
 	 *
 	 *
 	 * @author SAP SE
-	 * @version 1.148.6
+	 * @version 1.148.7
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions]

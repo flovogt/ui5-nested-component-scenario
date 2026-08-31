@@ -117,7 +117,7 @@ sap.ui.define([
 	 * @private
 	 * @ui5-restricted sap.ui.core, sap.ui.test
 	 */
-	const sVersion = "1.148.6";
+	const sVersion = "1.148.7";
 
 	/**
 	 * The buildinfo.
@@ -441,7 +441,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 * @final
 	 * @author SAP SE
-	 * @version 1.148.6
+	 * @version 1.148.7
 	 * @alias sap.ui.core.Core
 	 * @public
 	 * @hideconstructor

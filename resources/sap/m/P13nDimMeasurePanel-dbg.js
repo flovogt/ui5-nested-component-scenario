@@ -95,7 +95,7 @@ sap.ui.define([
 	 *        dimensions and measures for table personalization.
 	 * @extends sap.m.P13nPanel
 	 * @author SAP SE
-	 * @version 1.148.6
+	 * @version 1.148.7
 	 * @constructor
 	 * @public
 	 * @since 1.34.0

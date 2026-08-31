@@ -24,7 +24,7 @@ function(ElementMetadata, WebComponentRenderer, camelize, hyphenate) {
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.148.6
+	 * @version 1.148.7
 	 * @since 1.138.0
 	 * @alias sap.ui.core.webc.WebComponentMetadata
 	 * @extends sap.ui.core.ElementMetadata

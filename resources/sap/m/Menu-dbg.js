@@ -63,7 +63,7 @@ sap.ui.define([
 		 * @implements sap.ui.core.IContextMenu
 		 *
 		 * @author SAP SE
-		 * @version 1.148.6
+		 * @version 1.148.7
 		 *
 		 * @constructor
 		 * @public

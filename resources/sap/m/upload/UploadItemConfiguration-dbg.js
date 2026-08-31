@@ -26,7 +26,7 @@ sap.ui.define([
 	 * @constructor
 	 * @public
 	 * @since 1.124
-	 * @version 1.148.6
+	 * @version 1.148.7
 	 * @alias sap.m.upload.UploadItemConfiguration
 	 */
     const UploadItemConfiguration = Element.extend("sap.m.upload.UploadItemConfiguration", {

@@ -173,7 +173,7 @@ function(
 		*
 		* @implements sap.ui.core.PopupInterface
 		* @author SAP SE
-		* @version 1.148.7
+		* @version 1.148.8
 		*
 		* @constructor
 		* @public
@@ -1753,7 +1753,19 @@ function(
 				return oFocusRealTarget.getId();
 			}
 
-			return oFocusRealTarget?.id;
+			// If the DOM target has no id, assign a stable one so Popup._getDomRefToFocus
+			// can resolve and focus it directly on open. Without this, Popup falls back
+			// to firstFocusableDomRef(), hits the -firstfe sentinel, and onfocusin
+			// redirects focus to the last focusable element (e.g. a footer button).
+			// Falling back to the dialog id here would also be wrong — Popup would then
+			// focus the dialog root first, causing a two-step focus that prevents
+			// screen readers from announcing the dialog role and title on open.
+			// Typical case: raw <a> rendered inside sap.m.FormattedText.
+			if (oFocusRealTarget && !oFocusRealTarget.id) {
+				oFocusRealTarget.id = this.getId() + "-x_initialFocus";
+			}
+
+			return oFocusRealTarget?.id || this.getId();
 		};
 
 		/**

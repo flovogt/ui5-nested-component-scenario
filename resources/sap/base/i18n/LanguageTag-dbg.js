@@ -36,7 +36,7 @@ sap.ui.define([
 	 * @param {string} sLanguageTag the language tag identifier, in format en-US or en_US.
 	 *
 	 * @author SAP SE
-	 * @version 1.148.7
+	 * @version 1.148.8
 	 * @public
 	 * @alias module:sap/base/i18n/LanguageTag
 	 */

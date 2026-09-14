@@ -28,7 +28,7 @@ sap.ui.define([
 	 * @extends sap.m.table.columnmenu.QuickActionBase
 	 *
 	 * @author SAP SE
-	 * @version 1.148.7
+	 * @version 1.148.8
 	 *
 	 * @public
 	 * @since 1.110

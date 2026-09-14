@@ -19,7 +19,7 @@ sap.ui.define(["sap/ui/core/Lib", 'sap/ui/model/SimpleType', 'sap/ui/model/Forma
 	 * @extends sap.ui.model.SimpleType
 	 *
 	 * @author SAP SE
-	 * @version 1.148.7
+	 * @version 1.148.8
 	 *
 	 * @public
 	 * @param {object} [oFormatOptions]

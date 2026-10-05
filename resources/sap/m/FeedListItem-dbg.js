@@ -65,7 +65,7 @@ function(
 	 * @extends sap.m.ListItemBase
 	 *
 	 * @author SAP SE
-	 * @version 1.148.8
+	 * @version 1.148.9
 	 *
 	 * @constructor
 	 * @public

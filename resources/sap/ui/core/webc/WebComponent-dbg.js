@@ -132,7 +132,7 @@ function(
 	 *
 	 * @extends sap.ui.core.Control
 	 * @author SAP SE
-	 * @version 1.148.9
+	 * @version 1.148.10
 	 * @public
 	 * @since 1.138.0
 	 * @alias sap.ui.core.webc.WebComponent

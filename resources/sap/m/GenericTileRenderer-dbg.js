@@ -164,6 +164,11 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/core/Them
 			oRm.class("sapMGTLinkTileContent");
 		}
 		oRm.openEnd();
+		if (!oControl._isIconMode()) {
+			oRm.openStart("div");
+			oRm.class("sapMGTContentWrapper");
+			oRm.openEnd();
+		}
 		if (sTooltipText) {
 			oControl.getAggregation("_invisibleText").setText(sTooltipText);
 			oRm.renderControl(oControl.getAggregation("_invisibleText"));
@@ -449,16 +454,22 @@ sap.ui.define(["sap/m/library", "sap/base/security/encodeCSS", "sap/ui/core/Them
 				this._renderInfoContainer(oRm, oControl);
 				oRm.close("div");
 			}
-			if (oControl._isActionMode() && oControl.getActionButtons().length > 0) {
-				//Render Action Buttons, only in ActionMode and in TwoByOne frame type
-				oRm.openStart("div", oControl.getId() + "-actionButtons");
-				oRm.class("sapMGTActionModeContainer");
-				oRm.openEnd();
-				oControl.getActionButtons().forEach(function (oActionButton) {
-					oRm.renderControl(oActionButton);
-				});
-				oRm.close("div");
-			}
+
+		}
+
+		if (!oControl._isIconMode()) {
+			oRm.close("div"); // close sapMGTContentWrapper
+		}
+
+		if (oControl._isActionMode() && oControl.getActionButtons().length > 0) {
+			//Render Action Buttons, only in ActionMode and in TwoByOne frame type
+			oRm.openStart("div", oControl.getId() + "-actionButtons");
+			oRm.class("sapMGTActionModeContainer");
+			oRm.openEnd();
+			oControl.getActionButtons().forEach(function (oActionButton) {
+				oRm.renderControl(oActionButton);
+			});
+			oRm.close("div");
 		}
 
 		if (sState !== LoadState.Loaded && sState !== LoadState.Loading) {

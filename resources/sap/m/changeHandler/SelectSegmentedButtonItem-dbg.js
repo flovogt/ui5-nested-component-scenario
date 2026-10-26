@@ -13,7 +13,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.m.changeHandler.SelectSegmentedButtonItem
 	 * @author SAP SE
-	 * @version 1.148.9
+	 * @version 1.148.10
 	 * @since 1.144
 	 */
 	const SelectSegmentedButtonItem = {};

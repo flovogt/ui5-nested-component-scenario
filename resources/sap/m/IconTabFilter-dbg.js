@@ -94,7 +94,7 @@ sap.ui.define([
 	 * @implements sap.m.IconTab
 	 *
 	 * @author SAP SE
-	 * @version 1.148.9
+	 * @version 1.148.10
 	 *
 	 * @constructor
 	 * @public
@@ -646,7 +646,6 @@ sap.ui.define([
 		if (this.getItems().length && bIsSelectable) {
 
 			oRM.openStart("span").class("sapMITBFilterExpandBtnSeparator")
-				.accessibilityState({ role: "separator" })
 				.openEnd()
 			.close("span");
 

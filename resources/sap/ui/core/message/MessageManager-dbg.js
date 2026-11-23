@@ -37,7 +37,7 @@ sap.ui.define([
 	 * @extends sap.ui.base.Object
 	 *
 	 * @author SAP SE
-	 * @version 1.148.10
+	 * @version 1.148.11
 	 *
 	 * @public
 	 * @alias sap.ui.core.message.MessageManager

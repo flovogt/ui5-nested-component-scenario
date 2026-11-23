@@ -14,7 +14,7 @@ sap.ui.define([
 	 *
 	 * @alias sap.ui.layout.changeHandler.RenameFormContainer
 	 * @author SAP SE
-	 * @version 1.148.10
+	 * @version 1.148.11
 	 * @since 1.48
 	 * @private
 	 */

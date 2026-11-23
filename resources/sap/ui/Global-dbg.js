@@ -18,7 +18,7 @@
  * sap.ui.lazyRequire("sap.ui.core.Control");
  * sap.ui.lazyRequire("sap.m.Button");
  *
- * @version 1.148.10
+ * @version 1.148.11
  * @author  SAP SE
  * @public
  * @fileoverview
@@ -48,7 +48,7 @@ sap.ui.define([
 	 * The <code>sap.ui</code> namespace is the central OpenAjax compliant entry
 	 * point for UI related JavaScript functionality provided by SAP.
 	 *
-	 * @version 1.148.10
+	 * @version 1.148.11
 	 * @namespace
 	 * @name sap.ui
 	 * @public
@@ -59,9 +59,9 @@ sap.ui.define([
 		 * The version of the SAP UI Library
 		 * @type string
 		 */
-		version: "1.148.10",
+		version: "1.148.11",
 		// buildinfo.lastchange is deprecated and is therefore defaulted to empty string
-		buildinfo : { lastchange : "", buildtime : "20261123-0142" }
+		buildinfo : { lastchange : "", buildtime : "20261123-1255" }
 	};
 
 	/**

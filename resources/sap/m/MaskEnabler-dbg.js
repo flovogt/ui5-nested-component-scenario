@@ -28,7 +28,7 @@ sap.ui.define([
 	 * Applies mask support for input controls.
 	 * It should should be applied to the prototype of a <code>sap.m.InputBase</code>.
 	 *
-	 * @version 1.148.10
+	 * @version 1.148.11
 	 * @private
 	 * @mixin
 	 * @alias sap.m.MaskEnabler
@@ -1008,6 +1008,10 @@ sap.ui.define([
 		 * @private
 		 */
 		this.oncut = function(oEvent) {
+			if (!this.getEditable() || !this.getEnabled()) {
+				return;
+			}
+
 			var oSelection = this._getTextSelection(),
 				iMinBrowserDelay = this._getMinBrowserDelay(),
 				iBegin = oSelection.iFrom,

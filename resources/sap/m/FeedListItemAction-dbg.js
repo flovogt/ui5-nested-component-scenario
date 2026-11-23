@@ -19,7 +19,7 @@ sap.ui.define(["./ListItemActionBase"],
 	 * @extends sap.m.ListItemActionBase
 	 *
 	 * @author SAP SE
-	 * @version 1.148.10
+	 * @version 1.148.11
 	 *
 	 * @constructor
 	 * @public

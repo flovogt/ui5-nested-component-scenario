@@ -64,7 +64,7 @@ sap.ui.define([
 		 * @implements sap.m.IMenuItem, sap.m.IMenuItemBehavior
 		 *
 		 * @author SAP SE
-		 * @version 1.148.10
+		 * @version 1.148.11
 		 *
 		 * @constructor
 		 * @public

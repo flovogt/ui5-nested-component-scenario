@@ -44,7 +44,7 @@ sap.ui.define([
 		 * @extends sap.ui.core.Element
 		 *
 		 * @author SAP SE
-		 * @version 1.148.10
+		 * @version 1.148.11
 		 *
 		 * @public
 		 * @since 1.92
@@ -401,9 +401,13 @@ sap.ui.define([
 
 		DynamicDateOption.prototype._createDateControl = function(oValue, iIndex, fnControlsUpdated, sCalendarWeekNumbering) {
 			var oControl = new Calendar({
-				width: "100%",
-				calendarWeekNumbering: sCalendarWeekNumbering
+				width: "100%"
 			});
+
+			if (sCalendarWeekNumbering) {
+				oControl.setCalendarWeekNumbering(sCalendarWeekNumbering);
+			}
+
 			var oInputControlValue;
 
 			if (oValue && this.getKey() === oValue.operator) {

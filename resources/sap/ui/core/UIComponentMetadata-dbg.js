@@ -17,7 +17,7 @@ sap.ui.define(['./ComponentMetadata', 'sap/ui/core/mvc/ViewType'],
 	 *
 	 * @class
 	 * @author SAP SE
-	 * @version 1.148.10
+	 * @version 1.148.11
 	 * @since 1.15.1
 	 * @alias sap.ui.core.UIComponentMetadata
 	 * @extends sap.ui.core.ComponentMetadata
